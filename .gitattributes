@@ -1,0 +1,29 @@
+# Normalise line endings so Windows/Linux diffs stay clean.
+* text=auto eol=lf
+
+# Godot text formats — always diffable text.
+*.gd        text eol=lf
+*.tscn      text eol=lf
+*.tres      text eol=lf
+*.godot     text eol=lf
+*.cfg       text eol=lf
+*.import    text eol=lf
+*.uid       text eol=lf
+*.json      text eol=lf
+*.csv       text eol=lf
+*.md        text eol=lf
+
+# Binary — never try to merge these.
+*.png       binary
+*.jpg       binary
+*.webp      binary
+*.ogg       binary
+*.wav       binary
+*.mp3       binary
+*.ttf       binary
+*.otf       binary
+*.glb       binary
+*.blend     binary
+
+# When real art arrives, enable Git LFS for the lines below (see docs/CONVENTIONS.md).
+# *.png filter=lfs diff=lfs merge=lfs -text

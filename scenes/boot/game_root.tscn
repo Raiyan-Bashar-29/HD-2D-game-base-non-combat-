@@ -1,0 +1,26 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/core/boot/game_root.gd" id="1_root"]
+[ext_resource type="Script" path="res://src/ui/hud/screen_fade.gd" id="2_fade"]
+[ext_resource type="Script" path="res://src/systems/debug/dev_capture.gd" id="3_dev"]
+
+[node name="GameRoot" type="Node"]
+script = ExtResource("1_root")
+
+[node name="WorldRoot" type="Node3D" parent="."]
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+layer = 100
+
+[node name="ScreenFade" type="ColorRect" parent="UILayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+script = ExtResource("2_fade")
+
+[node name="DevCapture" type="Node" parent="."]
+script = ExtResource("3_dev")

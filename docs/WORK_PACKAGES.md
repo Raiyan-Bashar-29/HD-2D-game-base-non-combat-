@@ -188,7 +188,7 @@ warm-up. Interior variant with `follow_clock = false`.
 one frame refused with a log line; world state on both sides survives a save and reload;
 captures of both areas.
 
-**Done 2026-08-26**, commit `PLACEHOLDER4`.
+**Done 2026-08-26**, commit `3ed321f`.
 `scenes/areas/lantern_hall/`, `src/gameplay/interactables/area_door.gd`,
 `src/ui/hud/loading_indicator.gd`, `tests/unit/transitions_test.gd`,
 `Events.area_load_progress`, `Director.WARM_UP_FRAMES`, an Interior group on

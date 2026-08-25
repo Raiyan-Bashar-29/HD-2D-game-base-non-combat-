@@ -16,6 +16,98 @@ Append-only. Newest entry at the top. One entry per working session.
 
 ---
 
+## 2026-08-26 — WP-01: triggers, resting and authored climbing
+
+**Did:**
+
+Three new interactables, the clock call they needed, and a climb state on the player body.
+
+- `TriggerVolume` — an `Area3D` on `Layers.TRIGGER`, once-or-repeat, persisted by `object_id`.
+  It sets a world flag and emits `Events.trigger_fired`, and that is all it does.
+- `RestPoint` — the `SIT` verb, skipping to a target hour, with an optional `night_only` gate
+  that refuses with `WRONG_TIME`.
+- `Clock.skip_to_hour(hour)` — routed through `set_time`, returning the minutes skipped.
+- `ClimbPoint` plus `can_climb` / `begin_climb` / `climb_step` on `PlayerController`.
+- Prefabs in `scenes/objects/`, a stone terrace and all three objects placed in the courtyard,
+  four CSV rows, `RefusalReason.NOT_GROUNDED`, and `--skip-to-hour=` on the dev capture.
+- `tests/unit/traversal_test.gd`, 50 assertions. The suite is now 215.
+
+**Why:**
+
+The `Triggers/` node, `Layers.TRIGGER` and the inventory rows for sittables and climbables had
+all existed since Phase 0 with nothing populating them. Three specific reasons shaped the code:
+
+- **A trigger must not name its consequence.** `@export var door_to_open` is the same trap the
+  lever avoids: the second time two things must react to one crossing, the coupling has to be
+  undone. It sets a flag and announces itself; anything may watch either.
+- **A time skip is one event, not a fast-forward.** Sleeping eight hours through
+  `advance_minutes` emits 480 `minute_passed` signals, and any listener doing real work per
+  minute does it 480 times in one frame. `skip_to_hour` is a single `set_time`.
+- **`NOT_GROUNDED` is a new refusal reason, not a silent no.** A climb refused mid-air with no
+  explanation is indistinguishable from a broken button, and this project's whole position on
+  refusal is that the player should be told why.
+
+**Connects:**
+
+`ClimbPoint` asks the mover `can_climb()` and calls `begin_climb()` — it never writes a
+position itself, so `PlayerController`'s boundary holds and interaction stays out of it.
+`RestPoint` calls `Clock`, and everything downstream of the clock — the environment driver,
+and later NPC schedules — reacts without knowing a bench exists. `TriggerVolume` reuses
+`PersistentState` unchanged; it is not an `Interactable`, because nobody presses it.
+
+**Verified:**
+
+- `--headless --import` — clean.
+- `--headless --quit-after 30` — **0 warnings, 0 errors**.
+- `--headless res://tests/test_runner.tscn --quit-after 150` — **215 passed, 0 failed**,
+  exit 0. A deliberately broken assertion gave 211/1 and exit 1.
+- `--headless --script tools/check_budgets.gd` — 48 files, 3500 code lines, 0 violations,
+  exit 0.
+- `--headless --script tools/check_content.gd` — PASS, exit 0.
+- Two windowed captures at 960x540 from the same `--time=06:30 --freeze-time` start, the
+  second adding `--skip-to-hour=20`: warm dawn with south-cast shadows becomes cool night
+  with both lantern pools lit. **The lighting genuinely changed**, which is the thing headless
+  cannot tell you.
+- A third capture with the spawn temporarily moved beside the terrace shows the ladder flush
+  to the stone face and the prompt reading "Climb Trellis Ladder"; a fourth, from the top
+  marker, shows the body standing on the terrace with the same prompt still offered, so the
+  descent is reachable. Spawn restored afterwards.
+
+**Two real bugs the engine caught, neither visible in the source:**
+
+1. **The climb oscillated on its corner forever.** The path deliberately turns at the top —
+   up-then-over ascending, over-then-down descending — because a straight line from the foot
+   of a ladder to the ledge above passes *through* the ledge, and a climb that writes
+   `global_position` has no collision left to stop it. But without a latch, the frame after
+   arriving at the waypoint steps off towards the target, the next frame sees the body is no
+   longer at the waypoint and steers back. 600 test steps, no convergence. Fixed with
+   `_climb_turned`.
+2. **The dais trigger toasted at spawn, from three metres away.** A spawning player exists at
+   the area origin for one frame before `Director` places them on the spawn marker, so a
+   trigger anywhere near that origin fires on load, every load. `TriggerVolume` now arms two
+   physics frames late. Verified in both directions: no spawn toast now, and with the trigger
+   temporarily moved onto the spawn point it still fires through `body_entered` under real
+   physics, with the flag landing under its `object_id`.
+
+**Unblocks:**
+
+`Clock.skip_to_hour` is what NPC schedules (WP-06) need to be testable — a schedule you have
+to wait twenty real minutes to observe is not one you will ever debug. Trigger volumes give
+area transitions (WP-04) their entry mechanism, and give quests (WP-08) a way to fire a step
+from a place rather than from an object.
+
+**Known gaps:**
+
+The unit test drives `fire()` directly and asserts the wiring (layer, mask, one `body_entered`
+connection); the physical entry path is proven by the windowed run, not by the suite, because
+`TestCase.run()` is synchronous and cannot wait on a physics frame. For the same reason the
+*grounded* half of the climb refusal is asserted only in its negative direction — a body that
+has never called `move_and_slide` is mid-air by definition, which is exactly the case worth
+testing. The arm delay means anything still standing inside a volume when it arms is treated
+as having entered; that is deliberate, and correct for a save reloaded inside a region.
+`RestPoint` has no `PersistentState` because it has nothing to remember.
+
+
 ## 2026-08-25 — Work sliced into one-chat packages, and a roadmap to skeleton-complete
 
 **Did:**

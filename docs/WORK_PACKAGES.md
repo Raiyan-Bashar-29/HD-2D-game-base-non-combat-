@@ -36,8 +36,8 @@ Headless shades nothing. This project has already shipped two bugs that every ot
 
 | # | Package | Status |
 |---|---|---|
-| 01 | Triggers and traversal | **TODO — next** |
-| 02 | UI foundation | TODO |
+| 01 | Triggers and traversal | **DONE** — see below |
+| 02 | UI foundation | **TODO — next** |
 | 03 | HUD and inventory screen | TODO |
 | 04 | Second area, transitions, loading | TODO |
 | 05 | Dialogue | TODO |
@@ -58,7 +58,7 @@ content, and none of it should need new architecture. That is the bet this proje
 
 ---
 
-## WP-01 · Triggers and traversal — **NEXT**
+## WP-01 · Triggers and traversal — **DONE**
 
 **Goal.** Complete the interactable catalogue so the Phase 1 loop is genuinely whole: volumes
 that fire on entry, a place to rest and skip time, and authored vertical movement.
@@ -91,9 +91,17 @@ that fire on entry, a place to rest and skip time, and authored vertical movemen
 **Unblocks:** the clock time-skip that NPC schedules (WP-06) need.
 **Deferred here:** physics props, water volumes, harvestables (WP-10).
 
+**Closed 2026-08-26**, commit `COMMITHASH`. All four exit criteria met. 215 assertions
+(was 165), boot `0 warnings, 0 errors`, both checkers exit 0. Two bugs the engine caught and
+static checks could not: a climb that oscillated on its corner because the waypoint did not
+latch, and a trigger near the area origin firing at spawn because the player exists there for
+a frame before `Director` places them. Both are written up in `DEVLOG.md` and `CONTEXT.md`.
+One scope addition beyond the manifest, deliberate and small: `RefusalReason.NOT_GROUNDED`,
+because a climb refused mid-air with no message is indistinguishable from a broken button.
+
 ---
 
-## WP-02 · UI foundation
+## WP-02 · UI foundation — **NEXT**
 
 **Goal.** A screen stack, pause semantics and input contexts — so no screen is ever built on an
 ad-hoc pause and a boolean.

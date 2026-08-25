@@ -20,6 +20,7 @@ extends Node
 ##                        image will be darker than the real thing.
 ##   --time=HH:MM         force the clock before capturing.
 ##   --freeze-time        stop the clock, so a capture is reproducible to the pixel.
+##   --skip-to-hour=<int> perform the same time skip a rest point does, after --time.
 ##   --weather=<KIND>     force weather. Any GameEnums.WeatherKind name.
 ##
 ## OWNS: capture, and CLI-driven overrides for time and weather.
@@ -87,6 +88,8 @@ func _parse_arguments() -> void:
 		elif argument == "--freeze-time":
 			Clock.paused = true
 			Log.info("test", "Clock frozen by command line")
+		elif argument.begins_with("--skip-to-hour="):
+			_skip_to_hour(argument.trim_prefix("--skip-to-hour="))
 		elif argument.begins_with("--weather="):
 			_force_weather(argument.trim_prefix("--weather="))
 
@@ -107,3 +110,12 @@ func _force_weather(value: String) -> void:
 		return
 	Weather.force(index as GameEnums.WeatherKind)
 	Log.info("test", "Weather forced to %s by command line" % value.to_upper())
+
+
+## The same time skip a rest point performs, reachable from the command line, so a before and
+## after capture can prove that skip_to_hour really drives the lighting rather than only
+## moving a number. Deliberately Clock.skip_to_hour and not a second implementation: a debug
+## path that reimplements the thing it verifies verifies nothing.
+func _skip_to_hour(value: String) -> void:
+	var skipped: int = Clock.skip_to_hour(value.to_int())
+	Log.info("test", "Skipped %d minutes to %02d:00 by command line" % [skipped, Clock.hour])

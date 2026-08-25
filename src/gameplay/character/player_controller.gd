@@ -17,7 +17,8 @@ extends CharacterBody3D
 ##
 ## NO JUMPING, deliberately. In an exploration game with a fixed camera, a free jump makes
 ## the player try to reach ledges the level was not built for, and every collision gap
-## becomes a bug report. Vertical movement will be authored: ladders, stairs, climb points.
+## becomes a bug report. Vertical movement is authored instead: a ClimbPoint asks this body
+## to move between two markers, via begin_climb() at the bottom of this file.
 ## The gravity below is for slopes and falling, not for jumping.
 
 @export var walk_speed: float = 3.2
@@ -26,6 +27,9 @@ extends CharacterBody3D
 ## Metres per second squared. High values feel responsive; low values feel like ice.
 @export var acceleration: float = 14.0
 @export var friction: float = 18.0
+## Metres per second up or down an authored climb. Slow on purpose: a climb the player can
+## rush is indistinguishable from a teleport, and the point of it is that it takes commitment.
+@export var climb_speed: float = 2.6
 ## Whether run is held or toggled. Mirrors the "gameplay/run_is_toggle" setting.
 @export var run_is_toggle: bool = false
 
@@ -37,6 +41,12 @@ var _gravity: float = 24.0
 var _run_toggled: bool = false
 ## Set while dialogue, a cutscene or a multi-step interaction has control.
 var _input_locked: bool = false
+## Where an authored climb is heading, and the corner it turns on the way. Only meaningful
+## while state is CLIMB.
+var _climb_target: Vector3 = Vector3.ZERO
+var _climb_waypoint: Vector3 = Vector3.ZERO
+var _climb_turned: bool = false
+var _climbing: bool = false
 
 
 func _ready() -> void:
@@ -63,6 +73,11 @@ func _exit_tree() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	# A climb owns the body outright: no input, no gravity, no sliding. Anything less and the
+	# player slides off the ladder the first time the shape below them stops being floor.
+	if _climbing:
+		climb_step(delta)
+		return
 	_poll_run_toggle()
 	var wish: Vector3 = Vector3.ZERO
 	if not _input_locked:
@@ -149,6 +164,13 @@ func _update_state(wish: Vector3) -> void:
 	else:
 		next = GameEnums.MoveState.WALK
 
+	_enter_state(next)
+
+
+## The one place `state` is written and the one place the change is announced. Both the
+## per-frame update and the authored climb go through it, so a state can never change
+## without the rest of the game hearing about it.
+func _enter_state(next: GameEnums.MoveState) -> void:
 	if next == state:
 		return
 	state = next
@@ -177,3 +199,68 @@ func _on_setting_changed(section: String, key: String, value: Variant) -> void:
 	if section == "gameplay" and key == "run_is_toggle" and value is bool:
 		run_is_toggle = value
 		_run_toggled = false
+
+
+# AUTHORED VERTICAL MOVEMENT. There is no jump, so a ladder or a trellis asks the body to
+# move between two points and the body does it - deliberately, at a fixed rate, with input
+# suspended for the duration.
+
+
+## May a climb begin? On the floor, and not already climbing. ClimbPoint asks this instead of
+## assuming it: whether the body is grounded is the body's own knowledge, and a mid-air climb
+## is exactly the free-jump behaviour the design rules out.
+func can_climb() -> bool:
+	return not _climbing and is_on_floor()
+
+
+## Start a climb to a world position. Returns false only when one is already running.
+##
+## The grounded rule is deliberately NOT re-checked here. Refusing is the interactable's job
+## and it already asked can_climb(); a cutscene that wants to lift the player off a ledge must
+## not be blocked by a rule that exists to shape player movement.
+func begin_climb(to: Vector3) -> bool:
+	if _climbing:
+		return false
+	_climbing = true
+	_climb_target = to
+	# The corner is ALWAYS turned at the top: up-then-over going up, over-then-down coming
+	# down. A straight line between the foot of a ladder and the ledge above it passes
+	# through the ledge, and because a climb writes global_position directly there is no
+	# collision left to stop it - the body would slide through solid stone in full view.
+	var lower: Vector3 = to if to.y < global_position.y else global_position
+	_climb_waypoint = Vector3(lower.x, maxf(global_position.y, to.y), lower.z)
+	_climb_turned = false
+	velocity = Vector3.ZERO
+	set_input_locked(true)
+	_enter_state(GameEnums.MoveState.CLIMB)
+	Log.debug("character", "Climb to %s via %s" % [str(to), str(_climb_waypoint)])
+	return true
+
+
+func is_climbing() -> bool:
+	return _climbing
+
+
+## Advance an in-progress climb by one step. Called from _physics_process, and public so a
+## test can drive a climb to completion deterministically instead of waiting on real frames -
+## the same reason interactions are tested through attempt() and never through fake input.
+func climb_step(delta: float) -> void:
+	if not _climbing:
+		return
+	var step: float = climb_speed * delta
+	# The corner has to LATCH. Without the flag, the frame after arriving at the waypoint
+	# steps off it towards the target, the next frame sees the body is no longer AT the
+	# waypoint and steers back, and the climb oscillates on the corner forever - which is
+	# exactly what the first version of this did, for 600 test steps.
+	if not _climb_turned:
+		global_position = global_position.move_toward(_climb_waypoint, step)
+		_climb_turned = global_position.is_equal_approx(_climb_waypoint)
+		return
+	global_position = global_position.move_toward(_climb_target, step)
+	if not global_position.is_equal_approx(_climb_target):
+		return
+	_climbing = false
+	set_input_locked(false)
+	_enter_state(GameEnums.MoveState.IDLE)
+	if visual != null:
+		visual.update_from_velocity(Vector3.ZERO, delta)

@@ -113,6 +113,23 @@ func advance_minutes(count: int) -> void:
 		_tick_minute()
 
 
+## Jump forward to the next occurrence of an hour, rolling into tomorrow if it has already
+## passed today. This is what sleeping in a bed does. Returns the minutes skipped.
+##
+## ROUTED THROUGH set_time, NEVER advance_minutes. Sleeping eight hours through the minute
+## loop would emit 480 minute_passed signals and every listener in the game would run 480
+## times for a change that, as far as the world is concerned, happened at once. The whole
+## reason a time skip is a distinct operation is that it is one event, not a fast-forward.
+func skip_to_hour(target_hour: int) -> int:
+	var skipped: int = minutes_until_hour(target_hour)
+	# minutes_until_hour rolls to tomorrow when the target is not still ahead today, so the
+	# day advances exactly when the skip crosses midnight.
+	var crossed_midnight: bool = minutes_today() + skipped >= MINUTES_PER_DAY
+	set_time(day + (1 if crossed_midnight else 0), clampi(target_hour, 0, HOURS_PER_DAY - 1), 0)
+	Log.info("clock", "Skipped %d minutes to %02d:00" % [skipped, hour])
+	return skipped
+
+
 ## Minutes from now until the next occurrence of an hour. Used by "sleep until dawn".
 func minutes_until_hour(target_hour: int) -> int:
 	var target: int = clampi(target_hour, 0, HOURS_PER_DAY - 1) * MINUTES_PER_HOUR

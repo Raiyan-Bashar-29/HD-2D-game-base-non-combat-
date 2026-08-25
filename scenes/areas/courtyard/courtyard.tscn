@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3]
+[gd_scene load_steps=27 format=3]
 
 [ext_resource type="Script" path="res://src/gameplay/world/area_root.gd" id="1_area"]
 [ext_resource type="Script" path="res://src/gameplay/world/environment_driver.gd" id="2_env"]
@@ -14,6 +14,9 @@
 [ext_resource type="Resource" path="res://data/items/rose_key.tres" id="12_key"]
 [ext_resource type="Resource" path="res://data/items/rose_petal.tres" id="13_petal"]
 [ext_resource type="Resource" path="res://data/items/stone_chip.tres" id="14_chip"]
+[ext_resource type="PackedScene" path="res://scenes/objects/trigger_volume.tscn" id="15_trigger"]
+[ext_resource type="PackedScene" path="res://scenes/objects/rest_point.tscn" id="16_rest"]
+[ext_resource type="PackedScene" path="res://scenes/objects/climb_point.tscn" id="17_climb"]
 
 [sub_resource type="StandardMaterial3D" id="m_ground"]
 albedo_texture = ExtResource("4_grass")
@@ -41,6 +44,12 @@ size = Vector3(1.2, 4.5, 1.2)
 
 [sub_resource type="BoxShape3D" id="shape_pillar"]
 size = Vector3(1.2, 4.5, 1.2)
+
+[sub_resource type="BoxMesh" id="mesh_terrace"]
+size = Vector3(5, 3.2, 5)
+
+[sub_resource type="BoxShape3D" id="shape_terrace"]
+size = Vector3(5, 3.2, 5)
 
 [node name="Courtyard" type="Node3D"]
 script = ExtResource("1_area")
@@ -164,6 +173,18 @@ surface_material_override/0 = SubResource("m_wood")
 transform = Transform3D(5, 0, 0, 0, 0.09, 0, 0, 0, 5, 0, 0, 0)
 shape = SubResource("shape_pillar")
 
+[node name="Terrace" type="StaticBody3D" parent="Terrain"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.5, 1.6, -2.5)
+collision_layer = 1
+collision_mask = 0
+
+[node name="Mesh" type="MeshInstance3D" parent="Terrain/Terrace"]
+mesh = SubResource("mesh_terrace")
+surface_material_override/0 = SubResource("m_stone")
+
+[node name="Shape" type="CollisionShape3D" parent="Terrain/Terrace"]
+shape = SubResource("shape_terrace")
+
 [node name="Props" type="Node3D" parent="."]
 
 [node name="LanternWest" type="OmniLight3D" parent="Props"]
@@ -239,3 +260,21 @@ object_id = &"east_gate"
 label_key = "object.gate.east.label"
 requires_item = &"item/rose_key"
 opened_key = "object.gate.east.opened"
+
+[node name="StoneBench" parent="Interactables" instance=ExtResource("16_rest")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.6, 0, 1.2)
+object_id = &"stone_bench"
+label_key = "object.bench.courtyard.label"
+target_hour = 20
+rested_key = "object.bench.courtyard.rested"
+
+[node name="TerraceLadder" parent="Interactables" instance=ExtResource("17_climb")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.5, 0, 0.12)
+object_id = &"terrace_ladder"
+label_key = "object.ladder.courtyard.label"
+
+[node name="DaisTrigger" parent="Triggers" instance=ExtResource("15_trigger")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2)
+object_id = &"dais_trigger"
+world_flag = &"area/courtyard/dais_entered"
+notify_key = "object.trigger.dais.text"

@@ -87,11 +87,16 @@ signal item_used(item_id: StringName)
 signal inventory_changed()
 
 # ---------------------------------------------------------------------------------------
-# World state. Emitted by Flags.
+# World state. Emitted by Flags, and by trigger volumes in the world.
 # ---------------------------------------------------------------------------------------
 
 ## A plot or world flag changed value. Quests, doors and dialogue conditions listen.
 signal flag_changed(flag: StringName, value: Variant)
+
+## A trigger volume fired. Emitted by TriggerVolume and nothing else. `who` is the body that
+## entered. Carried on the bus rather than left as a local node signal because the whole point
+## of a trigger is that the thing it affects is somewhere else and does not know it exists.
+signal trigger_fired(trigger_id: StringName, who: Node3D)
 
 # ---------------------------------------------------------------------------------------
 # Time and weather. Emitted by Clock and Weather.

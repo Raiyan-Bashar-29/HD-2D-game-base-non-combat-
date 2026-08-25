@@ -48,7 +48,7 @@ previous project started as a system that was allowed to know one thing too many
 | Environment driver | Turns clock and weather into real lighting and post | Clock, Weather | what time it is or what weather it is; it only renders consequences | DONE |
 | Screen fade | The black rectangle transitions hide behind | Events | why it is fading | DONE |
 | Audio director | Bus layout, music and ambience cross-fade | Settings, Events | positional world sound; a door owns its own player | PART |
-| Dev capture | Screenshots, and forcing time/weather from the CLI | Clock, Weather | nothing may depend on it | DONE |
+| Dev capture | Screenshots, and forcing time, weather and a time skip from the CLI | Clock, Weather | nothing may depend on it | DONE |
 | Weather visuals | Rain, snow, wind particles and wet surfaces | Weather | weather scheduling | TODO |
 | Area streaming | Chunked load for large regions | Director | — | LATER — discrete areas first; Director already loads threaded, so this is a swap, not a rewrite |
 | Navigation | Baked navmesh for NPC pathing | Area root | who is walking | TODO |
@@ -71,9 +71,10 @@ previous project started as a system that was allowed to know one thing too many
 | Doors and gates | Locked, unlocked, flag-gated, with refusal reasons | Interactable, Flags | — | PART — flag-gated done; area transit not wired |
 | Readables | Signs, books, notes | Interactable, Localization | — | DONE |
 | Switches and levers | Toggle world state | Interactable, Flags | what the state causes | DONE |
+| Trigger volumes | Fire on entry, once or every time, persisted by object_id | Layers, Flags, Events | what its firing causes | DONE |
 | Harvestables | Gather with a regrowth timer | Interactable, Clock, Inventory | — | TODO |
-| Sittables and beds | Rest, and skip time | Interactable, Clock | — | TODO |
-| Climbables | Ladders and authored climb points | Player controller | — | TODO |
+| Sittables and beds | Rest, and skip time through `Clock.skip_to_hour` | Interactable, Clock | why the hour it jumps to matters | DONE |
+| Climbables | Ladders and authored climb points, two markers per object | Player controller | how to move a body — it asks the mover | DONE |
 | Physics props | Push, drop, stack | Layers | — | TODO |
 | Water volumes | Wading and swimming | Player controller, Layers | — | LATER |
 | Equipment | Tools, lantern, clothing that change traversal and interaction | Inventory, Flags | combat — there is none | TODO |

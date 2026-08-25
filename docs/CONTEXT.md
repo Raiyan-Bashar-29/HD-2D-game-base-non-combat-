@@ -3,7 +3,7 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-25 · commit `dd90da0` plus uncommitted item work · branch `main`
+**Last updated:** 2026-08-26 · WP-01 complete · branch `claude/trusting-curran-04a4f9`
 **Remote:** https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-
 
 ## What this is
@@ -18,7 +18,7 @@ architecture.
 
 ## Where it stands
 
-Phase 0 complete, Phase 1 nearly done. 44 files, 3,202 code lines, 9 scenes, 1 area, 3 items.
+Phase 0 complete, Phase 1 nearly done. 48 files, 3,500 code lines, 12 scenes, 1 area, 3 items.
 Boots headless with **0 warnings, 0 errors**.
 
 **Works, and verified by running it:** logging with rotation · signal registry (`events.gd`) ·
@@ -26,16 +26,29 @@ input actions · settings · save/load with atomic writes and versioning · plot
 director with a re-entrancy guard and threaded loading · world clock · weather state · audio
 buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 8-way character ·
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
-placeholder art generator · line-budget checker · headless test suite (74 assertions) ·
+placeholder art generator · line-budget checker · headless test suite (215 assertions) ·
 interaction sensor with ranking and Tab-cycling · Interactable contract · localized prompt and
 toasts · readable signs · levers · gates gated by flag or by a carried key · per-object
 persistence (ADR-0005) · typed item definitions found by directory scan (ADR-0006) · an
-inventory component with a capacity seam · pickups · take-all chests · a content validator.
+inventory component with a capacity seam · pickups · take-all chests · a content validator ·
+trigger volumes that fire on entry · a rest point that skips hours · authored climb points.
 
-**Not built:** trigger volumes · NPCs · dialogue · quests · menus and any screen at all ·
+**Not built:** NPCs · dialogue · quests · menus and any screen at all ·
 hard-coded-string audit · weather visuals · item instances (durability) · equipment.
 
 ## Known defects
+
+**Fixed 2026-08-26, both found by running the engine, neither visible in the source:**
+
+1. **A climb oscillated on its corner forever.** The path turns at the top on purpose — a
+   straight line from the foot of a ladder to the ledge above passes *through* the ledge, and
+   a climb that writes `global_position` has no collision left to stop it. But the corner has
+   to latch: without it, the frame after arriving at the waypoint steps off towards the
+   target, and the next frame steers back. 600 test steps, no convergence.
+2. **A trigger volume near the area origin fired at spawn.** The player exists at the origin
+   for one frame before `Director` places them on the spawn marker, so the courtyard's dais
+   trigger toasted from three metres away, on every load. `TriggerVolume` now arms two
+   physics frames late.
 
 **Fixed 2026-08-24, all four found by audit and each verified after the fix:**
 
@@ -69,7 +82,15 @@ hard-coded-string audit · weather visuals · item instances (durability) · equ
 - **Input actions live in code** (`src/systems/input/actions.gd`), so the editor's Input Map
   panel looks empty. Intentional — ADR-0003.
 - **Ten autoloads, no `GameManager`.** Adding one requires an ADR.
-- **No jumping.** Vertical movement will be authored: ladders, stairs, climb points.
+- **No jumping.** Vertical movement is authored: a `ClimbPoint` names two markers and asks
+  `PlayerController.begin_climb()`. The climb turns its corner at the *top* end, both going
+  up and coming down, so it never cuts through the ledge.
+- **A climb is refused, not hidden.** Mid-air gets `RefusalReason.NOT_GROUNDED` with a
+  message, on the same reasoning that makes a locked gate offer its prompt.
+- **A trigger volume never names its consequence.** It sets a flag and emits
+  `Events.trigger_fired`; anything may watch either. Same reasoning as the lever.
+- **A time skip is one event.** `Clock.skip_to_hour` routes through `set_time`, never
+  `advance_minutes` — an eight-hour sleep must not emit 480 `minute_passed` signals.
 - **Inventory is a component, not an autoload.** Interactables are handed the interactor, so
   `Inventory.of(who)` needs no global and works for an NPC or a stash too. A global would
   hard-code "one bag in the universe" into every interactable.
@@ -88,13 +109,13 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 150   # 165 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 150   # 215 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --resolution 960x540 --quit-after 55 -- --shot=<path> --time=18:40 --freeze-time
 ```
 
-## Eight gotchas that each cost an hour
+## Ten gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -116,6 +137,14 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 8. Configure an interactable BEFORE `add_child`. `object_id` is forwarded to `PersistentState`
    in `_enter_tree`, so anything set afterwards is too late and the object silently stops
    persisting. `TestCase.build()` then `attach()` exists to make that ordering explicit.
+9. A body spawns at the area **origin** and is placed on its spawn marker a frame later, so
+   an `Area3D` sitting near the origin sees it pass through. `TriggerVolume` arms two physics
+   frames late for exactly this reason. Anything else that watches for bodies needs the same
+   guard.
+10. `TestCase.run()` is **synchronous** — the runner calls it, it does not await it. So no
+    test can wait on a physics frame, which is why interactions are driven through `attempt()`
+    and a climb through `climb_step(delta)` in a bounded loop. A test that needs a real
+    physics step belongs in the windowed run instead.
 
 ## How work is sliced
 
@@ -125,27 +154,27 @@ should read, so a session loads a few hundred lines instead of three thousand. T
 (`core -> content -> systems -> gameplay -> ui`, downward only) is what makes that possible: a
 package never has to read upward.
 
-**Next package: WP-01, triggers and traversal.**
+**Next package: WP-02, UI foundation.**
 
 ## Plan — where this is going
 
 **Phase 1 is nearly complete.** The demo loop works end to end: walk a lit courtyard through a
 day/night cycle, be prompted, read a sign, throw a lever, take an item, empty a chest, be
-refused by a gate that wants a key, open it once you carry the key — and every one of those
-changes survives a save and reload. All of it is covered by 165 headless assertions.
+refused by a gate that wants a key, open it once you carry the key, cross a volume that fires
+once, rest on a bench and watch the light change, climb a trellis to a terrace and back down —
+and every one of those changes survives a save and reload. All of it is covered by 215
+headless assertions.
 
 **Next, in this order.** The order matters and is not arbitrary:
 
-1. **Trigger volumes.** `Area3D` with once-or-repeat, persisted by `object_id`. The folder, the
-   collision layer (`Layers.TRIGGER`) and the inventory row all already exist and nothing
-   populates them.
-2. **A rest point** — sleep to skip time. Needs a `Clock.skip_to_hour()` routed through
-   `set_time`, not `advance_minutes`, or an eight-hour sleep emits 480 minute signals.
-3. **Screen stack and input contexts, and only THEN the inventory screen.** In that order,
+1. **Screen stack and input contexts, and only THEN the inventory screen.** In that order,
    deliberately: a screen built first forces an ad-hoc pause and a boolean per screen, and the
    interaction sensor currently reads input every physics frame with no notion of a modal UI.
-4. **A second area and a real transition.** The transition code is written, guarded and logged
-   but has never actually swapped two areas, because only one exists.
+   The single `_input_locked` boolean on `PlayerController` is now taken by both dialogue and
+   the climb, which is exactly the collision WP-02's counted lock exists to prevent.
+2. **A second area and a real transition.** The transition code is written, guarded and logged
+   but has never actually swapped two areas, because only one exists. Trigger volumes are now
+   the entry mechanism it was waiting for.
 
 **Then Phase 2:** dialogue, NPC schedules, navigation baking, weather visuals.
 

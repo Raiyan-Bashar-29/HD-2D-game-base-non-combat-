@@ -57,9 +57,11 @@ Exit criteria:
       done 2026-08-24, covered by the test suite
 - [x] Open a chest, take its contents, reload, and it is still open and still empty —
       done 2026-08-25, covered by the test suite
-- [ ] Sleep on the dais and watch the light change
+- [x] Rest on the bench and watch the light change — done 2026-08-26. Two windowed captures
+      from the same 06:30 start, one with the same skip the bench performs, show warm dawn
+      becoming cool night with the lantern pools lit
 - [ ] Save, quit, relaunch, continue — position, time, weather and inventory all restored
-- [x] Test suite passes headless and exits non-zero on failure — 165 assertions
+- [x] Test suite passes headless and exits non-zero on failure — 215 assertions
 - [ ] A 30-second play session produces **zero** warnings or errors in the log
 - [ ] The budget checker reports no file over its limit
 

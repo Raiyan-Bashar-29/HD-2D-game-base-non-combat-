@@ -91,7 +91,7 @@ that fire on entry, a place to rest and skip time, and authored vertical movemen
 **Unblocks:** the clock time-skip that NPC schedules (WP-06) need.
 **Deferred here:** physics props, water volumes, harvestables (WP-10).
 
-**Closed 2026-08-26**, commit `COMMITHASH`. All four exit criteria met. 215 assertions
+**Closed 2026-08-26**, commit `81b28b0`. All four exit criteria met. 215 assertions
 (was 165), boot `0 warnings, 0 errors`, both checkers exit 0. Two bugs the engine caught and
 static checks could not: a climb that oscillated on its corner because the waypoint did not
 latch, and a trigger near the area origin firing at spawn because the player exists there for

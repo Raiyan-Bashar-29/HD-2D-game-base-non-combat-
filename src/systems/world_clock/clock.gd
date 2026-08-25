@@ -158,7 +158,7 @@ func _collect_save() -> Dictionary:
 	return {"day": day, "hour": hour, "minute": minute}
 
 
-func _apply_save(data: Dictionary) -> void:
+func _apply_save(data: Dictionary, _from_version: int) -> void:
 	set_time(
 		DictRead.get_int(data, "day", 1),
 		DictRead.get_int(data, "hour", 6),

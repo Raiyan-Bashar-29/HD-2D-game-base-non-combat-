@@ -27,15 +27,22 @@ Dependencies point downward only. A layer may use anything below it and must nev
 anything above it.
 
 ```
-  ui/          screens, HUD, prompts            may read systems and gameplay
-  content/     typed resource definitions       data shapes only
-  gameplay/    things that exist in the world    player, camera, areas, interactables
+  ui/          screens, HUD, prompts             may read everything below it
+  gameplay/    things that exist in the world     player, camera, areas, interactables
   systems/     game-agnostic services            director, clock, weather, audio, input
+  content/     typed resource definitions        data shapes only, depends on nothing
   core/        no game knowledge at all          log, events, save, flags, settings, util
 ```
 
 The test for a violation is simple: **could you delete the layer above and still compile?**
 If `core` imports something from `gameplay`, that is a defect, not a shortcut.
+
+**Why `content` sits below `gameplay`, not above it.** It was above until 2026-08-25. That was
+wrong: `pickup.gd` in `gameplay` must reference `ItemDefinition` in `content`, which under the
+old order was an **upward** dependency and failed the very test above. Content is *data*, not a
+consumer - a pile of typed `Resource` shapes that depend on nothing and that anything may read.
+The error was harmless only because `src/content/` was empty; it would have become real on the
+day the first Resource landed. See ADR-0001.
 
 `core` in particular must stay knowledge-free. `Log` does not read `Flags`. `SaveSystem` does
 not know what a "clock" is. That is what lets both be trusted from anywhere.
@@ -156,7 +163,7 @@ Every rung is proven working on this machine. Nothing here is aspirational.
 | 1. Parse and type gate | `--headless --check-only --script <file>` | Type errors, unknown functions, with file and line |
 | 2. Import gate | `--headless --import` | Broken scenes, resources, asset references |
 | 3. Headless run | `--headless --quit-after 30` | Boot order, null references, real `_process` frames |
-| 4. Tests | `--headless res://tests/test_runner.tscn --quit-after 150` | Logic, save round-trips. 55 assertions, exit 1 on failure |
+| 4. Tests | `--headless res://tests/test_runner.tscn --quit-after 150` | Logic, save round-trips. 74 assertions, exit 1 on failure |
 | 5. Visual capture | `--quit-after 55 -- --shot=<path> --time=HH:MM` | The actual look, at any hour, on demand |
 
 **Rung 1 gotcha:** autoload identifiers such as `Log` do not resolve under `--check-only`,

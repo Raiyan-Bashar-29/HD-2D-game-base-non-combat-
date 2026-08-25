@@ -112,8 +112,41 @@ func _collect_save() -> Dictionary:
 	return out
 
 
-func _apply_save(data: Dictionary) -> void:
+func _apply_save(data: Dictionary, _from_version: int) -> void:
 	_values.clear()
 	for key: String in data:
 		_values[StringName(key)] = data[key]
 	Log.info("flags", "Restored %d flags" % _values.size())
+
+
+## A Dictionary flag, returned as a DEEP COPY.
+##
+## WHY A COPY. Godot hands out Dictionaries and Arrays by reference, so returning the stored
+## object would let a caller mutate world state without going through set_flag - meaning
+## flag_changed never fires and nothing listening ever learns. Container contents are the
+## first system that would have been bitten.
+func get_dict(flag: StringName, default: Dictionary = {}) -> Dictionary:
+	var value: Variant = _values.get(flag, null)
+	if value is Dictionary:
+		return (value as Dictionary).duplicate(true)
+	return default.duplicate(true)
+
+
+## An Array flag, returned as a DEEP COPY. Same reasoning as get_dict.
+func get_array(flag: StringName, default: Array = []) -> Array:
+	var value: Variant = _values.get(flag, null)
+	if value is Array:
+		return (value as Array).duplicate(true)
+	return default.duplicate(true)
+
+
+## Floats need their own getter because a JSON round-trip can hand back either an int or a
+## float for the same value.
+func get_float(flag: StringName, default: float = 0.0) -> float:
+	var value: Variant = _values.get(flag, default)
+	if value is float:
+		return value
+	if value is int:
+		return float(value as int)
+	Log.warn("flags", "%s is %s, expected float" % [flag, type_string(typeof(value))])
+	return default

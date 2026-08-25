@@ -68,8 +68,10 @@ signal interact_target_changed(target: Node3D, verb: GameEnums.InteractVerb, lab
 signal interaction_started(target: Node3D)
 ## An interaction completed normally.
 signal interaction_finished(target: Node3D)
-## An interaction was rejected, with a reason the UI can explain to the player.
-signal interaction_refused(target: Node3D, reason: GameEnums.RefusalReason)
+## An interaction was rejected, with a reason the UI can explain to the player. `args` fills
+## placeholders the same way notify_requested does - MISSING_ITEM is useless to a player
+## without naming the item.
+signal interaction_refused(target: Node3D, reason: GameEnums.RefusalReason, args: Dictionary)
 
 # ---------------------------------------------------------------------------------------
 # Items and inventory. Emitted by the inventory component.
@@ -130,7 +132,11 @@ signal quest_completed(quest_id: StringName)
 # ---------------------------------------------------------------------------------------
 
 ## Show a transient toast. `key` is a localization key, never raw player-facing text.
-signal notify_requested(key: String, seconds: float)
+## `args` fills placeholders in the translated string: {"count": 3, "item": "Apple"} against
+## "Picked up {count} {item}". Pass an empty Dictionary when there is nothing to substitute.
+## Without this a toast could not name a thing or a count, which is what almost every real
+## notification in an exploration game does.
+signal notify_requested(key: String, seconds: float, args: Dictionary)
 ## Fade the screen. Director uses this for transitions, and cutscenes may too.
 signal screen_fade_requested(to_black: bool, seconds: float)
 

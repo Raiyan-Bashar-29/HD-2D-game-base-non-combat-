@@ -59,7 +59,7 @@ Exit criteria:
 - [ ] Open a chest, take its contents, reload, and it is still open and still empty
 - [ ] Sleep on the dais and watch the light change
 - [ ] Save, quit, relaunch, continue — position, time, weather and inventory all restored
-- [x] Test suite passes headless and exits non-zero on failure — 55 assertions, done 2026-08-24
+- [x] Test suite passes headless and exits non-zero on failure — 74 assertions, done 2026-08-24
 - [ ] A 30-second play session produces **zero** warnings or errors in the log
 - [ ] The budget checker reports no file over its limit
 

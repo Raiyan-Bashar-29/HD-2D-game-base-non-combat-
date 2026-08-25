@@ -80,7 +80,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 150   # 55 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 150   # 74 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --resolution 960x540 --quit-after 55 -- --shot=<path> --time=18:40 --freeze-time
 ```

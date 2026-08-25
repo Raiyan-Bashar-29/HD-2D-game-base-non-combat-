@@ -97,3 +97,12 @@ func _resolve_area_id() -> StringName:
 func _owner_name() -> String:
 	var host: Node = get_parent()
 	return host.name if host != null else name
+
+
+## A Dictionary field, deep-copied. Container contents live here.
+func fetch_dict(field: StringName, default: Dictionary = {}) -> Dictionary:
+	return Flags.get_dict(key(field), default) if _valid else default.duplicate(true)
+
+
+func fetch_float(field: StringName, default: float = 0.0) -> float:
+	return Flags.get_float(key(field), default) if _valid else default

@@ -25,7 +25,7 @@ func _ready() -> void:
 
 
 func perform(_who: Node3D) -> void:
-	Events.notify_requested.emit(text_key, display_seconds)
+	Events.notify_requested.emit(text_key, display_seconds, {})
 	var store: PersistentState = state()
 	if store != null:
 		store.store(READ_FIELD, true)

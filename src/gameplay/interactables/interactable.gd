@@ -89,7 +89,7 @@ func attempt(who: Node3D) -> bool:
 	if reason != GameEnums.RefusalReason.NONE:
 		var reason_names: Array = GameEnums.RefusalReason.keys()
 		Log.debug("interact", "%s refused: %s" % [name, str(reason_names[reason])])
-		Events.interaction_refused.emit(self, reason)
+		Events.interaction_refused.emit(self, reason, refusal_args(who))
 		return false
 
 	Events.interaction_started.emit(self)
@@ -126,3 +126,10 @@ func _enter_tree() -> void:
 	var store: PersistentState = state()
 	if store != null:
 		store.object_id = object_id
+
+
+## Placeholder values for the refusal message. Override when a reason needs to name something:
+## MISSING_ITEM tells the player nothing unless it says which item. The base returns nothing,
+## which is correct for LOCKED and ALREADY_DONE.
+func refusal_args(_who: Node3D) -> Dictionary:
+	return {}

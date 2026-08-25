@@ -60,8 +60,8 @@ func _on_target_changed(target: Node3D, verb: GameEnums.InteractVerb, label_key:
 		_redraw()
 
 
-func _on_refused(_target: Node3D, reason: GameEnums.RefusalReason) -> void:
-	text = tr(_refusal_key(reason))
+func _on_refused(_target: Node3D, reason: GameEnums.RefusalReason, args: Dictionary) -> void:
+	text = tr(_refusal_key(reason)).format(args)
 	visible = true
 	_refusal_left = REFUSAL_SECONDS
 

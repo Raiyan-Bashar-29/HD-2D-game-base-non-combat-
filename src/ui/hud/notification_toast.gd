@@ -42,10 +42,10 @@ func _process(delta: float) -> void:
 	_show_next()
 
 
-func _on_notify_requested(key: String, seconds: float) -> void:
+func _on_notify_requested(key: String, seconds: float, args: Dictionary) -> void:
 	if key == "":
 		return
-	_queue.append({"key": key, "seconds": maxf(0.5, seconds)})
+	_queue.append({"key": key, "seconds": maxf(0.5, seconds), "args": args})
 	while _queue.size() > MAX_QUEUE:
 		_queue.pop_front()
 	if _remaining <= 0.0:
@@ -54,6 +54,8 @@ func _on_notify_requested(key: String, seconds: float) -> void:
 
 func _show_next() -> void:
 	var entry: Dictionary = _queue.pop_front()
-	text = tr(DictRead.get_string(entry, "key"))
+	# format() substitutes {name} placeholders from the args Dictionary. Translators keep the
+	# placeholders; the sender supplies the values; this node stays dumb.
+	text = tr(DictRead.get_string(entry, "key")).format(DictRead.get_dict(entry, "args"))
 	_remaining = DictRead.get_float(entry, "seconds", 3.0)
 	visible = true

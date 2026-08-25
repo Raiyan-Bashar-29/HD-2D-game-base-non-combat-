@@ -24,3 +24,17 @@ by `res://src/...` path, which is slightly more verbose.
 ## Revisit if
 A layer-violation checker turns out to be unbuildable, which would remove the only reason for
 the split.
+
+## Amendment, 2026-08-25 — `content` moved below `gameplay`
+
+The original layer order was `core -> systems -> gameplay -> content -> ui`, which put `content`
+above `gameplay`. That was wrong. A `Pickup` in `gameplay` must reference an `ItemDefinition` in
+`content`, which under that order was an upward dependency and failed this ADR's own test.
+
+Content is data, not a consumer: typed `Resource` shapes that depend on nothing. The order is
+now `core -> content -> systems -> gameplay -> ui`.
+
+The mistake was harmless only because `src/content/` was empty. It would have become a real
+violation on the day the first `Resource` landed, which is the day this amendment was written.
+Recorded rather than quietly fixed, because the same reasoning error - "this layer feels
+higher-level, so it goes on top" - is easy to repeat.

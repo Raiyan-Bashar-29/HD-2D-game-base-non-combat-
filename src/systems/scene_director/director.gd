@@ -216,7 +216,7 @@ func _collect_save() -> Dictionary:
 	return data
 
 
-func _apply_save(data: Dictionary) -> void:
+func _apply_save(data: Dictionary, _from_version: int) -> void:
 	var area_id: StringName = DictRead.get_name(data, "area", &"")
 	if area_id == &"":
 		Log.warn("world", "Save has no area to return to")

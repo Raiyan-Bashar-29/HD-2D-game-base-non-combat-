@@ -163,7 +163,7 @@ func _collect_save() -> Dictionary:
 	return {"kind": int(_target)}
 
 
-func _apply_save(data: Dictionary) -> void:
+func _apply_save(data: Dictionary, _from_version: int) -> void:
 	var kind: int = DictRead.get_int(data, "kind", int(GameEnums.WeatherKind.CLEAR))
 	var count: int = GameEnums.WeatherKind.keys().size()
 	if kind < 0 or kind >= count:

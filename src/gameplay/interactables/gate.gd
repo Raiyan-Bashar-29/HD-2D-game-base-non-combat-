@@ -50,7 +50,7 @@ func perform(_who: Node3D) -> void:
 		store.store(OPEN_FIELD, true)
 	_apply_open(true)
 	if opened_key != "":
-		Events.notify_requested.emit(opened_key, 2.5)
+		Events.notify_requested.emit(opened_key, 2.5, {})
 	opened.emit()
 
 

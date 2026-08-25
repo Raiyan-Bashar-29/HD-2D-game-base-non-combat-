@@ -77,3 +77,38 @@ the migration as debt it never paid.
 
 Commit `*.uid`, `*.import`, `*.tres` and `*.tscn`. Never commit `.godot/`. Every session
 appends an entry to `DEVLOG.md`.
+
+## Content data
+
+A content type is two things in two places, following the same split as scenes (ADR-0001):
+
+| Thing | Lives in | Example |
+|---|---|---|
+| The typed `Resource` class | `src/content/<kind>/` | `src/content/items/item_definition.gd` |
+| The authored instances | `data/<kind>/` | `data/items/gate_key.tres` |
+
+`content` sits **below** `gameplay` in the layer order, because it is data that depends on
+nothing. Anything may read it; it may read nothing but `core`.
+
+**A resource's `id` field must equal its filename** (`gate_key.tres` holds `id = &"gate_key"`).
+The registry errors when they disagree, which turns a copy-paste slip into a loud failure
+instead of a duplicate that shadows another item.
+
+## Two rules that exist because the engine surprised us
+
+**Never persist an enum ordinal.** Inserting a value into the middle of an enum silently
+reinterprets every existing save: what was `STORM` becomes `DRIZZLE`, and a range check cannot
+detect it because the value is still in range. Persist a `StringName` id instead. This binds
+`WeatherKind`, `MoveState`, `Facing`, `ItemCategory` and `InteractVerb`.
+
+**Node-typed `@export`s in a hand-authored `.tscn` need a `node_paths` header.** This resolves
+to null and stays silent without it:
+
+```
+[node name="EnvironmentDriver" type="Node" parent="Environment" node_paths=PackedStringArray("sun")]
+sun = NodePath("../Sun")
+```
+
+**Resource-typed `@export`s do not** — verified 2026-08-25 by probe:
+`definition = ExtResource("1_key")` resolves correctly with no extra header, and the typed cast
+succeeds. So object prefabs can reference their item definitions directly.

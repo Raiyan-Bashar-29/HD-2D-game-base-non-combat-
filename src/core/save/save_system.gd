@@ -10,7 +10,7 @@ extends Node
 ## A system registers itself, usually in its _ready():
 ##     SaveSystem.register(&"clock", _collect_save, _apply_save)
 ##     func _collect_save() -> Dictionary: return {"day": day, "minute": minute}
-##     func _apply_save(data: Dictionary) -> void: day = int(data.get("day", 1))
+##     func _apply_save(data: Dictionary, _from: int) -> void: day = DictRead.get_int(data, "day", 1)
 ##
 ## OWNS: slot files on disk, the file format, the schema version, atomic writes, migration.
 ## MUST NOT: know what any section contains. Adding a saveable system never edits this file.
@@ -20,6 +20,9 @@ const MAX_SLOTS: int = 6
 ## Bump when the envelope changes shape. Section contents are each system's own business.
 const SCHEMA_VERSION: int = 1
 
+## Section version per participant, so a system can change its own format without forcing an
+## envelope bump and without _migrate having to understand every other section. See ADR-0004.
+var _versions: Dictionary[StringName, int] = {}
 var _collectors: Dictionary[StringName, Callable] = {}
 var _appliers: Dictionary[StringName, Callable] = {}
 var _playtime: float = 0.0
@@ -37,12 +40,13 @@ func _process(delta: float) -> void:
 
 ## Register a save participant. `collect` returns a Dictionary; `apply` takes one.
 ## Re-registering the same id replaces the previous pair, which makes hot-reload safe.
-func register(id: StringName, collect: Callable, apply: Callable) -> void:
+func register(id: StringName, collect: Callable, apply: Callable, version: int = 1) -> void:
 	if not collect.is_valid() or not apply.is_valid():
 		Log.error("save", "Participant '%s' passed an invalid callable" % id)
 		return
 	_collectors[id] = collect
 	_appliers[id] = apply
+	_versions[id] = maxi(1, version)
 	Log.debug("save", "Participant registered: %s" % id)
 
 
@@ -50,6 +54,7 @@ func register(id: StringName, collect: Callable, apply: Callable) -> void:
 func unregister(id: StringName) -> void:
 	_collectors.erase(id)
 	_appliers.erase(id)
+	_versions.erase(id)
 
 
 func slot_path(slot: int) -> String:
@@ -85,7 +90,8 @@ func save_to_slot(slot: int) -> Error:
 		var collect: Callable = _collectors[id]
 		var section: Variant = collect.call()
 		if section is Dictionary:
-			sections[String(id)] = section
+			# Wrapped, not flat: the version travels with the data it describes.
+			sections[String(id)] = {"v": _versions[id], "data": section}
 		else:
 			Log.error("save", "Participant '%s' returned %s, not a Dictionary" % [id, type_string(typeof(section))])
 
@@ -131,11 +137,17 @@ func load_from_slot(slot: int) -> Error:
 			Log.debug("save", "Slot %d has no section for '%s' — leaving it at defaults" % [slot, key])
 			continue
 		var section: Variant = sections[key]
-		if section is Dictionary:
-			var apply: Callable = _appliers[id]
-			apply.call(section)
-		else:
+		if not (section is Dictionary):
 			Log.error("save", "Section '%s' in slot %d is not a Dictionary" % [key, slot])
+			continue
+		var wrapped: Dictionary = section
+		if not wrapped.has("v"):
+			# Written before per-section versioning existed. Loud, then defaults, rather than
+			# handing a differently-shaped payload to an applier that cannot recognise it.
+			Log.warn("save", "Section '%s' predates section versioning - loading defaults" % key)
+			continue
+		var apply: Callable = _appliers[id]
+		apply.call(DictRead.get_dict(wrapped, "data"), DictRead.get_int(wrapped, "v", 1))
 
 	Log.info("save", "Slot %d loaded (v%d, %.0fs played)" % [slot, version, _playtime])
 	Events.game_loaded.emit(slot)

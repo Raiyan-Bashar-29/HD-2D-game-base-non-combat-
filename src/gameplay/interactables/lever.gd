@@ -51,7 +51,7 @@ func perform(_who: Node3D) -> void:
 
 	var key: String = notify_on_key if next else notify_off_key
 	if key != "":
-		Events.notify_requested.emit(key, 2.5)
+		Events.notify_requested.emit(key, 2.5, {})
 
 	toggled.emit(next)
 	Log.debug("interact", "%s -> %s" % [name, "on" if next else "off"])

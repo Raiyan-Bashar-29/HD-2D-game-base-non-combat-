@@ -125,7 +125,7 @@ works, and closing it restores control. Two overlapping locks release correctly.
 
 **Unblocks:** every screen in the game.
 
-**Done 2026-08-26**, commit recorded below the WP-01 entry on this board.
+**Done 2026-08-26**, commit `444dbd2`.
 `InputLock` (`src/core/util/input_lock.gd`), `UiRoot` (`src/ui/root/ui_root.gd`), `UiScreen`
 and `StubScreen` (`src/ui/screens/`), `GameEnums.UiMode`, `Events.ui_mode_changed`.
 `PlayerController.set_input_locked(bool)` is DELETED; its callers hold named tokens, and

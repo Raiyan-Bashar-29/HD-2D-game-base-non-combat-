@@ -123,6 +123,9 @@ signal weather_changed(kind: GameEnums.WeatherKind)
 # Dialogue and narrative. Emitted by the dialogue system.
 # ---------------------------------------------------------------------------------------
 
+## Someone asked to talk. The UI layer listens and opens the box; the asker does not know a
+## box exists. Same shape as area_change_requested: gameplay names an id, ui does the work.
+signal dialogue_requested(talk_id: StringName)
 ## A conversation started. Gameplay input should yield to the dialogue UI.
 signal dialogue_started(speaker_id: StringName)
 ## A conversation ended and control returns to the player.

@@ -67,7 +67,7 @@ Exit criteria:
       from the same 06:30 start, one with the same skip the bench performs, show warm dawn
       becoming cool night with the lantern pools lit
 - [ ] Save, quit, relaunch, continue — position, time, weather and inventory all restored
-- [x] Test suite passes headless and exits non-zero on failure — 414 assertions
+- [x] Test suite passes headless and exits non-zero on failure — 460 assertions
 - [x] A screen opens over the world, gameplay input stops, the fade still runs over the
       top of it, and Escape restores control — done 2026-08-26, windowed captures plus a
       real-input probe in the live tree
@@ -93,7 +93,7 @@ Exit criteria:
 - [x] A second area, with a door between them — the Lantern Hall, an interior (WP-04)
 - [x] Loading that hides behind the fade, with the shader warm-up hitch handled (WP-04)
 - Navigation baking, and one NPC that walks a route by the clock
-- Dialogue runner, dialogue UI, and an authorable conversation format
+- [x] Dialogue runner, dialogue UI, and an authorable conversation format (WP-05)
 - The pause menu itself (the pause mechanism under it landed early, in WP-02)
 - Localization wired for real: every string is already an ID
 - Weather visuals: rain, wet surfaces, ambience layers
@@ -104,7 +104,9 @@ Exit criteria:
 - [x] Trigger two transitions in the same frame and be refused cleanly, with a log line —
       done 2026-08-26, exercised forty times in the same run, two per trip
 - [ ] An NPC is at the market at noon and at home at night, across a save and reload
-- [ ] Hold a conversation that reads and sets a flag, and branches on it
+- [x] Hold a conversation that reads and sets a flag, and branches on it — done 2026-08-26,
+      covered by the test suite, plus a windowed capture and a real-input probe that pressed
+      the button, advanced a line and took a branch with the world still running
 - [ ] Switch language at runtime and see every visible string change
 
 ## Phase 3 — The vertical slice

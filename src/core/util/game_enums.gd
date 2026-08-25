@@ -32,6 +32,16 @@ enum InteractVerb { LOOK, TAKE, OPEN, CLOSE, USE, TALK, READ, SIT, CLIMB, ENTER,
 ## Why an interaction was refused, so the UI can say something useful instead of nothing.
 enum RefusalReason { NONE, LOCKED, MISSING_ITEM, MISSING_SKILL, WRONG_TIME, ALREADY_DONE, HANDS_FULL, STORY_GATED, NOT_GROUNDED }
 
+## How a dialogue condition tests a flag. Deliberately a CLOSED set of comparisons rather than
+## an expression language: a conversation is data authored in the editor, and the moment it can
+## contain an expression, it needs a parser, error reporting and a sandbox. ALWAYS is the
+## default so an unconditional line needs no fields filled in at all.
+enum FlagTest { ALWAYS, IS_TRUE, IS_FALSE, EQUALS, AT_LEAST, AT_MOST }
+
+## How a dialogue effect writes a flag. Same closed-set reasoning as FlagTest. NONE is the
+## default, so a line with no consequence declares nothing.
+enum FlagWrite { NONE, SET_TRUE, SET_FALSE, SET_INT, ADD }
+
 ## What the UI is doing to the world right now. UiRoot owns the transitions; the player's
 ## input readers and the prompt only listen. OVERLAY and MODAL differ in exactly one way and
 ## it is not cosmetic: an OVERLAY suspends the player's input while the world keeps ticking

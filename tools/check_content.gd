@@ -36,6 +36,7 @@ func _initialize() -> void:
 	_load_keys()
 	_report_scan()
 	_check_items()
+	_check_dialogue()
 	_check_scenes()
 	print("=".repeat(78))
 	if _violations > 0:
@@ -68,6 +69,12 @@ func _load_keys() -> void:
 			first = false
 			continue
 		_keys[row[0]] = true
+		# MORE THAN TWO COLUMNS MEANS AN UNQUOTED COMMA, and the value was silently cut short at
+		# it. Nothing else catches this: the key still resolves, tr() still returns a string, and
+		# the line just quietly loses its second half. WP-01 shipped a lever whose toast ended at
+		# "Somewhere north" for three packages before a capture showed it.
+		if row.size() > 2:
+			_fail("%s has an unquoted comma; its text is cut off at '%s'" % [row[0], row[1]])
 	file.close()
 	print("  localization keys: %d" % _keys.size())
 
@@ -172,3 +179,39 @@ func _quoted_after(line: String, marker: String) -> String:
 	var rest: String = line.substr(at + marker.length())
 	var end: int = rest.find("\"")
 	return rest.substr(0, end) if end > 0 else ""
+
+
+## Conversations get exactly the treatment items get, because ADR-0006's reasoning was never
+## about items. The extra check here is the one a text scan cannot do: every text_key and
+## speaker_key a conversation names must exist in the CSV, or the line renders on screen as its
+## own key. Dangling node links are checked by Conversation.problems() itself.
+func _check_dialogue() -> void:
+	DialogueDb.reload()
+	for problem: String in DialogueDb.problems():
+		_fail(problem)
+	print("  conversations: %d" % DialogueDb.count())
+	for talk_id: StringName in DialogueDb.all():
+		var talk: Conversation = DialogueDb.conversation(talk_id)
+		print("     %-22s %d nodes" % [talk_id, talk.nodes.size()])
+		_check_conversation_keys(talk)
+
+
+func _check_conversation_keys(talk: Conversation) -> void:
+	for node: DialogueNode in talk.nodes:
+		if node == null:
+			continue
+		var context: String = "%s/%s" % [talk.id, node.node_id]
+		_require_key(context, "text_key", node.text_key)
+		_require_key(context, "speaker_key", node.speaker_key)
+		for choice: DialogueChoice in node.choices:
+			if choice != null:
+				_require_key(context, "choice text_key", choice.text_key)
+
+
+## An empty key is not an error here - a narrator line with no speaker is legitimate, and
+## node.problems() already refuses an empty text_key. What is an error is a key that names a
+## CSV row which does not exist, because tr() silently returns the key itself.
+func _require_key(context: String, field: String, key: String) -> void:
+	if key == "" or _keys.has(key):
+		return
+	_fail("%s %s '%s' is not in the CSV" % [context, field, key])

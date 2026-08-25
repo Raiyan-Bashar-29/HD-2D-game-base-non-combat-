@@ -16,6 +16,140 @@ Append-only. Newest entry at the top. One entry per working session.
 
 ---
 
+## 2026-08-26 — WP-05: dialogue, and a comma that had been eating text since WP-01
+
+**Did:**
+
+The largest unproven system. A conversation format, a runner, and the first screen in this game
+that does not stop the world.
+
+- `src/content/dialogue/` — `DialogueChoice`, `DialogueNode`, `Conversation`, `DialogueDb`.
+  Data only; none of them touches an autoload, so `tools/check_content.gd` can still load them
+  under `--script`.
+- `src/systems/dialogue/dialogue_runner.gd` — `DialogueRunner`. Picks the next node, tests
+  conditions, applies effects, announces lines. A component, not an autoload.
+- `src/ui/screens/dialogue_screen.gd` — `DialogueScreen`. `pauses_world = false`,
+  `closes_on_cancel = false`, typewriter reveal, focusable choices.
+- `src/gameplay/interactables/speaker.gd` — `Speaker`. Names a conversation id and emits.
+- `Events.dialogue_requested`, `GameEnums.FlagTest`, `GameEnums.FlagWrite`.
+- `data/dialogue/gardener.tres` — five nodes, four choices, one branch on a flag.
+- `tests/unit/dialogue_test.gd` — 46 new assertions. 414 -> 460.
+- `tools/check_content.gd` now validates conversations, and catches unquoted CSV commas.
+
+**Why:**
+
+**A closed set of comparisons, not an expression language.** `FlagTest` has six values and
+`FlagWrite` has five. The moment a conversation can contain an expression it needs a parser,
+error reporting and a sandbox, and the authored `.tres` stops being reviewable in a diff. When
+six comparisons are genuinely not enough, the honest move is a seventh, not a grammar.
+
+**Nodes are an ordered array and the runner falls through.** The entry point is the first node
+whose condition passes, not `nodes[0]`, and a skipped node falls through to the next in authored
+order. That makes the commonest shape in the game — "if we have met, greet me differently" — two
+nodes in sequence with no wiring at all. Lookup by id still exists for `next_node` and
+`target_node`, but order is what a writer edits and an array is what diffs cleanly.
+
+**Effects fire on arrival, not departure**, so a node has the same consequence however it was
+reached. That is why a choice carries a condition but no effect.
+
+**A failing choice is omitted, not shown disabled** — the opposite of how a locked gate behaves,
+deliberately. A gate you cannot open teaches you there is something to come back for; a reply
+you cannot give teaches you only that the writer thought of it. `choose(index)` therefore
+indexes what is on screen, not the authored array, and there is an assertion for exactly that
+because indexing the wrong one silently takes the wrong branch.
+
+**`Speaker` goes through the bus.** It is in the gameplay layer and a dialogue box is in the ui
+layer, and dependencies here point downward only. The first draft of this file reached for
+`UiRoot` and `DialogueScreen` directly; that is a layer violation, so it now emits
+`Events.dialogue_requested` and stops, exactly as `AreaDoor` emits `area_change_requested`
+rather than loading an area itself. `ScreenKeys` listens, because it is already the one place a
+thing becomes a screen.
+
+**A conversation is not saved, and that is a decision.** Persisting a position means writing a
+node id into the save file, which makes every node id in every `.tres` a permanent public
+identifier: rename one and old saves load into a position that no longer exists. So the save
+section exists, is always empty, and logs a warning naming the conversation it discarded. A save
+taken mid-conversation reloads with the conversation over and control returned — recoverable and
+obvious, where the alternative fails silently, later, in someone else's save file. That is the
+"or explicitly refuses to be saved mid-conversation" half of the exit criterion, chosen on
+purpose over the other half.
+
+**A defect from WP-01, found by a capture:**
+
+`object.lever.gate.on` read `The lever gives with a heavy clack. Somewhere north, iron shifts.`
+with no quotes, so the CSV parser cut it at the comma and the lever's toast had said
+`Somewhere north` for three packages. Nothing caught it: the key still resolved, `tr()` still
+returned a string, and the line quietly lost its second half. `talk.gardener.menu` had the same
+fault, which is how it surfaced — the first dialogue capture showed `Well? Ask` where the line
+reads `Well? Ask, or do not.` Both rows are quoted now, and `check_content.gd` fails any row
+that parses to more than two columns. Proved by adding a bad row and watching the gate bite.
+
+**Connections:**
+
+`Speaker` -> `Events.dialogue_requested` -> `ScreenKeys` -> `UiRoot.open(DialogueScreen)` ->
+`DialogueRunner.begin()`. The runner emits `Events.dialogue_started`, which
+`PlayerController` and `InteractionSensor` have listened for since Phase 0 — each takes its own
+`&"dialogue"` token, so nothing in this package locks anybody. `DialogueDb` reuses
+`ItemDb.resource_paths()` rather than copying it, so the export-time `.remap` handling has one
+implementation. Conditions read `Flags`; effects write `Flags`; nothing else in the package
+touches either. `gameplay/text_speed` gets its first consumer since it was declared.
+
+**Verified:**
+
+```
+--headless --import                                   clean
+--headless --quit-after 120                           0 warnings, 0 errors
+--headless res://tests/test_runner.tscn                460 passed, 0 failed, exit 0
+  with one assertion deliberately broken               459 passed, 1 failed, exit 1
+--headless --script tools/check_budgets.gd            67 files, 5063 lines, 0 violations
+--headless --script tools/check_content.gd            PASS, incl. 1 conversation, 83 keys
+```
+
+**Captured and looked at**, three times. The first showed the truncated line and the third of
+three choices clipped off the bottom edge — the box is bottom-anchored, so anything that does
+not fit is simply gone, and it was sized from the common case instead of the worst one. Height
+went 260 -> 380 and the CSV rows were quoted. The third capture shows the full line, all three
+choices, the first focused, and the courtyard still lit and running above the box.
+
+**The real input path**, proved with a temporary probe per gotcha 15 and then removed:
+
+```
+TEMP target=Gardener locked=false
+TEMP after INTERACT: depth=1 node=greet_first locked=true suspended=true
+TEMP world paused=false clock ticking=true
+TEMP after advance: node=menu choices=3
+TEMP focus=Who are you?
+TEMP after choosing: node=who met=true
+TEMP after end: depth=0 locked=false suspended=false
+```
+
+`world paused=false, clock ticking=true` is the line that matters: this is the first screen to
+exercise the OVERLAY path `UiRoot` has had since WP-02, and it is the first proof that the
+distinction between OVERLAY and MODAL was worth building two packages early.
+
+One probe artifact worth recording: a synthetic `ui_accept` press alone never fires a `Button`,
+because `BaseButton` acts on RELEASE by default. The probe has to send both. That is a fact
+about probes, not a defect.
+
+**Unblocks:**
+
+WP-06's NPCs, which need something to say before they are worth animating, and WP-08's quests,
+which need a conversation that can set a flag. `Speaker` is already the shape an NPC's talk
+component will take. The overlay path is now walked by something real, so WP-12's menus can
+assume it works.
+
+**Known gaps:**
+
+One condition and one effect per node. The seam is `_apply_effect` in the runner plus one field
+becoming an array, and no authored `.tres` is invalidated by that change — but it is a real
+limit and a conversation that wants "set two flags" cannot say so today. No portraits: the
+format has a `speaker_key` and no portrait field, because art is deferred and a field nothing
+reads is a guess. No barks, no auto-advance, no history log, no skip-all. The reveal speed is
+one setting and one constant; a per-line pause or emphasis would need markup the format does not
+have. And a conversation still cannot be entered from anything but a `Speaker` — a trigger
+volume that starts a conversation would work today by emitting the same signal, but nothing
+does it yet.
+
 ## 2026-08-26 — WP-04: a second area, and three bugs only a second area could find
 
 **Did:**

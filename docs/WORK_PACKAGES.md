@@ -40,8 +40,8 @@ Headless shades nothing. This project has already shipped two bugs that every ot
 | 02 | UI foundation | **DONE** — see below |
 | 03 | HUD and inventory screen | **DONE** — see below |
 | 04 | Second area, transitions, loading | **DONE** — see below |
-| 05 | Dialogue | **TODO — next** |
-| 06 | NPCs and navigation | TODO |
+| 05 | Dialogue | **DONE** — see below |
+| 06 | NPCs and navigation | **TODO — next** |
 | 07 | Path actions | TODO |
 | 08 | Quests | TODO |
 | 09 | Character depth | TODO |
@@ -206,7 +206,7 @@ a freed object compares EQUAL to null, leaving a prompt for an unloaded area on 
 
 ---
 
-## WP-05 · Dialogue
+## WP-05 · Dialogue — **DONE**
 
 **Goal.** The largest unproven system. A runner, an authorable diffable format, and a UI.
 
@@ -221,6 +221,22 @@ and choices and text speed. Conditions read `Flags`; effects set them. Placehold
 
 **Exit criteria:** a conversation that reads a flag, branches on it, sets another, and survives
 a save mid-conversation or explicitly refuses to be saved mid-conversation.
+
+
+**Done 2026-08-26**, commit `PLACEHOLDER5`.
+`src/content/dialogue/` (four data classes plus the registry), `dialogue_runner.gd`,
+`dialogue_screen.gd`, `speaker.gd`, `data/dialogue/gardener.tres`, `tests/unit/dialogue_test.gd`,
+`Events.dialogue_requested`, `GameEnums.FlagTest` and `FlagWrite`. Suite 414 -> 460.
+The exit criterion is met by the SECOND half, deliberately: a conversation is not saved. A saved
+node id would make every node id in every .tres a permanent public identifier, so the section
+exists, is always empty, and logs what it discarded; a mid-conversation save reloads with the
+conversation over and control returned.
+The first draft of `speaker.gd` reached for `UiRoot` and `DialogueScreen` directly, which is a
+layer violation — gameplay must not name a screen. It emits `Events.dialogue_requested` instead
+and `ScreenKeys` listens, matching `AreaDoor` exactly.
+One defect from WP-01 found on the way: `object.lever.gate.on` had an unquoted comma, so the
+lever's toast had been cut at `Somewhere north` for three packages. `check_content.gd` now fails
+any CSV row that parses to more than two columns.
 
 ---
 

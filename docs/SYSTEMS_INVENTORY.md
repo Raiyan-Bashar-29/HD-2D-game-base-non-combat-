@@ -98,9 +98,10 @@ previous project started as a system that was allowed to know one thing too many
 
 | System | Purpose | Depends on | Boundary | Status |
 |---|---|---|---|---|
-| Dialogue runner | Executes a conversation graph | Events, Flags | how it is displayed | TODO |
-| Dialogue UI | Box, portrait, choices, text speed | Events, Settings | conversation logic | TODO |
-| Dialogue content format | Authorable, diffable conversation files | — | — | TODO |
+| Dialogue runner | Walks a conversation: conditions, branching, effects. A component, not an autoload | Events, Flags, DialogueDb | how it is displayed, pausing, locking input | DONE |
+| Dialogue UI | Box, choices, typewriter reveal. The first non-pausing overlay | Runner, Settings | conversation logic, pausing, locking input | PART — no portraits (art is deferred), no history log, no skip-all |
+| Speakers | An interactable that names a conversation id and emits | Interactable, DialogueDb | opening a screen, or what is said | DONE |
+| Dialogue content format | Conversation/DialogueNode/DialogueChoice as .tres, found by directory scan like items | — | running itself, or reading a flag | PART — one condition and one effect per node |
 | Barks | Short unprompted lines with cooldowns | Dialogue UI | — | LATER |
 | Cutscenes | Scripted camera, movement and timing | Director, Player controller | — | TODO |
 | Quests and objectives | State machine per quest, with steps | Flags, Events, Save | dialogue content | TODO |
@@ -137,7 +138,7 @@ previous project started as a system that was allowed to know one thing too many
 | Line-budget checker | Mechanical enforcement of file and function size limits | DONE |
 | Test runner | Headless integration tests, scene-entered, exit 1 on failure | DONE |
 | Hard-coded string audit | Catches player-facing text that is not a localization key | TODO |
-| Localization | String IDs from the first string; CSV translation | PART — CSV wired, 56 keys, all UI text localized. No audit tool yet |
+| Localization | String IDs from the first string; CSV translation | PART — CSV wired, 83 keys, all UI text localized. Unquoted commas are now a gate; no full audit tool yet |
 | Smoke test | Boots, loads an area, saves, reloads, asserts zero errors | TODO |
 | Export presets | Windows build configuration | LATER |
 | Performance overlay | Frame time, draw calls, node counts | TODO |

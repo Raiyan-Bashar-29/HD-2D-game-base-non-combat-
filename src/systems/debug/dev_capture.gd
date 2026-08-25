@@ -30,6 +30,10 @@ extends Node
 ##   --round-trips=<n>    travel courtyard -> lantern_hall -> courtyard n times, reporting
 ##                        node count and static memory before and after. This is how the
 ##                        twenty-round-trip leak criterion is actually measured.
+##   --talk=<id>          open a conversation once the boot load has settled, so the dialogue
+##                        box can be captured. Takes the bare id: --talk=talk/gardener
+##   --talk-advance=<n>   press through n lines after --talk, to capture a branch rather than
+##                        always the opening line
 ##   --goto=<area>        travel to an area once the boot load has settled, so a capture can
 ##                        be taken somewhere other than the starting area.
 ##   --open-inventory     push the inventory screen, to capture a real screen over a
@@ -45,6 +49,7 @@ var _shot_path: String = ""
 var _shot_frame: int = DEFAULT_SHOT_FRAME
 var _frames: int = 0
 var _captured: bool = false
+var _talk_advance: int = 0
 
 
 func _ready() -> void:
@@ -107,6 +112,10 @@ func _parse_arguments() -> void:
 			_skip_to_hour(argument.trim_prefix("--skip-to-hour="))
 		elif argument.begins_with("--give="):
 			_give(argument.trim_prefix("--give="))
+		elif argument.begins_with("--talk="):
+			_talk(StringName(argument.trim_prefix("--talk=")))
+		elif argument.begins_with("--talk-advance="):
+			_talk_advance = maxi(0, argument.trim_prefix("--talk-advance=").to_int())
 		elif argument.begins_with("--goto="):
 			_goto(StringName(argument.trim_prefix("--goto=")))
 		elif argument == "--cross-area-save":
@@ -309,3 +318,38 @@ func _goto(area_id: StringName) -> void:
 	Events.area_change_requested.emit(area_id, &"")
 	await _settled()
 	Log.info("test", "--goto arrived in '%s'" % Director.current_area_id)
+
+
+## Open a conversation for a capture. Goes through the SAME bus signal a Speaker emits, so what
+## is photographed is the real path and not a screen posed by hand.
+func _talk(talk_id: StringName) -> void:
+	while Director.current_area_id == &"":
+		await get_tree().process_frame
+	await _settled()
+	Events.dialogue_requested.emit(talk_id)
+	await get_tree().process_frame
+	var stack: UiRoot = UiRoot.find(self)
+	var screen: DialogueScreen = stack.top() as DialogueScreen
+	if screen == null:
+		Log.error("test", "--talk opened no dialogue screen for '%s'" % talk_id)
+		return
+	Log.info("test", "--talk opened '%s' at node '%s'" % [
+		talk_id, screen.runner.current_node().node_id,
+	])
+	for _i: int in _talk_advance:
+		await _reveal_done(screen)
+		screen.runner.advance()
+		await get_tree().process_frame
+	await _reveal_done(screen)
+	Log.info("test", "--talk resting on node '%s', %d choices" % [
+		screen.runner.current_node().node_id, screen.runner.available_choices().size(),
+	])
+
+
+## Let the typewriter finish. A capture taken mid-reveal photographs half a sentence, which
+## looks like a truncation bug rather than the feature it is.
+func _reveal_done(screen: DialogueScreen) -> void:
+	for _i: int in 240:
+		if screen.reveal_complete():
+			return
+		await get_tree().process_frame

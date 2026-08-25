@@ -3,10 +3,10 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-26 · WP-04 complete · branch `claude/wp-04-second-area`
+**Last updated:** 2026-08-26 · WP-05 complete · branch `claude/wp-05-dialogue`
 **Note:** this branch fast-forwarded WP-01 and WP-02 in from `claude/trusting-curran-04a4f9`
 and `claude/intelligent-wilbur-ae8141`, neither of which was merged to `main`. Merge order is
-WP-01, WP-02, WP-03, WP-04, or just merge the branches in that order.
+WP-01 through WP-05, in that order, or just merge the branches in order.
 **Remote:** https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-
 
 ## What this is
@@ -21,8 +21,8 @@ architecture.
 
 ## Where it stands
 
-Phase 0 complete, Phase 1 nearly done, Phase 2 begun. 59 files, 4,441 code lines, 14 scenes,
-2 areas, 3 items.
+Phase 0 complete, Phase 1 done, Phase 2 well begun. 67 files, 5,063 code lines, 16 scenes,
+2 areas, 3 items, 1 conversation.
 Boots headless with **0 warnings, 0 errors**.
 
 **Works, and verified by running it:** logging with rotation · signal registry (`events.gd`) ·
@@ -30,7 +30,7 @@ input actions · settings · save/load with atomic writes and versioning · plot
 director with a re-entrancy guard and threaded loading · world clock · weather state · audio
 buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 8-way character ·
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
-placeholder art generator · line-budget checker · headless test suite (414 assertions) ·
+placeholder art generator · line-budget checker · headless test suite (460 assertions) ·
 interaction sensor with ranking and Tab-cycling · Interactable contract · localized prompt and
 toasts · readable signs · levers · gates gated by flag or by a carried key · per-object
 persistence (ADR-0005) · typed item definitions found by directory scan (ADR-0006) · an
@@ -39,13 +39,22 @@ trigger volumes that fire on entry · a rest point that skips hours · authored 
 a screen stack with real pause semantics · a token input lock · a HUD clock readout · an
 inventory screen with focus navigation · one action-to-screen binding · a SECOND area, an
 interior, and a door that really travels · a loading readout drawn above the curtain ·
-shader warm-up behind black.
+shader warm-up behind black · a dialogue runner with conditions, branches and effects · a
+non-pausing dialogue box with a typewriter reveal · an authorable .tres conversation format.
 
-**Not built:** NPCs · dialogue · quests · the pause, main, settings, save and journal screens
+**Not built:** NPCs · quests · the pause, main, settings, save and journal screens
 (WP-12) · hard-coded-string audit · weather visuals · item instances (durability) · equipment ·
 item tooltips, sorting and drag-and-drop.
 
 ## Known defects
+
+**Fixed 2026-08-26 in WP-05, found by a capture:**
+
+1. **An unquoted comma in `strings.csv` had been eating text since WP-01.**
+   `object.lever.gate.on` was cut at its comma, so the lever toast had read `Somewhere north`
+   for three packages. Nothing caught it: the key still resolved and `tr()` still returned a
+   string. Both offending rows are quoted, and `check_content.gd` now FAILS any row that parses
+   to more than two columns. A translator adding a comma cannot reintroduce it silently.
 
 **Fixed 2026-08-26 in WP-04. All three were invisible until a SECOND area existed, and all
 three compiled cleanly and passed every static gate:**
@@ -146,6 +155,24 @@ three compiled cleanly and passed every static gate:**
 - **One node binds actions to screens.** `ScreenKeys`, under `UILayer`. The journal key and
   the map key join it there rather than each finding a different home, which is how a boolean
   per screen was born last time.
+- **A dialogue condition is a CLOSED SET of comparisons, never an expression.** `FlagTest` has
+  six values, `FlagWrite` has five. The moment a conversation can hold an expression it needs a
+  parser, error reporting and a sandbox, and the .tres stops being reviewable in a diff. When
+  six are genuinely not enough, add a seventh, not a grammar.
+- **A conversation is an ORDERED ARRAY and the runner falls through.** The entry point is the
+  first node whose condition passes, not `nodes[0]`, and a skipped node falls through to the
+  next in authored order. That is what makes "if we have met, greet me differently" two nodes
+  and no wiring. Effects fire on ARRIVAL, so a node has the same consequence however reached,
+  which is why a choice has a condition but no effect.
+- **A failing choice is OMITTED, not shown disabled** — the opposite of a locked gate, on
+  purpose. A gate you cannot open teaches you there is something to come back for; a reply you
+  cannot give teaches you only that the writer thought of it. So `choose(index)` indexes what is
+  ON SCREEN, not the authored array.
+- **A conversation is NOT SAVED.** Persisting a position writes a node id into the save file,
+  making every node id in every .tres a permanent public identifier — rename one and old saves
+  load into a position that no longer exists. The section exists, is always empty, and logs what
+  it discarded. A save taken mid-conversation reloads with the conversation over and control
+  returned.
 - **A door names an id and a spawn, and nothing else.** `AreaDoor` emits
   `Events.area_change_requested` and stops. It does not load, fade or place the player.
   `Director` owns the sequence and the guard, and nothing else calls `change_area()` — a door
@@ -251,25 +278,26 @@ should read, so a session loads a few hundred lines instead of three thousand. T
 (`core -> content -> systems -> gameplay -> ui`, downward only) is what makes that possible: a
 package never has to read upward.
 
-**Next package: WP-05, dialogue.**
+**Next package: WP-06, NPCs and navigation.**
 
 ## Plan — where this is going
 
-**Phase 1 is complete and Phase 2 has begun.** The demo loop works end to end: walk a lit
+**Phase 1 is complete and Phase 2 is well under way.** The demo loop works end to end: walk a lit
 courtyard through a day/night cycle, be prompted, read a sign, throw a lever, take an item,
 empty a chest, be refused by a gate that wants a key, open it once you carry the key, cross a
 volume that fires once, rest on a bench and watch the light change, climb a trellis to a terrace
 and back down, press I at any point to see what you are carrying in a window that stops the
 world — then walk north through a door into a lantern-lit hall that has never heard of the sun,
-and come back. Every one of those changes survives a save and a reload, including from the far
-side of an area that is no longer loaded. All of it is covered by 414 headless assertions.
+and come back, and ask the garden-keeper who they are and what lies behind the north gate, in a
+box that leaves the world running behind it. Every one of those changes survives a save and a
+reload, including from the far side of an area that is no longer loaded. All of it is covered
+by 460 headless assertions.
 
 **Next, in this order.** The order matters and is not arbitrary:
 
-1. **Dialogue.** The first `pauses_world = false` occupant of the screen stack, and the thing
-   NPCs will need before they are worth building. The overlay path through `UiRoot` exists and,
-   since WP-03, is asserted for real rather than vacuously.
-2. **NPCs and navigation.** Two areas now exist for them to move between.
+1. **NPCs and navigation.** Two areas exist for them to move between and a conversation format
+   exists for them to speak. `Speaker` is already the shape an NPC talk component will take.
+2. **Quests**, which need a conversation that can set a flag. It can.
 
 **Then the rest of Phase 2:** NPC schedules, navigation baking, weather visuals.
 

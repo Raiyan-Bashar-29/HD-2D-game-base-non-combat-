@@ -24,7 +24,7 @@ area.courtyard.name,Rose Courtyard
 object.sign.gate.label,Weathered Notice
 object.sign.gate.text,"By order of the garden-keeper: the north gate stays barred until the lantern-lever is thrown. Mind the thorns."
 object.lever.gate.label,Iron Lever
-object.lever.gate.on,The lever gives with a heavy clack. Somewhere north, iron shifts.
+object.lever.gate.on,"The lever gives with a heavy clack. Somewhere north, iron shifts."
 object.lever.gate.off,The lever settles back. The sound of iron returns.
 object.gate.north.label,North Gate
 object.gate.north.opened,The gate grinds open onto the dark.
@@ -70,3 +70,15 @@ object.door.hall_out.label,Courtyard Door
 object.sign.hall.label,Brass Plaque
 object.sign.hall.text,"Lanterns are lit here at all hours, and no hour is admitted. Whatever the sky is doing outside, it is not doing it in the Lantern Hall."
 object.chest.hall.label,Iron Coffer
+ui.dialogue.continue,Space to continue
+object.gardener.label,The Garden-Keeper
+talk.gardener.name,Garden-Keeper
+talk.gardener.greet_first,"You are the first face I have seen since the frost. Mind the thorns, and do not touch the white roses."
+talk.gardener.greet_again,"Back again. The roses have not moved, in case you were wondering."
+talk.gardener.menu,"Well? Ask, or do not."
+talk.gardener.choice.who,Who are you?
+talk.gardener.choice.gate,What is behind the north gate?
+talk.gardener.choice.leave,Nothing. Good day.
+talk.gardener.choice.again,Something else.
+talk.gardener.who,"I keep the garden. That is the whole of it, and it is more than enough."
+talk.gardener.gate,"The hall. Lanterns burning at every hour, and no hour admitted. Throw the lever if you must."

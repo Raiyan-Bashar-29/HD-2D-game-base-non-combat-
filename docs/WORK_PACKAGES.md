@@ -24,6 +24,10 @@ package that gets half-finished.
 5. `CONTEXT.md` updated — counts, new settled decisions, new gotchas, next package.
 6. This file marks the package `DONE` with its commit.
 7. Committed and pushed.
+8. **The chip for the next package is created**, so the handoff is automatic. Use the
+   spawn-task mechanism with a self-contained prompt: it must name the start-here docs, the
+   goal, the files to write, the exit criteria, and what is deferred - everything a session
+   with no memory of this one needs. WP-01 chip is the worked example; copy its shape.
 
 **Anything with a visual consequence needs a windowed capture and an actual look at the PNG.**
 Headless shades nothing. This project has already shipped two bugs that every other gate passed.

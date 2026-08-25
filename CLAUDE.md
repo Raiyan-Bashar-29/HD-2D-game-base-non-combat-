@@ -93,7 +93,8 @@ packages files.
 
 **Closing a chat:** the package is not done until the full ladder is green, new behaviour has
 assertions, `SYSTEMS_INVENTORY.md` / `ROADMAP.md` / `DEVLOG.md` / `CONTEXT.md` are updated, the
-board marks it done, and it is committed and pushed. The checklist is in the board.
+board marks it done, it is committed and pushed, AND the chip for the next package is created
+so the handoff is automatic. The full checklist is in the board.
 
 No package exceeds about 8 files or 500 new code lines. Over that, split it and add a row -
 same reasoning as the file budgets: a package that outgrows one chat gets half-finished.

@@ -43,23 +43,23 @@ Done:
 - The courtyard: ground, pillars, walls, a dais, two lanterns, spawn markers
 
 Remaining:
-- Item definitions, inventory, and pickups
-- Containers (needs the item system first)
 - A minimal HUD
-- Content validator and hard-coded-string audit (the line-budget checker is DONE and passing)
+- Hard-coded-string audit (the budget and content checkers are DONE and passing)
 
 Exit criteria:
 - [ ] Walk the courtyard, and the character faces the direction of travel correctly in all
       eight directions
 - [x] Approach three overlapping objects and select each one deliberately — ranking plus
       Tab cycling, done 2026-08-24
-- [ ] Pick up an item; it appears in the inventory and no longer exists in the world
+- [x] Pick up an item; it appears in the inventory and no longer exists in the world —
+      done 2026-08-25, covered by the test suite
 - [x] Refuse at a locked gate, throw the lever, open it, reload, and it is still open —
       done 2026-08-24, covered by the test suite
-- [ ] Open a chest, take its contents, reload, and it is still open and still empty
+- [x] Open a chest, take its contents, reload, and it is still open and still empty —
+      done 2026-08-25, covered by the test suite
 - [ ] Sleep on the dais and watch the light change
 - [ ] Save, quit, relaunch, continue — position, time, weather and inventory all restored
-- [x] Test suite passes headless and exits non-zero on failure — 74 assertions, done 2026-08-24
+- [x] Test suite passes headless and exits non-zero on failure — 165 assertions
 - [ ] A 30-second play session produces **zero** warnings or errors in the log
 - [ ] The budget checker reports no file over its limit
 

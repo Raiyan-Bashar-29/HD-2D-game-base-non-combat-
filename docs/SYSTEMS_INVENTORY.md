@@ -61,12 +61,13 @@ previous project started as a system that was allowed to know one thing too many
 | Interaction sensor | Finds and ranks candidate targets, fires the chosen one | Actions, Events, Layers | what any interactable does | DONE |
 | Interactable contract | The base class every interactable satisfies | Events | who is interacting, beyond a Node3D | DONE |
 | Interaction prompt UI | Shows verb and label for the current target, localized | Events | how to perform an interaction | DONE |
-| Item definitions | Shared, immutable item data as typed resources | — | inventory or world state | TODO |
-| Item instances | Per-item mutable state: durability, contents | Item definitions | UI | TODO |
-| Inventory | Held items, stacking, capacity | Events, Save | how items are displayed | TODO |
+| Item definitions | Typed Resource, id equals filename, ADR-0006 | — | inventory or world state | DONE |
+| Item registry | id to definition by directory scan; static, not an autoload | — | who carries anything | DONE |
+| Item instances | Per-item mutable state: durability, contents | Item definitions | UI | LATER — deferred until something has durability; id plus count suffices |
+| Inventory | Held items, stacking, a capacity seam. A component, not an autoload | Events, Save | how items are displayed | DONE |
 | Inventory UI | Grid, tooltips, sorting, controller navigation | Events | inventory rules | TODO |
-| Pickups | World items that enter the inventory | Interactable, Inventory | — | TODO |
-| Containers | Chests and shelves with their own contents | Interactable, Item instances | — | TODO |
+| Pickups | World items that enter the inventory | Interactable, Inventory | — | DONE |
+| Containers | Take-all chests. Named ItemContainer: Container is a native class | Interactable, Items | — | DONE |
 | Doors and gates | Locked, unlocked, flag-gated, with refusal reasons | Interactable, Flags | — | PART — flag-gated done; area transit not wired |
 | Readables | Signs, books, notes | Interactable, Localization | — | DONE |
 | Switches and levers | Toggle world state | Interactable, Flags | what the state causes | DONE |
@@ -125,7 +126,7 @@ previous project started as a system that was allowed to know one thing too many
 | System | Purpose | Status |
 |---|---|---|
 | Placeholder art generation | Procedural stand-ins so code can be finished before art | DONE |
-| Content validator | Headless check for dangling references, duplicate IDs, missing keys | TODO |
+| Content validator | tools/check_content.gd — ids, duplicate object_ids, CSV keys, stray defs | DONE |
 | Line-budget checker | Mechanical enforcement of file and function size limits | DONE |
 | Test runner | Headless integration tests, scene-entered, exit 1 on failure | DONE |
 | Hard-coded string audit | Catches player-facing text that is not a localization key | TODO |

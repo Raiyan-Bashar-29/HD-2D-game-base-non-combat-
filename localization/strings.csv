@@ -13,7 +13,7 @@ verb.harvest,Gather
 verb.light,Light
 refusal.none,
 refusal.locked,It will not budge. Something holds it shut.
-refusal.missing_item,You lack what this needs.
+refusal.missing_item,You need the {item}.
 refusal.missing_skill,You do not know how.
 refusal.wrong_time,Not at this hour.
 refusal.already_done,Already done.
@@ -27,3 +27,12 @@ object.lever.gate.on,The lever gives with a heavy clack. Somewhere north, iron s
 object.lever.gate.off,The lever settles back. The sound of iron returns.
 object.gate.north.label,North Gate
 object.gate.north.opened,The gate grinds open onto the dark.
+item.rose_key.name,Rose Key
+item.rose_petal.name,Rose Petal
+item.stone_chip.name,Chipped Stone
+notify.item_taken,Taken: {item}
+notify.container_emptied,You gather everything inside.
+object.pickup.rose_key.label,Rose Key
+object.chest.courtyard.label,Wicker Chest
+object.gate.east.label,East Gate
+object.gate.east.opened,The east gate swings wide.

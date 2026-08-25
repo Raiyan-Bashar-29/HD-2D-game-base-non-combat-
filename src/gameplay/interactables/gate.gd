@@ -10,12 +10,17 @@ extends Interactable
 ## turns a wall into a goal.
 ##
 ## OWNS: whether it is open, and its persistence.
-## MUST NOT: know how the condition became true, or what is on the other side.
+## MUST NOT: know how the condition became true, or what is on the other side. It must not
+## reach for the player or a global inventory either - it asks whoever is interacting.
 
 const OPEN_FIELD: StringName = &"open"
 
 ## Must be true before this gate will open. Empty means it is never locked.
 @export var requires_flag: StringName = &""
+## Item the interactor must be carrying. Empty means no item is needed. Checked AFTER
+## requires_flag, so a gate the plot has sealed says LOCKED rather than sending the player
+## hunting for a key that would not help yet.
+@export var requires_item: StringName = &""
 ## The geometry that physically blocks the way. Disabled and hidden when the gate opens.
 @export var blocker: StaticBody3D = null
 ## Shown when the player is refused, and when it opens.
@@ -41,6 +46,8 @@ func refusal(_who: Node3D) -> GameEnums.RefusalReason:
 		return GameEnums.RefusalReason.ALREADY_DONE
 	if requires_flag != &"" and not Flags.get_bool(requires_flag):
 		return GameEnums.RefusalReason.LOCKED
+	if requires_item != &"" and not _carried_by(_who):
+		return GameEnums.RefusalReason.MISSING_ITEM
 	return GameEnums.RefusalReason.NONE
 
 
@@ -70,3 +77,20 @@ func _apply_open(announce: bool) -> void:
 		set_available(false)
 	if announce:
 		Log.info("interact", "%s opened" % name)
+
+
+## Asks whoever is interacting, not the player and not a global inventory. A null interactor
+## (a test, a scripted trigger) simply is not carrying anything. The key is NOT consumed:
+## a spent key with no inventory screen is a state change the player cannot see.
+func _carried_by(who: Node3D) -> bool:
+	var bag: Inventory = Inventory.of(who)
+	return bag != null and bag.has(requires_item)
+
+
+## Names the item in the refusal message, so MISSING_ITEM says which key is missing instead
+## of leaving the player to guess.
+func refusal_args(_who: Node3D) -> Dictionary:
+	if requires_item == &"":
+		return {}
+	var definition: ItemDefinition = ItemDb.definition(requires_item)
+	return {"item": tr(definition.name_key)} if definition != null else {}

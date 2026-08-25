@@ -3,7 +3,7 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-24 · commit `5ee01e3` plus uncommitted interaction work · branch `main`
+**Last updated:** 2026-08-25 · commit `dd90da0` plus uncommitted item work · branch `main`
 **Remote:** https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-
 
 ## What this is
@@ -18,7 +18,7 @@ architecture.
 
 ## Where it stands
 
-Phase 0 complete, Phase 1 well along. 32 files, 2,485 code lines, 7 scenes, 1 area.
+Phase 0 complete, Phase 1 nearly done. 44 files, 3,202 code lines, 9 scenes, 1 area, 3 items.
 Boots headless with **0 warnings, 0 errors**.
 
 **Works, and verified by running it:** logging with rotation · signal registry (`events.gd`) ·
@@ -28,12 +28,12 @@ buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
 placeholder art generator · line-budget checker · headless test suite (74 assertions) ·
 interaction sensor with ranking and Tab-cycling · Interactable contract · localized prompt and
-toasts · readable signs · levers · flag-gated gates with refusal reasons · per-object
-persistence (ADR-0005).
+toasts · readable signs · levers · gates gated by flag or by a carried key · per-object
+persistence (ADR-0005) · typed item definitions found by directory scan (ADR-0006) · an
+inventory component with a capacity seam · pickups · take-all chests · a content validator.
 
-**Not built:** items and inventory · containers · trigger volumes · NPCs · dialogue · quests ·
-menus · content validator · hard-coded-string audit · weather visuals · typed Resource content
-classes (still zero — items will be the first).
+**Not built:** trigger volumes · NPCs · dialogue · quests · menus and any screen at all ·
+hard-coded-string audit · weather visuals · item instances (durability) · equipment.
 
 ## Known defects
 
@@ -70,6 +70,14 @@ classes (still zero — items will be the first).
   panel looks empty. Intentional — ADR-0003.
 - **Ten autoloads, no `GameManager`.** Adding one requires an ADR.
 - **No jumping.** Vertical movement will be authored: ladders, stairs, climb points.
+- **Inventory is a component, not an autoload.** Interactables are handed the interactor, so
+  `Inventory.of(who)` needs no global and works for an NPC or a stash too. A global would
+  hard-code "one bag in the universe" into every interactable.
+- **Capacity is unlimited**, behind `can_accept()`. Slots or weight go in that one method.
+- **`ItemCategory` stays an enum.** The eight values are a closed set and a new *item* never
+  needs a new category, so it does not violate the no-code-per-item rule.
+- **Item instances are deferred** until something actually has durability; `{id, count}` is
+  enough. Never persist an enum ordinal — persist ids.
 - Four ADRs in `docs/decisions/` cover the layered `src/`, warnings-as-errors, the input map,
   and save-via-callables.
 
@@ -80,12 +88,13 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 150   # 74 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 150   # 165 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
+"$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --resolution 960x540 --quit-after 55 -- --shot=<path> --time=18:40 --freeze-time
 ```
 
-## Six gotchas that each cost an hour
+## Eight gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -101,20 +110,43 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
    every subclass as "could not resolve class".
 6. `set_anchors_preset()` leaves offsets at zero, giving a zero-size Control whose text spills
    off screen. Use `set_anchors_and_offsets_preset()`.
+7. `Container` is a NATIVE Godot class. `class_name Container` is a parse error that cascades
+   into every subclass as "could not resolve class". Ours is `ItemContainer`. Check a name
+   against the API dump before claiming it.
+8. Configure an interactable BEFORE `add_child`. `object_id` is forwarded to `PersistentState`
+   in `_enter_tree`, so anything set afterwards is too late and the object silently stops
+   persisting. `TestCase.build()` then `attach()` exists to make that ordering explicit.
 
-## Next up
+## Plan — where this is going
 
-Items and inventory → pickups → containers → trigger volumes → a minimal HUD. Items will be
-the first typed `Resource` content class, which is what finally tests the "adding the fiftieth
-item touches no code" claim in `ARCHITECTURE.md`.
+**Phase 1 is nearly complete.** The demo loop works end to end: walk a lit courtyard through a
+day/night cycle, be prompted, read a sign, throw a lever, take an item, empty a chest, be
+refused by a gate that wants a key, open it once you carry the key — and every one of those
+changes survives a save and reload. All of it is covered by 165 headless assertions.
+
+**Next, in this order.** The order matters and is not arbitrary:
+
+1. **Trigger volumes.** `Area3D` with once-or-repeat, persisted by `object_id`. The folder, the
+   collision layer (`Layers.TRIGGER`) and the inventory row all already exist and nothing
+   populates them.
+2. **A rest point** — sleep to skip time. Needs a `Clock.skip_to_hour()` routed through
+   `set_time`, not `advance_minutes`, or an eight-hour sleep emits 480 minute signals.
+3. **Screen stack and input contexts, and only THEN the inventory screen.** In that order,
+   deliberately: a screen built first forces an ad-hoc pause and a boolean per screen, and the
+   interaction sensor currently reads input every physics frame with no notion of a modal UI.
+4. **A second area and a real transition.** The transition code is written, guarded and logged
+   but has never actually swapped two areas, because only one exists.
+
+**Then Phase 2:** dialogue, NPC schedules, navigation baking, weather visuals.
 
 **Still open, and expensive later:**
 - **Sprite sheet layout is hardcoded.** `CharacterVisual` has `FACING_COUNT = 8` and
   `FRAME_COUNT = 4` as constants; a different sheet needs a code edit. Should be a resource.
-- **No duplicate-`object_id` check.** Two objects sharing an id inside one area silently share
-  state. A content validator scanning scenes would catch it; not built.
-- **No hard-coded-string audit,** so the localization rule is still enforced by discipline
-  rather than by a tool.
+- **The export path is unproven.** Items are found by scanning a directory, which is verified
+  in the editor and headless only. There is no export preset yet, and it must export *all*
+  resources or the item catalogue ships empty. See ADR-0006.
+- **No hard-coded-string audit.** Computed keys (`verb.*`, `refusal.*`) are covered by an enum
+  loop in the test suite, but literal player-facing text in code is still caught only by review.
 
 ## Read next
 

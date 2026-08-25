@@ -16,6 +16,114 @@ Append-only. Newest entry at the top. One entry per working session.
 
 ---
 
+## 2026-08-25 — Items, inventory, pickups and chests: the demo loop closes
+
+**Did:**
+
+Planned this one properly before writing anything, because the last two attempts at
+delegating research both died on usage limits. Two Explore agents mined the three surviving
+audit reports and verified the existing seams; one design agent produced an implementation
+plan; the whole thing was settled with the owner before line one. That paid for itself twice
+over, below.
+
+Shipped in two commits. First, prerequisites (`dd90da0`):
+
+- **Layer order corrected.** The declared order put `content` *above* `gameplay`, but a
+  `Pickup` must reference an `ItemDefinition` — an upward dependency failing ADR-0001's own
+  test. Content is data, not a consumer: `core -> content -> systems -> gameplay -> ui`.
+  Recorded as an ADR-0001 amendment rather than quietly fixed.
+- **Signal payloads.** `notify_requested` had no substitution slot, so a toast could not say
+  "Taken: Rose Key", and `interaction_refused` could not name the missing item. Both now carry
+  a `Dictionary`; both had zero emitters, so it was free then and expensive later.
+- **Per-section save versions.** `register()` takes a version, sections store as
+  `{"v": n, "data": {…}}`, and appliers migrate themselves. One envelope version would have
+  forced `_migrate` to understand every section — the god object via the back door.
+- **`Flags` hands out deep copies** from `get_dict`/`get_array`. Godot passes Dictionaries by
+  reference, so returning the stored object let a caller mutate world state without
+  `set_flag`, meaning `flag_changed` never fired.
+- **Test suite split** into `tests/framework/test_case.gd` plus `tests/unit/*.gd`, because the
+  runner was at 184 of its 250 lines and the item cases would not fit. Raising the budget is
+  the exemption the checker's own header forbids.
+
+Then the feature:
+
+- **`ItemDefinition`** — the project's first `Resource`. Four fields: `id`, `name_key`,
+  `category`, `max_stack`. Five more were cut (`icon`, `description_key`, `value`, `tags`,
+  `world_scene`) because nothing displays or reads them and adding one later edits one script
+  while leaving every `.tres` valid.
+- **`ItemDb`** — a static class, not an autoload, that scans `data/items`. ADR-0006.
+- **`Inventory`** — a component on the player, with `can_accept()` as the single capacity seam.
+- **`Pickup`**, **`ItemContainer`**, and `Gate.requires_item`.
+- **`tools/check_content.gd`** — duplicate object ids, id/filename mismatches, localization keys
+  missing from the CSV, and `ItemDefinition` files filed outside `data/items`.
+- Courtyard content: a rose key on the dais, a wicker chest, an east gate that wants the key.
+
+**Why:**
+
+Items had to be next because they were the last missing piece of the Phase 1 loop *and* the
+project's first typed `Resource`. `ARCHITECTURE.md` has claimed since day one that "adding the
+fiftieth item must not touch a single line of code", and that claim had never been exercised —
+the audit called it unrunnable rather than untested. It is now tested by a case that counts the
+`.tres` files on disk instead of hard-coding three, so adding a fourth item keeps it passing.
+
+Two design points worth keeping. **The inventory is not an autoload**: interactables are already
+handed the interactor by `attempt(who)`, so `Inventory.of(who)` needs no global and works for an
+NPC or a stash, whereas a global would hard-code "one bag in the universe" into every
+interactable in the game. **The lever and the gate still know nothing about each other** — one
+publishes a flag, the other reads one, and now a third thing can demand a carried item instead.
+
+**Connects:**
+
+Persistence added *zero* new machinery. `PersistentState.store(&"taken", true)` writes
+`obj/<area>/<object>/taken` into `Flags`, which is already a tested save participant, so a
+pickup that is gone stays gone because `flags` is applied before the area is even requested.
+That is the whole return on ADR-0005. `Pickup` deliberately does not free itself — the sensor
+may hold a reference inside the very call that took the item — it goes unavailable,
+unmonitorable and invisible instead.
+
+**Verified:**
+
+- Type gate clean on every new script; `--import` clean.
+- Boot: courtyard with **6 interactables**, `0 warnings, 0 errors`.
+- Tests: **165 passed, 0 failed**, exit 0, no leaked instances. A deliberately broken
+  assertion exits 1.
+- `check_budgets`: 44 files, 3,202 code lines, **0 violations**.
+- `check_content`: PASS — and proven to fail. A scratch copy with a mismatched item id, a
+  duplicate `object_id`, a misspelled localization key and a stray definition produced four
+  precise `file:line` violations and exit 1.
+- Visual capture at 10:15 shows the placeholder-marker key on the dais and the chest, both
+  casting shadows, with the localized prompt reading "Read  Weathered Notice".
+
+**Two things the planning caught that would have cost real time:**
+
+1. **`class_name Container` does not compile.** `Container` is a native Godot class (the
+   `Control` base), so it would have cascaded into every subclass as "could not resolve class" —
+   the same trap as `Area3D.priority`. Verified against the engine's own class list, and the
+   chest is `ItemContainer`.
+2. **Resource-typed `@export` from a hand-authored `.tscn` works** with no `node_paths` header,
+   unlike Node-typed ones. Probed before authoring any prefab against the assumption.
+
+And one bug the refactor caught in its own new helper: a one-step `spawn()` added nodes to the
+tree before the caller could set `object_id`, which `Interactable` forwards in `_enter_tree` —
+so it arrived too late and persistence silently died. Split into `build()` and `attach()` so the
+ordering lives in the API rather than a comment.
+
+**Unblocks:**
+
+Trigger volumes and a rest point, then the screen stack that the inventory UI needs. Phase 1's
+remaining exit criteria are now the walk-and-face check and a real save/quit/relaunch.
+
+**Known gaps:**
+
+**The export path is unproven** and this matters: items are found by scanning a directory,
+verified in the editor and headless only. There is no export preset, and it must export *all*
+resources or the catalogue ships empty — written up in ADR-0006 rather than left as a surprise.
+No trigger volumes yet, no screen of any kind, no item instances (deferred until something has
+durability), no equipment. The sprite sheet layout is still two hardcoded constants. Only one
+area exists, so the transition code has still never swapped two.
+
+---
+
 ## 2026-08-24 — Object identity, and the interaction loop end to end
 
 **Did:**

@@ -38,8 +38,8 @@ Headless shades nothing. This project has already shipped two bugs that every ot
 |---|---|---|
 | 01 | Triggers and traversal | **DONE** — see below |
 | 02 | UI foundation | **DONE** — see below |
-| 03 | HUD and inventory screen | **TODO — next** |
-| 04 | Second area, transitions, loading | TODO |
+| 03 | HUD and inventory screen | **DONE** — see below |
+| 04 | Second area, transitions, loading | **TODO — next** |
 | 05 | Dialogue | TODO |
 | 06 | NPCs and navigation | TODO |
 | 07 | Path actions | TODO |
@@ -139,7 +139,7 @@ not a curtain.
 
 ---
 
-## WP-03 · HUD and inventory screen — **NEXT**
+## WP-03 · HUD and inventory screen — **DONE**
 
 **Goal.** The first real consumers of the stack. The inventory has data and no window.
 
@@ -158,6 +158,17 @@ The screen is a `UiScreen` pushed onto `UiRoot` — it must NOT touch `get_tree(
 NOT lock the player, and must NOT add a signal for any of that. If it needs to, the stack is
 wrong and that is a WP-02 bug, not a reason to work around it. Delete `StubScreen` once this
 and one other real screen exist.
+
+**Done 2026-08-26**, commit `PLACEHOLDER`.
+`src/ui/hud/hud_clock.gd`, `src/ui/screens/inventory_screen.gd`, `src/ui/root/screen_keys.gd`,
+`tests/unit/screens_test.gd`, 22 CSV rows. `StubScreen` is DELETED along with its two
+`ui.stub.*` rows and the `--open-screen` flag, which became `--give=<list>` plus
+`--open-inventory` so a capture shows real rows. `ui_test.gd` now drives real screens. Suite
+294 -> 355, everything green, two windowed captures examined and a real-input probe that
+pressed I, ui_down, ui_up, Escape and I twice in the live tree.
+One thing the manifest did not anticipate, justified in `DEVLOG.md`: a screen must declare
+`pauses_world` in `_init`, not `_build`, or `_ready` discards a caller's override — which had
+been making the overlay assertion in `ui_test.gd` pass vacuously since WP-02.
 
 ---
 

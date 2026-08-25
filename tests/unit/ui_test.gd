@@ -10,8 +10,8 @@ extends TestCase
 ## by waiting on real frames: TestCase.run() is synchronous and cannot await a physics frame.
 ##
 ## OWNS: assertions about the lock, the stack, the announced mode and the pause table.
-## MUST NOT: assert anything about what a screen renders. There is no real screen yet, on
-## purpose - the stub proves the stack, and WP-03 brings content.
+## MUST NOT: assert anything about what a screen renders. That is screens_test.gd's job; this
+## file drives real InventoryScreens purely as stack occupants and never looks inside one.
 
 var _mover: PlayerController = null
 var _stack: UiRoot = null
@@ -93,11 +93,11 @@ func _stack_opens_and_closes() -> void:
 	equal("closing nothing reports nothing closed", _stack.close_top(), false)
 	equal("a null screen is refused", _stack.open(null), false)
 
-	var menu := StubScreen.new()
-	equal("the stub opens", _stack.open(menu), true)
+	var menu := InventoryScreen.new()
+	equal("the inventory opens", _stack.open(menu), true)
 	equal("depth is one", _stack.depth(), 1)
 	equal("it is the top", _stack.top(), menu)
-	equal("it can be found by id", _stack.has_screen(StubScreen.SCREEN_ID), true)
+	equal("it can be found by id", _stack.has_screen(InventoryScreen.SCREEN_ID), true)
 	equal("gameplay input stops", _stack.is_gameplay_input_allowed(), false)
 	equal("the mode is MODAL", _stack.mode(), GameEnums.UiMode.MODAL)
 	equal("the tree is paused", get_tree().paused, true)
@@ -117,9 +117,13 @@ func _stack_opens_and_closes() -> void:
 ## A non-pausing overlay dropped over a pausing menu must NOT restart the world underneath it.
 func _overlay_over_the_menu() -> void:
 	var covered: UiScreen = _stack.top()
-	var talk := StubScreen.new()
+	# A second inventory standing in for the dialogue box WP-05 will bring. It is the flag
+	# that is under test, not the contents, and a screen declares its flags in _init so an
+	# override set here still stands after _ready - which is what the next line asserts.
+	var talk := InventoryScreen.new()
 	talk.pauses_world = false
 	equal("an overlay opens on top", _stack.open(talk), true)
+	equal("and _ready did not overwrite its declaration", talk.pauses_world, false)
 	equal("depth is two", _stack.depth(), 2)
 	equal("only the top screen processes", talk.process_mode, Node.PROCESS_MODE_ALWAYS)
 	equal("the covered one is disabled", covered.process_mode, Node.PROCESS_MODE_DISABLED)
@@ -138,7 +142,7 @@ func _stack_hands_control_over() -> void:
 	equal("the player is free to begin with", _mover.is_input_locked(), false)
 	equal("and so is the sensor", sensor.is_suspended(), false)
 
-	var menu := StubScreen.new()
+	var menu := InventoryScreen.new()
 	equal("a screen opens", _stack.open(menu), true)
 	equal("the player took the ui token", _mover.input_holders(), [&"ui"] as Array[StringName])
 	equal("and the sensor is suspended", sensor.is_suspended(), true)
@@ -180,7 +184,7 @@ func _climb_still_gives_control_back() -> void:
 ## The pause table in ui_root.gd, asserted rather than merely written down. can_process()
 ## answers "would this node tick right now", which is exactly the question.
 func _pause_table() -> void:
-	var menu := StubScreen.new()
+	var menu := InventoryScreen.new()
 	equal("a modal screen opens", _stack.open(menu), true)
 	equal("the world clock stops", Clock.can_process(), false)
 	equal("the weather stops", Weather.can_process(), false)

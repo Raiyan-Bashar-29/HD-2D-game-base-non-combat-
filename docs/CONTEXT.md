@@ -3,9 +3,10 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-26 · WP-02 complete · branch `claude/intelligent-wilbur-ae8141`
-**Note:** this branch fast-forwarded WP-01 in from `claude/trusting-curran-04a4f9`, which was
-never merged to `main`. Merge order is WP-01 then WP-02, or just merge this branch.
+**Last updated:** 2026-08-26 · WP-03 complete · branch `claude/loving-nightingale-aa2114`
+**Note:** this branch fast-forwarded WP-01 and WP-02 in from `claude/trusting-curran-04a4f9`
+and `claude/intelligent-wilbur-ae8141`, neither of which was merged to `main`. Merge order is
+WP-01, WP-02, WP-03, or just merge this branch.
 **Remote:** https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-
 
 ## What this is
@@ -20,7 +21,7 @@ architecture.
 
 ## Where it stands
 
-Phase 0 complete, Phase 1 nearly done. 53 files, 3,879 code lines, 12 scenes, 1 area, 3 items.
+Phase 0 complete, Phase 1 nearly done. 56 files, 4,152 code lines, 12 scenes, 1 area, 3 items.
 Boots headless with **0 warnings, 0 errors**.
 
 **Works, and verified by running it:** logging with rotation · signal registry (`events.gd`) ·
@@ -36,9 +37,9 @@ inventory component with a capacity seam · pickups · take-all chests · a cont
 trigger volumes that fire on entry · a rest point that skips hours · authored climb points ·
 a screen stack with real pause semantics · a token input lock.
 
-**Not built:** NPCs · dialogue · quests · any REAL screen (the stack exists and a stub proves
-it; the HUD and the inventory screen are WP-03) · hard-coded-string audit · weather visuals ·
-item instances (durability) · equipment · keyboard focus inside a screen.
+**Not built:** NPCs · dialogue · quests · the pause, main, settings, save and journal screens
+(WP-12) · hard-coded-string audit · weather visuals · item instances (durability) · equipment ·
+item tooltips, sorting and drag-and-drop.
 
 ## Known defects
 
@@ -110,6 +111,19 @@ item instances (durability) · equipment · keyboard focus inside a screen.
 - **A screen never pauses anything itself.** It declares `pauses_world` and `closes_on_cancel`
   as a `UiScreen`, and `UiRoot` does the rest. `UiRoot.is_gameplay_input_allowed()` is the one
   truth; everything else listens to `Events.ui_mode_changed`.
+- **A screen declares its flags in `_init`, never in `_build`.** `_build` runs from `_ready`,
+  i.e. after a caller has had its chance to override one, so setting `pauses_world` there
+  silently discards an overlay's request to keep the world running. `StubScreen` did exactly
+  that and made the overlay assertion in `ui_test.gd` pass vacuously for a whole package.
+- **The HUD is a layer, not a class.** The clock, the prompt and the toasts are independent
+  siblings under `UILayer`, each subscribing to the one signal it draws. There is no `Hud`
+  node owning them, and adding one would only create somewhere for the fourth readout to
+  accumulate.
+- **An inventory screen is handed its carrier**, `InventoryScreen.for_carrier(who)`, on the
+  same reasoning as `Inventory.of(who)`: the same window shows an NPC's satchel or a stash.
+- **One node binds actions to screens.** `ScreenKeys`, under `UILayer`. The journal key and
+  the map key join it there rather than each finding a different home, which is how a boolean
+  per screen was born last time.
 - **Pause is per node, not global.** `get_tree().paused` is set by UiRoot, but each node
   decides for itself in its own `_ready()`. The full table is the header of
   `src/ui/root/ui_root.gd`. Clock and Weather stop; Audio, Director, ScreenFade,
@@ -124,13 +138,13 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 120               # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 150   # 294 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 150   # 355 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --resolution 960x540 --quit-after 55 -- --shot=<path> --time=18:40 --freeze-time
 ```
 
-## Thirteen gotchas that each cost an hour
+## Fifteen gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -172,6 +186,15 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     thread and prints spurious `Parse Error` lines for `courtyard.tscn` plus leaked RIDs,
     *after* the run has already reported `0 warnings, 0 errors`. Pre-existing and reproducible
     at any commit; the real fix is for `Director` to cancel its load on shutdown (WP-14).
+14. **`x if c else [] as Array[StringName]` is a RUNTIME cast failure.** The empty literal is
+    a plain `Array`, the ternary takes its type from it, and the assignment throws every time
+    the condition is false. It compiles, the boot run is clean, and the test suite still
+    reports every assertion passing — the only trace is a `SCRIPT ERROR` line in the output.
+    Declare the typed local, then assign inside an `if`.
+15. **No assertion can press a key.** `TestCase.run()` is synchronous, so an input event never
+    reaches the frame that would deliver it. An input path is proved by a TEMPORARY probe
+    added to `dev_capture.gd`, run windowed with real `InputEventAction`s, read in the log,
+    and then removed. WP-03's probe is quoted verbatim in `DEVLOG.md`; copy its shape.
 
 ## How work is sliced
 
@@ -181,7 +204,7 @@ should read, so a session loads a few hundred lines instead of three thousand. T
 (`core -> content -> systems -> gameplay -> ui`, downward only) is what makes that possible: a
 package never has to read upward.
 
-**Next package: WP-03, HUD and inventory screen.**
+**Next package: WP-04, a second area and a real transition.**
 
 ## Plan — where this is going
 
@@ -189,16 +212,13 @@ package never has to read upward.
 day/night cycle, be prompted, read a sign, throw a lever, take an item, empty a chest, be
 refused by a gate that wants a key, open it once you carry the key, cross a volume that fires
 once, rest on a bench and watch the light change, climb a trellis to a terrace and back down —
-and every one of those changes survives a save and reload. All of it is covered by 294
-headless assertions.
+and every one of those changes survives a save and reload — and press I at any point to see
+what you are carrying, in a window that stops the world. All of it is covered by 355 headless
+assertions.
 
 **Next, in this order.** The order matters and is not arbitrary:
 
-1. **The HUD and the inventory screen.** The stack, the pause semantics and the token input
-   lock landed in WP-02, so a screen is now a `UiScreen` subclass with content in it and
-   nothing else — no new pause, no new boolean, no new signal. Keyboard and controller focus
-   inside a screen is unbuilt and belongs with the first screen that has something to focus.
-2. **A second area and a real transition.** The transition code is written, guarded and logged
+1. **A second area and a real transition.** The transition code is written, guarded and logged
    but has never actually swapped two areas, because only one exists. Trigger volumes are now
    the entry mechanism it was waiting for.
 

@@ -22,7 +22,9 @@ extends Node
 ##   --freeze-time        stop the clock, so a capture is reproducible to the pixel.
 ##   --skip-to-hour=<int> perform the same time skip a rest point does, after --time.
 ##   --weather=<KIND>     force weather. Any GameEnums.WeatherKind name.
-##   --open-screen        push the stub screen, to capture the world paused behind a screen.
+##   --give=<list>        put items in the player's bag: item/rose_key,item/rose_petal:3
+##   --open-inventory     push the inventory screen, to capture a real screen over a
+##                        stopped world. Apply --give first or the capture shows an empty bag.
 ##
 ## OWNS: capture, and CLI-driven overrides for time and weather.
 ## MUST NOT: be depended upon by gameplay. Deleting this file must not break the game.
@@ -94,8 +96,10 @@ func _parse_arguments() -> void:
 			Log.info("test", "Clock frozen by command line")
 		elif argument.begins_with("--skip-to-hour="):
 			_skip_to_hour(argument.trim_prefix("--skip-to-hour="))
-		elif argument == "--open-screen":
-			_open_stub_screen()
+		elif argument.begins_with("--give="):
+			_give(argument.trim_prefix("--give="))
+		elif argument == "--open-inventory":
+			_open_inventory()
 		elif argument.begins_with("--weather="):
 			_force_weather(argument.trim_prefix("--weather="))
 
@@ -127,14 +131,31 @@ func _skip_to_hour(value: String) -> void:
 	Log.info("test", "Skipped %d minutes to %02d:00 by command line" % [skipped, Clock.hour])
 
 
-## Pushes the stub screen so a windowed capture can show a real screen over a real, stopped
-## world. Deferred by a frame: UiRoot is a sibling built in the same _ready() pass as this
-## node, so it is not reliably in its group yet when the arguments are read.
-func _open_stub_screen() -> void:
+## Fills the player's bag from the command line, so a capture of the inventory shows real rows
+## produced by the real Inventory.add() rather than a mock the screen was posed against.
+## Deferred: GameRoot spawns the player in the same _ready() pass that reads these arguments.
+func _give(list: String) -> void:
+	await get_tree().process_frame
+	var bag: Inventory = Inventory.of(Director.player)
+	if bag == null:
+		Log.error("test", "--give found no inventory on the player")
+		return
+	for entry: String in list.split(",", false):
+		var parts: PackedStringArray = entry.split(":")
+		var count: int = parts[1].to_int() if parts.size() > 1 else 1
+		var added: bool = bag.add(StringName(parts[0]), maxi(1, count))
+		Log.info("test", "--give %s x%d: %s" % [parts[0], count, str(added)])
+
+
+## Pushes the inventory screen so a windowed capture can show a real screen over a real,
+## stopped world. Deferred by two frames: UiRoot is a sibling built in the same _ready() pass
+## as this node, and --give needs its own frame before this one reads the bag.
+func _open_inventory() -> void:
+	await get_tree().process_frame
 	await get_tree().process_frame
 	var stack: UiRoot = UiRoot.find(self)
 	if stack == null:
-		Log.error("test", "--open-screen found no UiRoot in the tree")
+		Log.error("test", "--open-inventory found no UiRoot in the tree")
 		return
-	var opened: bool = stack.open(StubScreen.new())
-	Log.info("test", "--open-screen pushed the stub screen: %s" % str(opened))
+	var opened: bool = stack.open(InventoryScreen.for_carrier(Director.player))
+	Log.info("test", "--open-inventory pushed the inventory screen: %s" % str(opened))

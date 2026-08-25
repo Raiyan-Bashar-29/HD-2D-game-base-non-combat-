@@ -41,5 +41,24 @@ object.trigger.dais.text,The rose-scent thickens as you step onto the dais.
 object.bench.courtyard.label,Stone Bench
 object.bench.courtyard.rested,You rest a while. {hours} hours slip past.
 object.ladder.courtyard.label,Trellis Ladder
-ui.stub.title,Screen Stack
-ui.stub.hint,The world behind this is paused. Press Escape to return.
+ui.hud.clock,Day {day}  |  {time}  |  {phase}
+time.phase.dawn,Dawn
+time.phase.morning,Morning
+time.phase.midday,Midday
+time.phase.afternoon,Afternoon
+time.phase.dusk,Dusk
+time.phase.night,Night
+time.phase.deep_night,Deep Night
+ui.inventory.title,Satchel
+ui.inventory.empty,You are carrying nothing.
+ui.inventory.hint,Escape to close
+ui.inventory.row,{item}  x{count}
+ui.inventory.unknown,Unrecorded ({id})
+item.category.tool,Tools
+item.category.consumable,Provisions
+item.category.key_item,Key Items
+item.category.quest,Errands
+item.category.material,Materials
+item.category.clothing,Garments
+item.category.document,Papers
+item.category.treasure,Treasures

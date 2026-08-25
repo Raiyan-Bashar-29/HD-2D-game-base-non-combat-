@@ -43,13 +43,14 @@ Done:
 - The courtyard: ground, pillars, walls, a dais, two lanterns, spawn markers
 
 Remaining:
-- A minimal HUD
 - Hard-coded-string audit (the budget and content checkers are DONE and passing)
 
 Also done, ahead of Phase 2 because every screen needs it first:
 - Screen stack, pause semantics and input contexts (WP-02) - a screen declares whether it
   pauses; UiRoot does the pausing; input readers hold NAMED tokens so two of them cannot
   release each other
+- The HUD clock readout and the inventory screen (WP-03) - the stack's first real
+  consumers, plus the one action-to-screen binding and keyboard/gamepad focus in a screen
 
 Exit criteria:
 - [ ] Walk the courtyard, and the character faces the direction of travel correctly in all
@@ -66,10 +67,16 @@ Exit criteria:
       from the same 06:30 start, one with the same skip the bench performs, show warm dawn
       becoming cool night with the lantern pools lit
 - [ ] Save, quit, relaunch, continue — position, time, weather and inventory all restored
-- [x] Test suite passes headless and exits non-zero on failure — 294 assertions
-- [x] A stub screen opens over the world, gameplay input stops, the fade still runs over the
+- [x] Test suite passes headless and exits non-zero on failure — 355 assertions
+- [x] A screen opens over the world, gameplay input stops, the fade still runs over the
       top of it, and Escape restores control — done 2026-08-26, windowed captures plus a
       real-input probe in the live tree
+- [x] Press I and the inventory opens with real rows, grouped by category with localized
+      names and counts; the world freezes; arrows and the d-pad move focus between rows;
+      Escape closes it and control returns — done 2026-08-26, windowed capture at dusk and
+      midday plus a real-input probe that pressed I, Escape and I twice in the live tree
+- [x] The HUD shows the clock and follows it — done 2026-08-26, windowed capture and an
+      assertion driving the real Clock
 - [x] Two overlapping input locks release correctly: lock A, lock B, release A, the player is
       still locked — done 2026-08-26, covered by the test suite
 - [ ] A 30-second play session produces **zero** warnings or errors in the log

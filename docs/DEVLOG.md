@@ -16,6 +16,117 @@ Append-only. Newest entry at the top. One entry per working session.
 
 ---
 
+## 2026-08-26 — WP-03: the HUD clock and the inventory screen
+
+**Did:**
+
+The screen stack got its first real occupants. A HUD clock readout, an inventory screen that
+renders what the player is actually carrying, the one node that binds `I` to it, twenty-two
+new localization rows, and a new test case file. `StubScreen` is gone.
+
+- `src/ui/hud/hud_clock.gd` — a `Label` on `Events.minute_passed` showing day, time and the
+  localized phase name. Pausable on purpose: behind an open menu no in-game minute passes, so
+  a clock that kept ticking would be lying.
+- `src/ui/screens/inventory_screen.gd` — a `UiScreen`. Reads `Inventory.ids()`, emits a
+  heading wherever the category changes, and a focusable row per item. Rebuilds on
+  `Events.inventory_changed`, connected only while it is open.
+- `src/ui/root/screen_keys.gd` — `ScreenKeys`. The whole action-to-screen table, which today
+  has one row. `PROCESS_MODE_ALWAYS`, so the key that opened a screen also closes it.
+- `tests/unit/screens_test.gd` — 61 new assertions. 294 -> 355.
+- `dev_capture.gd` traded `--open-screen` for `--give=<list>` and `--open-inventory`, so a
+  capture shows real rows produced by the real `Inventory.add()`.
+
+**Why:**
+
+**The HUD is a layer, not a class.** The obvious move was a `Hud` node owning the clock, the
+prompt and the toasts. It was rejected: those three already exist as independent siblings under
+`UILayer`, each subscribing to the one signal it draws, and a parent whose only job is to
+forward signals to them adds a hop and a place for the fourth readout to accumulate. The HUD is
+the set of nodes on that layer.
+
+**The carrier is injected, not looked up.** `InventoryScreen.for_carrier(who)` mirrors the
+interaction contract's `attempt(who)`. The same screen shows an NPC's satchel or a stash
+without knowing that `Director` or a player exists, and a test hands it a bare `Node` with an
+`Inventory` child.
+
+**The screen holds no rules, and no pause.** It declares `pauses_world` and renders. It never
+touches `get_tree().paused`, never locks the player, and never asks whether another screen is
+open. Nothing in WP-02 had to be widened to make that work, which is the result WP-02 was
+scheduled to produce.
+
+**A screen declares its flags in `_init`, not `_build`.** Found while repointing `ui_test.gd`:
+`_build` runs from `_ready`, i.e. *after* a caller has set a flag, so `StubScreen` setting
+`pauses_world = true` there silently discarded the overlay test's `pauses_world = false`. The
+overlay case had been passing vacuously since WP-02 — it asserted "the world stays paused" of a
+screen that was, unknown to it, still a modal. `InventoryScreen` sets identity in `_init`, the
+test now asserts the override survives `_ready`, and it fails if that regresses.
+
+**Rows are `Button`s, and that is the whole of the focus work.** A `VBoxContainer` of focusable
+children already answers `ui_up` and `ui_down`, which are bound to arrows, the d-pad and the
+left stick. Pressing a row does nothing yet; tooltips and use are later packages.
+
+**Connections:**
+
+`Clock` -> `minute_passed` -> the HUD. `Inventory` -> `inventory_changed` -> the screen.
+`Actions.INVENTORY` -> `ScreenKeys` -> `UiRoot.open()`. `UiRoot` -> `ui_mode_changed` -> the
+player's and the sensor's own `&"ui"` tokens, unchanged from WP-02. `ItemDb` supplies
+`name_key` and `category`; the screen never reads a `.tres`.
+
+**Verified:**
+
+```
+--headless --import                                   clean
+--headless --quit-after 120                           0 warnings, 0 errors
+--headless res://tests/test_runner.tscn                355 passed, 0 failed, exit 0
+  with one assertion deliberately broken               354 passed, 1 failed, exit 1
+--headless --script tools/check_budgets.gd            56 files, 4152 lines, 0 violations
+--headless --script tools/check_content.gd            PASS
+--resolution 960x540 -- --shot=... --open-inventory   looked at, twice: 18:40 and 12:20
+```
+
+Two windowed captures were opened and examined, not merely produced. Both show the rows grouped
+under "Key Items" and "Materials" with localized names and counts, the focus ring on the first
+row, "Escape to close" at the foot, the clock top right, and the courtyard still drawn and
+stopped behind the panel. The first capture was at `DIM` alpha 0.88 and the world behind it was
+nearly invisible; lowered to 0.78 and re-shot at midday, where the dais and the character read
+clearly through it.
+
+Headless cannot see any of that, and it also cannot press a key: `TestCase.run()` is
+synchronous, so no assertion can span the frames an input event needs. So the input path was
+proved by a **temporary probe** added to `dev_capture.gd`, run windowed, and then removed. It
+fed real `InputEventAction`s into the live tree and logged the result:
+
+```
+TEMP pressed inventory      -> Mode -> MODAL, Opened 'inventory' at depth 1
+TEMP after I: depth=1, gameplay=false, player locked=true
+TEMP focus after open: Rose Key  x1
+TEMP focus after ui_down: Rose Petal  x7
+TEMP focus after 2x ui_down: Chipped Stone  x2
+TEMP focus after ui_up: Rose Petal  x7
+TEMP pressed cancel         -> Mode -> GAMEPLAY, Closed 'inventory', depth now 0
+TEMP after Escape: depth=0, gameplay=true, locked=false
+TEMP toggle twice: depth=0
+```
+
+**Unblocks:**
+
+Every remaining screen. The pause menu, the journal, the map and the settings screen are now
+each a `UiScreen` subclass plus a row in `ScreenKeys`, with no new pause, no new boolean and no
+new signal. WP-05's dialogue box is the first `pauses_world = false` occupant, and the overlay
+assertion above is now a real guard for it rather than a vacuous one.
+
+**Known gaps:**
+
+A row does nothing when pressed — there is no use, no tooltip, no sorting and no drag-and-drop,
+all deferred by the package. The screen rebuilds every row on any change, which is fine for a
+few dozen entries and would not be for a few hundred. `refresh()` frees the old rows with
+`queue_free()`, so within a single frame the freed children are still present; the test skips
+`is_queued_for_deletion()` children and any future reader must too. The HUD clock is drawn
+beneath the screens, so an open inventory dims it — legible, and arguably right, but it is a
+choice rather than an accident. Still no hard-coded-string audit tool: the enum-built keys
+(`verb.*`, `refusal.*`, `item.category.*`, `time.phase.*`) are each covered by a loop in the
+suite, and everything else is caught only by review.
+
 ## 2026-08-26 — WP-02: the screen stack, pause semantics and a token input lock
 
 **Did:**

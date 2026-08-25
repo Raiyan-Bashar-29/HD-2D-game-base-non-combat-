@@ -65,7 +65,7 @@ previous project started as a system that was allowed to know one thing too many
 | Item registry | id to definition by directory scan; static, not an autoload | — | who carries anything | DONE |
 | Item instances | Per-item mutable state: durability, contents | Item definitions | UI | LATER — deferred until something has durability; id plus count suffices |
 | Inventory | Held items, stacking, a capacity seam. A component, not an autoload | Events, Save | how items are displayed | DONE |
-| Inventory UI | Grid, tooltips, sorting, controller navigation | Events | inventory rules | TODO |
+| Inventory UI | A UiScreen: rows grouped by category, localized names and counts, focus navigation | Events, Inventory, ItemDb | inventory rules, pausing, locking the player | PART — no tooltips, sorting or drag-and-drop |
 | Pickups | World items that enter the inventory | Interactable, Inventory | — | DONE |
 | Containers | Take-all chests. Named ItemContainer: Container is a native class | Interactable, Items | — | DONE |
 | Doors and gates | Locked, unlocked, flag-gated, with refusal reasons | Interactable, Flags | — | PART — flag-gated done; area transit not wired |
@@ -115,7 +115,8 @@ previous project started as a system that was allowed to know one thing too many
 | Screen contract | UiScreen: a screen declares whether it pauses and whether cancel closes it | — | pausing, locking input, or its own lifetime | DONE |
 | Input lock | Named tokens so two systems holding input cannot release each other | nothing | what input is | DONE |
 | Pause semantics | Deliberate process_mode per node; music and the fade keep running | — | — | DONE |
-| HUD | Minimal: prompts, notifications, clock | Events | game rules | TODO |
+| HUD | Clock readout. The prompt and the toasts are their own siblings under UILayer | Events, Clock | game rules, and owning the other readouts | DONE |
+| Screen keys | The one action-to-screen binding. I opens and closes the inventory | Actions, UiRoot | holding a screen reference, or a flag for "a screen is open" | DONE |
 | Notifications | Transient localized toasts | Events | — | DONE |
 | Pause menu | The actual menu. The pause mechanism underneath it is DONE | Actions, UiRoot | — | TODO |
 | Main menu | New game, continue, settings, quit | Save, Director | — | TODO |
@@ -123,7 +124,7 @@ previous project started as a system that was allowed to know one thing too many
 | Settings screen | Every entry in the Settings defaults table | Settings | — | TODO |
 | Key rebinding | Rebind, and glyph swapping per device | Actions, Settings | — | TODO |
 | World map | Region map, discovery, fast travel | Director, Flags | — | TODO |
-| Controller navigation | Every screen fully usable on a gamepad | Actions | — | TODO |
+| Controller navigation | Every screen fully usable on a gamepad | Actions | — | PART — the inventory navigates on ui_up/ui_down; every new screen must earn its own |
 | Loading screen | Covers threaded area loads | Director | — | PART — fade exists, no progress display |
 
 ## 6. Content pipeline and production
@@ -135,7 +136,7 @@ previous project started as a system that was allowed to know one thing too many
 | Line-budget checker | Mechanical enforcement of file and function size limits | DONE |
 | Test runner | Headless integration tests, scene-entered, exit 1 on failure | DONE |
 | Hard-coded string audit | Catches player-facing text that is not a localization key | TODO |
-| Localization | String IDs from the first string; CSV translation | PART — CSV wired, 28 keys, all UI text localized. No audit tool yet |
+| Localization | String IDs from the first string; CSV translation | PART — CSV wired, 48 keys, all UI text localized. No audit tool yet |
 | Smoke test | Boots, loads an area, saves, reloads, asserts zero errors | TODO |
 | Export presets | Windows build configuration | LATER |
 | Performance overlay | Frame time, draw calls, node counts | TODO |
@@ -183,9 +184,9 @@ The smallest set that makes a real game loop, and the current target:
 camera rig, character visual, player controller, clock, weather state, environment driver,
 screen fade, audio buses, dev capture, placeholder art, the screen stack and pause semantics.
 
-**Still needed:** interaction sensor, interactable component, prompt UI, item definitions,
-inventory, pickups, containers, doors, object persistence, a minimal HUD, the test runner and
-the smoke test.
+**Still needed:** nothing. Interaction, items, inventory, pickups, containers, doors, object
+persistence, the HUD, the inventory screen, the test runner and the smoke test all exist and
+are verified by running the engine.
 
 **Explicitly not in slice one:** dialogue, quests, NPCs, weather visuals, navigation, world
 map, main menu, streaming, followers, crafting, water.

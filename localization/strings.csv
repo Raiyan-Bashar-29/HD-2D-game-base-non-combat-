@@ -62,3 +62,11 @@ item.category.material,Materials
 item.category.clothing,Garments
 item.category.document,Papers
 item.category.treasure,Treasures
+area.lantern_hall.name,Lantern Hall
+ui.loading.working,Loading
+ui.loading.progress,Loading {percent}%
+object.door.hall_in.label,Hall Door
+object.door.hall_out.label,Courtyard Door
+object.sign.hall.label,Brass Plaque
+object.sign.hall.text,"Lanterns are lit here at all hours, and no hour is admitted. Whatever the sky is doing outside, it is not doing it in the Lantern Hall."
+object.chest.hall.label,Iron Coffer

@@ -1,4 +1,4 @@
-[gd_scene load_steps=27 format=3]
+[gd_scene load_steps=28 format=3]
 
 [ext_resource type="Script" path="res://src/gameplay/world/area_root.gd" id="1_area"]
 [ext_resource type="Script" path="res://src/gameplay/world/environment_driver.gd" id="2_env"]
@@ -17,6 +17,7 @@
 [ext_resource type="PackedScene" path="res://scenes/objects/trigger_volume.tscn" id="15_trigger"]
 [ext_resource type="PackedScene" path="res://scenes/objects/rest_point.tscn" id="16_rest"]
 [ext_resource type="PackedScene" path="res://scenes/objects/climb_point.tscn" id="17_climb"]
+[ext_resource type="PackedScene" path="res://scenes/objects/area_door.tscn" id="18_door"]
 
 [sub_resource type="StandardMaterial3D" id="m_ground"]
 albedo_texture = ExtResource("4_grass")
@@ -278,3 +279,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2)
 object_id = &"dais_trigger"
 world_flag = &"area/courtyard/dais_entered"
 notify_key = "object.trigger.dais.text"
+
+[node name="HallDoor" parent="Interactables" instance=ExtResource("18_door")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.2, 0, -10.6)
+object_id = &"courtyard_hall_door"
+label_key = "object.door.hall_in.label"
+target_area = &"lantern_hall"
+target_spawn = &"from_courtyard"

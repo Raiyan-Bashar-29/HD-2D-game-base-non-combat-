@@ -67,7 +67,7 @@ Exit criteria:
       from the same 06:30 start, one with the same skip the bench performs, show warm dawn
       becoming cool night with the lantern pools lit
 - [ ] Save, quit, relaunch, continue — position, time, weather and inventory all restored
-- [x] Test suite passes headless and exits non-zero on failure — 355 assertions
+- [x] Test suite passes headless and exits non-zero on failure — 414 assertions
 - [x] A screen opens over the world, gameplay input stops, the fade still runs over the
       top of it, and Escape restores control — done 2026-08-26, windowed captures plus a
       real-input probe in the live tree
@@ -86,12 +86,12 @@ Exit criteria:
 > document: fifteen packages, one chat each, in dependency order. When the two disagree, the
 > board is what is actually being worked and this file needs updating.
 
-## Phase 2 — Two areas and a reason to move
+## Phase 2 — Two areas and a reason to move · **IN PROGRESS**
 
 *Goal: prove the world is a world, not a room.*
 
-- A second area, with a door and an edge transition between them
-- Loading that hides behind the fade, with the shader warm-up hitch handled
+- [x] A second area, with a door between them — the Lantern Hall, an interior (WP-04)
+- [x] Loading that hides behind the fade, with the shader warm-up hitch handled (WP-04)
 - Navigation baking, and one NPC that walks a route by the clock
 - Dialogue runner, dialogue UI, and an authorable conversation format
 - The pause menu itself (the pause mechanism under it landed early, in WP-02)
@@ -99,8 +99,10 @@ Exit criteria:
 - Weather visuals: rain, wet surfaces, ambience layers
 
 Exit criteria:
-- [ ] Cross between areas twenty times with no leak in node count or memory
-- [ ] Trigger two transitions in the same frame and be refused cleanly, with a log line
+- [x] Cross between areas twenty times with no leak in node count or memory — done 2026-08-26,
+      `--round-trips=20`: node count exactly flat at 120 across all twenty, memory -12 KiB
+- [x] Trigger two transitions in the same frame and be refused cleanly, with a log line —
+      done 2026-08-26, exercised forty times in the same run, two per trip
 - [ ] An NPC is at the market at noon and at home at night, across a save and reload
 - [ ] Hold a conversation that reads and sets a flag, and branches on it
 - [ ] Switch language at runtime and see every visible string change

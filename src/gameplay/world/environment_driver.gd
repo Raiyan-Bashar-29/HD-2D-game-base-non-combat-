@@ -82,6 +82,19 @@ const WEATHER_FOG_GAIN: float = 4.0
 ## Set false for interiors, which should not follow the outdoor sun.
 @export var follow_clock: bool = true
 
+@export_group("Interior")
+## Applied ONCE, instead of the clock, when follow_clock is false.
+##
+## WHY THIS GROUP HAD TO EXIST. Before it, follow_clock=false only stopped the driver
+## UPDATING — _ready still called _apply_now once, so an interior inherited whatever hour it
+## happened to be entered at, and the sun was hidden outright below the horizon. The first
+## interior ever built was therefore pitch black at 02:30 and fine at noon, from the same
+## scene file. An interior needs its own light, not a frozen sample of someone else's.
+@export var interior_ambient: Color = Color(0.30, 0.24, 0.22)
+@export_range(0.0, 4.0, 0.05) var interior_ambient_energy: float = 0.85
+@export var interior_fog: Color = Color(0.26, 0.19, 0.16)
+@export_range(0.0, 0.2, 0.001) var interior_fog_density: float = 0.010
+
 var _environment: Environment = null
 
 
@@ -96,7 +109,10 @@ func _ready() -> void:
 		_environment = Environment.new()
 		world_environment.environment = _environment
 	_build_post_stack()
-	_apply_now()
+	if follow_clock:
+		_apply_now()
+	else:
+		_apply_interior()
 	Log.info("world", "Environment driver ready (follow_clock=%s)" % str(follow_clock))
 
 
@@ -179,6 +195,19 @@ func _apply_now() -> void:
 		sky_material.sky_horizon_color = fog_colour.lightened(0.15)
 		sky_material.ground_horizon_color = fog_colour.lightened(0.05)
 		sky_material.ground_bottom_color = fog_colour.darkened(0.5)
+
+
+## An interior, lit once and then left alone. It deliberately does NOT touch the sun: indoors
+## that light is an authored fill at whatever angle and energy the scene set, and the outdoor
+## code path would swing it round the sky and hide it below the horizon at night.
+func _apply_interior() -> void:
+	_environment.ambient_light_color = interior_ambient
+	_environment.ambient_light_energy = interior_ambient_energy
+	_environment.fog_light_color = interior_fog
+	_environment.fog_density = interior_fog_density
+	_environment.volumetric_fog_albedo = interior_fog
+	_environment.background_mode = Environment.BG_COLOR
+	_environment.background_color = interior_fog.darkened(0.6)
 
 
 ## Blend between the two keyframes surrounding `t`, wrapping around midnight.

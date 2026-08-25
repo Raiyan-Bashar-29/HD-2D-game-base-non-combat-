@@ -31,6 +31,13 @@ extends Area3D
 
 var _candidates: Array[Interactable] = []
 var _current: Interactable = null
+## The instance id of the target last announced, or 0 for none.
+##
+## WHY AN ID AND NOT `_current != null`: in Godot 4 a FREED object compares EQUAL to null, so
+## a dangling _current reads as "no target" to every == and != in this file - which is exactly
+## how a prompt for an object in an unloaded area stayed on screen. An id is a plain int and
+## survives the object it names.
+var _announced_id: int = 0
 var _cycle: int = 0
 var _hold: float = 0.0
 var _facing: Vector3 = Vector3.FORWARD
@@ -162,12 +169,35 @@ func _prune() -> void:
 		if is_instance_valid(candidate) and candidate.is_inside_tree():
 			kept.append(candidate)
 	_candidates = kept
+	# _current TOO, and this is the part that was missing. Pruning the candidate list alone left
+	# a freed node in _current after an area unloaded, and because a freed object compares equal
+	# to null, `best != _current` said "unchanged" - so nothing was re-announced and the prompt
+	# kept offering an object in an area that no longer existed. Only an area change can produce
+	# this, which is why it survived three packages until the second area was built.
+	if _announced_id != 0 and not _current_is_live():
+		_current = null
+		_cycle = 0
+		_hold = 0.0
+		_announce()
+
+
+## Valid AND in the tree. A queue_free()d node stays valid until the end of the frame, so
+## is_instance_valid alone is not enough to know it is still part of the world.
+##
+## TAKES NO ARGUMENT, deliberately. A freed instance cannot be PASSED to a parameter typed
+## `Interactable` - the call itself fails the argument type check - so a dangling reference
+## must never cross a call boundary. Reading the field in place is the only safe form.
+func _current_is_live() -> bool:
+	return is_instance_valid(_current) and _current.is_inside_tree()
 
 
 func _announce() -> void:
-	if _current == null:
+	# is_instance_valid, not `== null`, for the reason recorded on _announced_id above.
+	if not is_instance_valid(_current):
+		_announced_id = 0
 		Events.interact_target_changed.emit(null, GameEnums.InteractVerb.LOOK, "")
 		return
+	_announced_id = _current.get_instance_id()
 	Events.interact_target_changed.emit(_current, _current.verb, _current.label_key)
 
 

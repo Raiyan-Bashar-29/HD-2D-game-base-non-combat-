@@ -16,6 +16,138 @@ Append-only. Newest entry at the top. One entry per working session.
 
 ---
 
+## 2026-08-26 — WP-04: a second area, and three bugs only a second area could find
+
+**Did:**
+
+`Director` has swapped two areas. It was written, guarded and logged in Phase 0 and had never
+actually done the thing it exists for.
+
+- `scenes/areas/lantern_hall/lantern_hall.tscn` — an interior. `sheltered = true`,
+  `follow_clock = false`, its own lanterns, open toward the camera.
+- `src/gameplay/interactables/area_door.gd` — `AreaDoor`, the one object that asks to travel.
+  It emits `Events.area_change_requested` and does nothing else.
+- `src/ui/hud/loading_indicator.gd` — the only thing in the game drawn ABOVE `ScreenFade`.
+- `Events.area_load_progress(area_id, ratio)`, emitted from the load loop that was already
+  collecting the number and throwing it away.
+- `Director.WARM_UP_FRAMES` — the curtain is held three frames after the area enters the tree,
+  so shader compilation happens behind black.
+- `EnvironmentDriver` gained an Interior group.
+- `dev_capture.gd` gained `--round-trips=<n>`, `--cross-area-save` and `--goto=<area>`.
+- `tests/unit/transitions_test.gd` — 44 new assertions. 370 -> 414.
+
+**Why:**
+
+**A door names an id and nothing else.** It does not load, fade, or place the player. Every
+transition goes through one guarded path, and a door that ran its own would be the start of a
+second, unguarded one — which is how two doors firing at once leaves two areas in the tree.
+
+**The loading indicator is the one exception to gotcha 12.** `ScreenFade` must be the last child
+of `UILayer` so the curtain covers every screen. The indicator has to be legible *while* the
+curtain is up, so it is the single node placed after it. Child order is draw order, and that
+ordering is the whole mechanism.
+
+**Twenty round trips is a RUN, not an assertion.** `TestCase.run()` is synchronous and a threaded
+load needs frames. So the criterion is measured by `--round-trips=20`, which also fires a second
+travel request in the same frame each way, so the re-entrancy guard is exercised forty times.
+
+**Three real defects, none of which any earlier package could have exposed:**
+
+1. **`DictRead.get_name()` never worked.** `Resource` declares `resource_name` with the getter
+   `get_name`, and a GDScript *is* a Resource, so the static call dispatched to the native
+   zero-argument method and threw at runtime — while compiling perfectly. The one caller was
+   `Director._apply_save`, which meant **loading a save had never restored the area**. It looked
+   fine for three packages because with one area you always reloaded into the area you were
+   already in. Renamed `get_string_name`. Same family as `Area3D.priority` and
+   `class_name Container`, and the third time this project has been bitten by it.
+
+2. **A freed object compares EQUAL to `null` in Godot 4.** `InteractionSensor` pruned its
+   candidate list but never validated `_current`, so after an area unloaded it held a dangling
+   reference — and `best != _current` reported "unchanged", so nothing was re-announced and the
+   prompt kept offering an Iron Lever in an area that no longer existed. The obvious guard,
+   `if _current != null`, does not fire for a dangling reference. `_announced_id: int` now
+   carries the identity, because an int survives the object it names. A freed instance also
+   cannot be *passed* to a parameter typed `Interactable` — the argument type check itself
+   fails — so the liveness check takes no argument and reads the field in place.
+
+3. **`follow_clock = false` did not mean "do not use the clock".** It only stopped the driver
+   *updating*; `_ready()` still called `_apply_now()` once, so the first interior ever built
+   inherited whatever hour it was entered at and had its sun hidden below the horizon. Entered
+   at 02:30 it was pitch black; entered at noon it was fine. From the same scene file. An
+   interior now has its own authored ambient, fog and background, applied once, and the outdoor
+   path never touches its sun.
+
+**Connections:**
+
+`AreaDoor` -> `Events.area_change_requested` -> `Director` -> `area_unloading` /
+`area_load_progress` / `area_entered` -> `LoadingIndicator` and `ScreenFade`. `AreaRoot` still
+configures weather and audio on entry; `EnvironmentDriver` reads `Clock` outdoors and nothing
+indoors. `TriggerVolume`, built in WP-01 for exactly this, is still available as a walk-through
+entry and is deliberately not used yet — the hall is entered deliberately, through a door.
+
+**Verified:**
+
+```
+--headless --import                                   clean
+--headless --quit-after 120                           0 warnings, 0 errors
+--headless res://tests/test_runner.tscn                414 passed, 0 failed, exit 0
+  with one assertion deliberately broken               413 passed, 1 failed, exit 1
+--headless --script tools/check_budgets.gd            59 files, 4441 lines, 0 violations
+--headless --script tools/check_content.gd            PASS
+```
+
+**Twenty round trips**, `--round-trips=20`:
+
+```
+--round-trips 20 from 'courtyard': 120 nodes, 31417 KiB
+  trip 1/20: 120 nodes, 31331 KiB    ...    trip 20/20: 120 nodes, 31332 KiB
+--round-trips done: nodes 120 -> 120 (+0), memory 31417 -> 31404 KiB (-12)
+```
+
+Node count is exactly flat across all twenty. Memory moves by 12 KiB, downward, which is noise.
+The forty warnings are the forty second-requests the guard refused, two per trip — the
+"two transitions in one frame are refused" criterion, exercised rather than asserted.
+
+**World state on both sides**, `--cross-area-save`:
+
+```
+hall coffer emptied: true
+saved in 'lantern_hall': OK
+wiped: carrying 0, coffer emptied=false        <- deliberately destroyed before reloading
+loaded: OK
+after reload: area='lantern_hall', carrying 3
+coffer still empty: true
+```
+
+Saved in the hall and reloaded from the courtyard, deliberately: a save taken where the reload
+already is cannot tell "the area was restored" from "the area never changed", which is exactly
+how the broken `get_name` hid for three packages. The wipe matters for the same reason — without
+it, a value nobody cleared passes for a value that was restored.
+
+**Both areas captured and looked at.** The hall took four attempts, and each one was a real
+defect rather than a tweak: pitch black (bug 3), then a full frame of wall because the camera
+sits fourteen units back and the room was closed on the camera side, then the door slab
+occluding the room from the foreground, then correct. The stale "Use Iron Lever" prompt was
+visible in every one of those captures and is what led to bug 2.
+
+**Unblocks:**
+
+WP-05's dialogue and WP-06's NPCs now have somewhere other than the courtyard to be, and WP-11's
+fast travel has a real destination to travel to. More importantly the transition path is no
+longer theoretical: anything that needs to happen across an area boundary can now be tested
+against something that actually crosses one.
+
+**Known gaps:**
+
+`Director` still does not cancel its threaded load on shutdown, which is gotcha 13 and remains
+WP-14's. `UiRoot` does not close its screens on `area_unloading`; it cannot currently matter,
+because travel requires gameplay input and a modal screen suspends it, but a load triggered from
+a save menu in WP-12 will need it. The loading indicator shows a percentage only once the loader
+reports one, which for a small area is never — both areas here load in under a frame, so the
+"Loading" word is what is actually seen. Interior lighting is four exported values applied once;
+a room that wants light that changes has no mechanism yet, and should get one when something
+actually needs it.
+
 ## 2026-08-26 — WP-03: the HUD clock and the inventory screen
 
 **Did:**

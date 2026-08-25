@@ -38,8 +38,9 @@ previous project started as a system that was allowed to know one thing too many
 
 | System | Purpose | Depends on | Boundary — must NOT know | Status |
 |---|---|---|---|---|
-| Scene director | Area load, unload, transition, player placement | Log, Events, Save | what is inside an area; no per-area special cases | DONE |
-| Area root | The uniform contract every area scene satisfies | Weather, Audio, Log | gameplay logic | DONE |
+| Scene director | Area load, unload, transition, player placement, shader warm-up | Log, Events, Save | what is inside an area; no per-area special cases | DONE — two areas really swap, 20 round trips flat |
+| Area root | The uniform contract every area scene satisfies | Weather, Audio, Log | gameplay logic | DONE — the eight required children are now asserted, not just documented |
+| Area doors | The one object that asks to travel. Names an id and a spawn, nothing else | Interactable, Director | loading, fading, or moving the player | DONE |
 | HD-2D camera rig | Long-lens diorama framing, tilt-shift depth of field | Events, Director | input; what it follows beyond a Node3D | DONE |
 | Character visual | Billboarded, lit, correctly-sorted sprite with 8-way facing | Events | input, movement, game rules | DONE |
 | Player controller | Movement, gait, movement state, authored climb, token input lock | Actions, Settings, Events, Layers | dialogue, inventory, interaction rules, the camera | DONE |
@@ -52,7 +53,7 @@ previous project started as a system that was allowed to know one thing too many
 | Weather visuals | Rain, snow, wind particles and wet surfaces | Weather | weather scheduling | TODO |
 | Area streaming | Chunked load for large regions | Director | — | LATER — discrete areas first; Director already loads threaded, so this is a swap, not a rewrite |
 | Navigation | Baked navmesh for NPC pathing | Area root | who is walking | TODO |
-| Interior lighting | Areas that ignore the outdoor sun | Environment driver | — | PART — `follow_clock` flag exists |
+| Interior lighting | Areas that ignore the outdoor sun | Environment driver | — | DONE — authored ambient, fog and background applied once; the outdoor path never touches an interior sun |
 
 ## 2. Interaction, items, objects — the current milestone
 
@@ -68,7 +69,7 @@ previous project started as a system that was allowed to know one thing too many
 | Inventory UI | A UiScreen: rows grouped by category, localized names and counts, focus navigation | Events, Inventory, ItemDb | inventory rules, pausing, locking the player | PART — no tooltips, sorting or drag-and-drop |
 | Pickups | World items that enter the inventory | Interactable, Inventory | — | DONE |
 | Containers | Take-all chests. Named ItemContainer: Container is a native class | Interactable, Items | — | DONE |
-| Doors and gates | Locked, unlocked, flag-gated, with refusal reasons | Interactable, Flags | — | PART — flag-gated done; area transit not wired |
+| Doors and gates | Locked, unlocked, flag-gated, with refusal reasons | Interactable, Flags | — | DONE |
 | Readables | Signs, books, notes | Interactable, Localization | — | DONE |
 | Switches and levers | Toggle world state | Interactable, Flags | what the state causes | DONE |
 | Trigger volumes | Fire on entry, once or every time, persisted by object_id | Layers, Flags, Events | what its firing causes | DONE |
@@ -125,7 +126,7 @@ previous project started as a system that was allowed to know one thing too many
 | Key rebinding | Rebind, and glyph swapping per device | Actions, Settings | — | TODO |
 | World map | Region map, discovery, fast travel | Director, Flags | — | TODO |
 | Controller navigation | Every screen fully usable on a gamepad | Actions | — | PART — the inventory navigates on ui_up/ui_down; every new screen must earn its own |
-| Loading screen | Covers threaded area loads | Director | — | PART — fade exists, no progress display |
+| Loading screen | Covers threaded area loads | Director | — | DONE — fade plus a progress readout drawn above it; the one node after ScreenFade |
 
 ## 6. Content pipeline and production
 
@@ -136,7 +137,7 @@ previous project started as a system that was allowed to know one thing too many
 | Line-budget checker | Mechanical enforcement of file and function size limits | DONE |
 | Test runner | Headless integration tests, scene-entered, exit 1 on failure | DONE |
 | Hard-coded string audit | Catches player-facing text that is not a localization key | TODO |
-| Localization | String IDs from the first string; CSV translation | PART — CSV wired, 48 keys, all UI text localized. No audit tool yet |
+| Localization | String IDs from the first string; CSV translation | PART — CSV wired, 56 keys, all UI text localized. No audit tool yet |
 | Smoke test | Boots, loads an area, saves, reloads, asserts zero errors | TODO |
 | Export presets | Windows build configuration | LATER |
 | Performance overlay | Frame time, draw calls, node counts | TODO |

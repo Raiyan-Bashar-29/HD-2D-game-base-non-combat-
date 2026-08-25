@@ -3,10 +3,10 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-26 · WP-03 complete · branch `claude/loving-nightingale-aa2114`
+**Last updated:** 2026-08-26 · WP-04 complete · branch `claude/wp-04-second-area`
 **Note:** this branch fast-forwarded WP-01 and WP-02 in from `claude/trusting-curran-04a4f9`
 and `claude/intelligent-wilbur-ae8141`, neither of which was merged to `main`. Merge order is
-WP-01, WP-02, WP-03, or just merge this branch.
+WP-01, WP-02, WP-03, WP-04, or just merge the branches in that order.
 **Remote:** https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-
 
 ## What this is
@@ -21,7 +21,8 @@ architecture.
 
 ## Where it stands
 
-Phase 0 complete, Phase 1 nearly done. 56 files, 4,152 code lines, 12 scenes, 1 area, 3 items.
+Phase 0 complete, Phase 1 nearly done, Phase 2 begun. 59 files, 4,441 code lines, 14 scenes,
+2 areas, 3 items.
 Boots headless with **0 warnings, 0 errors**.
 
 **Works, and verified by running it:** logging with rotation · signal registry (`events.gd`) ·
@@ -29,13 +30,16 @@ input actions · settings · save/load with atomic writes and versioning · plot
 director with a re-entrancy guard and threaded loading · world clock · weather state · audio
 buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 8-way character ·
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
-placeholder art generator · line-budget checker · headless test suite (294 assertions) ·
+placeholder art generator · line-budget checker · headless test suite (414 assertions) ·
 interaction sensor with ranking and Tab-cycling · Interactable contract · localized prompt and
 toasts · readable signs · levers · gates gated by flag or by a carried key · per-object
 persistence (ADR-0005) · typed item definitions found by directory scan (ADR-0006) · an
 inventory component with a capacity seam · pickups · take-all chests · a content validator ·
 trigger volumes that fire on entry · a rest point that skips hours · authored climb points ·
-a screen stack with real pause semantics · a token input lock.
+a screen stack with real pause semantics · a token input lock · a HUD clock readout · an
+inventory screen with focus navigation · one action-to-screen binding · a SECOND area, an
+interior, and a door that really travels · a loading readout drawn above the curtain ·
+shader warm-up behind black.
 
 **Not built:** NPCs · dialogue · quests · the pause, main, settings, save and journal screens
 (WP-12) · hard-coded-string audit · weather visuals · item instances (durability) · equipment ·
@@ -43,7 +47,25 @@ item tooltips, sorting and drag-and-drop.
 
 ## Known defects
 
-**Fixed 2026-08-26, both found by running the engine, neither visible in the source:**
+**Fixed 2026-08-26 in WP-04. All three were invisible until a SECOND area existed, and all
+three compiled cleanly and passed every static gate:**
+
+1. **`DictRead.get_name()` never worked, and loading a save had never restored the area.**
+   `Resource` declares `resource_name` with the getter `get_name`, and a GDScript *is* a
+   Resource, so the static call dispatched to the native zero-argument method and threw at
+   runtime. Its one caller was `Director._apply_save`. With one area it looked fine, because
+   you always reloaded into the area you were already in. Now `get_string_name`.
+2. **The interaction prompt survived an area change**, offering an Iron Lever in an area that
+   no longer existed. `InteractionSensor` pruned its candidate list but never validated
+   `_current`, and **a freed object compares EQUAL to `null` in Godot 4** — so
+   `best != _current` reported "unchanged" and nothing was re-announced. `_announced_id: int`
+   now carries the identity, because an int survives the object it names.
+3. **`follow_clock = false` did not mean "do not use the clock".** It only stopped the driver
+   *updating*; `_ready()` still sampled the clock once, so the first interior ever built was
+   pitch black when entered at 02:30 and fine at noon, from the same scene file. An interior
+   now has its own authored ambient, fog and background.
+
+**Fixed 2026-08-26 in WP-01, both found by running the engine, neither visible in the source:**
 
 1. **A climb oscillated on its corner forever.** The path turns at the top on purpose — a
    straight line from the foot of a ladder to the ledge above passes *through* the ledge, and
@@ -124,6 +146,19 @@ item tooltips, sorting and drag-and-drop.
 - **One node binds actions to screens.** `ScreenKeys`, under `UILayer`. The journal key and
   the map key join it there rather than each finding a different home, which is how a boolean
   per screen was born last time.
+- **A door names an id and a spawn, and nothing else.** `AreaDoor` emits
+  `Events.area_change_requested` and stops. It does not load, fade or place the player.
+  `Director` owns the sequence and the guard, and nothing else calls `change_area()` — a door
+  that ran its own transition would be a second, unguarded path, which is how two doors firing
+  at once leaves two areas in the tree.
+- **An interior has its own light, not a frozen sample of the outdoor one.** `follow_clock =
+  false` now means the Interior group on `EnvironmentDriver` is applied once and the outdoor
+  path never touches that area's sun. It used to mean only "stop updating", which is not the
+  same thing and made an interior's brightness depend on the hour it was entered at.
+- **The loading indicator is the ONE node after `ScreenFade`.** Gotcha 12 says the curtain must
+  be the last child of `UILayer` so it covers every screen. The indicator has to be readable
+  *while* the curtain is up, so it is the single deliberate exception, and there should not be
+  a second one.
 - **Pause is per node, not global.** `get_tree().paused` is set by UiRoot, but each node
   decides for itself in its own `_ready()`. The full table is the header of
   `src/ui/root/ui_root.gd`. Clock and Weather stop; Audio, Director, ScreenFade,
@@ -144,7 +179,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 55 -- --shot=<path> --time=18:40 --freeze-time
 ```
 
-## Fifteen gotchas that each cost an hour
+## Seventeen gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -195,6 +230,18 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     reaches the frame that would deliver it. An input path is proved by a TEMPORARY probe
     added to `dev_capture.gd`, run windowed with real `InputEventAction`s, read in the log,
     and then removed. WP-03's probe is quoted verbatim in `DEVLOG.md`; copy its shape.
+16. **A FREED object compares EQUAL to `null` in Godot 4.** So `if thing != null` does NOT
+    fire for a dangling reference, and `a != b` against one reports "unchanged". Only
+    `is_instance_valid()` tells the truth. Worse, a freed instance cannot even be PASSED to a
+    typed parameter — the argument type check itself fails with "previously freed" — so a
+    dangling reference must never cross a call boundary; read the field in place. This kept a
+    prompt for an unloaded area on screen through three packages.
+17. **Check a name against the API dump before using it, EVERY time — static functions
+    included.** `Resource` declares `resource_name` with the getter `get_name`, and a GDScript
+    is a Resource, so `DictRead.get_name(...)` compiled and then dispatched to the native
+    zero-argument method at runtime. Third time this project has been bitten by a native-name
+    collision, after `Area3D.priority` and `class_name Container`. Regenerate with
+    `--headless --doctool <dir>` and grep it.
 
 ## How work is sliced
 
@@ -204,25 +251,27 @@ should read, so a session loads a few hundred lines instead of three thousand. T
 (`core -> content -> systems -> gameplay -> ui`, downward only) is what makes that possible: a
 package never has to read upward.
 
-**Next package: WP-04, a second area and a real transition.**
+**Next package: WP-05, dialogue.**
 
 ## Plan — where this is going
 
-**Phase 1 is nearly complete.** The demo loop works end to end: walk a lit courtyard through a
-day/night cycle, be prompted, read a sign, throw a lever, take an item, empty a chest, be
-refused by a gate that wants a key, open it once you carry the key, cross a volume that fires
-once, rest on a bench and watch the light change, climb a trellis to a terrace and back down —
-and every one of those changes survives a save and reload — and press I at any point to see
-what you are carrying, in a window that stops the world. All of it is covered by 355 headless
-assertions.
+**Phase 1 is complete and Phase 2 has begun.** The demo loop works end to end: walk a lit
+courtyard through a day/night cycle, be prompted, read a sign, throw a lever, take an item,
+empty a chest, be refused by a gate that wants a key, open it once you carry the key, cross a
+volume that fires once, rest on a bench and watch the light change, climb a trellis to a terrace
+and back down, press I at any point to see what you are carrying in a window that stops the
+world — then walk north through a door into a lantern-lit hall that has never heard of the sun,
+and come back. Every one of those changes survives a save and a reload, including from the far
+side of an area that is no longer loaded. All of it is covered by 414 headless assertions.
 
 **Next, in this order.** The order matters and is not arbitrary:
 
-1. **A second area and a real transition.** The transition code is written, guarded and logged
-   but has never actually swapped two areas, because only one exists. Trigger volumes are now
-   the entry mechanism it was waiting for.
+1. **Dialogue.** The first `pauses_world = false` occupant of the screen stack, and the thing
+   NPCs will need before they are worth building. The overlay path through `UiRoot` exists and,
+   since WP-03, is asserted for real rather than vacuously.
+2. **NPCs and navigation.** Two areas now exist for them to move between.
 
-**Then Phase 2:** dialogue, NPC schedules, navigation baking, weather visuals.
+**Then the rest of Phase 2:** NPC schedules, navigation baking, weather visuals.
 
 **Still open, and expensive later:**
 - **Sprite sheet layout is hardcoded.** `CharacterVisual` has `FACING_COUNT = 8` and

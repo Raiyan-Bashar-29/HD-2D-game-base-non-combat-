@@ -58,7 +58,12 @@ static func get_string(data: Dictionary, key: String, default: String = "") -> S
 	return default
 
 
-static func get_name(data: Dictionary, key: String, default: StringName = &"") -> StringName:
+## NOT `get_name`. `Resource` declares `resource_name` with the getter `get_name`, and a
+## GDScript IS a Resource, so `DictRead.get_name(...)` dispatched to the NATIVE zero-argument
+## method and threw at runtime — while compiling perfectly. It cost `Director` its ability to
+## read the saved area id, unnoticed, because only a second area could reveal it. Same family
+## as `Area3D.priority` and `class_name Container`: check a name against the API dump.
+static func get_string_name(data: Dictionary, key: String, default: StringName = &"") -> StringName:
 	var value: Variant = data.get(key, default)
 	if value is StringName:
 		return value
@@ -86,7 +91,7 @@ static func get_vector3(data: Dictionary, key: String, default: Vector3 = Vector
 	var raw: Array = get_array(data, key)
 	if raw.size() != 3:
 		return default
-	return Vector3(_num(raw[0]), _num(raw[1]), _num(raw[2]))
+	return Vector3(to_float(raw[0]), to_float(raw[1]), to_float(raw[2]))
 
 
 ## The matching writer, so the read and write formats can never drift apart.
@@ -94,7 +99,10 @@ static func put_vector3(value: Vector3) -> Array:
 	return [value.x, value.y, value.z]
 
 
-static func _num(value: Variant) -> float:
+## A bare Variant as a float. Not every untyped number arrives inside a Dictionary: the
+## progress array ResourceLoader hands back is a plain Array, and `float(value)` on a Variant
+## is an unsafe cast, which this project compiles as an error.
+static func to_float(value: Variant) -> float:
 	if value is float:
 		return value
 	if value is int:
@@ -110,7 +118,7 @@ static func get_color(data: Dictionary, key: String, default: Color = Color.WHIT
 		return value
 	var raw: Array = get_array(data, key)
 	if raw.size() == 3:
-		return Color(_num(raw[0]), _num(raw[1]), _num(raw[2]))
+		return Color(to_float(raw[0]), to_float(raw[1]), to_float(raw[2]))
 	if raw.size() == 4:
-		return Color(_num(raw[0]), _num(raw[1]), _num(raw[2]), _num(raw[3]))
+		return Color(to_float(raw[0]), to_float(raw[1]), to_float(raw[2]), to_float(raw[3]))
 	return default

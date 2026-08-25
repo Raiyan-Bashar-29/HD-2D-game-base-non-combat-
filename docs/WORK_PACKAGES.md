@@ -39,8 +39,8 @@ Headless shades nothing. This project has already shipped two bugs that every ot
 | 01 | Triggers and traversal | **DONE** — see below |
 | 02 | UI foundation | **DONE** — see below |
 | 03 | HUD and inventory screen | **DONE** — see below |
-| 04 | Second area, transitions, loading | **TODO — next** |
-| 05 | Dialogue | TODO |
+| 04 | Second area, transitions, loading | **DONE** — see below |
+| 05 | Dialogue | **TODO — next** |
 | 06 | NPCs and navigation | TODO |
 | 07 | Path actions | TODO |
 | 08 | Quests | TODO |
@@ -172,7 +172,7 @@ been making the overlay assertion in `ui_test.gd` pass vacuously since WP-02.
 
 ---
 
-## WP-04 · Second area, transitions, loading
+## WP-04 · Second area, transitions, loading — **DONE**
 
 **Goal.** Prove `Director` for real. It is written, guarded, logged — and has **never swapped two
 areas**, because only one exists.
@@ -187,6 +187,22 @@ warm-up. Interior variant with `follow_clock = false`.
 **Exit criteria:** twenty round trips with no growth in node count or memory; two transitions in
 one frame refused with a log line; world state on both sides survives a save and reload;
 captures of both areas.
+
+**Done 2026-08-26**, commit `PLACEHOLDER4`.
+`scenes/areas/lantern_hall/`, `src/gameplay/interactables/area_door.gd`,
+`src/ui/hud/loading_indicator.gd`, `tests/unit/transitions_test.gd`,
+`Events.area_load_progress`, `Director.WARM_UP_FRAMES`, an Interior group on
+`EnvironmentDriver`, and `--round-trips`, `--cross-area-save` and `--goto` in `dev_capture.gd`.
+Suite 370 -> 414. Twenty round trips held node count exactly flat at 120 and memory to -12 KiB;
+the guard refused forty same-frame second requests in the same run; a save taken IN THE HALL
+reloaded into the hall with its coffer still empty, after the values were deliberately wiped
+first.
+Three defects the manifest could not have anticipated, all invisible with one area and all
+justified in `DEVLOG.md`: `DictRead.get_name` dispatched to the native `Resource.get_name`, so
+loading a save had never restored the area; `InteractionSensor` held a freed `_current` because
+a freed object compares EQUAL to null, leaving a prompt for an unloaded area on screen; and
+`follow_clock = false` still sampled the clock once, so the first interior was pitch black at
+02:30 and fine at noon from the same scene file.
 
 ---
 

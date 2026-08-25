@@ -44,6 +44,10 @@ signal game_ending()
 signal area_change_requested(area_id: StringName, spawn_id: StringName)
 ## Transition began. UI should cover the screen. The old area is still alive at this point.
 signal area_unloading(area_id: StringName)
+## How far the threaded load of an area has got, 0.0 to 1.0. Emitted every frame while a load
+## is in flight, so a loading indicator can show progress without polling ResourceLoader
+## itself - which would mean a second place that knows the path template.
+signal area_load_progress(area_id: StringName, ratio: float)
 ## The new area is in the tree and the player is placed. Safe to query world contents.
 signal area_entered(area_id: StringName)
 

@@ -21,6 +21,10 @@ extends Node
 const AREA_PATH_TEMPLATE: String = "res://scenes/areas/%s/%s.tscn"
 const FADE_OUT: float = 0.35
 const FADE_IN: float = 0.45
+## Frames the curtain is held after the new area enters the tree, before the fade in. The
+## first frame an area is drawn is where its shaders compile, and a compile hitch behind black
+## is invisible while the same hitch on the first visible frame is a lurch.
+const WARM_UP_FRAMES: int = 3
 
 ## The area currently in the tree. Empty before the first load.
 var current_area_id: StringName = &""
@@ -31,6 +35,9 @@ var player: Node3D = null
 var _world_root: Node3D = null
 var _current_area: Node3D = null
 var _transitioning: bool = false
+## Where the transition in flight is headed. Only so the guard can name the destination it is
+## busy with; naming the CURRENT area instead reads as "already moving to where I am".
+var _pending_area: StringName = &""
 ## Set when loading a save, so the player lands where they were rather than at a spawn point.
 var _position_override: Variant = null
 ## Same, for facing. Saved since the first commit but never applied until now.
@@ -83,7 +90,7 @@ func _on_area_change_requested(area_id: StringName, spawn_id: StringName) -> voi
 ## The guard. Every rejection is logged, because a silently ignored door is maddening to debug.
 func _begin_transition(area_id: StringName, spawn_id: StringName) -> void:
 	if _transitioning:
-		Log.warn("world", "Ignoring travel to '%s': already moving to '%s'" % [area_id, current_area_id])
+		Log.warn("world", "Ignoring travel to '%s': already moving to '%s'" % [area_id, _pending_area])
 		return
 	if not has_world_root():
 		Log.error("world", "Cannot load '%s': no world root attached" % area_id)
@@ -92,6 +99,7 @@ func _begin_transition(area_id: StringName, spawn_id: StringName) -> void:
 		Log.error("world", "Area '%s' has no scene at %s" % [area_id, area_path(area_id)])
 		return
 	_transitioning = true
+	_pending_area = area_id
 	_run_transition(area_id, spawn_id)
 
 
@@ -110,6 +118,7 @@ func _run_transition(area_id: StringName, spawn_id: StringName) -> void:
 	var scene: PackedScene = await _load_area_scene(area_id)
 	if scene == null:
 		_transitioning = false
+		_pending_area = &""
 		Events.screen_fade_requested.emit(false, FADE_IN)
 		return
 
@@ -119,6 +128,7 @@ func _run_transition(area_id: StringName, spawn_id: StringName) -> void:
 		Log.error("world", "Area '%s' root is %s, expected Node3D" % [area_id, instance.get_class()])
 		instance.free()
 		_transitioning = false
+		_pending_area = &""
 		return
 
 	_current_area = area
@@ -127,11 +137,21 @@ func _run_transition(area_id: StringName, spawn_id: StringName) -> void:
 
 	# The area is in the tree and its _ready has run, so its spawn markers exist.
 	_place_player(area, spawn_id)
+	await _warm_up()
 
 	Events.area_entered.emit(area_id)
 	Events.screen_fade_requested.emit(false, FADE_IN)
 	_transitioning = false
+	_pending_area = &""
 	Log.info("world", "Entered '%s'" % area_id)
+
+
+## Draw the new area a few times while the curtain is still opaque, so shader compilation
+## happens behind black. There is no API in 4.7 that compiles a scene's materials on demand;
+## rendering it is the mechanism, and doing that unseen is the whole trick.
+func _warm_up() -> void:
+	for _i: int in WARM_UP_FRAMES:
+		await get_tree().process_frame
 
 
 ## Threaded load so a large area does not freeze the frame behind the fade.
@@ -145,6 +165,8 @@ func _load_area_scene(area_id: StringName) -> PackedScene:
 	while true:
 		var progress: Array = []
 		var status: ResourceLoader.ThreadLoadStatus = ResourceLoader.load_threaded_get_status(path, progress)
+		if not progress.is_empty():
+			Events.area_load_progress.emit(area_id, DictRead.to_float(progress[0]))
 		match status:
 			ResourceLoader.THREAD_LOAD_LOADED:
 				return ResourceLoader.load_threaded_get(path) as PackedScene
@@ -221,7 +243,7 @@ func _collect_save() -> Dictionary:
 
 
 func _apply_save(data: Dictionary, _from_version: int) -> void:
-	var area_id: StringName = DictRead.get_name(data, "area", &"")
+	var area_id: StringName = DictRead.get_string_name(data, "area", &"")
 	if area_id == &"":
 		Log.warn("world", "Save has no area to return to")
 		return

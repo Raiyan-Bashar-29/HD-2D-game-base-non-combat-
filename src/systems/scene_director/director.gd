@@ -33,6 +33,8 @@ var _current_area: Node3D = null
 var _transitioning: bool = false
 ## Set when loading a save, so the player lands where they were rather than at a spawn point.
 var _position_override: Variant = null
+## Same, for facing. Saved since the first commit but never applied until now.
+var _yaw_override: Variant = null
 
 
 func _ready() -> void:
@@ -168,6 +170,9 @@ func _place_player(area: Node3D, spawn_id: StringName) -> void:
 	if _position_override is Vector3:
 		player.global_position = _position_override
 		_position_override = null
+		if _yaw_override is float:
+			player.global_rotation.y = _yaw_override
+		_yaw_override = null
 		return
 
 	var marker: Node3D = _find_spawn(area, spawn_id)
@@ -218,4 +223,5 @@ func _apply_save(data: Dictionary) -> void:
 		return
 	if data.has("player_position"):
 		_position_override = DictRead.get_vector3(data, "player_position")
+		_yaw_override = DictRead.get_float(data, "player_yaw", 0.0)
 	Events.area_change_requested.emit(area_id, &"")

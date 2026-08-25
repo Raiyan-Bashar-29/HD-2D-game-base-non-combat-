@@ -18,6 +18,7 @@ and people, watching it change with the hour and the weather, and following a pl
 
 | Document | What it is for |
 |---|---|
+| **[CONTEXT](docs/CONTEXT.md)** | **Current state, known defects, settled decisions. Read this first.** |
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | Layers, autoloads, how systems talk, the HD-2D recipe |
 | [SYSTEMS_INVENTORY](docs/SYSTEMS_INVENTORY.md) | Everything the game needs, with status and boundaries |
 | [ROADMAP](docs/ROADMAP.md) | Phases and their exit criteria |
@@ -34,7 +35,16 @@ line — the plain one detaches and prints nothing.
 GODOT="/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
 ```
 
-Play it:
+**First run after cloning, or the project will not start.** `class_name` globals live in
+`.godot/global_script_class_cache.cfg`, which is generated and correctly gitignored. Without
+it `events.gd` cannot resolve `GameEnums`, the `Events` autoload fails to instantiate, and you
+get a wall of parse errors that look like broken code:
+
+```bash
+"$GODOT" --headless --import
+```
+
+Then play it:
 
 ```bash
 "$GODOT" .
@@ -61,6 +71,12 @@ Boot for real and watch the log. Should end with `0 warnings, 0 errors`:
 
 ```bash
 "$GODOT" --headless --quit-after 30
+```
+
+Run the tests. 55 assertions; exits 1 if any fail:
+
+```bash
+"$GODOT" --headless res://tests/test_runner.tscn --quit-after 150
 ```
 
 Look at the game at a specific hour, in specific weather, without waiting for it:

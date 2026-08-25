@@ -59,7 +59,7 @@ light_energy = 0.18
 shadow_enabled = true
 visible = false
 
-[node name="EnvironmentDriver" type="Node" parent="Environment"]
+[node name="EnvironmentDriver" type="Node" parent="Environment" node_paths=PackedStringArray("world_environment", "sun", "moon")]
 script = ExtResource("2_env")
 world_environment = NodePath("../WorldEnvironment")
 sun = NodePath("../Sun")

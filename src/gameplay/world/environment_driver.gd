@@ -225,12 +225,12 @@ func _discover_siblings() -> void:
 	if world_environment == null:
 		world_environment = host.get_node_or_null(^"WorldEnvironment") as WorldEnvironment
 		if world_environment != null:
-			Log.debug("world", "WorldEnvironment discovered by name, not wired explicitly")
+			Log.warn("world", "WorldEnvironment was not wired in the scene; found by name instead")
 	if sun == null:
 		sun = host.get_node_or_null(^"Sun") as DirectionalLight3D
 		if sun == null:
 			Log.warn("world", "No sun found: the day/night cycle will not light this area")
 		else:
-			Log.debug("world", "Sun discovered by name, not wired explicitly")
+			Log.warn("world", "Sun was not wired in the scene; found by name instead")
 	if moon == null:
 		moon = host.get_node_or_null(^"Moon") as DirectionalLight3D

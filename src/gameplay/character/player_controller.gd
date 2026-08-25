@@ -60,6 +60,7 @@ func _exit_tree() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	_poll_run_toggle()
 	var wish: Vector3 = Vector3.ZERO
 	if not _input_locked:
 		wish = _read_movement_input()
@@ -113,14 +114,21 @@ func _current_speed() -> float:
 	return walk_speed
 
 
+## A pure query. It used to poll is_action_just_pressed itself, but it is called twice per
+## frame (from _current_speed and from _update_state), so the toggle flipped twice and never
+## changed: toggle-run silently did nothing. Polling now happens once, in _poll_run_toggle.
 func _is_running() -> bool:
 	if _input_locked:
 		return false
 	if run_is_toggle:
-		if Input.is_action_just_pressed(Actions.RUN):
-			_run_toggled = not _run_toggled
 		return _run_toggled
 	return Input.is_action_pressed(Actions.RUN)
+
+
+## Called once at the top of _physics_process, and nowhere else. Keep it that way.
+func _poll_run_toggle() -> void:
+	if run_is_toggle and not _input_locked and Input.is_action_just_pressed(Actions.RUN):
+		_run_toggled = not _run_toggled
 
 
 func _update_state(wish: Vector3) -> void:

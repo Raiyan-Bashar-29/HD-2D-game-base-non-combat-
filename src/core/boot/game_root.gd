@@ -41,9 +41,11 @@ func _ready() -> void:
 	if Director.area_exists(FIRST_AREA):
 		Events.area_change_requested.emit(FIRST_AREA, FIRST_SPAWN)
 	else:
-		# Not an error during early development: the skeleton is expected to boot with no
-		# areas built yet. It becomes an error once an area exists and fails to load.
-		Log.warn("boot", "First area '%s' does not exist yet — booting with an empty world" % FIRST_AREA)
+		# Once an area exists this is a real failure, not an early-development state. Fade in
+		# regardless: ScreenFade starts opaque and only Director lifts it, so returning here
+		# without fading leaves the player staring at black with no recovery.
+		Log.error("boot", "First area '%s' not found at %s — world is empty" % [FIRST_AREA, Director.area_path(FIRST_AREA)])
+		Events.screen_fade_requested.emit(false, 0.4)
 
 
 ## Spawned before the first area is requested, so Director already holds the reference and

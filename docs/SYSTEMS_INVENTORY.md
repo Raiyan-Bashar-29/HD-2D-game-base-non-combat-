@@ -127,9 +127,9 @@ previous project started as a system that was allowed to know one thing too many
 | Placeholder art generation | Procedural stand-ins so code can be finished before art | DONE |
 | Content validator | Headless check for dangling references, duplicate IDs, missing keys | TODO |
 | Line-budget checker | Mechanical enforcement of file and function size limits | DONE |
+| Test runner | Headless integration tests, scene-entered, exit 1 on failure | DONE |
 | Hard-coded string audit | Catches player-facing text that is not a localization key | TODO |
 | Localization | String IDs from the first string; CSV translation | TODO |
-| Test runner | Headless unit and integration tests | TODO |
 | Smoke test | Boots, loads an area, saves, reloads, asserts zero errors | TODO |
 | Export presets | Windows build configuration | LATER |
 | Performance overlay | Frame time, draw calls, node counts | TODO |

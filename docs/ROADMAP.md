@@ -25,7 +25,9 @@ Exit criteria, all met:
 - [x] `--headless --import` completes with no errors
 - [x] `--headless --quit-after 30` boots with **0 warnings, 0 errors**, exit code 0
 - [x] Every script passes the parse and type gate
-- [x] A save participant can register, and the save envelope round-trips
+- [x] A save participant can register, and the save envelope round-trips — NOTE: this was
+      marked met on 2026-08-23 having only been observed as a log line. The round trip was
+      first actually executed on 2026-08-24 by the test suite, and passes.
 - [x] A frame can be captured to PNG and inspected
 
 ## Phase 1 — One area, one character · **IN PROGRESS**
@@ -46,7 +48,6 @@ Remaining:
 - Containers, doors, readables, switches
 - Object persistence, so an opened chest stays open across a reload
 - A minimal HUD
-- Test runner and the first smoke test
 - Content validator and hard-coded-string audit (the line-budget checker is DONE and passing)
 
 Exit criteria:
@@ -57,7 +58,7 @@ Exit criteria:
 - [ ] Open a chest, take its contents, reload, and it is still open and still empty
 - [ ] Sleep on the dais and watch the light change
 - [ ] Save, quit, relaunch, continue — position, time, weather and inventory all restored
-- [ ] `tests/run_tests.gd` passes headless with a non-zero exit code on failure
+- [x] Test suite passes headless and exits non-zero on failure — 55 assertions, done 2026-08-24
 - [ ] A 30-second play session produces **zero** warnings or errors in the log
 - [ ] The budget checker reports no file over its limit
 

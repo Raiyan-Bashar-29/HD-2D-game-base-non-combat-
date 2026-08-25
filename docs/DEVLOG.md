@@ -16,6 +16,81 @@ Append-only. Newest entry at the top. One entry per working session.
 
 ---
 
+## 2026-08-24 — Audit: four defects fixed, and rung 4 of the ladder made real
+
+**Did:**
+
+Audited the Phase 0 skeleton, fixed every confirmed defect, and built the test suite.
+
+- **Toggle-run did nothing.** `_is_running()` polled `Input.is_action_just_pressed` and is
+  called twice per frame (from `_current_speed()` and `_update_state()`), so the toggle
+  flipped twice and netted to zero. Polling moved into `_poll_run_toggle()`, called once at
+  the top of `_physics_process`, and `_is_running()` is now a pure query.
+- **A missing area left the screen permanently black.** `ScreenFade` starts opaque and only
+  `Director` lifts it, so the early-return in `game_root.gd` stranded the player. It now logs
+  an error naming the expected path and requests the fade-in regardless.
+- **`player_yaw` was saved and never read.** Written to every save since the first commit,
+  read nowhere, so facing was silently lost on load. Restored via `_yaw_override`.
+- **A fresh clone did not run at all.** Proved by cloning the repo to a scratch directory:
+  `class_name` globals live in `.godot/global_script_class_cache.cfg`, which is generated and
+  correctly gitignored, so `events.gd` could not resolve `GameEnums`, the `Events` autoload
+  failed to instantiate, and the console filled with parse errors that look like broken code.
+  One `--headless --import` fixes it. Now documented in `README.md`, `CLAUDE.md` and
+  `docs/CONTEXT.md`.
+- **The silent fallback that hid a bug is now loud.** `EnvironmentDriver`'s sibling discovery
+  reported at `Log.debug`; it is a `Log.warn` now, so an unwired scene reference cannot hide
+  behind a working-looking day/night cycle again. Also added the canonical
+  `node_paths=PackedStringArray(...)` header to the `EnvironmentDriver` node in
+  `courtyard.tscn`, which is the documented serialization for node-typed exports.
+- **Built `tests/test_runner.gd` + `.tscn`:** 55 assertions over `DictRead` coercion, `Flags`
+  including no-op-set silence, `Clock` hour/day rollover and midnight-crossing arithmetic,
+  `Weather` force and shelter, and a full save round-trip.
+- Added `docs/CONTEXT.md`, a one-minute state snapshot for a new session, linked from the top
+  of `CLAUDE.md` and the first row of the README table.
+
+**Why:**
+
+Two of the four Veilbound failure modes had already reappeared in miniature, in this project,
+at 1/600th scale. `ROADMAP.md` marked "a save participant can register, and the save envelope
+round-trips" as a met Phase 0 exit criterion when only the registration had ever been observed,
+as a log line — the save path had never once executed. That is precisely the
+409-passing-checks pathology. The criterion is now genuinely true, and the roadmap records
+that it was wrongly claimed a day earlier rather than quietly correcting itself.
+
+**Connects:**
+
+Rung 4 had to become a **scene** entered positionally, not the `--script` tool the
+architecture document specified. Under `--headless --script` the autoload *nodes* are created
+but the autoload *identifiers* fail to compile (`Compile Error: Identifier not found: Log`),
+so no test touching a system could ever have run that way. The documented command could not
+have worked; it is corrected in `ARCHITECTURE.md`, `README.md`, `CLAUDE.md` and `CONTEXT.md`.
+
+**Verified:**
+
+- Type gate clean on all four edited scripts.
+- `--headless --import` clean.
+- `--headless --quit-after 60` — loads the courtyard, `0 warnings, 0 errors`.
+- `--headless res://tests/test_runner.tscn --quit-after 150` — **55 passed, 0 failed**, exit 0.
+  A deliberately broken assertion was confirmed to produce exit 1, so the gate genuinely fails.
+- `tools/check_budgets.gd` — 24 files, 2,026 code lines, 0 violations, exit 0.
+
+**Unblocks:**
+
+Interaction, items and world objects can now be built against a suite that will catch a
+regression in save, time or flags, rather than against a boot log.
+
+**Known gaps:**
+
+Still zero typed `Resource` content classes and zero `tr()` calls, so the "adding the
+fiftieth item touches no code" test in `ARCHITECTURE.md` cannot yet be run even once, and the
+no-hard-coded-strings rule has a document but no mechanism. No stable-object-ID scheme, which
+blocks object persistence and is the next thing to decide. Trigger volumes have a folder, a
+collision layer and no system. The audit that found this was itself incomplete — three of five
+dimensions landed before the run hit a weekly usage limit; correctness and Godot-API review
+were done by hand instead, and the surviving reports are in the scratchpad, not the repo.
+
+---
+
 ## 2026-08-23 — Phase 0 foundation, and a lit courtyard with a character in it
 
 **Did:**

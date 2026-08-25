@@ -156,16 +156,18 @@ Every rung is proven working on this machine. Nothing here is aspirational.
 | 1. Parse and type gate | `--headless --check-only --script <file>` | Type errors, unknown functions, with file and line |
 | 2. Import gate | `--headless --import` | Broken scenes, resources, asset references |
 | 3. Headless run | `--headless --quit-after 30` | Boot order, null references, real `_process` frames |
-| 4. Tests | `--headless --script tests/run_tests.gd` | Logic, save round-trips |
+| 4. Tests | `--headless res://tests/test_runner.tscn --quit-after 150` | Logic, save round-trips. 55 assertions, exit 1 on failure |
 | 5. Visual capture | `--quit-after 55 -- --shot=<path> --time=HH:MM` | The actual look, at any hour, on demand |
 
 **Rung 1 gotcha:** autoload identifiers such as `Log` do not resolve under `--check-only`,
 because a standalone script check does not create them. Filter
 `Identifier not found: <Autoload>` out of that gate; rungs 2 and 3 are the real compile check.
 
-**Rung 4 gotcha:** anything created with `.new()` and not freed prints a wall of
-`RID allocations were leaked at exit`. The harness must free what it creates, or real errors
-drown in the noise.
+**Rung 4 gotcha:** it is a SCENE, entered positionally, not a `--script` tool. Under
+`--headless --script` the autoload *nodes* are created but the autoload *identifiers* fail to
+compile (`Compile Error: Identifier not found: Log`), so no test touching a system can run
+that way. Also: anything created with `.new()` and not freed prints a wall of
+`RID allocations were leaked at exit`, which drowns real errors.
 
 **Rung 5 is the important one.** `--headless` uses a dummy rasteriser and shades nothing, so
 visual work needs a real window. `DevCapture` makes that repeatable: it forces the clock and

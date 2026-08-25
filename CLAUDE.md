@@ -2,6 +2,10 @@
 
 Read this before touching anything. It is short because the detail lives in `docs/`.
 
+**Start with [`docs/CONTEXT.md`](docs/CONTEXT.md)** — one minute, and it tells you what exists,
+what is broken right now, and what not to re-litigate. This file is the rules; that one is the
+situation.
+
 ## What this is
 
 An HD-2D semi-open-world **exploration and narrative** game. Godot 4.7.2, GDScript.
@@ -42,11 +46,16 @@ memory; 4.7 is newer than most training data. Module classes (`GridMap`, `CSGBox
 
 ## Verification, in order
 
+**On a fresh clone, run `--headless --import` FIRST.** `class_name` globals live in the
+gitignored `.godot/` cache; without it every script referencing `GameEnums` or `DictRead`
+fails to parse and the autoloads never load.
+
 ```bash
 G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe
 "$G" --headless --check-only --script <file>   # type gate; filter "Identifier not found: <Autoload>"
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
+"$G" --headless res://tests/test_runner.tscn --quit-after 150   # 55 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd
 "$G" --resolution 960x540 --quit-after 55 -- --shot=<path> --time=18:40 --freeze-time
 ```
@@ -73,5 +82,5 @@ read it first to understand how anything is wired.
 
 ## Read next
 
-`docs/ARCHITECTURE.md` · `docs/SYSTEMS_INVENTORY.md` · `docs/ROADMAP.md` · `docs/DEVLOG.md` ·
-`docs/CONVENTIONS.md` · `docs/decisions/`
+`docs/CONTEXT.md` (state) · `docs/ARCHITECTURE.md` · `docs/SYSTEMS_INVENTORY.md` ·
+`docs/ROADMAP.md` · `docs/DEVLOG.md` · `docs/CONVENTIONS.md` · `docs/decisions/`

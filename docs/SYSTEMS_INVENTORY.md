@@ -58,25 +58,25 @@ previous project started as a system that was allowed to know one thing too many
 
 | System | Purpose | Depends on | Boundary — must NOT know | Status |
 |---|---|---|---|---|
-| Interaction sensor | Finds and ranks candidate targets, fires the chosen one | Actions, Events, Layers | what any interactable does | TODO |
-| Interactable component | The contract every interactable satisfies | Events | who is interacting, beyond an interactor handle | TODO |
-| Interaction prompt UI | Shows verb and label for the current target | Events | how to perform an interaction | TODO |
+| Interaction sensor | Finds and ranks candidate targets, fires the chosen one | Actions, Events, Layers | what any interactable does | DONE |
+| Interactable contract | The base class every interactable satisfies | Events | who is interacting, beyond a Node3D | DONE |
+| Interaction prompt UI | Shows verb and label for the current target, localized | Events | how to perform an interaction | DONE |
 | Item definitions | Shared, immutable item data as typed resources | — | inventory or world state | TODO |
 | Item instances | Per-item mutable state: durability, contents | Item definitions | UI | TODO |
 | Inventory | Held items, stacking, capacity | Events, Save | how items are displayed | TODO |
 | Inventory UI | Grid, tooltips, sorting, controller navigation | Events | inventory rules | TODO |
 | Pickups | World items that enter the inventory | Interactable, Inventory | — | TODO |
 | Containers | Chests and shelves with their own contents | Interactable, Item instances | — | TODO |
-| Doors and gates | Locked, unlocked, one-way, key-gated | Interactable, Flags, Director | — | TODO |
-| Readables | Signs, books, notes | Interactable, Localization | — | TODO |
-| Switches and levers | Toggle world state | Interactable, Flags | what the state causes | TODO |
+| Doors and gates | Locked, unlocked, flag-gated, with refusal reasons | Interactable, Flags | — | PART — flag-gated done; area transit not wired |
+| Readables | Signs, books, notes | Interactable, Localization | — | DONE |
+| Switches and levers | Toggle world state | Interactable, Flags | what the state causes | DONE |
 | Harvestables | Gather with a regrowth timer | Interactable, Clock, Inventory | — | TODO |
 | Sittables and beds | Rest, and skip time | Interactable, Clock | — | TODO |
 | Climbables | Ladders and authored climb points | Player controller | — | TODO |
 | Physics props | Push, drop, stack | Layers | — | TODO |
 | Water volumes | Wading and swimming | Player controller, Layers | — | LATER |
 | Equipment | Tools, lantern, clothing that change traversal and interaction | Inventory, Flags | combat — there is none | TODO |
-| Object persistence | Stable IDs so an opened chest stays open | Flags, Save | object behaviour | TODO |
+| Object persistence | Authored object_id, state via Flags. ADR-0005 | Flags, Save | object behaviour | DONE |
 
 ## 3. Characters and life
 
@@ -110,7 +110,7 @@ previous project started as a system that was allowed to know one thing too many
 | System | Purpose | Depends on | Boundary | Status |
 |---|---|---|---|---|
 | HUD | Minimal: prompts, notifications, clock | Events | game rules | TODO |
-| Notifications | Transient localized toasts | Events | — | TODO |
+| Notifications | Transient localized toasts | Events | — | DONE |
 | Pause menu | Pause with correct process modes | Actions | — | TODO |
 | Main menu | New game, continue, settings, quit | Save, Director | — | TODO |
 | Save and load screen | Slot list with headers and playtime | Save | — | TODO |
@@ -129,7 +129,7 @@ previous project started as a system that was allowed to know one thing too many
 | Line-budget checker | Mechanical enforcement of file and function size limits | DONE |
 | Test runner | Headless integration tests, scene-entered, exit 1 on failure | DONE |
 | Hard-coded string audit | Catches player-facing text that is not a localization key | TODO |
-| Localization | String IDs from the first string; CSV translation | TODO |
+| Localization | String IDs from the first string; CSV translation | PART — CSV wired, 28 keys, all UI text localized. No audit tool yet |
 | Smoke test | Boots, loads an area, saves, reloads, asserts zero errors | TODO |
 | Export presets | Windows build configuration | LATER |
 | Performance overlay | Frame time, draw calls, node counts | TODO |

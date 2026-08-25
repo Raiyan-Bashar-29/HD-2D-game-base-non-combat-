@@ -43,18 +43,19 @@ Done:
 - The courtyard: ground, pillars, walls, a dais, two lanterns, spawn markers
 
 Remaining:
-- Interaction sensor with candidate ranking and a prompt UI
 - Item definitions, inventory, and pickups
-- Containers, doors, readables, switches
-- Object persistence, so an opened chest stays open across a reload
+- Containers (needs the item system first)
 - A minimal HUD
 - Content validator and hard-coded-string audit (the line-budget checker is DONE and passing)
 
 Exit criteria:
 - [ ] Walk the courtyard, and the character faces the direction of travel correctly in all
       eight directions
-- [ ] Approach three overlapping objects and select each one deliberately
+- [x] Approach three overlapping objects and select each one deliberately — ranking plus
+      Tab cycling, done 2026-08-24
 - [ ] Pick up an item; it appears in the inventory and no longer exists in the world
+- [x] Refuse at a locked gate, throw the lever, open it, reload, and it is still open —
+      done 2026-08-24, covered by the test suite
 - [ ] Open a chest, take its contents, reload, and it is still open and still empty
 - [ ] Sleep on the dais and watch the light change
 - [ ] Save, quit, relaunch, continue — position, time, weather and inventory all restored

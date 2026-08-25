@@ -127,3 +127,7 @@ folder_colors={
 "res://tests/": "red",
 "res://tools/": "purple"
 }
+
+[internationalization]
+
+locale/translations=PackedStringArray("res://localization/strings.en.translation")

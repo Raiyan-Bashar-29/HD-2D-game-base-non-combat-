@@ -1,0 +1,29 @@
+keys,en
+verb.look,Look
+verb.take,Take
+verb.open,Open
+verb.close,Close
+verb.use,Use
+verb.talk,Speak
+verb.read,Read
+verb.sit,Rest
+verb.climb,Climb
+verb.enter,Enter
+verb.harvest,Gather
+verb.light,Light
+refusal.none,
+refusal.locked,It will not budge. Something holds it shut.
+refusal.missing_item,You lack what this needs.
+refusal.missing_skill,You do not know how.
+refusal.wrong_time,Not at this hour.
+refusal.already_done,Already done.
+refusal.hands_full,Your hands are full.
+refusal.story_gated,Not yet.
+area.courtyard.name,Rose Courtyard
+object.sign.gate.label,Weathered Notice
+object.sign.gate.text,"By order of the garden-keeper: the north gate stays barred until the lantern-lever is thrown. Mind the thorns."
+object.lever.gate.label,Iron Lever
+object.lever.gate.on,The lever gives with a heavy clack. Somewhere north, iron shifts.
+object.lever.gate.off,The lever settles back. The sound of iron returns.
+object.gate.north.label,North Gate
+object.gate.north.opened,The gate grinds open onto the dark.

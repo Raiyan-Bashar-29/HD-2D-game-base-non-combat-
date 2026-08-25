@@ -3,8 +3,7 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-24 · last commit `9e8e10c` · branch `main` · working tree has
-uncommitted audit fixes
+**Last updated:** 2026-08-24 · commit `5ee01e3` plus uncommitted interaction work · branch `main`
 **Remote:** https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-
 
 ## What this is
@@ -19,7 +18,7 @@ architecture.
 
 ## Where it stands
 
-Phase 0 complete, Phase 1 in progress. 25 scripts, ~1,890 code lines, 3 scenes, 1 area.
+Phase 0 complete, Phase 1 well along. 32 files, 2,485 code lines, 7 scenes, 1 area.
 Boots headless with **0 warnings, 0 errors**.
 
 **Works, and verified by running it:** logging with rotation · signal registry (`events.gd`) ·
@@ -27,11 +26,14 @@ input actions · settings · save/load with atomic writes and versioning · plot
 director with a re-entrancy guard and threaded loading · world clock · weather state · audio
 buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 8-way character ·
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
-placeholder art generator · line-budget checker · headless test suite (55 assertions).
+placeholder art generator · line-budget checker · headless test suite (74 assertions) ·
+interaction sensor with ranking and Tab-cycling · Interactable contract · localized prompt and
+toasts · readable signs · levers · flag-gated gates with refusal reasons · per-object
+persistence (ADR-0005).
 
-**Not built:** interaction system · items and inventory · world objects · triggers · NPCs ·
-dialogue · quests · UI beyond the fade · content validator · localization wiring ·
-weather visuals · typed Resource content classes (there are currently zero).
+**Not built:** items and inventory · containers · trigger volumes · NPCs · dialogue · quests ·
+menus · content validator · hard-coded-string audit · weather visuals · typed Resource content
+classes (still zero — items will be the first).
 
 ## Known defects
 
@@ -83,7 +85,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 55 -- --shot=<path> --time=18:40 --freeze-time
 ```
 
-## Four gotchas that each cost an hour
+## Six gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -94,18 +96,25 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
    style, and mixed indentation is a parse error.
 4. The test suite is a SCENE entered positionally, never `--script`. Under `--script` the
    autoload identifiers fail to compile, so no test touching a system can run that way.
+5. Do not name an `` after a native member. `Area3D` already has `priority`, so ours
+   is `interact_priority`; redefining a native member is a parse error that cascades into
+   every subclass as "could not resolve class".
+6. `set_anchors_preset()` leaves offsets at zero, giving a zero-size Control whose text spills
+   off screen. Use `set_anchors_and_offsets_preset()`.
 
 ## Next up
 
-Interaction sensor → items and inventory → containers, doors, readables, triggers → object
-persistence. Before any of it: decide the stable-object-ID scheme below, because every one of
-those systems persists state through it.
+Items and inventory → pickups → containers → trigger volumes → a minimal HUD. Items will be
+the first typed `Resource` content class, which is what finally tests the "adding the fiftieth
+item touches no code" claim in `ARCHITECTURE.md`.
 
-**Two unresolved design questions that get expensive later:**
-- **Stable object IDs.** Nothing yet assigns persistent identity to a world object. If it ends
-  up being the node path, renaming a node orphans its saved state. Decide before content exists.
+**Still open, and expensive later:**
 - **Sprite sheet layout is hardcoded.** `CharacterVisual` has `FACING_COUNT = 8` and
   `FRAME_COUNT = 4` as constants; a different sheet needs a code edit. Should be a resource.
+- **No duplicate-`object_id` check.** Two objects sharing an id inside one area silently share
+  state. A content validator scanning scenes would catch it; not built.
+- **No hard-coded-string audit,** so the localization rule is still enforced by discipline
+  rather than by a tool.
 
 ## Read next
 

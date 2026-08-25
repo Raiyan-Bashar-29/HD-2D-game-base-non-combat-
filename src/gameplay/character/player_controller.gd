@@ -1,7 +1,10 @@
 class_name PlayerController
 extends CharacterBody3D
-## The player's body and movement. One of only two scripts allowed to read input
-## (the other is the UI layer).
+## The player's body and movement.
+##
+## INPUT OWNERSHIP: this reads movement input only. Interaction input is read by
+## InteractionSensor, which is a sibling component, because routing it through here would
+## force this file to know about interaction - which the MUST NOT line below forbids.
 ##
 ## OWNS: the player's position, velocity, gait and movement state.
 ## MUST NOT: know about dialogue, inventory, interaction rules or the camera. It reacts to

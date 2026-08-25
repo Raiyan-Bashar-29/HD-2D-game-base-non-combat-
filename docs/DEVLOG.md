@@ -16,6 +16,95 @@ Append-only. Newest entry at the top. One entry per working session.
 
 ---
 
+## 2026-08-24 — Object identity, and the interaction loop end to end
+
+**Did:**
+
+- **ADR-0005: authored object identity.** Every persistent object carries a `PersistentState`
+  child with an `object_id`, unique within its area. State is written through `Flags` under
+  `obj/<area_id>/<object_id>/<field>`. Rejected node-path identity, which is free but couples
+  identity to scene structure: renaming a node silently orphans its state, the chest refills,
+  and nothing errors. Rejected generated UUIDs as unreadable in a save file and in a diff.
+  No new autoload — `Flags` is already a generic store and already a tested save participant.
+- **`Interactable`**, a deliberately shallow base class over `Area3D`. Subclasses override
+  `refusal()` and `perform()`; detection, ranking, prompts, refusal messaging, one-shot
+  handling and hold-to-confirm are all handled once. Chose a base class over a duck-typed
+  component because warnings-as-errors forbids calling a method on an untyped value, so a
+  component would need a cast at every call site.
+- **`InteractionSensor`** on the player. Ranks candidates by authored priority, then
+  proximity, then how squarely the player faces the target, with ties broken by node name so
+  physics callback order cannot reshuffle the prompt between frames. Tab cycles overlapping
+  targets. Hold-to-confirm is supported and drawn as a progress bar.
+- **Three interactables:** `Readable` (signs), `Lever` (toggles a persistent flag), `Gate`
+  (refuses with a reason until a flag is set, then opens and stays open).
+- **Localized UI:** `InteractPrompt` and `NotificationToast`, plus `localization/strings.csv`
+  with 28 keys wired through `tr()`. This closes the "zero `tr()` calls" audit finding —
+  there is now no code path by which raw player-facing text reaches the screen.
+- Placed a notice, a lever and a north gate in the courtyard as instanced prefabs from
+  `scenes/objects/`.
+
+**Why:**
+
+The audit named object identity as the thing blocking everything else, because interaction,
+items, containers and doors all persist state through it, and retrofitting it means touching
+every scene. It had to be decided before content existed.
+
+The lever deliberately does not know what it opens. The tempting design is
+`@export var door_to_open`, which couples every lever to one consequence; the second time a
+lever needs to do two things, the coupling has to be undone. The lever owns a flag and
+anything may watch it, so one lever can gate five things without knowing they exist.
+
+Refusal is a first-class result rather than a hidden prompt. Hiding the prompt on a locked
+gate is cheaper but worse: the player cannot tell a locked door from scenery, so they never
+learn there is something to come back for.
+
+**Connects:**
+
+`PersistentState` walks up to the enclosing `AreaRoot` for its namespace, so an id only has to
+be unique within one area file. `Interactable` forwards `object_id` to that child in
+`_enter_tree`, which runs top-down before any child `_ready`, so an instanced prefab sets its
+identity with one root-level property override instead of a child-node edit that hand-authored
+`.tscn` files cannot express robustly. Interaction input is read by the sensor, not by
+`PlayerController`, because the controller's own MUST NOT line forbids it knowing about
+interaction; the comment claiming "one of only two scripts allowed to read input" was corrected.
+
+**Verified:**
+
+- Type gate clean on all eight new scripts.
+- `--headless --import` clean; boot loads the courtyard with 3 interactables,
+  **0 warnings, 0 errors**.
+- Test suite **74 passed, 0 failed**, exit 0. The new cases drive the whole loop with no
+  simulated keypress: the gate is offered and refuses with LOCKED, the lever publishes its
+  flag, the same gate then opens, its state lands at `obj/global/t_gate/open`, and after the
+  node is freed and re-instantiated it is *still open* — which is what an area reload does.
+  Clearing one object's state leaves unrelated flags intact.
+- `check_budgets.gd` — 32 files, 2,485 code lines, 0 violations. It caught one of these very
+  test functions at 42 lines against the 40 limit; the function was split rather than the
+  budget raised.
+- Visual capture at 09:30 shows the prompt reading "Read  Weathered Notice", both words
+  resolved through the translation table.
+
+**Unblocks:**
+
+Items and inventory, which is the last big piece of the demo loop, and which will be the first
+typed `Resource` content class — the thing that finally tests the "adding the fiftieth item
+touches no code" claim.
+
+**Known gaps:**
+
+Still zero typed `Resource` content classes. No duplicate-`object_id` detection, so two objects
+sharing an id inside one area would silently share state; a content validator scanning scenes
+would catch it. No hard-coded-string audit, so the localization rule is enforced by discipline
+rather than mechanically. Trigger volumes still have a folder, a collision layer and no system.
+The gate opens but leads nowhere, because there is only one area.
+
+Two engine traps cost time and are now recorded in `CONTEXT.md`: `Area3D` already defines
+`priority`, and redefining it is a parse error that cascades into every subclass as "could not
+resolve class"; and `set_anchors_preset()` leaves offsets at zero, producing a zero-size
+Control whose text spills off the screen.
+
+---
+
 ## 2026-08-24 — Audit: four defects fixed, and rung 4 of the ladder made real
 
 **Did:**

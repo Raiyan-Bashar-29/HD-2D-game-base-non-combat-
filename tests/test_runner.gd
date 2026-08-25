@@ -27,6 +27,9 @@ var _failures: Array[String] = []
 ## Round-trip probe state. A real save participant, owned by the test.
 var _probe_value: int = 0
 var _probe_name: StringName = &""
+## Handed from the gating test to the persistence test, which continues with the same objects.
+var _gate: Gate = null
+var _lever: Lever = null
 
 
 func _ready() -> void:
@@ -39,6 +42,8 @@ func _ready() -> void:
 	_test_clock()
 	_test_weather()
 	_test_save_round_trip()
+	_test_interaction_gating()
+	_test_object_persistence()
 
 	Log.info("test", "=== %d passed, %d failed ===" % [_passed, _failed])
 	for failure: String in _failures:
@@ -215,3 +220,79 @@ func _equal(label: String, actual: Variant, expected: Variant) -> void:
 	var message: String = "%s — expected %s, got %s" % [label, str(expected), str(actual)]
 	_failures.append(message)
 	Log.warn("test", "  FAIL %s" % message)
+
+
+## A gate that refuses until a lever is thrown, without simulating a keypress. This is the
+## loop every future interactable is built on, so it is tested directly.
+func _test_interaction_gating() -> void:
+	Flags.clear_all()
+	var lever_scene: PackedScene = load("res://scenes/objects/lever.tscn")
+	var gate_scene: PackedScene = load("res://scenes/objects/gate.tscn")
+
+	var lever: Lever = lever_scene.instantiate() as Lever
+	lever.object_id = &"t_lever"
+	lever.world_flag = &"test/gate_unlocked"
+	lever.label_key = "object.lever.gate.label"
+	var gate: Gate = gate_scene.instantiate() as Gate
+	_gate = gate
+	_lever = null
+	gate.object_id = &"t_gate"
+	gate.requires_flag = &"test/gate_unlocked"
+	gate.label_key = "object.gate.north.label"
+	add_child(lever)
+	add_child(gate)
+
+	# Locked: the interaction is offered and refused, rather than hidden. A player must be
+	# able to tell a locked gate from scenery.
+	_equal("gate is offerable while locked", gate.is_offerable(), true)
+	_equal("gate refuses with LOCKED", gate.refusal(null), GameEnums.RefusalReason.LOCKED)
+	_equal("locked gate attempt fails", gate.attempt(null), false)
+	_equal("locked gate did not open", gate.is_open(), false)
+
+	# Throw the lever. It knows nothing about the gate; it only publishes a flag.
+	_equal("lever starts off", lever.is_on(), false)
+	_equal("lever throw succeeds", lever.attempt(null), true)
+	_equal("lever is on", lever.is_on(), true)
+	_equal("lever published its flag", Flags.get_bool(&"test/gate_unlocked"), true)
+	_lever = lever
+
+	# Same gate, same button, now allowed.
+	_equal("gate no longer refuses", gate.refusal(null), GameEnums.RefusalReason.NONE)
+	_equal("gate opens", gate.attempt(null), true)
+	_equal("gate is open", gate.is_open(), true)
+	_equal("open gate refuses as ALREADY_DONE", gate.refusal(null), GameEnums.RefusalReason.ALREADY_DONE)
+	_equal("open gate stops being offered", gate.is_offerable(), false)
+
+
+
+func _test_object_persistence() -> void:
+	var gate_scene: PackedScene = load("res://scenes/objects/gate.tscn")
+	var gate: Gate = _gate
+	# Identity is authored, so state is addressable without knowing the node path.
+	_equal("state key format", String(gate.state().key(&"open")), "obj/global/t_gate/open")
+	_equal("state landed in Flags", Flags.get_bool(&"obj/global/t_gate/open"), true)
+
+	# Destroy and rebuild, which is what an area reload does. State must survive.
+	if _lever_node() != null:
+		_lever_node().free()
+	gate.free()
+	var rebuilt: Gate = gate_scene.instantiate() as Gate
+	rebuilt.object_id = &"t_gate"
+	rebuilt.label_key = "object.gate.north.label"
+	add_child(rebuilt)
+	_equal("rebuilt gate is still open", rebuilt.is_open(), true)
+	_equal("rebuilt gate is not offered again", rebuilt.is_offerable(), false)
+
+	# And clearing the object forgets only that object.
+	Flags.set_flag(&"unrelated/keep", true)
+	rebuilt.state().clear()
+	_equal("cleared object state is gone", Flags.has_flag(&"obj/global/t_gate/open"), false)
+	_equal("unrelated flag survived", Flags.get_bool(&"unrelated/keep"), true)
+
+	rebuilt.free()
+	Flags.clear_all()
+
+
+## The lever built by the gating test, if it is still alive.
+func _lever_node() -> Lever:
+	return _lever if _lever != null and is_instance_valid(_lever) else null

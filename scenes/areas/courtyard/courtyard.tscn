@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://src/gameplay/world/area_root.gd" id="1_area"]
 [ext_resource type="Script" path="res://src/gameplay/world/environment_driver.gd" id="2_env"]
@@ -6,6 +6,9 @@
 [ext_resource type="Texture2D" path="res://assets/placeholder/grass.png" id="4_grass"]
 [ext_resource type="Texture2D" path="res://assets/placeholder/stone.png" id="5_stone"]
 [ext_resource type="Texture2D" path="res://assets/placeholder/wood.png" id="6_wood"]
+[ext_resource type="PackedScene" path="res://scenes/objects/sign.tscn" id="7_sign"]
+[ext_resource type="PackedScene" path="res://scenes/objects/lever.tscn" id="8_lever"]
+[ext_resource type="PackedScene" path="res://scenes/objects/gate.tscn" id="9_gate"]
 
 [sub_resource type="StandardMaterial3D" id="m_ground"]
 albedo_texture = ExtResource("4_grass")
@@ -192,3 +195,24 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, -9)
 script = ExtResource("3_cam")
 
 [node name="Camera3D" type="Camera3D" parent="Camera/CameraRig"]
+
+[node name="GateNotice" parent="Interactables" instance=ExtResource("7_sign")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.7, 0, 2.5)
+object_id = &"gate_notice"
+label_key = "object.sign.gate.label"
+text_key = "object.sign.gate.text"
+
+[node name="GateLever" parent="Interactables" instance=ExtResource("8_lever")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.7, 0, 2.5)
+object_id = &"gate_lever"
+label_key = "object.lever.gate.label"
+world_flag = &"area/courtyard/gate_unlocked"
+notify_on_key = "object.lever.gate.on"
+notify_off_key = "object.lever.gate.off"
+
+[node name="NorthGate" parent="Interactables" instance=ExtResource("9_gate")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -9.4)
+object_id = &"north_gate"
+label_key = "object.gate.north.label"
+requires_flag = &"area/courtyard/gate_unlocked"
+opened_key = "object.gate.north.opened"

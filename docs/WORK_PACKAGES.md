@@ -223,7 +223,7 @@ and choices and text speed. Conditions read `Flags`; effects set them. Placehold
 a save mid-conversation or explicitly refuses to be saved mid-conversation.
 
 
-**Done 2026-08-26**, commit `PLACEHOLDER5`.
+**Done 2026-08-26**, commit `addf337`.
 `src/content/dialogue/` (four data classes plus the registry), `dialogue_runner.gd`,
 `dialogue_screen.gd`, `speaker.gd`, `data/dialogue/gardener.tres`, `tests/unit/dialogue_test.gd`,
 `Events.dialogue_requested`, `GameEnums.FlagTest` and `FlagWrite`. Suite 414 -> 460.

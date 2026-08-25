@@ -11,10 +11,13 @@ extends Node
 ## has ever turned out to be worth it.
 ##
 ## TREE
-##     GameRoot            this script
-##     |- WorldRoot        Node3D. The player and the current area live here.
-##     |- UILayer          CanvasLayer above the world
-##        |- ScreenFade    the black rectangle transitions hide behind
+##     GameRoot                this script
+##     |- WorldRoot            Node3D. The player and the current area live here.
+##     |- UILayer              CanvasLayer above the world. Child order IS draw order:
+##        |- InteractPrompt    gameplay UI, so a screen covers it
+##        |- NotificationToast
+##        |- UiRoot            the screen stack. Screens land here, over the HUD.
+##        |- ScreenFade        last, so the curtain covers the screens too
 ##
 ## WHY THE PLAYER IS HERE AND NOT IN THE AREA
 ## The player outlives any single area. Instantiating them per-area would mean rebuilding

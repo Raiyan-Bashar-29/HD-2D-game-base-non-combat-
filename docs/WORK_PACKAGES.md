@@ -37,8 +37,8 @@ Headless shades nothing. This project has already shipped two bugs that every ot
 | # | Package | Status |
 |---|---|---|
 | 01 | Triggers and traversal | **DONE** — see below |
-| 02 | UI foundation | **TODO — next** |
-| 03 | HUD and inventory screen | TODO |
+| 02 | UI foundation | **DONE** — see below |
+| 03 | HUD and inventory screen | **TODO — next** |
 | 04 | Second area, transitions, loading | TODO |
 | 05 | Dialogue | TODO |
 | 06 | NPCs and navigation | TODO |
@@ -101,7 +101,7 @@ because a climb refused mid-air with no message is indistinguishable from a brok
 
 ---
 
-## WP-02 · UI foundation — **NEXT**
+## WP-02 · UI foundation — **DONE**
 
 **Goal.** A screen stack, pause semantics and input contexts — so no screen is ever built on an
 ad-hoc pause and a boolean.
@@ -125,13 +125,26 @@ works, and closing it restores control. Two overlapping locks release correctly.
 
 **Unblocks:** every screen in the game.
 
+**Done 2026-08-26**, commit recorded below the WP-01 entry on this board.
+`InputLock` (`src/core/util/input_lock.gd`), `UiRoot` (`src/ui/root/ui_root.gd`), `UiScreen`
+and `StubScreen` (`src/ui/screens/`), `GameEnums.UiMode`, `Events.ui_mode_changed`.
+`PlayerController.set_input_locked(bool)` is DELETED; its callers hold named tokens, and
+`InteractionSensor` grew its own lock and now knows an open screen exists at all. Suite 215 ->
+294, everything green, plus three windowed captures and a real-input probe in the live tree.
+Two things the manifest did not anticipate, both small and both justified in `DEVLOG.md`:
+`Audio`, `Director`, `NotificationToast` and `DevCapture` each opted out of pause in their own
+`_ready()` (autoloads are pausable by default, so music would have cut out), and `ScreenFade`
+moved to be the last child of `UILayer`, because a curtain that does not cover the screens is
+not a curtain.
+
 ---
 
-## WP-03 · HUD and inventory screen
+## WP-03 · HUD and inventory screen — **NEXT**
 
 **Goal.** The first real consumers of the stack. The inventory has data and no window.
 
-**Read:** `src/ui/root/ui_root.gd` (from WP-02), `src/ui/hud/`, `src/ui/prompt/`,
+**Read:** `src/ui/root/ui_root.gd` and `src/ui/screens/ui_screen.gd` (both from WP-02),
+`src/ui/screens/stub_screen.gd` (the worked example), `src/ui/hud/`, `src/ui/prompt/`,
 `src/gameplay/character/inventory.gd`, `src/content/items/item_definition.gd`, `item_db.gd`,
 `src/systems/world_clock/clock.gd`, `localization/strings.csv`.
 
@@ -141,6 +154,10 @@ holds no rules. Every string is a CSV key.
 
 **Exit criteria:** open with `I`, items listed with localized names and counts grouped by
 category, gameplay frozen while open, basic gamepad navigation. Capture and look at it.
+The screen is a `UiScreen` pushed onto `UiRoot` — it must NOT touch `get_tree().paused`, must
+NOT lock the player, and must NOT add a signal for any of that. If it needs to, the stack is
+wrong and that is a WP-02 bug, not a reason to work around it. Delete `StubScreen` once this
+and one other real screen exist.
 
 ---
 

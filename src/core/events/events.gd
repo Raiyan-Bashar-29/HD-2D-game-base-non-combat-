@@ -144,6 +144,11 @@ signal quest_completed(quest_id: StringName)
 signal notify_requested(key: String, seconds: float, args: Dictionary)
 ## Fade the screen. Director uses this for transitions, and cutscenes may too.
 signal screen_fade_requested(to_black: bool, seconds: float)
+## A screen opened or closed and the world's relationship to input changed. Emitted by UiRoot
+## and by nothing else - it is the single announcement that replaces one input-lock boolean
+## per screen. Input readers take or release their own `ui` token on it; the prompt hides on
+## it. Carried on the bus because UiRoot must not know the player's components exist.
+signal ui_mode_changed(mode: GameEnums.UiMode)
 
 # ---------------------------------------------------------------------------------------
 # Settings and debug.

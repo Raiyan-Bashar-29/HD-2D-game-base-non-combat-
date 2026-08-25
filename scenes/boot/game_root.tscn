@@ -1,10 +1,11 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://src/core/boot/game_root.gd" id="1_root"]
 [ext_resource type="Script" path="res://src/ui/hud/screen_fade.gd" id="2_fade"]
 [ext_resource type="Script" path="res://src/systems/debug/dev_capture.gd" id="3_dev"]
 [ext_resource type="Script" path="res://src/ui/prompt/interact_prompt.gd" id="4_prompt"]
 [ext_resource type="Script" path="res://src/ui/hud/notification_toast.gd" id="5_toast"]
+[ext_resource type="Script" path="res://src/ui/root/ui_root.gd" id="6_ui"]
 
 [node name="GameRoot" type="Node"]
 script = ExtResource("1_root")
@@ -13,6 +14,21 @@ script = ExtResource("1_root")
 
 [node name="UILayer" type="CanvasLayer" parent="."]
 layer = 100
+
+[node name="InteractPrompt" type="Label" parent="UILayer"]
+script = ExtResource("4_prompt")
+
+[node name="NotificationToast" type="Label" parent="UILayer"]
+script = ExtResource("5_toast")
+
+[node name="UiRoot" type="Control" parent="UILayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("6_ui")
 
 [node name="ScreenFade" type="ColorRect" parent="UILayer"]
 anchors_preset = 15
@@ -26,9 +42,3 @@ script = ExtResource("2_fade")
 
 [node name="DevCapture" type="Node" parent="."]
 script = ExtResource("3_dev")
-
-[node name="InteractPrompt" type="Label" parent="UILayer"]
-script = ExtResource("4_prompt")
-
-[node name="NotificationToast" type="Label" parent="UILayer"]
-script = ExtResource("5_toast")

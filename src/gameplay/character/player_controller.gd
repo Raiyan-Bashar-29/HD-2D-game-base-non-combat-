@@ -39,8 +39,10 @@ var state: GameEnums.MoveState = GameEnums.MoveState.IDLE
 
 var _gravity: float = 24.0
 var _run_toggled: bool = false
-## Set while dialogue, a cutscene or a multi-step interaction has control.
-var _input_locked: bool = false
+## Every system currently holding the player still. See InputLock: a boolean here was fine
+## with one caller and broke the moment WP-01 added the second, because whichever of dialogue
+## and the climb finished first cleared the other one's hold.
+var _lock: InputLock = InputLock.new()
 ## Where an authored climb is heading, and the corner it turns on the way. Only meaningful
 ## while state is CLIMB.
 var _climb_target: Vector3 = Vector3.ZERO
@@ -63,6 +65,7 @@ func _ready() -> void:
 	Events.setting_changed.connect(_on_setting_changed)
 	Events.dialogue_started.connect(_on_busy_started)
 	Events.dialogue_finished.connect(_on_busy_finished)
+	Events.ui_mode_changed.connect(_on_ui_mode_changed)
 
 	Events.player_spawned.emit(self)
 	Log.info("character", "Player ready at %s" % str(global_position))
@@ -80,7 +83,7 @@ func _physics_process(delta: float) -> void:
 		return
 	_poll_run_toggle()
 	var wish: Vector3 = Vector3.ZERO
-	if not _input_locked:
+	if not _lock.is_locked():
 		wish = _read_movement_input()
 
 	var target_speed: float = _current_speed()
@@ -136,7 +139,7 @@ func _current_speed() -> float:
 ## frame (from _current_speed and from _update_state), so the toggle flipped twice and never
 ## changed: toggle-run silently did nothing. Polling now happens once, in _poll_run_toggle.
 func _is_running() -> bool:
-	if _input_locked:
+	if _lock.is_locked():
 		return false
 	if run_is_toggle:
 		return _run_toggled
@@ -145,13 +148,13 @@ func _is_running() -> bool:
 
 ## Called once at the top of _physics_process, and nowhere else. Keep it that way.
 func _poll_run_toggle() -> void:
-	if run_is_toggle and not _input_locked and Input.is_action_just_pressed(Actions.RUN):
+	if run_is_toggle and not _lock.is_locked() and Input.is_action_just_pressed(Actions.RUN):
 		_run_toggled = not _run_toggled
 
 
 func _update_state(wish: Vector3) -> void:
 	var next: GameEnums.MoveState = state
-	if _input_locked:
+	if _lock.is_locked():
 		next = GameEnums.MoveState.BUSY
 	elif not is_on_floor() and velocity.y < -0.5:
 		next = GameEnums.MoveState.FALL
@@ -177,22 +180,48 @@ func _enter_state(next: GameEnums.MoveState) -> void:
 	Events.player_state_changed.emit(state)
 
 
-## Hand control to something else: dialogue, a cutscene, a held interaction.
-## Kept as a public method so any system can borrow the player without this file needing
-## to know which system it was.
-func set_input_locked(locked: bool) -> void:
-	_input_locked = locked
-	if locked:
-		velocity.x = 0.0
-		velocity.z = 0.0
+## Hand control to something else: dialogue, a screen, a cutscene, an authored climb. The
+## token names the borrower, so releasing is something only the borrower can do. Any system
+## may call this without this file needing to know which system it was.
+##
+## Do NOT reintroduce a set_input_locked(bool) convenience over the top of this. The whole
+## point is that there is no way to say "unlocked" without saying who you are.
+func lock_input(token: StringName) -> void:
+	_lock.lock(token)
+	velocity.x = 0.0
+	velocity.z = 0.0
+
+
+func release_input(token: StringName) -> void:
+	_lock.release(token)
+
+
+func is_input_locked() -> bool:
+	return _lock.is_locked()
+
+
+## Who is still holding. For a log line when the player mysteriously will not move.
+func input_holders() -> Array[StringName]:
+	return _lock.holders()
 
 
 func _on_busy_started(_speaker: StringName) -> void:
-	set_input_locked(true)
+	lock_input(&"dialogue")
 
 
 func _on_busy_finished(_speaker: StringName) -> void:
-	set_input_locked(false)
+	release_input(&"dialogue")
+
+
+## A screen took over. The player does not learn which screen, or care: UiRoot announces the
+## mode and this takes or gives back exactly one token for it. A MODAL also pauses the tree,
+## so _physics_process stops too - but an OVERLAY does not, and that is the case the token is
+## actually for.
+func _on_ui_mode_changed(mode: GameEnums.UiMode) -> void:
+	if mode == GameEnums.UiMode.GAMEPLAY:
+		release_input(&"ui")
+	else:
+		lock_input(&"ui")
 
 
 func _on_setting_changed(section: String, key: String, value: Variant) -> void:
@@ -231,7 +260,7 @@ func begin_climb(to: Vector3) -> bool:
 	_climb_waypoint = Vector3(lower.x, maxf(global_position.y, to.y), lower.z)
 	_climb_turned = false
 	velocity = Vector3.ZERO
-	set_input_locked(true)
+	lock_input(&"climb")
 	_enter_state(GameEnums.MoveState.CLIMB)
 	Log.debug("character", "Climb to %s via %s" % [str(to), str(_climb_waypoint)])
 	return true
@@ -260,7 +289,7 @@ func climb_step(delta: float) -> void:
 	if not global_position.is_equal_approx(_climb_target):
 		return
 	_climbing = false
-	set_input_locked(false)
+	release_input(&"climb")
 	_enter_state(GameEnums.MoveState.IDLE)
 	if visual != null:
 		visual.update_from_velocity(Vector3.ZERO, delta)

@@ -38,6 +38,10 @@ var _yaw_override: Variant = null
 
 
 func _ready() -> void:
+	# A transition already in flight must be allowed to finish. If this paused, a menu opened
+	# during a fade would strand the game on a black screen with the load never completing.
+	# Part of the pause table in src/ui/root/ui_root.gd.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	Events.area_change_requested.connect(_on_area_change_requested)
 	Events.player_spawned.connect(_on_player_spawned)
 	Events.player_despawned.connect(_on_player_despawned)

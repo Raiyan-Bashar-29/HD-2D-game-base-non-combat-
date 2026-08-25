@@ -3,7 +3,9 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-26 · WP-01 complete · branch `claude/trusting-curran-04a4f9`
+**Last updated:** 2026-08-26 · WP-02 complete · branch `claude/intelligent-wilbur-ae8141`
+**Note:** this branch fast-forwarded WP-01 in from `claude/trusting-curran-04a4f9`, which was
+never merged to `main`. Merge order is WP-01 then WP-02, or just merge this branch.
 **Remote:** https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-
 
 ## What this is
@@ -18,7 +20,7 @@ architecture.
 
 ## Where it stands
 
-Phase 0 complete, Phase 1 nearly done. 48 files, 3,500 code lines, 12 scenes, 1 area, 3 items.
+Phase 0 complete, Phase 1 nearly done. 53 files, 3,879 code lines, 12 scenes, 1 area, 3 items.
 Boots headless with **0 warnings, 0 errors**.
 
 **Works, and verified by running it:** logging with rotation · signal registry (`events.gd`) ·
@@ -26,15 +28,17 @@ input actions · settings · save/load with atomic writes and versioning · plot
 director with a re-entrancy guard and threaded loading · world clock · weather state · audio
 buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 8-way character ·
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
-placeholder art generator · line-budget checker · headless test suite (215 assertions) ·
+placeholder art generator · line-budget checker · headless test suite (294 assertions) ·
 interaction sensor with ranking and Tab-cycling · Interactable contract · localized prompt and
 toasts · readable signs · levers · gates gated by flag or by a carried key · per-object
 persistence (ADR-0005) · typed item definitions found by directory scan (ADR-0006) · an
 inventory component with a capacity seam · pickups · take-all chests · a content validator ·
-trigger volumes that fire on entry · a rest point that skips hours · authored climb points.
+trigger volumes that fire on entry · a rest point that skips hours · authored climb points ·
+a screen stack with real pause semantics · a token input lock.
 
-**Not built:** NPCs · dialogue · quests · menus and any screen at all ·
-hard-coded-string audit · weather visuals · item instances (durability) · equipment.
+**Not built:** NPCs · dialogue · quests · any REAL screen (the stack exists and a stub proves
+it; the HUD and the inventory screen are WP-03) · hard-coded-string audit · weather visuals ·
+item instances (durability) · equipment · keyboard focus inside a screen.
 
 ## Known defects
 
@@ -99,6 +103,17 @@ hard-coded-string audit · weather visuals · item instances (durability) · equ
   needs a new category, so it does not violate the no-code-per-item rule.
 - **Item instances are deferred** until something actually has durability; `{id, count}` is
   enough. Never persist an enum ordinal — persist ids.
+- **Input is held by NAMED TOKENS, never a boolean.** `InputLock` on the player and on the
+  interaction sensor. `lock(&"dialogue")`, `release(&"dialogue")`. A boolean broke the moment
+  WP-01 gave it a second caller, and a counter would strand instead. Do not reintroduce
+  `set_input_locked(bool)` as a convenience over the top of it.
+- **A screen never pauses anything itself.** It declares `pauses_world` and `closes_on_cancel`
+  as a `UiScreen`, and `UiRoot` does the rest. `UiRoot.is_gameplay_input_allowed()` is the one
+  truth; everything else listens to `Events.ui_mode_changed`.
+- **Pause is per node, not global.** `get_tree().paused` is set by UiRoot, but each node
+  decides for itself in its own `_ready()`. The full table is the header of
+  `src/ui/root/ui_root.gd`. Clock and Weather stop; Audio, Director, ScreenFade,
+  NotificationToast and DevCapture do not.
 - Four ADRs in `docs/decisions/` cover the layered `src/`, warnings-as-errors, the input map,
   and save-via-callables.
 
@@ -108,14 +123,14 @@ hard-coded-string audit · weather visuals · item instances (durability) · equ
 G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
-"$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 150   # 215 assertions, exit 1 on fail
+"$G" --headless --quit-after 120               # must end "0 warnings, 0 errors"
+"$G" --headless res://tests/test_runner.tscn --quit-after 150   # 294 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --resolution 960x540 --quit-after 55 -- --shot=<path> --time=18:40 --freeze-time
 ```
 
-## Ten gotchas that each cost an hour
+## Thirteen gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -145,6 +160,18 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     test can wait on a physics frame, which is why interactions are driven through `attempt()`
     and a climb through `climb_step(delta)` in a bounded loop. A test that needs a real
     physics step belongs in the windowed run instead.
+11. **Autoloads are PAUSABLE by default**, so `get_tree().paused` silently stops `Clock`,
+    `Weather` and `Audio` alike. Audio has to opt out explicitly or the score cuts out the
+    moment a menu opens — and it is the autoload *node* that needs it, not just the
+    `AudioStreamPlayer` children, because the cross-fade tweens are created on the node.
+    Verified with `can_process()` in `tests/unit/ui_test.gd`, not assumed.
+12. **Child order in a `CanvasLayer` is draw order.** `ScreenFade` has to be the LAST child of
+    `UILayer` or the curtain does not cover the screens. It was the first child until WP-02.
+13. **Use `--quit-after 120` for the boot rung, not 30.** The area load is threaded, and 30
+    frames does not reliably finish it on a cold cache — quitting mid-load aborts the loader
+    thread and prints spurious `Parse Error` lines for `courtyard.tscn` plus leaked RIDs,
+    *after* the run has already reported `0 warnings, 0 errors`. Pre-existing and reproducible
+    at any commit; the real fix is for `Director` to cancel its load on shutdown (WP-14).
 
 ## How work is sliced
 
@@ -154,7 +181,7 @@ should read, so a session loads a few hundred lines instead of three thousand. T
 (`core -> content -> systems -> gameplay -> ui`, downward only) is what makes that possible: a
 package never has to read upward.
 
-**Next package: WP-02, UI foundation.**
+**Next package: WP-03, HUD and inventory screen.**
 
 ## Plan — where this is going
 
@@ -162,16 +189,15 @@ package never has to read upward.
 day/night cycle, be prompted, read a sign, throw a lever, take an item, empty a chest, be
 refused by a gate that wants a key, open it once you carry the key, cross a volume that fires
 once, rest on a bench and watch the light change, climb a trellis to a terrace and back down —
-and every one of those changes survives a save and reload. All of it is covered by 215
+and every one of those changes survives a save and reload. All of it is covered by 294
 headless assertions.
 
 **Next, in this order.** The order matters and is not arbitrary:
 
-1. **Screen stack and input contexts, and only THEN the inventory screen.** In that order,
-   deliberately: a screen built first forces an ad-hoc pause and a boolean per screen, and the
-   interaction sensor currently reads input every physics frame with no notion of a modal UI.
-   The single `_input_locked` boolean on `PlayerController` is now taken by both dialogue and
-   the climb, which is exactly the collision WP-02's counted lock exists to prevent.
+1. **The HUD and the inventory screen.** The stack, the pause semantics and the token input
+   lock landed in WP-02, so a screen is now a `UiScreen` subclass with content in it and
+   nothing else — no new pause, no new boolean, no new signal. Keyboard and controller focus
+   inside a screen is unbuilt and belongs with the first screen that has something to focus.
 2. **A second area and a real transition.** The transition code is written, guarded and logged
    but has never actually swapped two areas, because only one exists. Trigger volumes are now
    the entry mechanism it was waiting for.

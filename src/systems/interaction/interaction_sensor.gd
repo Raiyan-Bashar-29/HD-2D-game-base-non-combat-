@@ -35,6 +35,10 @@ var _cycle: int = 0
 var _hold: float = 0.0
 var _facing: Vector3 = Vector3.FORWARD
 var _body: CharacterBody3D = null
+## Held by whatever has taken interaction away: an open screen, a conversation. Tokens rather
+## than a boolean for the same reason the player controller uses them - two holders must not
+## be able to release each other.
+var _lock: InputLock = InputLock.new()
 
 
 func _ready() -> void:
@@ -45,6 +49,12 @@ func _ready() -> void:
 	_body = get_parent() as CharacterBody3D
 	area_entered.connect(_on_area_entered)
 	area_exited.connect(_on_area_exited)
+	# This component reads input directly, so it needs its own hold on that input - it cannot
+	# borrow the player controller's, because that lives a layer above this one. Same lock
+	# class, same tokens, separately held.
+	Events.ui_mode_changed.connect(_on_ui_mode_changed)
+	Events.dialogue_started.connect(_on_dialogue_started)
+	Events.dialogue_finished.connect(_on_dialogue_finished)
 	Log.info("interact", "Sensor ready, reach %.1fm" % max_distance)
 
 
@@ -73,6 +83,11 @@ func hold_progress() -> float:
 
 
 func _handle_input(delta: float) -> void:
+	# Suspended, not disabled: selection keeps running so the prompt has a target to redraw
+	# the instant control returns, rather than needing the player to step away and back.
+	if _lock.is_locked():
+		_hold = 0.0
+		return
 	if _current == null:
 		_hold = 0.0
 		return
@@ -179,3 +194,24 @@ func _on_area_exited(area: Area3D) -> void:
 func _on_availability_changed() -> void:
 	_current = _select()
 	_announce()
+
+
+## Is interaction currently taken away? Public so a test can assert the hand-over without
+## faking input, which is the same reason interactions are tested through attempt().
+func is_suspended() -> bool:
+	return _lock.is_locked()
+
+
+func _on_ui_mode_changed(mode: GameEnums.UiMode) -> void:
+	if mode == GameEnums.UiMode.GAMEPLAY:
+		_lock.release(&"ui")
+	else:
+		_lock.lock(&"ui")
+
+
+func _on_dialogue_started(_speaker: StringName) -> void:
+	_lock.lock(&"dialogue")
+
+
+func _on_dialogue_finished(_speaker: StringName) -> void:
+	_lock.release(&"dialogue")

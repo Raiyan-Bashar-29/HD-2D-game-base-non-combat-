@@ -29,6 +29,11 @@ var _current_music_path: String = ""
 
 
 func _ready() -> void:
+	# The players below already opt out of pause individually, but the cross-fade tweens are
+	# created on THIS node and would stall with it - so a track started just before a menu
+	# opened would hang at -60 dB until the menu closed. Part of the pause table in
+	# src/ui/root/ui_root.gd.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	_ensure_buses()
 	_music_a = _make_player("Music", "MusicA")
 	_music_b = _make_player("Music", "MusicB")

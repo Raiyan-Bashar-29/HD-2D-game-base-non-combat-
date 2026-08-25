@@ -22,6 +22,7 @@ extends Node
 ##   --freeze-time        stop the clock, so a capture is reproducible to the pixel.
 ##   --skip-to-hour=<int> perform the same time skip a rest point does, after --time.
 ##   --weather=<KIND>     force weather. Any GameEnums.WeatherKind name.
+##   --open-screen        push the stub screen, to capture the world paused behind a screen.
 ##
 ## OWNS: capture, and CLI-driven overrides for time and weather.
 ## MUST NOT: be depended upon by gameplay. Deleting this file must not break the game.
@@ -36,6 +37,9 @@ var _captured: bool = false
 
 
 func _ready() -> void:
+	# Captures must work while the game is paused - proving that a screen stops the world is
+	# exactly what the capture is for. Pause table: src/ui/root/ui_root.gd.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	_parse_arguments()
 
 
@@ -90,6 +94,8 @@ func _parse_arguments() -> void:
 			Log.info("test", "Clock frozen by command line")
 		elif argument.begins_with("--skip-to-hour="):
 			_skip_to_hour(argument.trim_prefix("--skip-to-hour="))
+		elif argument == "--open-screen":
+			_open_stub_screen()
 		elif argument.begins_with("--weather="):
 			_force_weather(argument.trim_prefix("--weather="))
 
@@ -119,3 +125,16 @@ func _force_weather(value: String) -> void:
 func _skip_to_hour(value: String) -> void:
 	var skipped: int = Clock.skip_to_hour(value.to_int())
 	Log.info("test", "Skipped %d minutes to %02d:00 by command line" % [skipped, Clock.hour])
+
+
+## Pushes the stub screen so a windowed capture can show a real screen over a real, stopped
+## world. Deferred by a frame: UiRoot is a sibling built in the same _ready() pass as this
+## node, so it is not reliably in its group yet when the arguments are read.
+func _open_stub_screen() -> void:
+	await get_tree().process_frame
+	var stack: UiRoot = UiRoot.find(self)
+	if stack == null:
+		Log.error("test", "--open-screen found no UiRoot in the tree")
+		return
+	var opened: bool = stack.open(StubScreen.new())
+	Log.info("test", "--open-screen pushed the stub screen: %s" % str(opened))

@@ -42,7 +42,7 @@ previous project started as a system that was allowed to know one thing too many
 | Area root | The uniform contract every area scene satisfies | Weather, Audio, Log | gameplay logic | DONE |
 | HD-2D camera rig | Long-lens diorama framing, tilt-shift depth of field | Events, Director | input; what it follows beyond a Node3D | DONE |
 | Character visual | Billboarded, lit, correctly-sorted sprite with 8-way facing | Events | input, movement, game rules | DONE |
-| Player controller | Movement, gait, movement state | Actions, Settings, Events, Layers | dialogue, inventory, interaction rules, the camera | DONE |
+| Player controller | Movement, gait, movement state, authored climb, token input lock | Actions, Settings, Events, Layers | dialogue, inventory, interaction rules, the camera | DONE |
 | World clock | Day, hour, minute, time-of-day phase | Log, Events, Save | what time *means* to anything | DONE |
 | Weather state | Current kind, blend, intensity, scheduling | Log, Events, Save | particles, lights, sounds | DONE |
 | Environment driver | Turns clock and weather into real lighting and post | Clock, Weather | what time it is or what weather it is; it only renders consequences | DONE |
@@ -111,9 +111,13 @@ previous project started as a system that was allowed to know one thing too many
 
 | System | Purpose | Depends on | Boundary | Status |
 |---|---|---|---|---|
+| Screen stack | Push/pop screens, one gameplay-input truth, the UiMode announcement | Events, Actions | what any screen contains, or that the player exists | DONE |
+| Screen contract | UiScreen: a screen declares whether it pauses and whether cancel closes it | — | pausing, locking input, or its own lifetime | DONE |
+| Input lock | Named tokens so two systems holding input cannot release each other | nothing | what input is | DONE |
+| Pause semantics | Deliberate process_mode per node; music and the fade keep running | — | — | DONE |
 | HUD | Minimal: prompts, notifications, clock | Events | game rules | TODO |
 | Notifications | Transient localized toasts | Events | — | DONE |
-| Pause menu | Pause with correct process modes | Actions | — | TODO |
+| Pause menu | The actual menu. The pause mechanism underneath it is DONE | Actions, UiRoot | — | TODO |
 | Main menu | New game, continue, settings, quit | Save, Director | — | TODO |
 | Save and load screen | Slot list with headers and playtime | Save | — | TODO |
 | Settings screen | Every entry in the Settings defaults table | Settings | — | TODO |
@@ -177,7 +181,7 @@ The smallest set that makes a real game loop, and the current target:
 
 **Have it:** logging, events, settings, save, flags, input, game root, director, area root,
 camera rig, character visual, player controller, clock, weather state, environment driver,
-screen fade, audio buses, dev capture, placeholder art.
+screen fade, audio buses, dev capture, placeholder art, the screen stack and pause semantics.
 
 **Still needed:** interaction sensor, interactable component, prompt UI, item definitions,
 inventory, pickups, containers, doors, object persistence, a minimal HUD, the test runner and

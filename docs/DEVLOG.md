@@ -16,6 +16,128 @@ Append-only. Newest entry at the top. One entry per working session.
 
 ---
 
+## 2026-08-26 — WP-02: the screen stack, pause semantics and a token input lock
+
+**Did:**
+
+- `src/core/util/input_lock.gd` — `InputLock`, a set of named holds. `lock(&"dialogue")`,
+  `release(&"dialogue")`, `is_locked()`, `holders()`. Twenty-one code lines.
+- `src/ui/root/ui_root.gd` — `UiRoot`, the screen stack. `open()` / `close_top()` /
+  `close_all()`, `is_gameplay_input_allowed()` as the single truth, and the whole pause table
+  written down in its header. Found by group, not by path: `UiRoot.find(node)`.
+- `src/ui/screens/ui_screen.gd` — `UiScreen`, the contract every screen satisfies. A screen
+  declares `pauses_world` and `closes_on_cancel` and then renders. It never touches
+  `get_tree().paused`, never locks the player, never frees itself.
+- `src/ui/screens/stub_screen.gd` — scaffolding, marked for deletion once two real screens
+  exist. It exists so this package could be verified without WP-03.
+- `GameEnums.UiMode { GAMEPLAY, OVERLAY, MODAL }` and `Events.ui_mode_changed(mode)`, emitted
+  by UiRoot and by nothing else.
+- **Deleted `PlayerController.set_input_locked(bool)`.** Its four callers now hold named
+  tokens: `&"dialogue"`, `&"climb"`, `&"ui"`.
+- `InteractionSensor` grew its own `InputLock` and now knows an open screen exists at all,
+  which it previously did not. `InteractPrompt` hides itself while the mode is not GAMEPLAY.
+- Four nodes opted out of pause in their own `_ready()`: `Audio`, `Director`,
+  `NotificationToast`, `DevCapture`. `ScreenFade` already had.
+- `scenes/boot/game_root.tscn` gained `UiRoot`, and `ScreenFade` moved to be the LAST child
+  of `UILayer` — a curtain that does not cover the screens is not a curtain.
+- `--open-screen` on `dev_capture.gd`, so the capture can photograph a paused world.
+- `tests/unit/ui_test.gd`, 79 assertions. Suite is 215 -> 294.
+
+**Why:**
+
+Nothing in this project had a home for modal UI. The only hand-over mechanism was one boolean
+behind `set_input_locked(bool)`, and WP-01 gave it a second caller, which is when a boolean
+stops working: dialogue locks the player, a climb starts and finishes inside the conversation,
+the climb's own `set_input_locked(false)` clears the dialogue's hold, and the player strolls
+away mid-sentence. Nothing errors. Nothing logs. It reads as a physics bug.
+
+A count would fail the other way — lock twice, release once, and the lock is stranded with
+nothing to point at. Named tokens are idempotent, so a doubled `dialogue_started` is free, and
+`holders()` can name whoever is still holding when something does go wrong.
+
+The stack had to come before any screen, which is why this is WP-02 and the inventory screen
+is WP-03. Build a screen first and you get one boolean per screen, forever, each owned by a
+different file and each able to clear the others.
+
+**On pause, deliberately:** this does set `get_tree().paused`, but which nodes that actually
+stops was decided node by node, and the table lives in `ui_root.gd`'s header. Clock and
+Weather stop, because in-game time must not pass behind a menu. Audio does not, because the
+score cutting out is the one thing every player notices — and note it is the autoload itself
+that needed the opt-out, since the cross-fade tweens are created on it. Director does not,
+because a transition in flight would otherwise strand the game on black. Each of those is set
+in the owning node's own `_ready()`, never from UiRoot: a central pause that reaches into ten
+nodes is the god object all over again.
+
+**Connects:**
+
+UiRoot announces `ui_mode_changed`; `PlayerController`, `InteractionSensor` and
+`InteractPrompt` listen. UiRoot does not know the player exists, and the player does not know
+which screen opened — it takes one `&"ui"` token and gives it back. The player and the sensor
+hold *separate* locks, because the sensor lives in `src/systems/` and the controller in
+`src/gameplay/`, and reaching upward across that line is what the layer rule forbids.
+
+**Verified:**
+
+```
+G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe
+"$G" --headless --import                                        # clean
+"$G" --headless --quit-after 30                                 # "0 warnings, 0 errors", x3, zero ERROR/WARNING lines
+"$G" --headless res://tests/test_runner.tscn --quit-after 150   # 294 passed, 0 failed, exit 0
+"$G" --headless --script tools/check_budgets.gd                 # 53 files, 3879 lines, 0 violations, exit 0
+"$G" --headless --script tools/check_content.gd                 # PASS, exit 0
+```
+
+A deliberately inverted assertion (`get_tree().paused` expected `false`) gave
+`293 passed, 1 failed` and **exit 1**, then was restored.
+
+Windowed captures at 960x540, `--time=18:40 --freeze-time`:
+
+- without a screen: the lit courtyard, the player, and `Use Iron Lever` on the prompt.
+- `--open-screen`, frame 45: the stub screen centred and correctly sized over the world, the
+  world still drawn behind it through the 0.82-alpha panel, **and the interaction prompt
+  gone** — which is the prompt's new `ui_mode_changed` handler, visible in a photograph.
+- `--open-screen`, frame 16: the fade curtain still partly up **over** the screen text. By
+  frame 45 it has fully lifted. So the fade both draws above the screens and keeps tweening
+  while the tree is paused, which is the pause table proving itself.
+
+A throwaway probe scene (deleted afterwards) drove the live tree with a real injected
+`InputEventAction`, because the suite is synchronous and cannot await a frame:
+
+```
+stack found: true              opened: true
+depth 1, paused true, gameplay allowed false, player holders [&"ui"]
+injected CANCEL
+depth 0, paused false, gameplay allowed true, player holders []
+```
+
+The pause table is asserted, not merely documented: `ui_test.gd` opens a modal and reads
+`can_process()` off `Clock`, `Weather`, `Audio`, `Director`, the stack, the screen and the
+player. That confirmed empirically what would otherwise have been a guess about Godot's
+default process mode for autoloads — they are pausable, so `Audio` genuinely needed the line.
+
+**Unblocks:**
+
+Every screen in the game. WP-03 (HUD and inventory screen) is now a `UiScreen` subclass with
+content in it and nothing else — no new pause, no new boolean, no new signal.
+
+**Known gaps:**
+
+- Pre-existing, found while re-running the ladder and reproduced at baseline: `--quit-after
+  30` does not reliably finish the threaded area load on a cold cache, and quitting mid-load
+  prints spurious `courtyard.tscn` parse errors and leaked RIDs AFTER the run has already
+  logged `0 warnings, 0 errors`. Documented as gotcha 13; the boot rung is now `--quit-after
+  120` in `CLAUDE.md` and `CONTEXT.md`. The real fix is for `Director` to cancel its load on
+  shutdown, which belongs in WP-14.
+- No audio assets exist, so "music keeps playing" is verified as `Audio.can_process() == true`
+  under pause, not by ear. That is the strongest claim available until there is an `.ogg`.
+- Nothing gives a screen keyboard focus yet, so controller and keyboard navigation within a
+  screen is unbuilt. It belongs with the first screen that has something to focus (WP-03).
+- `Actions.PAUSE` and `Actions.CANCEL` share Escape and both merely close the top screen.
+  Nothing *opens* a screen from gameplay input yet, deliberately — the pause menu is WP-12.
+- `StubScreen` is scaffolding. Delete it when two real screens exist.
+
+---
+
 ## 2026-08-26 — WP-01: triggers, resting and authored climbing
 
 **Did:**

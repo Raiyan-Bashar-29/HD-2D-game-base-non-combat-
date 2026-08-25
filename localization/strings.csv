@@ -41,3 +41,5 @@ object.trigger.dais.text,The rose-scent thickens as you step onto the dais.
 object.bench.courtyard.label,Stone Bench
 object.bench.courtyard.rested,You rest a while. {hours} hours slip past.
 object.ladder.courtyard.label,Trellis Ladder
+ui.stub.title,Screen Stack
+ui.stub.hint,The world behind this is paused. Press Escape to return.

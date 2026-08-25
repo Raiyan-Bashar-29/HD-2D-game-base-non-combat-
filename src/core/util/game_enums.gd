@@ -31,3 +31,9 @@ enum InteractVerb { LOOK, TAKE, OPEN, CLOSE, USE, TALK, READ, SIT, CLIMB, ENTER,
 
 ## Why an interaction was refused, so the UI can say something useful instead of nothing.
 enum RefusalReason { NONE, LOCKED, MISSING_ITEM, MISSING_SKILL, WRONG_TIME, ALREADY_DONE, HANDS_FULL, STORY_GATED, NOT_GROUNDED }
+
+## What the UI is doing to the world right now. UiRoot owns the transitions; the player's
+## input readers and the prompt only listen. OVERLAY and MODAL differ in exactly one way and
+## it is not cosmetic: an OVERLAY suspends the player's input while the world keeps ticking
+## (a conversation happens in real time), a MODAL stops the world as well.
+enum UiMode { GAMEPLAY, OVERLAY, MODAL }

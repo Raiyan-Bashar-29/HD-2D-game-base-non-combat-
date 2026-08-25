@@ -46,6 +46,11 @@ Remaining:
 - A minimal HUD
 - Hard-coded-string audit (the budget and content checkers are DONE and passing)
 
+Also done, ahead of Phase 2 because every screen needs it first:
+- Screen stack, pause semantics and input contexts (WP-02) - a screen declares whether it
+  pauses; UiRoot does the pausing; input readers hold NAMED tokens so two of them cannot
+  release each other
+
 Exit criteria:
 - [ ] Walk the courtyard, and the character faces the direction of travel correctly in all
       eight directions
@@ -61,7 +66,12 @@ Exit criteria:
       from the same 06:30 start, one with the same skip the bench performs, show warm dawn
       becoming cool night with the lantern pools lit
 - [ ] Save, quit, relaunch, continue — position, time, weather and inventory all restored
-- [x] Test suite passes headless and exits non-zero on failure — 215 assertions
+- [x] Test suite passes headless and exits non-zero on failure — 294 assertions
+- [x] A stub screen opens over the world, gameplay input stops, the fade still runs over the
+      top of it, and Escape restores control — done 2026-08-26, windowed captures plus a
+      real-input probe in the live tree
+- [x] Two overlapping input locks release correctly: lock A, lock B, release A, the player is
+      still locked — done 2026-08-26, covered by the test suite
 - [ ] A 30-second play session produces **zero** warnings or errors in the log
 - [ ] The budget checker reports no file over its limit
 
@@ -77,7 +87,7 @@ Exit criteria:
 - Loading that hides behind the fade, with the shader warm-up hitch handled
 - Navigation baking, and one NPC that walks a route by the clock
 - Dialogue runner, dialogue UI, and an authorable conversation format
-- Notifications and a pause menu
+- The pause menu itself (the pause mechanism under it landed early, in WP-02)
 - Localization wired for real: every string is already an ID
 - Weather visuals: rain, wet surfaces, ambience layers
 

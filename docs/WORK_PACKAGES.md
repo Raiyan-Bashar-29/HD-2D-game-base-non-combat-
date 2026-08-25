@@ -159,7 +159,7 @@ NOT lock the player, and must NOT add a signal for any of that. If it needs to, 
 wrong and that is a WP-02 bug, not a reason to work around it. Delete `StubScreen` once this
 and one other real screen exist.
 
-**Done 2026-08-26**, commit `PLACEHOLDER`.
+**Done 2026-08-26**, commit `1563915`.
 `src/ui/hud/hud_clock.gd`, `src/ui/screens/inventory_screen.gd`, `src/ui/root/screen_keys.gd`,
 `tests/unit/screens_test.gd`, 22 CSV rows. `StubScreen` is DELETED along with its two
 `ui.stub.*` rows and the `--open-screen` flag, which became `--give=<list>` plus

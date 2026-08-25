@@ -82,7 +82,23 @@ Ten autoloads, each owning one concern: `Log`, `Events`, `Actions`, `Settings`, 
 `src/core/events/events.gd` declares every cross-system signal and is the connection map —
 read it first to understand how anything is wired.
 
+## One package per chat
+
+A chat context window is the binding constraint on this project, so work is sliced into
+packages that each fit in one. **[`docs/WORK_PACKAGES.md`](docs/WORK_PACKAGES.md) is the board.**
+
+**Opening a chat:** read this file and `docs/CONTEXT.md`, then find your package and read **its
+file manifest and nothing else**. Do not read the whole `src/` tree, the audit reports, or other
+packages files.
+
+**Closing a chat:** the package is not done until the full ladder is green, new behaviour has
+assertions, `SYSTEMS_INVENTORY.md` / `ROADMAP.md` / `DEVLOG.md` / `CONTEXT.md` are updated, the
+board marks it done, and it is committed and pushed. The checklist is in the board.
+
+No package exceeds about 8 files or 500 new code lines. Over that, split it and add a row -
+same reasoning as the file budgets: a package that outgrows one chat gets half-finished.
+
 ## Read next
 
-`docs/CONTEXT.md` (state) · `docs/ARCHITECTURE.md` · `docs/SYSTEMS_INVENTORY.md` ·
+`docs/WORK_PACKAGES.md` (the board) · `docs/CONTEXT.md` (state) · `docs/ARCHITECTURE.md` · `docs/SYSTEMS_INVENTORY.md` ·
 `docs/ROADMAP.md` · `docs/DEVLOG.md` · `docs/CONVENTIONS.md` · `docs/decisions/`

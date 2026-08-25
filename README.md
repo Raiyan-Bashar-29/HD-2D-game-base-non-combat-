@@ -19,6 +19,7 @@ and people, watching it change with the hour and the weather, and following a pl
 | Document | What it is for |
 |---|---|
 | **[CONTEXT](docs/CONTEXT.md)** | **Current state, known defects, settled decisions. Read this first.** |
+| **[WORK_PACKAGES](docs/WORK_PACKAGES.md)** | **The board: one package per chat, with a file manifest for each** |
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | Layers, autoloads, how systems talk, the HD-2D recipe |
 | [SYSTEMS_INVENTORY](docs/SYSTEMS_INVENTORY.md) | Everything the game needs, with status and boundaries |
 | [ROADMAP](docs/ROADMAP.md) | Phases and their exit criteria |

@@ -117,6 +117,16 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
    in `_enter_tree`, so anything set afterwards is too late and the object silently stops
    persisting. `TestCase.build()` then `attach()` exists to make that ordering explicit.
 
+## How work is sliced
+
+**One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the
+board of fifteen packages from here to skeleton-complete. Each names the exact files that chat
+should read, so a session loads a few hundred lines instead of three thousand. The layer rule
+(`core -> content -> systems -> gameplay -> ui`, downward only) is what makes that possible: a
+package never has to read upward.
+
+**Next package: WP-01, triggers and traversal.**
+
 ## Plan — where this is going
 
 **Phase 1 is nearly complete.** The demo loop works end to end: walk a lit courtyard through a

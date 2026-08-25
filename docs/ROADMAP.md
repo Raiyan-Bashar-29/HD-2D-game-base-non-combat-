@@ -63,6 +63,10 @@ Exit criteria:
 - [ ] A 30-second play session produces **zero** warnings or errors in the log
 - [ ] The budget checker reports no file over its limit
 
+> **Phases map onto work packages.** `docs/WORK_PACKAGES.md` is the executable version of this
+> document: fifteen packages, one chat each, in dependency order. When the two disagree, the
+> board is what is actually being worked and this file needs updating.
+
 ## Phase 2 — Two areas and a reason to move
 
 *Goal: prove the world is a world, not a room.*

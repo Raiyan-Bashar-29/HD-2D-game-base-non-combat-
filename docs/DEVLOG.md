@@ -16,6 +16,72 @@ Append-only. Newest entry at the top. One entry per working session.
 
 ---
 
+## 2026-08-25 — Work sliced into one-chat packages, and a roadmap to skeleton-complete
+
+**Did:**
+
+No gameplay code. Added `docs/WORK_PACKAGES.md`: fifteen packages from here to
+skeleton-complete, in dependency order, each sized to one chat and each naming the exact files
+that chat should read. Wired it into all four entry points — `CLAUDE.md`, `README.md`,
+`docs/CONTEXT.md` and `docs/ROADMAP.md` — and put the per-chat open/close protocol in
+`CLAUDE.md`, since that is the file a new session reads automatically.
+
+**Why:**
+
+A chat context window is the binding constraint on this project. This session hit usage limits
+three times, and twice a delegated fan-out died mid-flight after burning several hundred
+thousand tokens. Work has to be sliced so one chat finishes one coherent part.
+
+The structure was already fine — `src/core` is 590 code lines, `src/systems` 725,
+`src/gameplay` 867, `src/ui` 117 — and the downward-only layer rule means a package never has
+to read upward. **The missing piece was not structure, it was a manifest.** A new session had
+no way to know which subset to load, so it loaded too much. Every package now carries an
+explicit file list, which is the load-bearing part of the whole document.
+
+Also settled what "skeleton complete" means, because the phrase was doing a lot of unexamined
+work: every system on the inventory has a working minimal implementation plus one piece of
+placeholder content proving it. That is the standard items were held to — three throwaway
+`.tres` files proved the pattern and the fiftieth item needs no code. After that point,
+everything remaining is content.
+
+**Connects:**
+
+The board is the executable version of `ROADMAP.md`, and that file now says so, so the two
+cannot silently drift. Dependency order is recorded with reasons rather than left implicit —
+UI foundation before any screen, because a screen built first forces an ad-hoc pause and a
+boolean per screen; dialogue before quests and path actions, because both are driven by it;
+world map after a second area exists, because it is meaningless with one.
+
+WP-15 carries a specific obligation: it must settle ADR-0006's open question. Items are found
+by scanning a directory, verified in the editor and headless only, and the export preset must
+export *all* resources or the catalogue ships empty.
+
+**Decisions taken with the owner:** all four optional systems are IN the skeleton — path
+actions, traversal equipment, world map and fast travel, crafting and gathering. Nothing on
+the inventory is cut. Narrative systems are built against placeholder story; the real story is
+content, supplied later.
+
+**Verified:**
+
+Docs-only, so the ladder is a regression check rather than a proof: boot `0 warnings, 0
+errors`, tests 165 passed / 0 failed, `check_content` PASS. Every entry point references the
+board.
+
+**Unblocks:**
+
+WP-01, triggers and traversal, in a fresh chat: trigger volumes (the folder, the collision
+layer and the inventory row all exist and nothing populates them), a rest point with
+`Clock.skip_to_hour`, and climb points — the authored vertical movement that "no jumping"
+implies.
+
+**Known gaps:**
+
+Packages 02 through 15 are specified at goal-plus-manifest depth, not to WP-01's detail. That
+is deliberate: writing detailed plans for work fourteen chats away is exactly the speculative
+architecture this project keeps deleting. Each gets its detail when it comes up.
+
+---
+
 ## 2026-08-25 — Items, inventory, pickups and chests: the demo loop closes
 
 **Did:**

@@ -135,6 +135,15 @@ func _close(screen: UiScreen) -> bool:
 	remove_child(screen)
 	screen.queue_free()
 	_settle()
+	# The screen underneath has REACHED THE TOP OF THE STACK AGAIN, which is exactly what
+	# `_opened` is documented to mean - "each time the screen reaches the top" - and until WP-12
+	# this call was missing, so it only ever meant "once". Without it a menu backed out of is
+	# visible and processing but has no focused row, and a player on a gamepad is stranded on a
+	# menu that answers nothing. Found by the WP-12 input probe; no assertion could press the
+	# escape that reveals it.
+	var revealed: UiScreen = top()
+	if revealed != null:
+		revealed.notify_opened()
 	Log.info("ui", "Closed '%s', depth now %d" % [screen.screen_id, _stack.size()])
 	return true
 
@@ -148,11 +157,19 @@ func _on_close_requested(screen: UiScreen) -> void:
 
 ## Re-derive everything the stack implies, in one place, after every push and pop. Only the
 ## top screen processes: a covered screen must not answer the button that closes the one on
-## top of it.
+## top of it. And only the top screen is DRAWN - see below.
 func _settle() -> void:
 	var last: int = _stack.size() - 1
 	for index: int in _stack.size():
-		_stack[index].process_mode = Node.PROCESS_MODE_ALWAYS if index == last else Node.PROCESS_MODE_DISABLED
+		var covered: bool = index != last
+		_stack[index].process_mode = Node.PROCESS_MODE_DISABLED if covered else Node.PROCESS_MODE_ALWAYS
+		# A COVERED SCREEN IS NOT DRAWN EITHER. Every screen in this game dims rather than
+		# blanks, on purpose, so that the stopped world stays visible behind it - which means
+		# two of them stacked let the lower one's rows print through the upper one's. A WP-12
+		# capture caught the pause menu's status line running through the settings screen's
+		# first heading. Visibility of a covered screen is stack business, not screen business,
+		# so it is derived here with everything else rather than fixed in one screen's panel.
+		_stack[index].visible = not covered
 	var next: GameEnums.UiMode = _derive_mode()
 	if is_inside_tree():
 		get_tree().paused = next == GameEnums.UiMode.MODAL

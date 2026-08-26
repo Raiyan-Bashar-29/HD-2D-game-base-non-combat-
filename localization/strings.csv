@@ -82,3 +82,87 @@ talk.gardener.choice.leave,Nothing. Good day.
 talk.gardener.choice.again,Something else.
 talk.gardener.who,"I keep the garden. That is the whole of it, and it is more than enough."
 talk.gardener.gate,"The hall. Lanterns burning at every hour, and no hour admitted. Throw the lever if you must."
+ui.menu.title,Gulistan
+ui.menu.new_game,New Game
+ui.menu.continue,Continue — Slot {slot}
+ui.menu.load,Load Game
+ui.menu.settings,Settings
+ui.menu.controls,Controls
+ui.menu.quit,Quit
+ui.pause.title,Paused
+ui.pause.status,{area}  ·  played {played}
+ui.pause.resume,Resume
+ui.pause.save,Save Game
+ui.pause.main_menu,Main Menu
+ui.pause.hint,Escape to resume
+ui.settings.title,Settings
+ui.settings.hint,Left and right to change a row · Escape to close
+ui.settings.row,{label}  —  {value}
+ui.settings.on,On
+ui.settings.off,Off
+ui.settings.unlimited,Unlimited
+ui.settings.value.percent,{percent}%
+ui.settings.value.multiplier,x{value}
+ui.settings.reset,Reset everything to defaults
+ui.settings.section.video,Video
+ui.settings.section.audio,Audio
+ui.settings.section.gameplay,Gameplay
+ui.settings.section.accessibility,Accessibility
+ui.settings.section.general,General
+ui.settings.video.window_mode,Window
+ui.settings.video.window_mode.0,Windowed
+ui.settings.video.window_mode.1,Borderless
+ui.settings.video.window_mode.2,Fullscreen
+ui.settings.video.vsync,Vertical sync
+ui.settings.video.vsync.0,Off
+ui.settings.video.vsync.1,On
+ui.settings.video.vsync.2,Adaptive
+ui.settings.video.vsync.3,Mailbox
+ui.settings.video.max_fps,Frame cap
+ui.settings.video.resolution_scale,Render scale
+ui.settings.video.bloom,Bloom
+ui.settings.video.depth_of_field,Tilt-shift blur
+ui.settings.video.shadows,Shadows
+ui.settings.audio.master,Master volume
+ui.settings.audio.music,Music
+ui.settings.audio.ambience,Ambience
+ui.settings.audio.sfx,Sound effects
+ui.settings.audio.ui,Interface
+ui.settings.gameplay.text_speed,Text speed
+ui.settings.gameplay.autosave,Autosave
+ui.settings.gameplay.run_is_toggle,Run is a toggle
+ui.settings.gameplay.show_interact_hints,Interaction prompts
+ui.settings.gameplay.camera_shake,Camera shake
+ui.settings.accessibility.text_scale,Text size
+ui.settings.accessibility.reduce_motion,Reduce motion
+ui.settings.accessibility.high_contrast_prompts,High-contrast prompts
+ui.settings.accessibility.subtitles,Subtitles
+ui.settings.accessibility.hold_to_confirm,Hold to confirm
+ui.settings.locale,Language
+ui.save.title,Save Game
+ui.load.title,Load Game
+ui.save.slot,Slot {slot}  ·  {when}  ·  {played} played
+ui.save.empty,Slot {slot}  ·  empty
+ui.save.hint,Escape to go back
+notify.game_saved,Saved to slot {slot}.
+notify.save_failed,Slot {slot} could not be written.
+ui.rebind.title,Controls
+ui.rebind.hint,Press a row then press the key or button you want · Escape to cancel
+ui.rebind.row,{action}  —  {key}  /  {pad}
+ui.rebind.listening,{action}  —  press anything...
+ui.rebind.unbound,—
+ui.rebind.reset,Reset every binding to defaults
+ui.action.move_up,Move forward
+ui.action.move_down,Move back
+ui.action.move_left,Move left
+ui.action.move_right,Move right
+ui.action.run,Run
+ui.action.sneak,Sneak
+ui.action.jump,Jump
+ui.action.interact,Interact
+ui.action.interact_cycle,Next target
+ui.action.cancel,Cancel
+ui.action.inventory,Satchel
+ui.action.journal,Journal
+ui.action.map,Map
+ui.action.pause,Pause

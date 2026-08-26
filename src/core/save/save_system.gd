@@ -76,6 +76,26 @@ func slot_info(slot: int) -> Dictionary:
 	return parsed
 
 
+## The most recently written slot, or -1 if none has ever been written. This is what Continue
+## means, and it is why the main menu can omit the row entirely on a first run.
+##
+## Compared on the stored `saved_utc` string, which sorts correctly because it is ISO-8601 and
+## zero-padded. The FILE's modification time would be wrong the moment a save is copied between
+## machines or restored from a backup, and it is not in the file the player can read.
+func latest_slot() -> int:
+	var best: int = -1
+	var newest: String = ""
+	for slot: int in MAX_SLOTS:
+		var info: Dictionary = slot_info(slot)
+		if info.is_empty():
+			continue
+		var when: String = DictRead.get_string(info, "saved_utc", "")
+		if best < 0 or when > newest:
+			best = slot
+			newest = when
+	return best
+
+
 func save_to_slot(slot: int) -> Error:
 	if _busy:
 		Log.warn("save", "Save to slot %d ignored: another save is in flight" % slot)

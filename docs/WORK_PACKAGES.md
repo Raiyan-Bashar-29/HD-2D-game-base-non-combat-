@@ -47,7 +47,7 @@ Headless shades nothing. This project has already shipped two bugs that every ot
 | 09 | Character depth | TODO |
 | 10 | Crafting and gathering | TODO |
 | 11 | World map and fast travel | TODO |
-| 12 | Menus | TODO |
+| 12 | Menus | **DONE** — see below (taken out of order; it needed only WP-02) |
 | 13 | Presentation | TODO |
 | 14 | Dev tools and hardening | TODO |
 | 15 | Release engineering | TODO |
@@ -311,7 +311,7 @@ correctly; all persisted.
 
 ---
 
-## WP-12 · Menus
+## WP-12 · Menus — **DONE**
 
 **Read:** `src/ui/root/ui_root.gd`, `src/core/state/settings.gd`, `src/core/save/save_system.gd`,
 `src/systems/input/actions.gd`, `src/core/boot/game_root.gd`.
@@ -319,6 +319,28 @@ correctly; all persisted.
 `Settings.DEFAULTS`, save-and-load screen with slot headers, key rebinding, controller navigation.
 **Exit criteria:** the whole game reachable and playable on a gamepad, rebinding persists, and
 `GameRoot` no longer boots straight into an area.
+
+**Closed 2026-08-26**, commit `PENDING`. All three exit criteria met. A `MenuScreen` base plus
+five menus, `KeyBindings` for the override file, `Director.start_new_game()`,
+`SaveSystem.latest_slot()`, two bus signals, and a `GameRoot` that emits `main_menu_requested`
+instead of loading `courtyard`. 717 assertions (was 460), boot `0 warnings, 0 errors`, both
+checkers exit 0, four windowed captures looked at.
+
+Controller navigation needed no gamepad code: a `VBoxContainer` of `Button`s answers `ui_up`,
+`ui_down` and `ui_accept` already, so no screen owns a cursor. Proved with a real-input probe,
+quoted verbatim in `DEVLOG.md`.
+
+**Three bugs the engine caught and no static gate could:** a menu backed out of had no focused
+row so a gamepad did nothing at all (`UiScreen._opened` had never meant what its docstring said);
+two translucent screens stacked printed through each other; and
+`InputEventJoypadButton.as_text()` is sixty characters wide and ran off the side of a menu.
+
+**Honestly over budget:** 11 files and roughly 700 new code lines, against the board's "about 8
+files or 500". Landed whole rather than split, because the five menus share one base and one CSV
+block and a half-landed menu set is a game with no way back to the main menu.
+
+**Deferred:** thirteen settings still have no runtime consumer (WP-13/WP-15), runtime language
+switching, a duplicate-binding warning, and per-device button glyphs.
 
 ---
 

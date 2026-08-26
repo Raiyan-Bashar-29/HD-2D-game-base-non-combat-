@@ -3,10 +3,12 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-26 · WP-05 complete · branch `claude/wp-05-dialogue`
-**Note:** this branch fast-forwarded WP-01 and WP-02 in from `claude/trusting-curran-04a4f9`
-and `claude/intelligent-wilbur-ae8141`, neither of which was merged to `main`. Merge order is
-WP-01 through WP-05, in that order, or just merge the branches in order.
+**Last updated:** 2026-08-26 · WP-12 complete · branch `claude/wp-12-menus`
+**Note:** this branch is built on `claude/wp-05-dialogue`, which fast-forwarded WP-01 and WP-02
+in from `claude/trusting-curran-04a4f9` and `claude/intelligent-wilbur-ae8141`. None of them is
+merged to `main`. Merge order is WP-01 through WP-05, then WP-12, in that order, or just merge
+the branches in order. WP-12 was taken out of numerical order on purpose: it depends only on
+WP-02's screen stack, and WP-06 through WP-11 all want somewhere to put their screens.
 **Remote:** https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-
 
 ## What this is
@@ -21,16 +23,16 @@ architecture.
 
 ## Where it stands
 
-Phase 0 complete, Phase 1 done, Phase 2 well begun. 67 files, 5,063 code lines, 16 scenes,
-2 areas, 3 items, 1 conversation.
-Boots headless with **0 warnings, 0 errors**.
+Phase 0 complete, Phase 1 done, Phase 2 well begun. 76 files, 6,071 code lines, 16 scenes,
+2 areas, 3 items, 1 conversation, 5 menus.
+Boots headless with **0 warnings, 0 errors** — **into the main menu, not into an area**.
 
 **Works, and verified by running it:** logging with rotation · signal registry (`events.gd`) ·
 input actions · settings · save/load with atomic writes and versioning · plot flags · area
 director with a re-entrancy guard and threaded loading · world clock · weather state · audio
 buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 8-way character ·
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
-placeholder art generator · line-budget checker · headless test suite (460 assertions) ·
+placeholder art generator · line-budget checker · headless test suite (717 assertions) ·
 interaction sensor with ranking and Tab-cycling · Interactable contract · localized prompt and
 toasts · readable signs · levers · gates gated by flag or by a carried key · per-object
 persistence (ADR-0005) · typed item definitions found by directory scan (ADR-0006) · an
@@ -40,13 +42,32 @@ a screen stack with real pause semantics · a token input lock · a HUD clock re
 inventory screen with focus navigation · one action-to-screen binding · a SECOND area, an
 interior, and a door that really travels · a loading readout drawn above the curtain ·
 shader warm-up behind black · a dialogue runner with conditions, branches and effects · a
-non-pausing dialogue box with a typewriter reveal · an authorable .tres conversation format.
+non-pausing dialogue box with a typewriter reveal · an authorable .tres conversation format ·
+a main menu the game boots into · a pause menu · a settings screen generated from the settings
+table · a save-and-load screen with slot headers · key and pad rebinding that persists · full
+keyboard and gamepad navigation, proved with real events.
 
-**Not built:** NPCs · quests · the pause, main, settings, save and journal screens
-(WP-12) · hard-coded-string audit · weather visuals · item instances (durability) · equipment ·
-item tooltips, sorting and drag-and-drop.
+**Not built:** NPCs · quests · a journal or map screen · hard-coded-string audit · weather
+visuals · item instances (durability) · equipment · item tooltips, sorting and drag-and-drop ·
+runtime consumers for thirteen of the twenty-three settings.
 
 ## Known defects
+
+**Fixed 2026-08-26 in WP-12. One found by a real-input probe, two by captures, none of them
+visible to any static gate — every one compiled clean and reported no error:**
+
+1. **A menu backed out of had no focused row, so a gamepad then did nothing at all.** Focus
+   follows a sub-screen when one opens and does not come back on its own. `UiScreen._opened` is
+   documented as "each time the screen reaches the top of the stack" and `UiRoot` only ever
+   called it once, on open. `_close` now notifies the screen it revealed.
+2. **Two translucent screens stacked let the lower one print through the upper one.** Every
+   screen dims rather than blanks, on purpose, so the settings screen showed the pause menu's
+   status line running through its first heading. `UiRoot._settle` now hides a covered screen
+   as well as disabling it.
+3. **`InputEventJoypadButton.as_text()` printed sixty characters per row.** "Joypad Button 2
+   (Left Action, Sony Square, Xbox X, Nintendo Y)" ran off the side of the controls screen and
+   grew a horizontal scrollbar under it. `KeyBindings` keeps the first name only, and no menu
+   scrolls sideways.
 
 **Fixed 2026-08-26 in WP-05, found by a capture:**
 
@@ -107,8 +128,15 @@ three compiled cleanly and passed every static gate:**
   un-frozen screenshot is not reproducible.
 - The environment driver rebuilds a `Dictionary` every frame in `_sample()`. Measured as
   harmless at this scale; revisit if the frame budget tightens.
-- 17 of the 23 settings have no consumer yet. They are declared so the settings screen has
-  something to bind to, not because anything reads them.
+- **13 of the 23 settings still have no RUNTIME consumer.** Since WP-12 every one of them can be
+  seen, changed and persisted, but bloom, shadows, tilt-shift, camera shake, reduce-motion,
+  high-contrast prompts, subtitles, hold-to-confirm, text scale, render scale, autosave and
+  show-interact-hints are read by nothing. WP-13 and WP-15 work, not menu work.
+- The language row cycles one locale because one locale is loaded, and changing it does not call
+  `TranslationServer.set_locale`. Phase 2's runtime-language criterion is still open.
+- Rebinding accepts a duplicate silently: K on two actions is not warned about.
+- `Actions.JUMP` appears on the controls screen and this game has no jumping. The action exists,
+  so the screen lists it; pruning `REBINDABLE` is an ADR-0003 decision, not a menu one.
 
 ## Decisions already made — do not re-litigate
 
@@ -186,6 +214,30 @@ three compiled cleanly and passed every static gate:**
   be the last child of `UILayer` so it covers every screen. The indicator has to be readable
   *while* the curtain is up, so it is the single deliberate exception, and there should not be
   a second one.
+- **The game boots into the MAIN MENU, not into an area.** `GameRoot` emits
+  `main_menu_requested` and lifts the curtain; `Director.start_new_game()` is what loads
+  `FIRST_AREA`. Every dev-capture flag that waits for an area therefore needs `--new-game`.
+- **`ScreenKeys` unwinds the stack on `area_change_requested`**, so NO screen ever calls
+  `close_all()` on the stack it is standing on. A menu row that starts a game or restores a save
+  just asks and stops; the transition it asked for is what dismisses it.
+- **A menu is a column of Buttons and owns no cursor.** `ui_up`, `ui_down` and `ui_accept` are
+  answered by `VBoxContainer` and `Button` for free. That is the whole of "playable on a
+  gamepad", and any new screen that invents a selected index is doing it wrong.
+- **The settings screen is GENERATED from `Settings.DEFAULTS`**, never hand-listed. Adding a
+  setting is one line in `settings.gd` plus one CSV row. The price is computed label keys, which
+  `options_test.gd` asserts mechanically by looping the dictionary.
+- **A binding override is not a setting.** `Actions` owns action names and defaults (ADR-0003);
+  `KeyBindings` owns `user://input.cfg`, stores integer codes rather than serialised events, and
+  never mentions `Actions` — so the two cannot become a cycle. A key rebind replaces keys and a
+  pad rebind replaces pad buttons; `InputEventJoypadMotion` is neither, so an analogue stick is
+  never erased by a keyboard change.
+- **Continue and an empty load slot are OMITTED, not shown disabled** — the dialogue system's
+  reasoning, and the deliberate opposite of the locked gate. A gate you cannot open teaches you
+  there is somewhere to come back to; a Continue you cannot press teaches nothing.
+- **"Main Menu" does not unload the area.** It leaves it loaded behind an opaque, world-stopping
+  screen and lets the next New Game or Continue replace it through the ordinary guarded
+  transition. Freeing it from under a menu would empty `Director.current_area_id`, so the next
+  transition would believe it was the session's first and skip its fade-out.
 - **Pause is per node, not global.** `get_tree().paused` is set by UiRoot, but each node
   decides for itself in its own `_ready()`. The full table is the header of
   `src/ui/root/ui_root.gd`. Clock and Weather stop; Audio, Director, ScreenFade,
@@ -200,13 +252,14 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 120               # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 150   # 355 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 250   # 717 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
-"$G" --resolution 960x540 --quit-after 55 -- --shot=<path> --time=18:40 --freeze-time
+"$G" --resolution 1280x720 --quit-after 150 -- --shot=<path> --time=18:40 --freeze-time \
+     --new-game --open-menu=pause,settings     # --new-game is REQUIRED for any world capture
 ```
 
-## Seventeen gotchas that each cost an hour
+## Twenty gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -269,6 +322,18 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     zero-argument method at runtime. Third time this project has been bitten by a native-name
     collision, after `Area3D.priority` and `class_name Container`. Regenerate with
     `--headless --doctool <dir>` and grep it.
+18. **`UiScreen._opened` means EACH TIME the screen reaches the top of the stack**, including
+    when a screen over it closes — that is what its docstring says, and until WP-12 `UiRoot`
+    only ever called it on open. Focus goes with the sub-screen and does not come back on its
+    own, so a menu backed out of answered no key at all. `_close` notifies the revealed screen.
+19. **Two translucent screens stacked BLEED.** Every screen in this game dims rather than
+    blanks, on purpose, so the lower one's rows print through the upper one's panel.
+    `UiRoot._settle` hides a covered screen; do not "fix" it again in one screen's panel.
+20. **`as_text()` on an input event is written for a debugger, not for a menu row.** An
+    `InputEventKey` with only a physical keycode prints "W (Physical)"; an
+    `InputEventJoypadButton` prints "Joypad Button 2 (Left Action, Sony Square, Xbox X,
+    Nintendo Y)". Both went straight onto the controls screen and one of them ran off the side
+    of it. `KeyBindings._key_text` and `_pad_text` are the only two callers for that reason.
 
 ## How work is sliced
 
@@ -278,20 +343,23 @@ should read, so a session loads a few hundred lines instead of three thousand. T
 (`core -> content -> systems -> gameplay -> ui`, downward only) is what makes that possible: a
 package never has to read upward.
 
-**Next package: WP-06, NPCs and navigation.**
+**Next package: WP-06, NPCs and navigation.** WP-12 is DONE and out of order; the board's
+numbering is dependency order, not schedule.
 
 ## Plan — where this is going
 
-**Phase 1 is complete and Phase 2 is well under way.** The demo loop works end to end: walk a lit
-courtyard through a day/night cycle, be prompted, read a sign, throw a lever, take an item,
-empty a chest, be refused by a gate that wants a key, open it once you carry the key, cross a
-volume that fires once, rest on a bench and watch the light change, climb a trellis to a terrace
-and back down, press I at any point to see what you are carrying in a window that stops the
-world — then walk north through a door into a lantern-lit hall that has never heard of the sun,
-and come back, and ask the garden-keeper who they are and what lies behind the north gate, in a
-box that leaves the world running behind it. Every one of those changes survives a save and a
-reload, including from the far side of an area that is no longer loaded. All of it is covered
-by 460 headless assertions.
+**Phase 1 is complete and Phase 2 is well under way.** The demo loop works end to end, and since
+WP-12 it starts where a game starts: at a main menu, on a gamepad, with New Game selected. Press
+it and walk a lit courtyard through a day/night cycle, be prompted, read a sign, throw a lever,
+take an item, empty a chest, be refused by a gate that wants a key, open it once you carry the
+key, cross a volume that fires once, rest on a bench and watch the light change, climb a trellis
+to a terrace and back down, press I at any point to see what you are carrying in a window that
+stops the world — then walk north through a door into a lantern-lit hall that has never heard of
+the sun, and come back, and ask the garden-keeper who they are and what lies behind the north
+gate, in a box that leaves the world running behind it. Pause at any point, turn the music down,
+rebind a key, write a slot, and come back to it from the main menu next session. Every one of
+those changes survives a save and a reload, including from the far side of an area that is no
+longer loaded. All of it is covered by 717 headless assertions.
 
 **Next, in this order.** The order matters and is not arbitrary:
 

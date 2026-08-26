@@ -19,6 +19,11 @@ extends Node
 ## one place and the guard cannot be bypassed.
 
 const AREA_PATH_TEMPLATE: String = "res://scenes/areas/%s/%s.tscn"
+## Where a new game begins. It lived in `game_root.gd` until WP-12, next to a comment saying the
+## main menu would choose instead once it existed. It belongs here rather than on the menu: the
+## menu names an intention, this file knows what areas are.
+const FIRST_AREA: StringName = &"courtyard"
+const FIRST_SPAWN: StringName = &"default"
 const FADE_OUT: float = 0.35
 const FADE_IN: float = 0.45
 ## Frames the curtain is held after the new area enters the tree, before the fade in. The
@@ -75,6 +80,17 @@ func area_exists(area_id: StringName) -> bool:
 
 func is_transitioning() -> bool:
 	return _transitioning
+
+
+## Begin a fresh run: no flags, no playtime, first area. The main menu and the dev capture flag
+## both call this, so "what a new game is" is written down once. It does NOT load the area
+## itself - it asks, through the same guarded signal every door uses, so a new game started
+## during a transition in flight is refused with a log line like any other travel.
+func start_new_game() -> void:
+	Flags.clear_all()
+	SaveSystem.reset_playtime()
+	Events.game_started.emit()
+	Events.area_change_requested.emit(FIRST_AREA, FIRST_SPAWN)
 
 
 ## Reload the area in place. Useful for debugging and after editing an area scene.

@@ -38,6 +38,15 @@ extends Node
 ##                        be taken somewhere other than the starting area.
 ##   --open-inventory     push the inventory screen, to capture a real screen over a
 ##                        stopped world. Apply --give first or the capture shows an empty bag.
+##   --new-game           the game no longer boots into an area (WP-12): it boots into the main
+##                        menu. Every flag above that waits for an area needs this first, and it
+##                        goes through Director.start_new_game, which is what the menu row calls.
+##   --open-menu=<list>   push menus by name for a capture, innermost last: main_menu, pause,
+##                        settings, saves, controls. `--open-menu=pause,settings` puts settings
+##                        over the pause menu, the way a player reaches it. Built through
+##                        ScreenKeys.menu_for, so a capture cannot photograph a screen
+##                        assembled differently from the real one. Waits for the area when
+##                        --new-game is on the same line.
 ##
 ## OWNS: capture, and CLI-driven overrides for time and weather.
 ## MUST NOT: be depended upon by gameplay. Deleting this file must not break the game.
@@ -50,6 +59,9 @@ var _shot_frame: int = DEFAULT_SHOT_FRAME
 var _frames: int = 0
 var _captured: bool = false
 var _talk_advance: int = 0
+## Set by --new-game, read by --open-menu: a menu pushed before the transition lands is closed
+## again by it, because ScreenKeys unwinds the stack on every travel.
+var _fresh_game: bool = false
 
 
 func _ready() -> void:
@@ -124,6 +136,11 @@ func _parse_arguments() -> void:
 			_round_trips(maxi(1, argument.trim_prefix("--round-trips=").to_int()))
 		elif argument == "--open-inventory":
 			_open_inventory()
+		elif argument == "--new-game":
+			_fresh_game = true
+			_new_game()
+		elif argument.begins_with("--open-menu="):
+			_open_menu(argument.trim_prefix("--open-menu="))
 		elif argument.begins_with("--weather="):
 			_force_weather(argument.trim_prefix("--weather="))
 
@@ -175,14 +192,53 @@ func _give(list: String) -> void:
 ## stopped world. Deferred by two frames: UiRoot is a sibling built in the same _ready() pass
 ## as this node, and --give needs its own frame before this one reads the bag.
 func _open_inventory() -> void:
-	await get_tree().process_frame
-	await get_tree().process_frame
+	# Wait for an area, not merely for the tree to settle. Since WP-12 the boot path stops at
+	# the main menu, so without --new-game alongside this there is no world to photograph.
+	while Director.current_area_id == &"":
+		await get_tree().process_frame
+	await _settled()
 	var stack: UiRoot = UiRoot.find(self)
 	if stack == null:
 		Log.error("test", "--open-inventory found no UiRoot in the tree")
 		return
 	var opened: bool = stack.open(InventoryScreen.for_carrier(Director.player))
 	Log.info("test", "--open-inventory pushed the inventory screen: %s" % str(opened))
+
+
+## The main menu's New Game row, from the command line, so every flag that waits for an area
+## still works now that boot stops at a menu. Deliberately Director.start_new_game and not a
+## second implementation: a debug path that reimplements what it verifies verifies nothing.
+##
+## The stack is unwound by ScreenKeys on area_change_requested, so nothing here closes the menu.
+func _new_game() -> void:
+	await get_tree().process_frame
+	Director.start_new_game()
+	Log.info("test", "--new-game requested '%s'" % Director.FIRST_AREA)
+
+
+## Push one or more menus for a capture, innermost last: `--open-menu=pause,settings` gives the
+## settings screen over the pause menu over the world, which is how a player actually reaches
+## it. Through ScreenKeys.menu_for, so what is photographed is the screen the game really
+## builds and not one assembled by hand for the photograph.
+##
+## Two frames late for UiRoot, which is a sibling built in the same _ready() pass as this node.
+## And when --new-game is also on the line, the area has to arrive FIRST: ScreenKeys unwinds the
+## whole stack on area_change_requested, so a menu pushed before the transition is closed again
+## by the transition it was waiting for.
+func _open_menu(list: String) -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if _fresh_game:
+		while Director.current_area_id == &"":
+			await get_tree().process_frame
+		await _settled()
+	var stack: UiRoot = UiRoot.find(self)
+	for menu_id: String in list.split(",", false):
+		var screen: UiScreen = ScreenKeys.menu_for(StringName(menu_id))
+		if stack == null or screen == null:
+			Log.error("test", "--open-menu=%s found no stack or no such menu" % menu_id)
+			return
+		Log.info("test", "--open-menu %s pushed: %s" % [menu_id, str(stack.open(screen))])
 
 
 ## Travel back and forth `count` times and report what it cost. A leak in a transition is

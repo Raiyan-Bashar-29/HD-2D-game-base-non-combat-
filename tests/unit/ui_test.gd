@@ -127,12 +127,18 @@ func _overlay_over_the_menu() -> void:
 	equal("depth is two", _stack.depth(), 2)
 	equal("only the top screen processes", talk.process_mode, Node.PROCESS_MODE_ALWAYS)
 	equal("the covered one is disabled", covered.process_mode, Node.PROCESS_MODE_DISABLED)
+	# And not DRAWN. Every screen dims rather than blanks, so two stacked let the lower one's
+	# rows print through the upper one's - a WP-12 capture caught the pause menu's status line
+	# running through the settings screen's first heading.
+	equal("the top screen is drawn", talk.visible, true)
+	equal("and the covered one is not", covered.visible, false)
 	equal("the world stays paused", get_tree().paused, true)
 	equal("and the mode is unchanged", _stack.mode(), GameEnums.UiMode.MODAL)
 	equal("so nothing new was announced", _heard.size(), 1)
 	equal("closing the overlay succeeds", _stack.close_top(), true)
 	equal("the menu is top again", _stack.depth(), 1)
 	equal("and processes again", covered.process_mode, Node.PROCESS_MODE_ALWAYS)
+	equal("and is drawn again", covered.visible, true)
 
 
 ## The stack announces; the player and the sensor each take their own token on hearing it.

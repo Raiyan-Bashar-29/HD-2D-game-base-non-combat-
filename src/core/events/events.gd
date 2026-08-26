@@ -151,6 +151,13 @@ signal quest_completed(quest_id: StringName)
 signal notify_requested(key: String, seconds: float, args: Dictionary)
 ## Fade the screen. Director uses this for transitions, and cutscenes may too.
 signal screen_fade_requested(to_black: bool, seconds: float)
+## Show the main menu. Emitted by GameRoot on boot - which is why the game no longer starts in
+## an area - and by the pause menu's "main menu" row. A `_requested` ask has many askers by
+## design; it is the FACTS on this bus that have exactly one emitter each.
+signal main_menu_requested()
+## Close the game. The menus ask; `GameRoot` is the only thing that performs it, so there is
+## still one shutdown path and an autosave policy will only ever need adding in one place.
+signal quit_requested()
 ## A screen opened or closed and the world's relationship to input changed. Emitted by UiRoot
 ## and by nothing else - it is the single announcement that replaces one input-lock boolean
 ## per screen. Input readers take or release their own `ui` token on it; the prompt hides on

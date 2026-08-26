@@ -143,8 +143,8 @@ What follows replaces them.
 |---|---|
 | **T1.1 Integration** — every package onto `main` in one linear chain | **DONE** 2026-08-26, PR #10. WP-12 and WP-13 were built in parallel and merged in; the `UiRoot`/`ScreenKeys` duplicate close-on-travel was resolved in favour of `ScreenKeys`. |
 | **T1.2 The boundary** — the rule, a gate that enforces it, and the leaks fixed | **DONE** 2026-08-26, commit `06ce363`. `tools/check_boundary.gd` derives the demo ids from `scenes/areas/` and `data/` and fails on any of them in `src/` code. All four known leaks closed. |
-| **T1.3 Test fixtures + framework hardening** | **NEXT** |
-| **T1.4 CI** — automate the ladder | TODO |
+| **T1.3 Test fixtures + framework hardening** | **DONE** 2026-08-26, commit pending. `tests/framework/fixtures.gd` and `fixture_content.gd` build the content a case needs; the three content registries gained a redirectable `content_dir`. Four silent-pass modes now fail: a crash, an early return, a case that asserts nothing, and a suite file nobody listed. `check_boundary` now scans `tests/` too. |
+| **T1.4 CI** — automate the ladder | **NEXT** |
 
 Exit criteria:
 - [x] `main` contains the template — done 2026-08-26
@@ -156,12 +156,17 @@ Exit criteria:
       behind `OS.is_debug_build()`, which the same tool now checks
 - [x] The debug surface cannot be driven in a release build — done 2026-08-26
 - [x] `docs/NEW_GAME.md` exists, and its claims were run against a stripped copy of the repo
-- [ ] A deliberately crashing test case exits **1**. A deliberately FAILING assertion already
-      does — verified 2026-08-26, `920 passed, 1 failed`, exit 1 — but a case that throws is a
-      different path and is still unhardened. **T1.3.**
-- [ ] `data/` and `scenes/areas/` moved aside, and the suite still passes. Half done: with them
-      moved aside the boot, both content gates and the budget checker all pass (T1.2 ran it), but
-      the suite does not, because a third of its assertions name demo content. **T1.3.**
+- [x] A deliberately crashing test case exits **1** — done 2026-08-26, T1.3, and it took TWO
+      mechanisms because the obvious one is not enough. A GDScript runtime error aborts only the
+      innermost frame (probed), so the declared plan catches a crash that swallows an assertion
+      but a planted crash in a leaf helper still reported `2/2` and exit 0. `ErrorWatch`, an
+      `OS.add_logger` Logger counting `ERROR_TYPE_SCRIPT`, catches that one: `zz_probe_test raised
+      1 engine script error(s)`, exit 1. A failing assertion, an early return and a missing plan
+      were each planted and each exited 1 as well
+- [x] `data/` and `scenes/areas/` moved aside, and the suite still passes — done 2026-08-26,
+      T1.3: `861 passed, 0 failed, 12 skipped`, exit 0, with every skip named and counted. Full
+      checkout: `911 passed, 0 failed, 0 skipped`. Restored, and `git status` showed no change to
+      any demo file
 - [ ] A pushed branch with a broken assertion goes red in CI
 
 ## Phase T2 — Make it swappable

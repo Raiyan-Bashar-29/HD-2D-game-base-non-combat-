@@ -70,7 +70,7 @@ boundary that accumulates silently.
 | `data/**` | **Demo.** Every `.tres`. | Delete, and author your own in the same folders. |
 | `scenes/areas/**` | **Demo.** | Delete, and author your own. |
 | `localization/strings.csv` | **Mixed.** `verb.*`, `refusal.*`, `ui.*`, `time.phase.*`, `item.category.*` are engine; `object.*`, `item.*`, `talk.*`, `action.*`, `area.*` are demo. | Prune the demo half. |
-| `tests/unit/` | **Mixed, and currently welded to the demo.** | See the known gap below. |
+| `tests/unit/` | **Engine**, as of T1.3. Cases build what they need from `tests/framework/`, and the blocks that genuinely assert things about a game skip themselves and say so. | Keep. |
 | `project.godot` | **Mixed, and the one place a demo id belongs.** `[game] world/first_area` names the starting area. | Rename the four `application/config/*` fields and point `first_area` at your own. |
 
 `data/` and `scenes/areas/` being demo is not a coupling — they are the **content roots a game
@@ -82,7 +82,8 @@ stripped copy rather than written from intent.
 
 ### The gate
 
-`tools/check_boundary.gd` enforces the rule as of T1.2, 2026-08-26. It **derives** the forbidden
+`tools/check_boundary.gd` enforces the rule as of T1.2, 2026-08-26, and since T1.3 it scans
+`tests/framework/` and `tests/unit/` as well as `src/`. It **derives** the forbidden
 names rather than listing them — every folder under `scenes/areas/`, the `id` of every `.tres`
 under `data/`, and each id's last segment — so it cannot go stale when content is added, and it
 fails on any of them appearing in a CODE line under `src/`.
@@ -104,12 +105,13 @@ scene), and anything outside `src/**/*.gd`.
 
 ### Known gaps in the boundary, as of 2026-08-26
 
-These are planned, not accepted:
+None in the boundary itself. The last one closed with T1.3.
 
-1. **The test suite is welded to the demo.** Roughly a third of the assertions assert facts about
-   demo content rather than about systems, so deleting `data/` today would delete rung 4 of the
-   verification ladder. A fixture layer is planned — **T1.3**. Everything else on the ladder
-   survives the deletion; T1.2 stripped the repo and ran it.
+**Closed by T1.3:** the test suite was welded to the demo — about a third of its assertions named
+demo content, so deleting `data/` would have deleted rung 4 of the ladder. `tests/framework/`
+now builds the content a case needs, `tests/unit/` is inside the boundary gate, and a stripped
+checkout runs the whole suite: `861 passed, 0 failed, 12 skipped`, with every skip named and
+counted so a stripped run cannot look identical to a full one.
 
 **Closed by T1.2:** `game_root.gd`/`director.gd` naming the first area (now the project setting
 `[game] world/first_area`, read through `GameConfig`); `log.gd` baking in `Gulistan` (now

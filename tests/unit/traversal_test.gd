@@ -12,6 +12,7 @@ var _mover: PlayerController = null
 
 
 func run() -> void:
+	plan(50)
 	Flags.clear_all()
 	SaveSystem.unregister(&"world")
 	_trigger_fires_once()
@@ -147,7 +148,7 @@ func _make_trigger(object_id: StringName, once: bool) -> TriggerVolume:
 
 func _make_bench() -> RestPoint:
 	var bench: RestPoint = build("res://scenes/objects/rest_point.tscn") as RestPoint
-	bench.label_key = "object.bench.courtyard.label"
+	bench.label_key = "fixture.rest_point.label"
 	bench.target_hour = 20
 	attach(bench)
 	return bench
@@ -155,7 +156,7 @@ func _make_bench() -> RestPoint:
 
 func _make_ladder() -> ClimbPoint:
 	var ladder: ClimbPoint = build("res://scenes/objects/climb_point.tscn") as ClimbPoint
-	ladder.label_key = "object.ladder.courtyard.label"
+	ladder.label_key = "fixture.climb_point.label"
 	attach(ladder)
 	return ladder
 

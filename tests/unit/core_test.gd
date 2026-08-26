@@ -9,6 +9,7 @@ var _probe_value: int = 0
 
 
 func run() -> void:
+	plan(50)
 	_dict_read()
 	_flags()
 	_flags_hands_out_copies()

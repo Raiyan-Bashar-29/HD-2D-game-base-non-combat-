@@ -19,6 +19,7 @@ var _heard: Array[int] = []
 
 
 func run() -> void:
+	plan(83)
 	_bare_lock()
 	_overlapping_locks_release_correctly()
 	_lock_is_idempotent()

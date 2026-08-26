@@ -1,5 +1,5 @@
 extends SceneTree
-## Boundary gate: FAILS if any file under src/ names demo content.
+## Boundary gate: FAILS if any file under src/, tests/framework/ or tests/unit/ names demo content.
 ##
 ## RUN:  godot_console --headless --script tools/check_boundary.gd
 ## Exit 0 if clean, 1 on any violation. Sits in the ladder next to check_content.gd.
@@ -20,6 +20,11 @@ extends SceneTree
 const SRC_ROOT: String = "res://src"
 const DATA_ROOT: String = "res://data"
 const AREA_ROOT: String = "res://scenes/areas"
+## The suite too, as of T1.3. It used to be exempt because a third of its assertions named demo
+## content and unwelding it was T1.3's own job; now that the fixtures exist, scanning it is what
+## stops the welding growing back one convenient literal at a time.
+const TEST_ROOTS: Array[String] = ["res://tests/framework", "res://tests/unit"]
+
 ## The one exemption from the rule. Justified at _scan_script below.
 const DEBUG_DIR: String = "res://src/systems/debug/"
 
@@ -92,7 +97,11 @@ func _check_boundary() -> void:
 	print("  demo names derived: %d — %s" % [demo.size(), str(demo.keys())])
 	var scripts: Array[String] = []
 	_collect_files(SRC_ROOT, ".gd", scripts)
-	print("  src scripts scanned: %d (%s is exempt)" % [scripts.size(), DEBUG_DIR])
+	for root: String in TEST_ROOTS:
+		_collect_files(root, ".gd", scripts)
+	print("  engine scripts scanned: %d, over src/ and %s (%s is exempt)" % [
+		scripts.size(), str(TEST_ROOTS), DEBUG_DIR,
+	])
 	for path: String in scripts:
 		_scan_script(path, demo)
 	print("  demo names inside the exempt debug surface: %d" % _exempted)

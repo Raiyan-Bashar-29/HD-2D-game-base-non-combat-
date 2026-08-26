@@ -12,8 +12,8 @@ extends TestCase
 ## OWNS: assertions about rendered rows, headings, focus and the localization keys behind them.
 ## MUST NOT: re-assert the pause table or the input lock. ui_test.gd owns those.
 
-const PETAL: StringName = &"item/rose_petal"
-const KEY_ITEM: StringName = &"item/rose_key"
+const PETAL: StringName = FixtureContent.STACK_ITEM
+const KEY_ITEM: StringName = FixtureContent.UNIQUE_ITEM
 const GHOST: StringName = &"item/nothing_here"
 
 var _stack: UiRoot = null
@@ -22,6 +22,7 @@ var _carrier: Node = null
 
 
 func run() -> void:
+	plan(60)
 	_set_up()
 	_empty_bag_says_so()
 	_rows_follow_the_bag()
@@ -33,6 +34,7 @@ func run() -> void:
 
 
 func _set_up() -> void:
+	Fixtures.activate()
 	_stack = UiRoot.new()
 	attach(_stack)
 	_carrier = Node.new()
@@ -66,7 +68,7 @@ func _rows_follow_the_bag() -> void:
 	var rows: Array[String] = _row_texts(screen)
 	equal("a heading and a row", rows.size(), 2)
 	equal("the heading is the category", rows[0], tr("item.category.material"))
-	equal("the row names the item and the count", rows[1], "%s  x3" % tr("item.rose_petal.name"))
+	equal("the row names the item and the count", rows[1], "%s  x3" % _name_of(PETAL))
 	equal("the first row has focus", _focused_text(screen), rows[1])
 
 	_bag.add(KEY_ITEM, 1)
@@ -74,13 +76,13 @@ func _rows_follow_the_bag() -> void:
 	equal("the screen followed inventory_changed", rows.size(), 4)
 	# ids() sorts by category ordinal, and KEY_ITEM (2) precedes MATERIAL (4).
 	equal("key items come first", rows[0], tr("item.category.key_item"))
-	equal("with their row", rows[1], "%s  x1" % tr("item.rose_key.name"))
+	equal("with their row", rows[1], "%s  x1" % _name_of(KEY_ITEM))
 	equal("then materials", rows[2], tr("item.category.material"))
 
 	_bag.remove(PETAL, 3)
 	rows = _row_texts(screen)
 	equal("removing follows too", rows.size(), 2)
-	equal("leaving only the key", rows[1], "%s  x1" % tr("item.rose_key.name"))
+	equal("leaving only the key", rows[1], "%s  x1" % _name_of(KEY_ITEM))
 	equal("the screen closes", _stack.close_top(), true)
 	equal("a closed screen is out of the tree", screen.is_inside_tree(), false)
 
@@ -184,6 +186,13 @@ func _focused_text(screen: InventoryScreen) -> String:
 
 func _list_of(screen: InventoryScreen) -> VBoxContainer:
 	return screen._list
+
+
+## What the screen must draw for an item: whatever tr() makes of its authored name_key. Read
+## from the definition rather than written out, so this asserts the SCREEN and not the CSV -
+## a fixture item deliberately has no row, and tr() then returns the key unchanged.
+func _name_of(item_id: StringName) -> String:
+	return tr(ItemDb.definition(item_id).name_key)
 
 
 func _tear_down() -> void:

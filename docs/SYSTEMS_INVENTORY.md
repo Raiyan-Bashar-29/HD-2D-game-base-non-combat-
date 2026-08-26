@@ -145,9 +145,12 @@ previous project started as a system that was allowed to know one thing too many
 |---|---|---|
 | Placeholder art generation | Procedural stand-ins so code can be finished before art | DONE |
 | Content validator | tools/check_content.gd — ids, duplicate object_ids, CSV keys, stray defs | DONE |
-| Engine/demo boundary gate | tools/check_boundary.gd — FAILS if any file under src/ names demo content, and fails if the exempt debug surface loses its release guard. Demo ids derived from scenes/areas/ and data/, never listed | DONE — T1.2 |
+| Engine/demo boundary gate | tools/check_boundary.gd — FAILS if any file under src/, tests/framework/ or tests/unit/ names demo content, and fails if the exempt debug surface loses its release guard. Demo ids derived from scenes/areas/ and data/, never listed | DONE — T1.2 |
 | Line-budget checker | Mechanical enforcement of file and function size limits | DONE |
-| Test runner | Headless integration tests, scene-entered, exit 1 on failure | DONE |
+| Test runner | Headless integration tests, scene-entered, exit 1 on failure. Four silent-pass modes now fail loudly: a case that crashes, one that returns early, one that asserts nothing, and a suite file that exists and is not in CASES | DONE — hardened T1.3 |
+| Test fixtures | tests/framework/fixtures.gd + fixture_content.gd — the content a case needs, built in code. In memory where a system is HANDED content, written to a temp directory the registries scan where a system looks it up by id | DONE — T1.3 |
+| Engine script-error watch | tests/framework/error_watch.gd — an OS.add_logger Logger counting ERROR_TYPE_SCRIPT, because a GDScript crash aborts only its own frame and the tally cannot see it | DONE — T1.3 |
+| Redirectable content root | ItemDb/DialogueDb/ScheduleDb.content_dir — a game, or the fixtures, may point the scan somewhere other than data/ | DONE — T1.3 |
 | Hard-coded string audit | Catches player-facing text that is not a localization key | TODO |
 | Localization | String IDs from the first string; CSV translation | PART — CSV wired, 188 keys, all UI text localized. Unquoted commas are now a gate; no full audit tool yet. docs/NEW_GAME.md names the engine and demo halves |
 | New-game checklist | docs/NEW_GAME.md — what to delete, what to keep, the full rename surface | DONE — T1.2, and its claims were run against a stripped copy |

@@ -29,6 +29,7 @@ var _keys: ScreenKeys = null
 
 
 func run() -> void:
+	plan(98)
 	_set_up()
 	_every_menu_is_reachable_by_name()
 	_flags_are_declared_in_init()

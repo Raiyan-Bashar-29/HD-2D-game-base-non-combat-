@@ -64,8 +64,8 @@ original board rather than continuing it.
 |---|---|---|
 | T1.1 | Integration — every package onto `main` | **DONE** — PR #10 |
 | T1.2 | Engine/demo boundary: the rule, a gate, and the leaks fixed | **DONE** — see T1.2 below |
-| T1.3 | Test fixtures + framework hardening | **TODO — next** |
-| T1.4 | CI — automate the ladder | TODO |
+| T1.3 | Test fixtures + framework hardening | **DONE** — see T1.3 below |
+| T1.4 | CI — automate the ladder | **TODO — next** |
 | T2.1 | Art contract seams | TODO |
 | T2.2 | Consumer documentation | TODO |
 
@@ -507,6 +507,45 @@ every rung stayed green (gotcha 22), and a stripped template failed its own cont
 one of `NEW_GAME.md` because an empty content folder was treated as a problem. Both written up in
 `DEVLOG.md`.
 
-**Left for T1.3:** the suite is still welded to the demo — a third of its assertions name demo
-content, so `data/` cannot actually be deleted. Everything else on the ladder survives it, which
-T1.2 ran and quoted.
+**Left for T1.3, and CLOSED by it:** the suite was still welded to the demo, so `data/` could not
+actually be deleted. Everything else on the ladder survived it, which T1.2 ran and quoted.
+
+---
+
+## T1.3 · Test fixtures + framework hardening — **DONE**
+
+**Goal.** Unweld the suite from the demo, so `data/` and `scenes/areas/` can be deleted and rung 4
+of the ladder survives; and make the suite able to fail, which it demonstrably was not.
+
+**Read:** `CLAUDE.md`, `docs/TEMPLATE.md`, `docs/CONTEXT.md`, `tests/framework/`, `tests/test_runner.gd`.
+
+**Wrote**
+- `tests/framework/fixture_content.gd` — the content a case needs, built in code and deliberately
+  abstract. Items, a conversation graph, a timetable, a path action.
+- `tests/framework/fixtures.gd` — where it lives. **The decision is split along one line:** in
+  memory when a system is HANDED content, written to `user://test_fixtures/` and scanned by the
+  registry when a system LOOKS IT UP BY ID. The three registries find content by directory scan
+  (ADR-0006), so the alternative was a test-only backdoor in engine code.
+- `tests/framework/error_watch.gd` — an `OS.add_logger` `Logger` counting `ERROR_TYPE_SCRIPT`.
+- `TestCase.plan()` / `skip()`, and a runner that enforces both plus a manifest scan.
+- `ItemDb`/`DialogueDb`/`ScheduleDb`: `content_dir`, and `reload()` renamed to `rescan()`.
+- `tools/check_boundary.gd` now scans `tests/framework/` and `tests/unit/` too.
+
+**Three decisions to not re-litigate.** Fixtures on disk rather than injected, because the
+registries scan directories and a backdoor in engine code that exists only for the suite is worse
+than a temp folder — and the round trip through `ResourceSaver` proves the authoring format as a
+side effect. The plan is a maintained number, TAP-style, because a GDScript crash aborts only its
+own frame and nothing else can see a swallowed assertion. And `ErrorWatch` counts only
+`ERROR_TYPE_SCRIPT`, because deliberate negative-path tests raise `push_error` and a gate that
+fires on those gets switched off within a day.
+
+**Closed 2026-08-26**, commit `PENDING`. Both exit criteria met, plus the two Phase T1 criteria
+that were waiting on it. 911 assertions (was 921 — the drop is aggregation: named per-item and
+per-waypoint assertions became set-level ones that also cover content added later). Stripped run:
+`861 passed, 0 failed, 12 skipped`, exit 0, every skip named and counted. All four silent-pass
+modes planted and each exited 1, quoted in `DEVLOG.md`. One bug found that no gate had caught and
+none could: **`ItemDb.reload()` had never called our function** — `Script.reload()` won the name,
+the fourth native-name collision in this project — so every `reload()` in the three registries and
+in `check_content.gd` was a script reload that happened to have the same effect.
+
+**Left for T1.4:** none of this runs automatically. The ladder is seven commands a human types.

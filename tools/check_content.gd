@@ -90,13 +90,13 @@ func _load_keys() -> void:
 ## Records what the undocumented ResourceLoader.list_directory actually returned, so its
 ## behaviour stays a fact in the build log instead of an assumption in a comment.
 func _report_scan() -> void:
-	var raw: PackedStringArray = ResourceLoader.list_directory(ItemDb.ITEM_DIR)
-	print("  list_directory(%s) -> %s" % [ItemDb.ITEM_DIR, str(raw)])
-	print("  resolved paths        -> %s" % str(ItemDb.resource_paths(ItemDb.ITEM_DIR)))
+	var raw: PackedStringArray = ResourceLoader.list_directory(ItemDb.content_dir)
+	print("  list_directory(%s) -> %s" % [ItemDb.content_dir, str(raw)])
+	print("  resolved paths        -> %s" % str(ItemDb.resource_paths(ItemDb.content_dir)))
 
 
 func _check_items() -> void:
-	ItemDb.reload()
+	ItemDb.rescan()
 	for problem: String in ItemDb.problems():
 		_fail(problem)
 	print("  item definitions: %d" % ItemDb.count())
@@ -114,14 +114,14 @@ func _check_items() -> void:
 func _check_stray_definitions(root: String) -> void:
 	for directory: String in DirAccess.get_directories_at(root):
 		var path: String = "%s/%s" % [root, directory]
-		if path == ItemDb.ITEM_DIR:
+		if path == ItemDb.content_dir:
 			continue
 		for file_name: String in DirAccess.get_files_at(path):
 			if not file_name.ends_with(".tres"):
 				continue
 			var resource: Resource = ResourceLoader.load("%s/%s" % [path, file_name])
 			if resource is ItemDefinition:
-				_fail("%s/%s is an ItemDefinition outside %s" % [path, file_name, ItemDb.ITEM_DIR])
+				_fail("%s/%s is an ItemDefinition outside %s" % [path, file_name, ItemDb.content_dir])
 
 
 func _check_scenes() -> void:
@@ -194,7 +194,7 @@ func _quoted_after(line: String, marker: String) -> String:
 ## speaker_key a conversation names must exist in the CSV, or the line renders on screen as its
 ## own key. Dangling node links are checked by Conversation.problems() itself.
 func _check_dialogue() -> void:
-	DialogueDb.reload()
+	DialogueDb.rescan()
 	for problem: String in DialogueDb.problems():
 		_fail(problem)
 	print("  conversations: %d" % DialogueDb.count())
@@ -229,7 +229,7 @@ func _require_key(context: String, field: String, key: String) -> void:
 ## do: every waypoint a schedule names must exist as a marker in at least one area, or the NPC
 ## following it stands still forever and nothing says why.
 func _check_schedules() -> void:
-	ScheduleDb.reload()
+	ScheduleDb.rescan()
 	for problem: String in ScheduleDb.problems():
 		_fail(problem)
 	print("  schedules: %d" % ScheduleDb.count())

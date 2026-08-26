@@ -16,6 +16,205 @@ Append-only. Newest entry at the top. One entry per working session.
 
 ---
 
+## 2026-08-26 — T1.3: the suite stops testing the demo, and stops passing when it crashes
+
+**Did:**
+
+Two jobs, and each turned out to rest on a fact nobody had checked.
+
+**1. Fixtures.** A test asserting `item/rose_key` was testing the demo, not the item system.
+
+- `tests/framework/fixture_content.gd` — new. Builds the content a case needs: three items (one
+  unique key item, one that stacks to a limit, one spare so a sort order has something to be an
+  order OF), a conversation whose graph exercises every rule the runner has, a two-block
+  timetable, and a path action that can refuse, fail AND succeed. Every name is abstract —
+  `fixture/unique`, not a key to a rose garden.
+- `tests/framework/fixtures.gd` — new. Where that content lives, and the switch onto it.
+  **The decision, and it is split deliberately along one line: does the system under test
+  RECEIVE the content, or LOOK IT UP BY ID?** A `Pickup` is handed an `ItemDefinition` and a
+  `PathActionPoint` a `PathAction`, so those fixtures are built in memory and set on the node —
+  no file, no global state. But `Inventory.add(id)` asks `ItemDb`, `DialogueRunner.begin(id)`
+  asks `DialogueDb` and `NpcBrain` asks `ScheduleDb`, and those three find content **by
+  directory scan** (ADR-0006) and cache it statically, so an in-memory resource is invisible to
+  them. The choice there was a test-only injection method on each registry — engine code
+  carrying a backdoor that exists for the suite and nothing else — or a real directory the real
+  scan really reads. It writes `.tres` files to `user://test_fixtures/` and points the registry
+  there. **That buys something beyond unwelding the suite:** the fixtures go out through
+  `ResourceSaver` and come back through the registry's own scan, so the suite now proves the
+  authoring round trip a consuming game depends on and that nothing tested before.
+- `ItemDb` / `DialogueDb` / `ScheduleDb` gained `static var content_dir`, defaulting to the
+  `res://data/...` const it replaces in the scan. A content ROOT rather than a constant.
+- Migrated: `items_test`, `pickups_test`, `screens_test`, `dialogue_test`, `npc_test`,
+  `path_actions_test`, `transitions_test`, plus label keys in `traversal_test` and
+  `interaction_test`. Two patterns replaced naming: **discovery** (`transitions_test` and
+  `npc_test` now scan `scenes/areas/` instead of listing two ids, so area three is covered the
+  day it appears) and **aggregation** (one assertion over every authored action instead of two
+  named `.tres` files).
+- Blocks that genuinely assert things about the demo — the authored catalogue matches the disk,
+  every authored item name has a CSV row, every authored waypoint exists in some authored area —
+  are gated on the demo existing and `skip()`ped when it does not. **A skip stands in for the
+  assertions it replaces**, so the plan is the same number either way and a stripped run reports
+  exactly what it gave up rather than looking identical to a full one.
+
+**2. Framework hardening.** `ROADMAP.md` had carried this since T1.1: a deliberately crashing
+case exited 0, which invalidated every green result the project had.
+
+- `TestCase.plan(n)` — TAP's `1..N`, for TAP's reason. The runner fails a case whose outcomes do
+  not equal its plan, a case that declares no plan, and a case that plans zero.
+- `tests/framework/error_watch.gd` — new. An `OS.add_logger` `Logger` counting
+  `ERROR_TYPE_SCRIPT`, read per case so a failure names the case that crashed.
+- `test_runner.gd` — scans `tests/unit/` and fails on a `.gd` file that exists and is not in
+  `CASES`; arms the exit code to 1 on its first line and only clears it at the end; calls
+  `Fixtures.deactivate()` after every case, not only the ones that switched; and prints the
+  skip total.
+- `tools/check_boundary.gd` now scans `tests/framework/` and `tests/unit/` as well as `src/`.
+  The suite was exempt because unwelding it was this package's own job; now that the fixtures
+  exist, scanning it is what stops the welding growing back one convenient literal at a time.
+
+**Why:**
+
+Deleting `data/` and `scenes/areas/` is step one of `docs/NEW_GAME.md`. T1.2 proved every other
+rung survives it. Rung 4 did not, so the ladder that makes this a template was one `rm -rf` away
+from being three quarters of a ladder.
+
+And a suite that cannot fail is not a gate. Gotcha 23 says a gate that never fails has never
+been tested; this is the same sentence pointed at the test suite itself.
+
+**Connects:**
+
+`Fixtures` reads the same `content_dir` the game and `tools/check_content.gd` read, so there is
+one scan path, not a production one and a test one. `Fixtures.area_ids()` is the discovery
+`transitions_test` and `npc_test` now share. `ErrorWatch` sits beside the tally rather than
+inside it — it counts, the runner decides.
+
+**Verified:**
+
+Two things this package learned by measuring, both of which changed the design:
+
+*A GDScript runtime error aborts ONLY the innermost frame.* Probed with a null dereference three
+frames deep:
+
+```
+PROBE about to crash
+SCRIPT ERROR: Cannot call method 'get_child_count' on a null value.
+PROBE reached end of _outer after crash
+PROBE reached end of _ready after crash
+EXIT=0
+```
+
+`_inner` aborted; `_outer` and `_ready` both ran to completion. That is why the runner cannot see
+a crash, and why a completion sentinel at the end of `run()` would not have worked. It also means
+`get_tree().quit(1)` then `quit(0)` exits 0 — last call wins — which is what makes arming the
+exit code safe.
+
+*The plan alone was not enough, and this was measured rather than assumed.* With the plan in
+place, a crash planted in a leaf helper with no assertion after it:
+
+```
+--- zz_probe_test: 2/2 ---
+=== 913 passed, 0 failed, 0 skipped ===
+EXIT=0
+```
+
+Hence `ErrorWatch`. Same probe, after:
+
+```
+zz_probe_test raised 1 engine script error(s): ["Cannot call method 'get_child_count' on a null
+value. at res://tests/unit/zz_probe_test.gd:13 in _crash()"]
+--- zz_probe_test: 2/2 ---
+=== 913 passed, 1 failed, 0 skipped ===
+EXIT=1
+```
+
+Note the `2/2`: the two mechanisms are complementary, not redundant.
+
+All four silent-pass modes planted, each exiting 1, each removed:
+
+| Planted | Result |
+|---|---|
+| a crash in a leaf helper | `raised 1 engine script error(s)` — exit 1 |
+| a failing assertion | `FAILED: this one fails on purpose — expected 2, got 1` — exit 1 |
+| an early return | `planned 3 outcomes and produced 1` — exit 1 |
+| no plan at all | `declared no plan, so a crash in it would be invisible` — exit 1 |
+| a suite file not in CASES | `exists but is not listed in CASES, so it never runs` — exit 1 |
+
+**THE STRIP.** `data/` and `scenes/areas/` moved aside, whole ladder re-run:
+
+```
+=== 861 passed, 0 failed, 12 skipped ===
+EXIT=0
+SKIPPED: items_test: the authored catalogue is sound (no content in data/items) — 3 assertion(s) not run
+SKIPPED: items_test: authored item names are translated (no content in data/items) — 1 assertion(s) not run
+SKIPPED: transitions_test: every area has the required shape (no areas in scenes/areas) — 1 assertion(s) not run
+SKIPPED: transitions_test: sheltering and the clock agree (no areas in scenes/areas) — 1 assertion(s) not run
+SKIPPED: transitions_test: flag prefixes do not collide (no areas in scenes/areas) — 1 assertion(s) not run
+SKIPPED: dialogue_test: the authored conversations are sound (no content in data/dialogue) — 2 assertion(s) not run
+SKIPPED: npc_test: authored waypoints exist in an authored area (no areas or no schedules) — 1 assertion(s) not run
+SKIPPED: path_actions_test: the authored actions are sound (no content in res://data/actions) — 2 assertion(s) not run
+12 assertion(s) were skipped: this run covers less than a full one
+check_content exit=0 · check_boundary exit=0 · check_budgets exit=0
+Session ended after 1.3s — 0 warnings, 0 errors
+```
+
+Twelve assertions of 911, not a third: the migration turned per-item and per-waypoint loops into
+one assertion over the whole set, so what a stripped run loses is smaller than what the demo used
+to be named in. Restored, and `git status` showed no change to any file under `data/` or
+`scenes/areas/`.
+
+The widened boundary gate proved the same way: `&"item/rose_key"` planted in `items_test.gd` gave
+`res://tests/unit/items_test.gd:16 names demo content 'item/rose_key'`, `FAIL — 2 boundary
+violation(s)`, exit 1; removed, exit 0.
+
+Full ladder on the restored checkout:
+
+```
+--headless --import                          # no SCRIPT ERROR, no Parse Error
+--headless --quit-after 120                  # Session ended after 1.2s — 0 warnings, 0 errors
+res://tests/test_runner.tscn --quit-after 400 # === 911 passed, 0 failed, 0 skipped === exit 0
+tools/check_budgets.gd   PASS  exit 0
+tools/check_content.gd         exit 0
+tools/check_boundary.gd  PASS  exit 0 — 93 scripts over src/ and tests/
+```
+
+**A BUG THIS FOUND, and it is the fourth native-name collision in this project.**
+**`ItemDb.reload()` had never called our function.** `Script` declares `reload()`, and `ItemDb`
+as an identifier IS the GDScript object, so `ItemDb.reload()` dispatched to `Script.reload()` —
+which reloads the script and resets its static variables. Behaviour coincided exactly with what
+our `reload()` was written to do (clear the cache, rescan on next access), so nothing ever broke
+and no test could see it. It surfaced only when `content_dir` was added: assigning it stuck, and
+then `reload()` silently reset it to the default. Proved by putting a print in `_ensure_loaded()`
+and watching `ItemDb.reload()` not reach it. All three registries now expose `rescan()`; every
+call site — `tools/check_content.gd` included, so the validator's reload was a script reload too
+— was updated. After `Area3D.priority`, `class_name Container` and `DictRead.get_name`, this is
+the fourth. Gotcha 17 says check every name against the API dump, *static functions included*,
+and it was right again.
+
+**Unblocks:**
+
+T1.4 (CI) — the ladder is now worth automating, because every rung of it can fail. A consuming
+game can delete the demo on day one and keep rung 4. And `tests/unit/` is now a place a new
+system's assertions can go without acquiring a dependency on the courtyard.
+
+**Known gaps:**
+
+- **The plan is a number a human maintains.** Add an assertion and the run fails until the number
+  is bumped. That is TAP's trade and it is self-correcting — a stale plan fails loudly, naming
+  the case and both numbers — but it is friction, and the first thing to reconsider if it starts
+  getting in the way.
+- **`ErrorWatch` counts only `ERROR_TYPE_SCRIPT`.** `push_error` from a deliberate negative-path
+  test arrives as `ERROR_TYPE_ERROR` and would make the gate unusable within a day, so those are
+  counted separately and not failed on. A real engine error of that type therefore still passes.
+- **A cached `.tres` survives an edit.** `ResourceLoader` caches by path, so a case that edits a
+  loaded resource must edit it back; `rescan()` hands back the same instance. `dialogue_test` does
+  restore everything it touches, and its comment now says so honestly rather than claiming the
+  reload is the reset.
+- **`user://test_fixtures/` is left on disk** after a run. Harmless — the next `activate()`
+  overwrites it and the default content root is restored either way — but nothing cleans it up.
+- Assertions moved 921 → 911. The drop is aggregation, not lost coverage: named per-item and
+  per-waypoint assertions became set-level ones that also cover content added later.
+
+---
+
 ## 2026-08-26 — T1.2: the engine/demo boundary becomes a gate, and four leaks close
 
 **Did:**

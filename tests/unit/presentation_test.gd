@@ -15,6 +15,7 @@ var _toasts: Array[Dictionary] = []
 
 
 func run() -> void:
+	plan(47)
 	_wetness_curve()
 	_mix_table()
 	_emitters_follow_the_weather()

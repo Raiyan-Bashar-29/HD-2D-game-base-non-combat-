@@ -40,7 +40,7 @@ rm -rf scenes/areas/courtyard scenes/areas/lantern_hall
 | `tools/**`, `tests/framework/**` | the ladder |
 | `assets/placeholder/**` | procedural art. Regenerate with `tools/gen_placeholders.gd`. |
 | `localization/strings.csv` | **partly** — see below |
-| `tests/unit/**` | **partly, and this is the known gap** — see below |
+| `tests/unit/**` | the ladder — since T1.3 it builds its own content and passes without yours |
 
 ## 3. Prune the localization CSV
 
@@ -97,13 +97,15 @@ An empty setting is a legal state — a template with no game in it yet. `Direct
 then logs `No first area — set game/world/first_area in project.godot` and changes nothing, rather
 than clearing the flags and going quiet.
 
-## 5. The two things that will not be clean, stated honestly
+## 5. The one thing that will not be clean, stated honestly
 
-**`tests/unit/` is welded to the demo.** Roughly a third of the 921 assertions assert facts about
-the courtyard, the rose key and the gardener, so deleting `data/` today deletes rung 4 of the
-verification ladder along with it. **T1.3 is the fixture layer that fixes this.** Until it lands,
-a new game deletes the demo-coupled cases and loses that coverage; there is no way around it and
-pretending otherwise would be worse.
+**The test suite comes with you, and it tells you what it stopped covering.** As of T1.3 the
+cases build the content they need from `tests/framework/fixtures.gd`, so deleting `data/` and
+`scenes/areas/` leaves rung 4 intact: `861 passed, 0 failed, 12 skipped`, exit 0. Those twelve are
+the assertions that genuinely ask something about authored content — that the catalogue matches the
+disk, that every item name has a CSV row, that every waypoint a schedule names exists in some
+area. They come back one at a time as you author your own content, and until then the run PRINTS
+each one rather than quietly passing.
 
 **`src/systems/debug/` names demo content on purpose.** `dev_probes.gd` and `dev_stage.gd` are the
 development harness — `--give=item/rose_key` stages a photograph, `--goto=` drives a real
@@ -152,7 +154,7 @@ The boot run is clean and lands on the main menu. Starting a game before you hav
 
 That is the template telling you the one thing it still needs.
 
-The test suite is the rung that will NOT pass, for the reason in section 5.
+The test suite passes, with skips reported. Section 5 says what the skips are.
 
 ## Read next
 

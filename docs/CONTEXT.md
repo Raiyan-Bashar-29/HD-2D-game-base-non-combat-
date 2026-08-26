@@ -3,7 +3,7 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-26 · T1.2 (the engine/demo boundary) complete
+**Last updated:** 2026-08-26 · T1.3 (test fixtures + framework hardening) complete
 
 > **This is a TEMPLATE, not a game.** Read [`TEMPLATE.md`](TEMPLATE.md) — it is short, and the
 > roadmap, the board and parts of this file were written before that reframing. The courtyard and
@@ -13,9 +13,10 @@ Keep it short. When it drifts from reality, fix it in the same commit as the cha
 
 Every package — WP-01 through WP-07, plus WP-12 and WP-13 — is on **`claude/integration`** (PR
 #10 into `main`); the reframing docs are on **`claude/template-reframing`** (PR #11); T1.2 is on
-**`claude/t1-2-boundary`**, branched from the reframing tip. The nine earlier PRs are superseded.
+**`claude/t1-2-boundary`**, branched from the reframing tip; T1.3 is on
+**`claude/t1-3-fixtures`**, branched from T1.2. The nine earlier PRs are superseded.
 
-**Branch new work from `claude/t1-2-boundary`**, or from `main` once #10, #11 and T1.2 have
+**Branch new work from `claude/t1-3-fixtures`**, or from `main` once #10, #11, T1.2 and T1.3 have
 landed. The older
 per-package branches (`claude/wp-04-second-area`, `claude/wp-05-dialogue`, `claude/wp-06-npcs`,
 `claude/wp-07-path-actions`, `claude/wp-12-menus`, `claude/wp-13-presentation`) are history and
@@ -35,8 +36,8 @@ game built on this will need, so a new game is content and data rather than new 
 
 ## Where it stands
 
-Phase 0 complete, Phase 1 COMPLETE, Phase 2 well under way, Phase T1 half done. 95 files,
-7,742 code lines,
+Phase 0 complete, Phase 1 COMPLETE, Phase 2 well under way, Phase T1 three quarters done. 98
+files, 8,100 code lines,
 18 scenes, 2 areas, 3 items, 1 conversation, 1 schedule, 2 path actions.
 Boots headless with **0 warnings, 0 errors**.
 
@@ -45,7 +46,9 @@ input actions · settings · save/load with atomic writes and versioning · plot
 director with a re-entrancy guard and threaded loading · world clock · weather state · audio
 buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 8-way character ·
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
-placeholder art generator · line-budget checker · headless test suite (921 assertions) ·
+placeholder art generator · line-budget checker · a headless test suite (911 assertions) that
+builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
+returns early, asserts nothing, or is not listed in the runner ·
 an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
 interaction sensor with ranking and Tab-cycling · Interactable contract · localized prompt and
 toasts · readable signs · levers · gates gated by flag or by a carried key · per-object
@@ -64,10 +67,24 @@ that they move Â· **weather you can see**: generated rain, snow and wind emitt
 twenty-six seconds, and a layered ambience bed on procedurally generated noise.
 
 **Not built:** quests · hard-coded-string audit · item instances (durability) · equipment ·
-item tooltips, sorting and drag-and-drop · **test fixtures, so a third of the suite still names
-demo content and the demo cannot yet be deleted** (T1.3) · CI (T1.4).
+item tooltips, sorting and drag-and-drop · CI, so the ladder is still seven commands a human
+types (T1.4).
 
 ## Known defects
+
+**Fixed 2026-08-26 in T1.3, and it had been wrong since ADR-0006:**
+
+1. **`ItemDb.reload()` had never called our function.** `Script` declares `reload()`, and
+   `ItemDb` as an identifier IS the GDScript object, so the static call dispatched to
+   `Script.reload()` — which reloads the script and resets its static variables. That happens to
+   do exactly what our `reload()` was written to do, so nothing broke and no test could see it.
+   It surfaced only when a redirectable `content_dir` was added: the assignment stuck, and the
+   next `reload()` silently reset it. Proved with a print inside `_ensure_loaded()` that
+   `ItemDb.reload()` never reached. All three registries now expose `rescan()`. Fourth
+   native-name collision in this project, after `Area3D.priority`, `class_name Container` and
+   `DictRead.get_name` — see gotcha 17, and note that a *static* function is no exception.
+2. **The test suite could not fail on a crash**, which invalidated every green result the project
+   had. Fixed with two mechanisms, because the first was measurably not enough — see gotcha 24.
 
 **Fixed 2026-08-26 in T1.2, both found by doing rather than by a gate:**
 
@@ -304,7 +321,28 @@ three compiled cleanly and passed every static gate:**
   decides for itself in its own `_ready()`. The full table is the header of
   `src/ui/root/ui_root.gd`. Clock and Weather stop; Audio, Director, ScreenFade,
   NotificationToast and DevCapture do not.
-- **NO FILE UNDER `src/` MAY NAME DEMO CONTENT**, and since T1.2 `tools/check_boundary.gd` is
+- **A TEST BUILDS ITS OWN CONTENT, and a test that names demo content is testing the demo.**
+  `tests/framework/fixtures.gd` is the seam, and its rule is one line: **in memory when a system
+  is HANDED content, on disk when a system LOOKS IT UP BY ID.** The three registries scan a
+  directory (ADR-0006) and cache statically, so an in-memory `ItemDefinition` is invisible to
+  `Inventory.add(id)`; the fixtures write `.tres` files to `user://test_fixtures/` and point
+  `content_dir` there. A test-only injection method on each registry was rejected: a backdoor in
+  engine code that exists for the suite and nothing else is worse than a temp folder, and going
+  out through `ResourceSaver` and back through the real scan proves the authoring round trip as a
+  side effect. Since T1.3 `check_boundary` scans `tests/` too, so this is a gate, not a habit.
+- **A CASE THAT ASSERTS THINGS ABOUT THE DEMO SKIPS LOUDLY, never silently.** `skip()` stands in
+  for the assertions it replaces, so the plan is the same number with or without `data/` and a
+  stripped run prints what it gave up. `861 passed, 0 failed, 12 skipped` is a different claim
+  from `861 passed`, and the difference is the whole point.
+- **EVERY CASE DECLARES A PLAN, and the number is maintained by hand.** TAP's `1..N`. It is the
+  only thing that can see a crash that swallowed an assertion, an early return, a commented-out
+  block, or a case that asserts nothing — see gotcha 24 for why nothing cheaper works. A stale
+  plan fails loudly with both numbers and the case name, so it is self-correcting friction rather
+  than a trap.
+- **A CONTENT ROOT IS A `static var`, NOT A CONST.** `ItemDb.content_dir` and its two siblings.
+  A game may keep its items somewhere else, and the fixtures do. `ItemDb.ITEM_DIR` is now the
+  DEFAULT, not the answer, and `tools/check_content.gd` validates whatever the root currently is.
+- **NO FILE UNDER `src/` OR `tests/` MAY NAME DEMO CONTENT**, and since T1.2 `tools/check_boundary.gd` is
   what says so. It derives the forbidden names from `scenes/areas/` and the ids in `data/`
   rather than listing them, so it cannot go stale. **Comments are exempt, code is not:** a `##`
   line saying `data/items/rose_key.tres must declare id = &"item/rose_key"` is teaching by
@@ -332,14 +370,14 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 120               # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 921 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 911 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
-"$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ names no demo content
+"$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content
 "$G" --resolution 960x540 --quit-after 55 -- --shot=<path> --time=18:40 --freeze-time
 ```
 
-## Twenty-three gotchas that each cost an hour
+## Twenty-four gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -447,6 +485,18 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     `scenes/areas/` passes silently. Its header lists what it cannot see, and that list is part
     of the gate.
 
+24. **A GDScript RUNTIME ERROR ABORTS ONLY THE INNERMOST FRAME, so a crashing test passed for
+    the life of the project.** Probed: a null dereference three frames deep printed its
+    `SCRIPT ERROR`, and both the calling function and `_ready()` above it ran to completion. So
+    the runner sees a case that returned normally, and a completion sentinel at the end of
+    `run()` cannot work either — it is reached. T1.3 needed TWO mechanisms, and the second was
+    added because the first was measured and found wanting: a declared PLAN catches every crash
+    that swallows an assertion, but a crash planted in a leaf helper with nothing asserted after
+    it still reported `2/2` and exit 0. `tests/framework/error_watch.gd` — an `OS.add_logger`
+    `Logger` counting `ERROR_TYPE_SCRIPT` — is the only thing in the engine that sees that one.
+    Related and useful: `get_tree().quit(1)` followed later by `quit(0)` exits 0, last call wins,
+    which is why the runner ARMS its exit code to failure on its first line.
+
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the
@@ -454,7 +504,7 @@ board of fifteen packages from here to skeleton-complete. Each names the exact f
 should read, so a session loads a few hundred lines instead of three thousand. The layer rule
 (`core -> content -> systems -> gameplay -> ui`, downward only) is what makes that possible: a
 package never has to read upward.
-
+**Next package: T1.4 — CI, automating the ladder.** See the board and [`TEMPLATE.md`](TEMPLATE.md).
 **Next package: T1.2 â the engine/demo boundary.** See the board and [`TEMPLATE.md`](TEMPLATE.md).
 The original WP-08 through WP-15 continue after the T1 and T2 phases, several of them re-framed.
 

@@ -6,6 +6,7 @@ extends TestCase
 
 
 func run() -> void:
+	plan(21)
 	_clock()
 	_weather()
 

@@ -29,6 +29,11 @@ extends RefCounted
 ## are RETURNED, never logged, for the reason above.
 
 const ITEM_DIR: String = "res://data/items"
+
+## The directory actually scanned. A CONTENT ROOT rather than a constant: a game may keep its
+## items somewhere else, and the test fixtures point it at a temp directory so this registry
+## can be proved with no authored content on disk at all. Restore it to ITEM_DIR and reload().
+static var content_dir: String = ITEM_DIR
 const ID_PREFIX: String = "item/"
 
 static var _by_id: Dictionary[StringName, ItemDefinition] = {}
@@ -68,7 +73,7 @@ static func problems() -> PackedStringArray:
 
 ## Static state survives a scene reload and a new game, which is right for immutable content
 ## and wrong while authoring or testing. Tests and the validator call this.
-static func reload() -> void:
+static func rescan() -> void:
 	_by_id.clear()
 	_problems = PackedStringArray()
 	_loaded = false
@@ -79,7 +84,7 @@ static func _ensure_loaded() -> void:
 	if _loaded:
 		return
 	_loaded = true
-	for path: String in resource_paths(ITEM_DIR):
+	for path: String in resource_paths(content_dir):
 		_register(path)
 	# NO ITEMS IS NOT A PROBLEM. It was one until T1.2, and it made a stripped template fail its
 	# own content gate on the first command of docs/NEW_GAME.md. An empty folder is the legal

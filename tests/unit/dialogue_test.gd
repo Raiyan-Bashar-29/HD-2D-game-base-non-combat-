@@ -14,9 +14,9 @@ extends TestCase
 ## MUST NOT: assert what the dialogue box looks like, or re-assert the input lock. ui_test.gd
 ## owns the lock, and the capture owns the look.
 
-const TALK: StringName = &"talk/gardener"
-const MET: StringName = &"met/gardener"
-const TALLY: StringName = &"count/gardener_talks"
+const TALK: StringName = FixtureContent.TALK
+const MET: StringName = FixtureContent.MET_FLAG
+const TALLY: StringName = FixtureContent.TALLY_FLAG
 const SLOT: int = 4
 
 var _runner: DialogueRunner = null
@@ -26,6 +26,8 @@ var _ended: Array[StringName] = []
 
 
 func run() -> void:
+	plan(65)
+	_the_authored_catalogue_is_sound()
 	_set_up()
 	_the_catalogue_is_sound()
 	_conditions_choose_the_entry_point()
@@ -38,9 +40,25 @@ func run() -> void:
 	_tear_down()
 
 
+## The conversations a GAME has authored, checked as data. Every rule the runner has is proved
+## below against a fixture graph instead, so this block is the only part that needs the demo -
+## and what it is really asking is whether the authoring format is still being authored right.
+func _the_authored_catalogue_is_sound() -> void:
+	if not Fixtures.has_demo_content():
+		skip("the authored conversations are sound", "no content in data/dialogue", 2)
+		return
+	DialogueDb.rescan()
+	equal("the authored catalogue is clean: %s" % str(DialogueDb.problems()),
+		DialogueDb.problems().size(), 0)
+	var dangling: int = 0
+	for talk_id: StringName in DialogueDb.all():
+		dangling += DialogueDb.conversation(talk_id).problems().size()
+	equal("no authored conversation has a dangling link", dangling, 0)
+
+
 func _set_up() -> void:
 	Flags.clear_all()
-	DialogueDb.reload()
+	Fixtures.activate()
 	_runner = DialogueRunner.new()
 	_runner.name = "TestRunner"
 	attach(_runner)
@@ -52,7 +70,7 @@ func _set_up() -> void:
 ## The authored conversation, checked as data before anything walks it. A test that only walks
 ## the happy path passes on a conversation with three broken links in the branches nobody took.
 func _the_catalogue_is_sound() -> void:
-	equal("the gardener exists", DialogueDb.has(TALK), true)
+	equal("the fixture conversation exists", DialogueDb.has(TALK), true)
 	equal("and the catalogue is clean", DialogueDb.problems().size(), 0)
 	var talk: Conversation = DialogueDb.conversation(TALK)
 	equal("its id matches its filename", talk.id, TALK)
@@ -66,7 +84,7 @@ func _the_catalogue_is_sound() -> void:
 func _conditions_choose_the_entry_point() -> void:
 	Flags.clear_all()
 	equal("a stranger is greeted", _runner.begin(TALK), true)
-	equal("with the first-meeting line", _runner.current_node().node_id, &"greet_first")
+	equal("with the first-meeting line", _runner.current_node().node_id, FixtureContent.FIRST_NODE)
 	equal("and dialogue_started was announced", _started, [TALK] as Array[StringName])
 	equal("arriving set the met flag", Flags.get_bool(MET), true)
 	equal("a second begin is refused while running", _runner.begin(TALK), false)
@@ -74,7 +92,7 @@ func _conditions_choose_the_entry_point() -> void:
 	equal("and dialogue_finished was announced", _ended, [TALK] as Array[StringName])
 
 	equal("now the same call greets an acquaintance", _runner.begin(TALK), true)
-	equal("with the other line", _runner.current_node().node_id, &"greet_again")
+	equal("with the other line", _runner.current_node().node_id, FixtureContent.AGAIN_NODE)
 	equal("which counts the visit", Flags.get_int(TALLY), 1)
 	_runner.stop()
 	equal("and again", _runner.begin(TALK), true)
@@ -87,7 +105,7 @@ func _conditions_choose_the_entry_point() -> void:
 ## indexing the wrong one silently takes the wrong branch.
 func _a_hidden_choice_is_omitted_not_disabled() -> void:
 	var talk: Conversation = DialogueDb.conversation(TALK)
-	var menu: DialogueNode = talk.node(&"menu")
+	var menu: DialogueNode = talk.node(FixtureContent.MENU_NODE)
 	equal("the menu exists", menu != null, true)
 	var authored: int = menu.choices.size()
 	equal("it has more than one option", authored > 1, true)
@@ -102,7 +120,7 @@ func _a_hidden_choice_is_omitted_not_disabled() -> void:
 	Flags.clear_all()
 	equal("the conversation opens", _runner.begin(TALK), true)
 	_runner.advance()
-	equal("we are at the menu", _runner.current_node().node_id, &"menu")
+	equal("we are at the menu", _runner.current_node().node_id, FixtureContent.MENU_NODE)
 	var offered: Array[DialogueChoice] = _runner.available_choices()
 	equal("one option is withheld", offered.size(), authored - 1)
 	equal("and it is not the hidden one", offered.has(hidden), false)
@@ -121,7 +139,7 @@ func _a_hidden_choice_is_omitted_not_disabled() -> void:
 ## conversation that stops early.
 func _a_dangling_link_ends_it_rather_than_hanging() -> void:
 	var talk: Conversation = DialogueDb.conversation(TALK)
-	var node: DialogueNode = talk.node(&"who")
+	var node: DialogueNode = talk.node(FixtureContent.ONWARD_NODE)
 	var restore: Array[DialogueChoice] = node.choices.duplicate()
 	var restore_next: StringName = node.next_node
 	node.choices = [] as Array[DialogueChoice]
@@ -131,9 +149,9 @@ func _a_dangling_link_ends_it_rather_than_hanging() -> void:
 	_ended.clear()
 	equal("it opens", _runner.begin(TALK), true)
 	_runner.advance()
-	equal("at the menu", _runner.current_node().node_id, &"menu")
+	equal("at the menu", _runner.current_node().node_id, FixtureContent.MENU_NODE)
 	equal("taking the first branch works", _runner.choose(0), true)
-	equal("we reached the broken node", _runner.current_node().node_id, &"who")
+	equal("we reached the broken node", _runner.current_node().node_id, FixtureContent.ONWARD_NODE)
 	_runner.advance()
 	equal("the dangling link ended it", _runner.is_running(), false)
 	equal("and control was handed back", _ended, [TALK] as Array[StringName])
@@ -150,13 +168,13 @@ func _the_whole_exit_criterion() -> void:
 	_lines.clear()
 
 	equal("it READ the flag and branched", _runner.begin(TALK), true)
-	equal("taking the acquaintance line", _runner.current_node().node_id, &"greet_again")
+	equal("taking the acquaintance line", _runner.current_node().node_id, FixtureContent.AGAIN_NODE)
 	equal("and SET another flag on arrival", Flags.get_int(TALLY), 1)
 	_runner.advance()
-	equal("we are at the branch", _runner.current_node().node_id, &"menu")
+	equal("we are at the branch", _runner.current_node().node_id, FixtureContent.MENU_NODE)
 	equal("every line was announced to the UI", _lines.size(), 2)
 	equal("taking a branch moves us", _runner.choose(1), true)
-	equal("to the node the choice named", _runner.current_node().node_id, &"gate")
+	equal("to the node the choice named", _runner.current_node().node_id, FixtureContent.FINAL_NODE)
 
 	# SAVED MID-CONVERSATION. The conversation is deliberately not persisted: a saved node id
 	# would make every node id in every .tres a permanent public identifier, and renaming one
@@ -200,9 +218,11 @@ func _tear_down() -> void:
 		Events.dialogue_started.disconnect(_on_started)
 	if Events.dialogue_finished.is_connected(_on_ended):
 		Events.dialogue_finished.disconnect(_on_ended)
-	# The .tres resources are CACHED and static, so any field this case edited would leak into
-	# every later case and into the running game. Reloading is the only honest reset.
-	DialogueDb.reload()
+	# Every field this case edits, it edits back, and it has to: the .tres resources are CACHED
+	# by path, so a reload hands back the SAME instance with the edit still on it. Reloading is
+	# still worth doing - it drops the fixture root's entries before the runner restores the
+	# real one - but it is not what undoes an edit.
+	DialogueDb.rescan()
 	Flags.clear_all()
 	_runner = null
 
@@ -213,7 +233,7 @@ func _tear_down() -> void:
 ## the inventory key refuses while a screen is up, so the only way out was killing the process.
 func _a_node_whose_choices_all_fail_still_advances() -> void:
 	var talk: Conversation = DialogueDb.conversation(TALK)
-	var menu: DialogueNode = talk.node(&"menu")
+	var menu: DialogueNode = talk.node(FixtureContent.MENU_NODE)
 	var restore: Array[GameEnums.FlagTest] = []
 	for choice: DialogueChoice in menu.choices:
 		restore.append(choice.condition_test)
@@ -224,7 +244,7 @@ func _a_node_whose_choices_all_fail_still_advances() -> void:
 	_ended.clear()
 	equal("the conversation opens", _runner.begin(TALK), true)
 	_runner.advance()
-	equal("we reach the branch node", _runner.current_node().node_id, &"menu")
+	equal("we reach the branch node", _runner.current_node().node_id, FixtureContent.MENU_NODE)
 	equal("it authored some choices", menu.choices.size() > 0, true)
 	equal("but none are on offer", _runner.available_choices().size(), 0)
 	_runner.advance()

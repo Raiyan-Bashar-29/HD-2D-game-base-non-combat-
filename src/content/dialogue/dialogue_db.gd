@@ -21,6 +21,11 @@ extends RefCounted
 ## RETURNED, never logged, so tools/check_content.gd can use this class under `--script`.
 
 const DIALOGUE_DIR: String = "res://data/dialogue"
+
+## The directory actually scanned. A CONTENT ROOT rather than a constant: a game may keep its
+## conversations somewhere else, and the test fixtures point it at a temp directory so this registry
+## can be proved with no authored content on disk at all. Restore it to DIALOGUE_DIR and reload().
+static var content_dir: String = DIALOGUE_DIR
 const ID_PREFIX: String = "talk/"
 
 static var _by_id: Dictionary[StringName, Conversation] = {}
@@ -60,7 +65,7 @@ static func problems() -> PackedStringArray:
 
 ## Static state survives a scene reload and a new game, which is right for immutable content
 ## and wrong while authoring or testing. Tests and the validator call this.
-static func reload() -> void:
+static func rescan() -> void:
 	_by_id.clear()
 	_problems = PackedStringArray()
 	_loaded = false
@@ -71,7 +76,7 @@ static func _ensure_loaded() -> void:
 	if _loaded:
 		return
 	_loaded = true
-	for path: String in ItemDb.resource_paths(DIALOGUE_DIR):
+	for path: String in ItemDb.resource_paths(content_dir):
 		_register(path)
 	# No conversations is not a problem. Same reasoning as ItemDb, and the same T1.2 finding.
 

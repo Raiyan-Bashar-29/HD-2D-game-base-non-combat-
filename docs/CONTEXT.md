@@ -3,7 +3,8 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-26 · WP-13 complete · branch `claude/wp-13-presentation`
+**Last updated:** 2026-08-26 · WP-13 complete · commit `8ebc7f8` · branch
+`claude/wp-13-presentation`
 **Note:** none of WP-01 through WP-05 or WP-13 is merged to `main`. This branch was cut from
 WP-05's tip, which had itself fast-forwarded WP-01 and WP-02 in from
 `claude/trusting-curran-04a4f9` and `claude/intelligent-wilbur-ae8141`. Merge order is WP-01

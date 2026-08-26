@@ -356,7 +356,8 @@ windowed captures at 13:00 with time and weather frozen, each one opened and loo
 rain and storm are unmistakably three different images, and a soak-to-dry triptych at wetness
 1.0 / 0.5 / 0.0 under an unchanged clear sky shows the ground darkening and coming back.
 
-**Commit:** see `docs/DEVLOG.md`, entry `2026-08-26 — WP-13`.
+**Commit:** `8ebc7f8` on `claude/wp-13-presentation`. See `docs/DEVLOG.md`, entry
+`2026-08-26 — WP-13`.
 
 ---
 

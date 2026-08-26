@@ -1,7 +1,9 @@
-[gd_scene load_steps=33 format=3]
+[gd_scene load_steps=35 format=3]
 
 [ext_resource type="Script" path="res://src/gameplay/world/area_root.gd" id="1_area"]
 [ext_resource type="Script" path="res://src/gameplay/world/environment_driver.gd" id="2_env"]
+[ext_resource type="Script" path="res://src/gameplay/world/weather_visuals.gd" id="20_weather"]
+[ext_resource type="Script" path="res://src/gameplay/world/surface_wetness.gd" id="21_wetness"]
 [ext_resource type="Script" path="res://src/gameplay/camera/hd2d_camera_rig.gd" id="3_cam"]
 [ext_resource type="Texture2D" path="res://assets/placeholder/grass.png" id="4_grass"]
 [ext_resource type="Texture2D" path="res://assets/placeholder/stone.png" id="5_stone"]
@@ -99,7 +101,17 @@ sun = NodePath("../Sun")
 moon = NodePath("../Moon")
 follow_clock = true
 
+[node name="WeatherVisuals" type="Node3D" parent="Environment"]
+script = ExtResource("20_weather")
+extents = Vector3(9, 5, 9)
+height_offset = 5.0
+surfaces = NodePath("../../Terrain/SurfaceWetness")
+announce_changes = true
+
 [node name="Terrain" type="Node3D" parent="." groups=["navmesh_source"]]
+
+[node name="SurfaceWetness" type="Node3D" parent="Terrain"]
+script = ExtResource("21_wetness")
 
 [node name="Ground" type="StaticBody3D" parent="Terrain"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)

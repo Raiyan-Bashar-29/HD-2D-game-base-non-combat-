@@ -97,9 +97,14 @@ Exit criteria:
 - [x] Dialogue runner, dialogue UI, and an authorable conversation format (WP-05)
 - The pause menu itself (the pause mechanism under it landed early, in WP-02)
 - Localization wired for real: every string is already an ID
-- Weather visuals: rain, wet surfaces, ambience layers
+- [x] Weather visuals: rain, snow and wind particles, wet surfaces, ambience layers (WP-13)
 
 Exit criteria:
+- [x] Captures of clear, rain and storm that are visibly different, and wet surfaces that
+      appear and dry out — done 2026-08-26, seven windowed captures at 13:00 with the clock
+      and the weather both frozen: clear, rain, storm, snow, a soak-to-dry triptych at
+      wetness 1.0 / 0.5 / 0.0, and a storm seen from inside the Lantern Hall with not one
+      drop indoors
 - [x] Cross between areas twenty times with no leak in node count or memory — done 2026-08-26,
       `--round-trips=20`: node count exactly flat at 120 across all twenty, memory -12 KiB
 - [x] Trigger two transitions in the same frame and be refused cleanly, with a log line —

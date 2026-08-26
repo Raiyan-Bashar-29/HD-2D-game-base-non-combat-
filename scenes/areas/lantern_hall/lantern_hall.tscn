@@ -1,7 +1,8 @@
-[gd_scene load_steps=18 format=3]
+[gd_scene load_steps=19 format=3]
 
 [ext_resource type="Script" path="res://src/gameplay/world/area_root.gd" id="1_area"]
 [ext_resource type="Script" path="res://src/gameplay/world/environment_driver.gd" id="2_env"]
+[ext_resource type="Script" path="res://src/gameplay/world/weather_visuals.gd" id="10_weather"]
 [ext_resource type="Script" path="res://src/gameplay/camera/hd2d_camera_rig.gd" id="3_cam"]
 [ext_resource type="Texture2D" path="res://assets/placeholder/stone.png" id="4_stone"]
 [ext_resource type="Texture2D" path="res://assets/placeholder/wood.png" id="5_wood"]
@@ -74,6 +75,10 @@ script = ExtResource("2_env")
 world_environment = NodePath("../WorldEnvironment")
 sun = NodePath("../Sun")
 follow_clock = false
+
+[node name="WeatherVisuals" type="Node3D" parent="Environment"]
+script = ExtResource("10_weather")
+announce_changes = false
 
 [node name="Terrain" type="Node3D" parent="." groups=["navmesh_source"]]
 

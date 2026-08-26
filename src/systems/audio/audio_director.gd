@@ -27,6 +27,11 @@ var _music_active_is_a: bool = true
 var _ambience: AudioStreamPlayer = null
 var _current_music_path: String = ""
 
+## The layered environmental bed, for anything that needs more than one sound at once —
+## weather is the first caller. Kept as a child object rather than more methods here, because
+## a mixer that grows a layer per effect is a file that grows without limit.
+var beds: AmbienceBed = null
+
 
 func _ready() -> void:
 	# The players below already opt out of pause individually, but the cross-fade tweens are
@@ -38,6 +43,9 @@ func _ready() -> void:
 	_music_a = _make_player("Music", "MusicA")
 	_music_b = _make_player("Music", "MusicB")
 	_ambience = _make_player("Ambience", "Ambience")
+	beds = AmbienceBed.new()
+	beds.name = "Beds"
+	add_child(beds)
 	Events.setting_changed.connect(_on_setting_changed)
 	_apply_all_volumes()
 	Log.info("audio", "Buses ready: Master + %s" % ", ".join(BUSES))

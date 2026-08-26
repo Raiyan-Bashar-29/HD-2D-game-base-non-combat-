@@ -63,13 +63,24 @@ shader warm-up behind black · a dialogue runner with conditions, branches and e
 non-pausing dialogue box with a typewriter reveal · an authorable .tres conversation format ·
 a navmesh baked from each area's own geometry · an NPC that keeps a timetable and can be
 talked to · schedules as authored data · path actions with a standing that gates them and
-that they move.
+that they move Â· **weather you can see**: generated rain, snow and wind emitters driven by
+`Weather.intensity()`, surfaces that darken and gain a wet clearcoat and then dry out over
+twenty-six seconds, and a layered ambience bed on procedurally generated noise.
 
 **Not built:** quests · the pause, main, settings, save and journal screens
 (WP-12) · hard-coded-string audit · weather visuals · item instances (durability) · equipment ·
 item tooltips, sorting and drag-and-drop.
 
 ## Known defects
+
+**Fixed 2026-08-26 in WP-13, both found by running it and neither by a static gate:**
+
+1. **`SurfaceWetness` was driven before it had collected anything to drive.** `WeatherVisuals`
+   readies before it, and `apply()` skips a value that has not moved â so arriving in an area
+   mid-downpour would have shown a dry courtyard forever. Found by reading the line ORDER in the
+   boot log, not by a failing test.
+2. **Every `play()` against the Dummy audio driver leaks an instance.** See the audio gotcha.
+
 
 **Fixed 2026-08-26 in WP-06. Three found by running it, eight more by an independent
 adversarial review of code that had already passed every gate:**
@@ -245,6 +256,17 @@ three compiled cleanly and passed every static gate:**
 - **A UI takes a dialogue choice by IDENTITY, never by index.** `take(choice)`, not
   `choose(index)`. A conversation leaves the world running, so any flag written while the box is
   open can shift every index under the player's finger.
+- **`Weather` renders NOTHING, and `WeatherVisuals` decides NOTHING.** Every number in the
+  visuals is read from `Weather`; the toast on a change is emitted by the visuals, so the state
+  machine still does not know a screen exists.
+- **A weather emitter is TOLD its weight; it never polls.** One that read `Weather` itself would
+  be a second place the rules live, and the two would disagree mid cross-fade.
+- **Weather particles are GENERATED, never authored.** Art is deferred indefinitely, so a rain
+  texture is a dependency this project will not take.
+- **`SurfaceWetness` duplicates every material it touches**, or a scene's shared sub-resources
+  would leave the courtyard wet after a reload on a clear day.
+- **Wetness is a pure `RefCounted`, not a node field**, because drying is the only part with
+  memory and no assertion can wait for a `_process` frame.
 - **A REFUSAL and a FAILURE are different things.** A refusal happens before anything: the
   player is told why and nothing changes. A failure happens after committing: the action ran, it
   did not work, and it COST something. An action that could only refuse is a lock with extra
@@ -292,7 +314,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 55 -- --shot=<path> --time=18:40 --freeze-time
 ```
 
-## Twenty gotchas that each cost an hour
+## Twenty-one gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -370,7 +392,13 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     forever. Keep the climb limit below anything the body cannot manage. Related: do not ask the
     navigation map anything before it has synchronised — an unsynchronised map answers
     "unreachable" to everything, and acting on that answer strands an agent at the origin.
-20. **An asynchronous system needs a PERSISTENCE test, not just a delay before you ask it.**
+20. **Under `--headless` the audio driver is `Dummy`, and every `play()` against it LEAKS.**
+    The AudioServer releases a stopped playback on the next mix and headless quits before there
+    is one, so each `play()` shows up as a leaked ObjectDB instance along with its stream.
+    Stopping the player and nulling its stream in `_exit_tree` does NOT help â the server owns
+    the playback. Anything that starts a sound gates on `AmbienceBed.is_audible()`, which reads
+    `AudioServer.get_driver_name()`: measured as `Dummy` headless, `WASAPI` windowed.
+21. **An asynchronous system needs a PERSISTENCE test, not just a delay before you ask it.**
     `NavigationAgent3D` recomputes its path over frames, so the frame after a target moves it
     answers "unreachable" to a question it has not finished thinking about. WP-06 added a delay
     before the first question and it was still wrong â the keeper reported "cannot reach" in

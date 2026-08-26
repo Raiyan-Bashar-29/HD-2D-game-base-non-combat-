@@ -22,6 +22,12 @@ extends Node
 ##   --freeze-time        stop the clock, so a capture is reproducible to the pixel.
 ##   --skip-to-hour=<int> perform the same time skip a rest point does, after --time.
 ##   --weather=<KIND>     force weather. Any GameEnums.WeatherKind name.
+##   --wet=<0..1>         set how soaked the ground is, skipping the eight-second soak. A
+##                        capture lasts under a second, so without this every rain shot would
+##                        photograph a courtyard that has only just started getting wet.
+##   --dry-for=<seconds>  then run the wetness forward that many simulated seconds under the
+##                        current weather. --wet=1 --weather=CLEAR --dry-for=20 photographs a
+##                        specific moment of a dry-out that really takes twenty-six seconds.
 ##
 ## The scenario probes — --goto, --give, --talk, --round-trips, --npc-day and the rest — are
 ## documented in dev_probes.gd, which owns them.
@@ -43,6 +49,9 @@ var _shot_path: String = ""
 var _shot_frame: int = DEFAULT_SHOT_FRAME
 var _frames: int = 0
 var _captured: bool = false
+## Negative means "--wet was not passed", which is not the same as --wet=0.
+var _wet_to: float = -1.0
+var _dry_seconds: float = 0.0
 
 
 func _ready() -> void:
@@ -104,6 +113,14 @@ func _parse_arguments() -> void:
 			_skip_to_hour(argument.trim_prefix("--skip-to-hour="))
 		elif argument.begins_with("--weather="):
 			_force_weather(argument.trim_prefix("--weather="))
+		elif argument.begins_with("--wet="):
+			_wet_to = clampf(argument.trim_prefix("--wet=").to_float(), 0.0, 1.0)
+		elif argument.begins_with("--dry-for="):
+			_dry_seconds = maxf(0.0, argument.trim_prefix("--dry-for=").to_float())
+	# Both wetness flags are served by ONE coroutine, deliberately. Two would each await the
+	# area load and then race to resume, so --dry-for could run before --wet had soaked.
+	if _wet_to >= 0.0 or _dry_seconds > 0.0:
+		_soak_and_dry()
 
 
 
@@ -123,6 +140,27 @@ func _force_weather(value: String) -> void:
 		return
 	Weather.force(index as GameEnums.WeatherKind)
 	Log.info("test", "Weather forced to %s by command line" % value.to_upper())
+
+
+## Pose the wetness for a capture. Goes through WeatherVisuals rather than writing a material,
+## so what is photographed is the real path: the same soak() a save-load will call and the same
+## evaporate() the dry-out runs on, not a screenshot posed by hand.
+func _soak_and_dry() -> void:
+	while Director.current_area_id == &"":
+		await get_tree().process_frame
+	await _settled()
+	var found: Node = get_tree().root.find_child("WeatherVisuals", true, false)
+	var visuals: WeatherVisuals = found as WeatherVisuals
+	if visuals == null:
+		Log.error("test", "--wet/--dry-for found no WeatherVisuals in the tree")
+		return
+	if _wet_to >= 0.0:
+		visuals.soak(_wet_to)
+	if _dry_seconds > 0.0:
+		visuals.evaporate(_dry_seconds)
+	Log.info("test", "--wet %.2f --dry-for %.1fs left wetness at %.3f" % [
+		_wet_to, _dry_seconds, visuals.wetness(),
+	])
 
 
 ## The same time skip a rest point performs, reachable from the command line, so a before and

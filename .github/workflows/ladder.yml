@@ -87,9 +87,13 @@ jobs:
       # ZERO TOLERANCE. Not a threshold, not a warning: a single match fails the run.
       - name: Rung 2 - import, zero SCRIPT ERROR / Parse Error
         run: |
+          # GitHub runs every run: block as `bash -e {0}`, so errexit is ON no matter what is
+          # set here - the first attempt at this step printed nothing but "exit code 1" for that
+          # reason. A command on the left of `||` is exempt from errexit, which is why the status
+          # is captured that way and not with a bare `$?`.
           set -uo pipefail
-          godot --headless --import > import.log 2>&1
-          status=$?
+          status=0
+          godot --headless --import > import.log 2>&1 || status=$?
           echo "--- last 20 lines of import.log ---"
           tail -n 20 import.log
           echo "--- godot --headless --import exited ${status} ---"
@@ -114,9 +118,12 @@ jobs:
       # load is not.
       - name: Rung 3 - boot, 0 warnings 0 errors
         run: |
-          set -euo pipefail
-          godot --headless --quit-after 300 > boot.log 2>&1
-          echo "--- last 10 lines of boot.log ---"
+          # Status captured via `||` for the same errexit reason as rung 2: a boot that dies must
+          # still get as far as printing the tail of its own log.
+          set -uo pipefail
+          status=0
+          godot --headless --quit-after 300 > boot.log 2>&1 || status=$?
+          echo "--- last 10 lines of boot.log (engine exited ${status}) ---"
           tail -n 10 boot.log
           ended="$(grep 'Session ended' boot.log | tail -n 1 || true)"
           if [ -z "${ended}" ]; then
@@ -128,6 +135,10 @@ jobs:
             *"0 warnings, 0 errors"*) echo "Clean session." ;;
             *) echo "::error::The boot logged warnings or errors."; exit 1 ;;
           esac
+          if [ "${status}" -ne 0 ]; then
+            echo "::error::The boot reported a clean session and then exited ${status}."
+            exit 1
+          fi
 
       # === RUNG 4 - THE SUITE.
       # The exit code is the gate, and it is trustworthy for a specific reason: the runner ARMS
@@ -145,9 +156,13 @@ jobs:
       # had the answer and the step did not, which is a step that fails without saying why.
       - name: Rung 4 - test suite
         run: |
+          # GitHub runs every run: block as `bash -e {0}`, so errexit is ON no matter what is
+          # set here - the first attempt at this step printed nothing but "exit code 1" for that
+          # reason. A command on the left of `||` is exempt from errexit, which is why the status
+          # is captured that way and not with a bare `$?`.
           set -uo pipefail
-          godot --headless res://tests/test_runner.tscn --quit-after 400 > tests.log 2>&1
-          status=$?
+          status=0
+          godot --headless res://tests/test_runner.tscn --quit-after 400 > tests.log 2>&1 || status=$?
           grep -E '=== [0-9]+ passed' tests.log || echo "no summary line: the suite died before reporting"
           grep -E 'FAILED:' tests.log || true
           if [ "${status}" -ne 0 ]; then
@@ -212,9 +227,13 @@ jobs:
 
       - name: Rung 2 - import, zero SCRIPT ERROR / Parse Error
         run: |
+          # GitHub runs every run: block as `bash -e {0}`, so errexit is ON no matter what is
+          # set here - the first attempt at this step printed nothing but "exit code 1" for that
+          # reason. A command on the left of `||` is exempt from errexit, which is why the status
+          # is captured that way and not with a bare `$?`.
           set -uo pipefail
-          godot --headless --import > import.log 2>&1
-          status=$?
+          status=0
+          godot --headless --import > import.log 2>&1 || status=$?
           echo "--- last 20 lines of import.log ---"
           tail -n 20 import.log
           if grep -nE 'SCRIPT ERROR|Parse Error' import.log; then
@@ -234,9 +253,13 @@ jobs:
       # a third less - the exact confusion `TestCase.skip()` was added to prevent.
       - name: Rung 4 - test suite, and the skips are named
         run: |
+          # GitHub runs every run: block as `bash -e {0}`, so errexit is ON no matter what is
+          # set here - the first attempt at this step printed nothing but "exit code 1" for that
+          # reason. A command on the left of `||` is exempt from errexit, which is why the status
+          # is captured that way and not with a bare `$?`.
           set -uo pipefail
-          godot --headless res://tests/test_runner.tscn --quit-after 400 > tests.log 2>&1
-          status=$?
+          status=0
+          godot --headless res://tests/test_runner.tscn --quit-after 400 > tests.log 2>&1 || status=$?
           grep -E '=== [0-9]+ passed' tests.log || echo "no summary line: the suite died before reporting"
           grep -E 'FAILED:' tests.log || true
           if [ "${status}" -ne 0 ]; then

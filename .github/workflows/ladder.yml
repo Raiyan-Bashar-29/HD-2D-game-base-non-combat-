@@ -138,11 +138,22 @@ jobs:
       # DO NOT ADD A `0 errors` CHECK HERE. This run legitimately logs warnings and errors: the
       # negative-path cases raise them deliberately. The summary line and the exit code are the
       # only things that mean anything.
+      #
+      # THE STATUS IS CAPTURED RATHER THAN LEFT TO `set -e`, and the reason was measured: the
+      # first red run of this workflow reported nothing but `Process completed with exit code 1`,
+      # because `set -e` aborted the step before the line that prints the summary. The artefact
+      # had the answer and the step did not, which is a step that fails without saying why.
       - name: Rung 4 - test suite
         run: |
-          set -euo pipefail
+          set -uo pipefail
           godot --headless res://tests/test_runner.tscn --quit-after 400 > tests.log 2>&1
-          grep -E '=== [0-9]+ passed' tests.log
+          status=$?
+          grep -E '=== [0-9]+ passed' tests.log || echo "no summary line: the suite died before reporting"
+          grep -E 'FAILED:' tests.log || true
+          if [ "${status}" -ne 0 ]; then
+            echo "::error::The suite failed. The FAILED lines above name the assertions."
+            exit 1
+          fi
 
       - name: Rung 5 - check_budgets
         run: godot --headless --script tools/check_budgets.gd
@@ -223,9 +234,15 @@ jobs:
       # a third less - the exact confusion `TestCase.skip()` was added to prevent.
       - name: Rung 4 - test suite, and the skips are named
         run: |
-          set -euo pipefail
+          set -uo pipefail
           godot --headless res://tests/test_runner.tscn --quit-after 400 > tests.log 2>&1
-          grep -E '=== [0-9]+ passed' tests.log
+          status=$?
+          grep -E '=== [0-9]+ passed' tests.log || echo "no summary line: the suite died before reporting"
+          grep -E 'FAILED:' tests.log || true
+          if [ "${status}" -ne 0 ]; then
+            echo "::error::The suite failed with the demo content deleted. The FAILED lines above name the assertions."
+            exit 1
+          fi
           named="$(grep -c 'SKIPPED:' tests.log || true)"
           echo "named skips: ${named}"
           if [ "${named}" -eq 0 ]; then

@@ -20,7 +20,10 @@ extends Label
 
 const LOADING_KEY: String = "ui.loading.working"
 const PROGRESS_KEY: String = "ui.loading.progress"
-const FONT_SIZE: int = 20
+## The theme role this readout draws in. Its size and colour come from `gui/theme/custom` —
+## see assets/theme/ui_theme.tres. Until T2.1 the size was a constant here.
+const VARIATION: StringName = &"LoadingText"
+const PALETTE: StringName = &"UiPalette"
 
 
 func _ready() -> void:
@@ -33,6 +36,8 @@ func _ready() -> void:
 	offset_bottom = -30.0
 	offset_right = -32.0
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	theme_type_variation = VARIATION
+	add_theme_color_override(&"font_color", get_theme_color(&"accent", PALETTE))
 	text = ""
 	visible = false
 

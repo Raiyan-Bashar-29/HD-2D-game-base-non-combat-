@@ -27,13 +27,18 @@ const ROW_KEY: String = "ui.inventory.row"
 const UNKNOWN_KEY: String = "ui.inventory.unknown"
 const CATEGORY_PREFIX: String = "item.category."
 
-const DIM: Color = Color(0.04, 0.03, 0.06, 0.78)
-const HEADING_TINT: Color = Color(0.86, 0.74, 0.52)
-const TITLE_SIZE: int = 40
-const HEADING_SIZE: int = 20
-const ROW_SIZE: int = 24
-const HINT_SIZE: int = 18
-const MARGIN: int = 64
+## Theme lookups, named once so a typo cannot become a control that silently draws black. Every
+## size, colour and inset this screen uses comes from `gui/theme/custom` — see
+## assets/theme/ui_theme.tres. Until T2.1 they were constants right here, and every one of the
+## seven also appeared in menu_screen.gd, dialogue_screen.gd or both.
+const PALETTE: StringName = &"UiPalette"
+const METRICS: StringName = &"UiMetrics"
+const TITLE_VARIATION: StringName = &"TitleText"
+const HEADING_VARIATION: StringName = &"NoteText"
+const ROW_VARIATION: StringName = &"MenuRow"
+const HINT_VARIATION: StringName = &"HintText"
+const TEXT_COLOUR: StringName = &"text"
+const ACCENT_COLOUR: StringName = &"accent"
 
 var _list: VBoxContainer = null
 var _inventory: Inventory = null
@@ -61,14 +66,14 @@ static func for_carrier(who: Node) -> InventoryScreen:
 func _build() -> void:
 	add_child(_dim_panel())
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override(&"separation", 12)
-	column.add_child(_label(TITLE_KEY, TITLE_SIZE, Color.WHITE))
+	column.add_theme_constant_override(&"separation", get_theme_constant(&"separation", METRICS))
+	column.add_child(_label(TITLE_KEY, TITLE_VARIATION, TEXT_COLOUR))
 	column.add_child(_scroller())
-	column.add_child(_label(HINT_KEY, HINT_SIZE, HEADING_TINT))
+	column.add_child(_label(HINT_KEY, HINT_VARIATION, ACCENT_COLOUR))
 	var margin := MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side: StringName in [&"margin_left", &"margin_right", &"margin_top", &"margin_bottom"]:
-		margin.add_theme_constant_override(side, MARGIN)
+		margin.add_theme_constant_override(side, get_theme_constant(&"margin", METRICS))
 	margin.add_child(column)
 	add_child(margin)
 
@@ -101,7 +106,7 @@ func refresh() -> void:
 	if _inventory != null:
 		ids = _inventory.ids()
 	if ids.is_empty():
-		_list.add_child(_label(EMPTY_KEY, ROW_SIZE, Color.WHITE))
+		_list.add_child(_label(EMPTY_KEY, ROW_VARIATION, TEXT_COLOUR))
 		return
 	_fill(ids)
 	_focus_first()
@@ -116,7 +121,7 @@ func _fill(ids: Array[StringName]) -> void:
 		var heading: String = _category_key(definition)
 		if heading != last:
 			last = heading
-			_list.add_child(_label(heading, HEADING_SIZE, HEADING_TINT))
+			_list.add_child(_label(heading, HEADING_VARIATION, ACCENT_COLOUR))
 		_list.add_child(_row(item_id, definition))
 
 
@@ -126,7 +131,7 @@ func _fill(ids: Array[StringName]) -> void:
 func _row(item_id: StringName, definition: ItemDefinition) -> Button:
 	var name_key: String = definition.name_key if definition != null else UNKNOWN_KEY
 	var button := Button.new()
-	button.add_theme_font_size_override(&"font_size", ROW_SIZE)
+	button.theme_type_variation = ROW_VARIATION
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	button.text = tr(ROW_KEY).format({
 		"item": tr(name_key).format({"id": String(item_id)}),
@@ -160,7 +165,7 @@ func _category_key(definition: ItemDefinition) -> String:
 func _dim_panel() -> ColorRect:
 	var rect := ColorRect.new()
 	rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	rect.color = DIM
+	rect.color = get_theme_color(&"dim", PALETTE)
 	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return rect
 
@@ -170,15 +175,17 @@ func _scroller() -> ScrollContainer:
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_list = VBoxContainer.new()
 	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_list.add_theme_constant_override(&"separation", 6)
+	_list.add_theme_constant_override(&"separation", get_theme_constant(&"tight_separation", METRICS))
 	scroll.add_child(_list)
 	return scroll
 
 
-func _label(key: String, size: int, tint: Color) -> Label:
+## A label in one of the theme's roles. The variation carries the size, the palette the colour —
+## see assets/theme/ui_theme.tres for why those are not the same entry.
+func _label(key: String, variation: StringName, colour: StringName) -> Label:
 	var label := Label.new()
 	label.text = tr(key)
-	label.add_theme_font_size_override(&"font_size", size)
-	label.add_theme_color_override(&"font_color", tint)
+	label.theme_type_variation = variation
+	label.add_theme_color_override(&"font_color", get_theme_color(colour, PALETTE))
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return label

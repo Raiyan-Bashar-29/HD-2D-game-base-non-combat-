@@ -27,6 +27,25 @@ const FRAMES: int = 4
 # SOUTH, SOUTH_EAST, EAST, NORTH_EAST, NORTH, NORTH_WEST, WEST, SOUTH_WEST
 const SHOWS_FACE: Array[bool] = [true, true, false, false, false, false, false, true]
 
+# THE SECOND SHEET, and it exists to be a DIFFERENT SHAPE rather than a second character.
+# T2.1's headline claim is that a game swaps in a sheet with another cell and frame count and
+# edits no code, so the proof needs a sheet that disagrees with the first one on every number:
+# 4 facings not 8, a 24x40 cell not 32x48, and 3 frames in each of TWO animation blocks rather
+# than 4 frames in one. Its layout is assets/placeholder/character_alt_layout.tres.
+#
+# EVERY CELL IS SELF-LABELLING, which is the point. A character drawn from the wrong cell still
+# looks like a character (gotcha 2, in the one form headless cannot answer), so each cell carries
+# a column tally down its left edge and a frame tally along its foot. A windowed capture can then
+# be READ rather than judged: three left pips and two foot pips is column 2, frame 1, and no
+# amount of plausible-looking pixel art can fake that.
+const ALT_CELL: Vector2i = Vector2i(24, 40)
+const ALT_DIRECTIONS: int = 4
+const ALT_FRAMES: int = 3
+const ALT_ANIMATIONS: int = 2
+## Idle wears the first colour, walk the second, so which BLOCK is playing reads at a glance.
+const ALT_BLOCK_TINT: Array[Color] = [Color(0.28, 0.55, 0.42), Color(0.72, 0.38, 0.22)]
+const PIP: Color = Color(1.0, 0.95, 0.35)
+
 const SKIN: Color = Color(0.85, 0.68, 0.52)
 const CLOTH: Color = Color(0.30, 0.45, 0.62)
 const CLOTH_DARK: Color = Color(0.20, 0.31, 0.44)
@@ -43,6 +62,7 @@ func _initialize() -> void:
 		return
 
 	_save(_build_character_sheet(), "character_placeholder.png")
+	_save(_build_alt_sheet(), "character_alt.png")
 	_save(_build_grid(256, 32, Color(0.42, 0.44, 0.38), Color(0.36, 0.38, 0.33)), "ground_grid.png")
 	_save(_build_grid(128, 16, Color(0.55, 0.52, 0.47), Color(0.47, 0.44, 0.40)), "stone.png")
 	_save(_build_noise(128, Color(0.33, 0.42, 0.26), Color(0.24, 0.33, 0.19)), "grass.png")
@@ -156,3 +176,43 @@ func _save(image: Image, file_name: String) -> void:
 		print("  wrote %-30s %dx%d" % [file_name, image.get_width(), image.get_height()])
 	else:
 		print("  FAILED %s: %s" % [file_name, error_string(err)])
+
+
+## The second sheet: 4 facings across, and 3 frames down in each of 2 animation blocks, so the
+## rows run idle.0 idle.1 idle.2 walk.0 walk.1 walk.2. See ALT_CELL for why it exists.
+func _build_alt_sheet() -> Image:
+	var rows: int = ALT_FRAMES * ALT_ANIMATIONS
+	var sheet: Image = Image.create(
+		ALT_CELL.x * ALT_DIRECTIONS, ALT_CELL.y * rows, false, Image.FORMAT_RGBA8
+	)
+	sheet.fill(Color(0, 0, 0, 0))
+	for column: int in ALT_DIRECTIONS:
+		for row: int in rows:
+			var origin: Vector2i = Vector2i(column * ALT_CELL.x, row * ALT_CELL.y)
+			_draw_alt_cell(sheet, origin, column, row / ALT_FRAMES, row % ALT_FRAMES)
+	return sheet
+
+
+## One labelled figure. Simple on purpose: a readable body, an animation tint, and the two pip
+## tallies that let a capture be read rather than believed.
+func _draw_alt_cell(image: Image, origin: Vector2i, column: int, block: int, frame: int) -> void:
+	var tint: Color = ALT_BLOCK_TINT[block]
+	# Idle bobs by a pixel; walk swings its legs. Two visibly different cycles.
+	var bob: int = 0 if block == 1 else [0, 1, 0][frame]
+	var swing: int = [0, 2, -2][frame] if block == 1 else 0
+
+	_rect(image, origin + Vector2i(9, 28 + swing), Vector2i(3, 9), BOOT)
+	_rect(image, origin + Vector2i(13, 28 - swing), Vector2i(3, 9), BOOT)
+	_rect(image, origin + Vector2i(8, 14 + bob), Vector2i(9, 15), tint)
+	_disc(image, origin + Vector2i(12, 9 + bob), 5, SKIN)
+	_rect(image, origin + Vector2i(7, 3 + bob), Vector2i(11, 4), HAIR)
+	# Eyes only on column 0, which is towards the camera in a four-facing sheet.
+	if column == 0:
+		_rect(image, origin + Vector2i(10, 9 + bob), Vector2i(2, 2), EYE)
+		_rect(image, origin + Vector2i(14, 9 + bob), Vector2i(2, 2), EYE)
+
+	# column + 1 pips down the left edge, frame + 1 pips along the foot.
+	for pip: int in column + 1:
+		_rect(image, origin + Vector2i(1, 2 + pip * 4), Vector2i(2, 2), PIP)
+	for pip: int in frame + 1:
+		_rect(image, origin + Vector2i(2 + pip * 4, ALT_CELL.y - 3), Vector2i(2, 2), PIP)

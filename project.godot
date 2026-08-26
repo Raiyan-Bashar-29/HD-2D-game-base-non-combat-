@@ -86,6 +86,14 @@ window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/vsync/vsync_mode=1
 
+[gui]
+
+; THE ART CONTRACT SEAM FOR THE UI (T2.1). Every font size, colour and inset the UI draws with
+; lives in this one resource, so a consuming game restyles the whole interface by editing it or by
+; pointing this setting at its own. Before T2.1 the look was constants inside five screen files.
+; The theme's own header explains its shape and why the palette is not copied into the variations.
+theme/custom="res://assets/theme/ui_theme.tres"
+
 [rendering]
 
 ; Forward+ is required: the HD-2D look depends on real-time shadows, volumetric fog,

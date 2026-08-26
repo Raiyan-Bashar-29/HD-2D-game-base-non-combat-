@@ -17,7 +17,10 @@ extends Label
 
 const CLOCK_KEY: String = "ui.hud.clock"
 const PHASE_PREFIX: String = "time.phase."
-const FONT_SIZE: int = 22
+## The theme role this readout draws in. Its size and colour come from `gui/theme/custom` —
+## see assets/theme/ui_theme.tres. Until T2.1 the size was a constant here.
+const VARIATION: StringName = &"HudText"
+const PALETTE: StringName = &"UiPalette"
 
 
 func _ready() -> void:
@@ -30,7 +33,8 @@ func _ready() -> void:
 	offset_bottom = 72.0
 	offset_right = -32.0
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_theme_font_size_override(&"font_size", FONT_SIZE)
+	theme_type_variation = VARIATION
+	add_theme_color_override(&"font_color", get_theme_color(&"text", PALETTE))
 
 	Events.minute_passed.connect(_on_minute_passed)
 	_redraw(Clock.day, Clock.hour, Clock.minute)

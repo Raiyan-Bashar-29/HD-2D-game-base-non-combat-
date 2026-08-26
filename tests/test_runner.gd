@@ -52,6 +52,7 @@ const CASES: Array[String] = [
 	"res://tests/unit/menus_test.gd",
 	"res://tests/unit/options_test.gd",
 	"res://tests/unit/export_test.gd",
+	"res://tests/unit/art_contract_test.gd",
 ]
 
 var _passed: int = 0

@@ -24,18 +24,23 @@ extends UiScreen
 const SCREEN_ID: StringName = &"dialogue"
 const CONTINUE_KEY: String = "ui.dialogue.continue"
 
-const DIM: Color = Color(0.03, 0.02, 0.05, 0.72)
 ## Tall enough for a speaker, two wrapped lines and four choices at once. Sized from the
 ## WORST case rather than the common one: the box is anchored to the bottom, so anything that
 ## does not fit is clipped off the bottom edge of the screen where nobody can scroll to it. A
 ## capture caught the third of three choices half cut off at 260.
 const BOX_HEIGHT: float = 380.0
-const SPEAKER_TINT: Color = Color(0.90, 0.78, 0.55)
-const SPEAKER_SIZE: int = 24
-const LINE_SIZE: int = 26
-const CHOICE_SIZE: int = 22
-const HINT_SIZE: int = 16
-const MARGIN: int = 36
+## Theme lookups, named once so a typo cannot become a control that silently draws black. Every
+## size, colour and inset this screen uses comes from `gui/theme/custom` — see
+## assets/theme/ui_theme.tres. Until T2.1 they were constants right here, and the same accent
+## colour and the same 24pt were also written out in menu_screen.gd and inventory_screen.gd.
+const PALETTE: StringName = &"UiPalette"
+const METRICS: StringName = &"UiMetrics"
+const SPEAKER_VARIATION: StringName = &"SpeakerText"
+const LINE_VARIATION: StringName = &"DialogueText"
+const CHOICE_VARIATION: StringName = &"ChoiceRow"
+const HINT_VARIATION: StringName = &"HintText"
+const TEXT_COLOUR: StringName = &"text"
+const ACCENT_COLOUR: StringName = &"accent"
 ## Characters revealed per second at a text_speed of 1.0. Fast enough to read along with,
 ## slow enough that the reveal is visible at all.
 const CHARS_PER_SECOND: float = 45.0
@@ -71,14 +76,16 @@ func _build() -> void:
 	add_child(_dim_panel())
 
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override(&"separation", 10)
-	_speaker = _label("", SPEAKER_SIZE, SPEAKER_TINT)
-	_line = _label("", LINE_SIZE, Color.WHITE)
+	column.add_theme_constant_override(&"separation", get_theme_constant(&"separation", METRICS))
+	_speaker = _label("", SPEAKER_VARIATION, ACCENT_COLOUR)
+	_line = _label("", LINE_VARIATION, TEXT_COLOUR)
 	_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_line.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_choice_box = VBoxContainer.new()
-	_choice_box.add_theme_constant_override(&"separation", 4)
-	_hint = _label(tr(CONTINUE_KEY), HINT_SIZE, SPEAKER_TINT)
+	_choice_box.add_theme_constant_override(
+		&"separation", get_theme_constant(&"tight_separation", METRICS)
+	)
+	_hint = _label(tr(CONTINUE_KEY), HINT_VARIATION, ACCENT_COLOUR)
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	column.add_child(_speaker)
 	column.add_child(_line)
@@ -91,7 +98,7 @@ func _build() -> void:
 	frame.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	frame.offset_top = -BOX_HEIGHT
 	for side: StringName in [&"margin_left", &"margin_right", &"margin_top", &"margin_bottom"]:
-		frame.add_theme_constant_override(side, MARGIN)
+		frame.add_theme_constant_override(side, get_theme_constant(&"box_margin", METRICS))
 	frame.add_child(column)
 	add_child(frame)
 
@@ -156,7 +163,7 @@ func _choice_button(choice: DialogueChoice) -> Button:
 	var button := Button.new()
 	button.text = tr(choice.text_key)
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	button.add_theme_font_size_override(&"font_size", CHOICE_SIZE)
+	button.theme_type_variation = CHOICE_VARIATION
 	# Bound to the CHOICE, not to its index. The world keeps running behind this box, so a flag
 	# written between building the button and pressing it can change which options are available
 	# and shift every index by one - and the player would take a branch they did not pick.
@@ -199,16 +206,18 @@ func _dim_panel() -> ColorRect:
 	var rect := ColorRect.new()
 	rect.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	rect.offset_top = -BOX_HEIGHT
-	rect.color = DIM
+	rect.color = get_theme_color(&"dim", PALETTE)
 	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return rect
 
 
-func _label(text_value: String, size: int, tint: Color) -> Label:
+## A label in one of the theme's roles. The variation carries the size, the palette the colour —
+## see assets/theme/ui_theme.tres for why those are not the same entry.
+func _label(text_value: String, variation: StringName, colour: StringName) -> Label:
 	var label := Label.new()
 	label.text = text_value
-	label.add_theme_font_size_override(&"font_size", size)
-	label.add_theme_color_override(&"font_color", tint)
+	label.theme_type_variation = variation
+	label.add_theme_color_override(&"font_color", get_theme_color(colour, PALETTE))
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return label
 

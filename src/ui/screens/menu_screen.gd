@@ -19,34 +19,29 @@ extends UiScreen
 ## MUST NOT: pause the tree, lock the player, know what a row means, or know what else is on
 ## the stack. It declares pauses_world like any UiScreen and UiRoot does the rest.
 
-const TITLE_SIZE: int = 40
-const ROW_SIZE: int = 24
-const NOTE_SIZE: int = 20
-const HINT_SIZE: int = 18
-const TINT: Color = Color(0.86, 0.74, 0.52)
-## Translucent, for a menu over a live world: the frozen world stays visible behind it, which
-## is how a capture shows that opening the menu stopped the world rather than left it running.
-const DIM: Color = Color(0.04, 0.03, 0.06, 0.78)
-## Opaque, for a menu with no world behind it. It also has to cover the HUD, which is drawn
-## UNDER UiRoot and would otherwise show a clock through the main menu of a game not started.
-const SOLID: Color = Color(0.04, 0.03, 0.06, 1.0)
-## Top and bottom inset. The sides get their own, much larger, value: the design resolution is
-## 1920 wide and a row stretched across all of it is unreadable and looks like a table. Equal
-## side margins are a centred fixed-width column, and `canvas_items` stretch keeps the logical
-## size at 1920 whatever the window is doing, so these are stable numbers rather than guesses.
-const MARGIN: int = 64
-const SIDE_MARGIN: int = 560
-const SEPARATION: int = 14
-const ROW_SEPARATION: int = 8
+## Theme lookups, named once so a typo is a parse-time missing constant rather than a control
+## that silently draws black. Every size, colour and inset this screen uses comes from
+## `gui/theme/custom` — see assets/theme/ui_theme.tres. Until T2.1 they were constants here, in
+## dialogue_screen.gd, in inventory_screen.gd and in two HUD files, several of them twice over.
+const PALETTE: StringName = &"UiPalette"
+const METRICS: StringName = &"UiMetrics"
+const TITLE_VARIATION: StringName = &"TitleText"
+const ROW_VARIATION: StringName = &"MenuRow"
+const NOTE_VARIATION: StringName = &"NoteText"
+const HINT_VARIATION: StringName = &"HintText"
+const TEXT_COLOUR: StringName = &"text"
+const ACCENT_COLOUR: StringName = &"accent"
+
 ## How long the curtain takes to fall when a row hands control back to the world. Short: it is
-## a menu closing, not a journey.
+## a menu closing, not a journey. Timing, not look, so it stays here and out of the theme.
 const DEPART_FADE: float = 0.25
 
 ## What the title says. A localization key, never player-facing text.
 var title_key: String = ""
 ## The line under the column, usually how to leave. Empty means no hint line at all.
 var hint_key: String = ""
-## See DIM and SOLID above.
+## Which panel colour to use: the theme's `solid` or `dim`. Opaque for a menu with no world
+## behind it, translucent for one over a frozen world that should stay visible.
 var opaque: bool = false
 
 ## The column the rows live in. Exposed rather than hidden so a test can read what is actually
@@ -57,20 +52,20 @@ var rows: VBoxContainer = null
 func _build() -> void:
 	add_child(_panel())
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override(&"separation", SEPARATION)
-	column.add_child(_line(tr(title_key), TITLE_SIZE, Color.WHITE))
+	column.add_theme_constant_override(&"separation", get_theme_constant(&"separation", METRICS))
+	column.add_child(_line(tr(title_key), TITLE_VARIATION, TEXT_COLOUR))
 	column.add_child(_scroller())
 	if hint_key != "":
-		column.add_child(_line(tr(hint_key), HINT_SIZE, TINT))
+		column.add_child(_line(tr(hint_key), HINT_VARIATION, ACCENT_COLOUR))
 
 	var frame := MarginContainer.new()
 	# _and_offsets_ matters: set_anchors_preset alone leaves every offset at zero, giving a
 	# full-anchored Control of zero size whose children lay out off the top-left corner.
 	frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side: StringName in [&"margin_top", &"margin_bottom"]:
-		frame.add_theme_constant_override(side, MARGIN)
+		frame.add_theme_constant_override(side, get_theme_constant(&"margin", METRICS))
 	for side: StringName in [&"margin_left", &"margin_right"]:
-		frame.add_theme_constant_override(side, SIDE_MARGIN)
+		frame.add_theme_constant_override(side, get_theme_constant(&"side_margin", METRICS))
 	frame.add_child(column)
 	add_child(frame)
 	refresh()
@@ -108,7 +103,7 @@ func add_row(text_value: String, on_press: Callable) -> Button:
 	var button := Button.new()
 	button.text = text_value
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	button.add_theme_font_size_override(&"font_size", ROW_SIZE)
+	button.theme_type_variation = ROW_VARIATION
 	if on_press.is_valid():
 		button.pressed.connect(on_press)
 	rows.add_child(button)
@@ -118,7 +113,7 @@ func add_row(text_value: String, on_press: Callable) -> Button:
 ## An unpressable line among the rows: a section heading, or the explanation an empty list
 ## needs so a player reads it as "nothing here" rather than as a broken screen.
 func add_note(text_value: String) -> Label:
-	var label: Label = _line(text_value, NOTE_SIZE, TINT)
+	var label: Label = _line(text_value, NOTE_VARIATION, ACCENT_COLOUR)
 	rows.add_child(label)
 	return label
 
@@ -196,7 +191,7 @@ static func played_as_text(seconds: float) -> String:
 func _panel() -> ColorRect:
 	var rect := ColorRect.new()
 	rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	rect.color = SOLID if opaque else DIM
+	rect.color = get_theme_color(&"solid" if opaque else &"dim", PALETTE)
 	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return rect
 
@@ -210,15 +205,18 @@ func _scroller() -> ScrollContainer:
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	rows = VBoxContainer.new()
 	rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	rows.add_theme_constant_override(&"separation", ROW_SEPARATION)
+	rows.add_theme_constant_override(&"separation", get_theme_constant(&"row_separation", METRICS))
 	scroll.add_child(rows)
 	return scroll
 
 
-func _line(text_value: String, size: int, tint: Color) -> Label:
+## A label in one of the theme's roles. The VARIATION carries the size and the palette carries
+## the colour, because a theme resource has no variables: a colour copied into nine variations
+## would be nine places to change, and "one Theme edit restyles every screen" would be false.
+func _line(text_value: String, variation: StringName, colour: StringName) -> Label:
 	var label := Label.new()
 	label.text = text_value
-	label.add_theme_font_size_override(&"font_size", size)
-	label.add_theme_color_override(&"font_color", tint)
+	label.theme_type_variation = variation
+	label.add_theme_color_override(&"font_color", get_theme_color(colour, PALETTE))
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return label

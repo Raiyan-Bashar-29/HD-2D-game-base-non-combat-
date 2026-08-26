@@ -320,7 +320,7 @@ correctly; all persisted.
 **Exit criteria:** the whole game reachable and playable on a gamepad, rebinding persists, and
 `GameRoot` no longer boots straight into an area.
 
-**Closed 2026-08-26**, commit `PENDING`. All three exit criteria met. A `MenuScreen` base plus
+**Closed 2026-08-26**, commit `094d4dc`. All three exit criteria met. A `MenuScreen` base plus
 five menus, `KeyBindings` for the override file, `Director.start_new_game()`,
 `SaveSystem.latest_slot()`, two bus signals, and a `GameRoot` that emits `main_menu_requested`
 instead of loading `courtyard`. 717 assertions (was 460), boot `0 warnings, 0 errors`, both

@@ -49,8 +49,12 @@ previous project started as a system that was allowed to know one thing too many
 | Environment driver | Turns clock and weather into real lighting and post | Clock, Weather | what time it is or what weather it is; it only renders consequences | DONE |
 | Screen fade | The black rectangle transitions hide behind | Events | why it is fading | DONE |
 | Audio director | Bus layout, music and ambience cross-fade | Settings, Events | positional world sound; a door owns its own player | PART |
-| Dev capture | Screenshots, and forcing time, weather and a time skip from the CLI | Clock, Weather | nothing may depend on it | DONE |
-| Weather visuals | Rain, snow, wind particles and wet surfaces | Weather | weather scheduling | TODO |
+| Ambience bed | Several named environmental layers at once, each at its own level | Log | what weather is; it is told a name and a level | DONE — two layers, on generated filtered noise, because there is no audio in the project |
+| Dev capture | Screenshots, and forcing time, weather, wetness and a time skip from the CLI | Clock, Weather | nothing may depend on it | DONE |
+| Weather visuals | Rain, snow, wind particles, wet surfaces and the ambience mix | Weather, Audio, Director | what the weather is, or when it changes | DONE — one node per area; captures of clear, rain and storm are visibly different |
+| Precipitation emitter | One self-building GPUParticles3D per kind, mesh and material generated | GameEnums | Weather; it is told a weight | DONE |
+| Wetness model | The 0..1 that rises in rain and dries slowly afterwards | nothing | materials, particles, Weather | DONE — pure, so the dry-out is asserted rather than photographed |
+| Surface wetness | Darkens and clearcoats an area's materials as it soaks | Log, DictRead | Weather or the clock; it is handed a 0..1 | DONE — duplicates each material, so wetness cannot outlive the area |
 | Area streaming | Chunked load for large regions | Director | — | LATER — discrete areas first; Director already loads threaded, so this is a swap, not a rewrite |
 | Navigation | Baked navmesh for NPC pathing | Area root | who is walking | TODO |
 | Interior lighting | Areas that ignore the outdoor sun | Environment driver | — | DONE — authored ambient, fog and background applied once; the outdoor path never touches an interior sun |

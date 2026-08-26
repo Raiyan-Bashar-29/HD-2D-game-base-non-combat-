@@ -16,6 +16,131 @@ Append-only. Newest entry at the top. One entry per working session.
 
 ---
 
+## 2026-08-26 — WP-13: weather you can see, and the leak the Dummy audio driver leaves behind
+
+**Did:**
+
+`Weather` had published a kind, a blend and an intensity since Phase 0, and the only thing
+that had ever read them was one fog-density multiplier. It is now visible.
+
+- `src/systems/weather/wetness_model.gd` — `WetnessModel`. A pure `RefCounted`: one 0..1 that
+  rises over eight seconds of rain and falls back over twenty-six. No node, no material, no
+  autoload.
+- `src/gameplay/world/precipitation.gd` — `Precipitation`. One `GPUParticles3D` per kind that
+  builds its own mesh, process material, draw material and — for snow — its own soft flake
+  texture from a radial `GradientTexture2D`. Nothing authored, nothing loaded.
+- `src/gameplay/world/weather_visuals.gd` — `WeatherVisuals`. The listener that was missing.
+  One node per area; it owns the `MIX` table that says what each kind looks like, follows the
+  player, cross-fades across a blend, steps the wetness and sets the ambience levels.
+- `src/gameplay/world/surface_wetness.gd` — `SurfaceWetness`. Darkens and clearcoats an
+  area's materials as they soak, on private duplicates.
+- `src/systems/audio/ambience_bed.gd` — `AmbienceBed`, reachable as `Audio.beds`. Named
+  layers, each at its own level, on procedurally generated filtered noise.
+- `dev_capture.gd` gains `--wet=<0..1>` and `--dry-for=<seconds>`.
+- Nine localization keys: `weather.*` per kind, plus `notify.weather.turns`.
+- `tests/unit/presentation_test.gd` — 47 new assertions. 460 -> 507.
+
+**Why:**
+
+*Why the wetness model is a separate pure object.* Everything else about the weather can be
+computed from Weather's state in one frame. Drying cannot — "it stopped raining forty seconds
+ago" is memory, and memory is the part that drifts. Gotcha 10 says `TestCase.run()` is
+synchronous, so a node that only dries in `_process` could never be asserted on; a
+`RefCounted` can be stepped a thousand simulated seconds inside one test.
+
+*Why nothing is authored.* Art is deferred indefinitely. A rain texture would be a dependency
+this project has refused to take on, so the mesh is a quad and the flake is a gradient. It
+also means the three emitters cannot drift apart in an inspector.
+
+*Why `Precipitation` is told a weight instead of reading Weather.* An emitter that polled the
+weather would be a second place the rules live, and the two would disagree the first time a
+cross-fade was half done. Same split as Weather and EnvironmentDriver, one level down.
+
+*Why `SurfaceWetness` duplicates its materials.* The terrain materials are sub-resources of
+the area scene, and a sub-resource is shared across every instantiation of it. Writing
+roughness onto one would leave the courtyard wet after an unload and reload on a clear day —
+and would follow the player into any other area using the same material.
+
+*Why a clearcoat and not just darkening.* The first captures came back reading as "in shadow"
+rather than "wet". A low roughness only shows where the sun's mirror angle points, and on a
+flat courtyard under a fixed camera it mostly does not. A clearcoat is literally a thin smooth
+film over the surface; it reflects the sky, which is visible from any angle.
+
+**Connects:**
+
+`WeatherVisuals` reads `Weather.current/target/blend/intensity/is_wet/sheltered` and writes to
+`Precipitation`, `SurfaceWetness` and `Audio.beds`. Nothing flows the other way — `Weather`
+still MUST NOT render, and gained no line. The toast goes out on `Events.notify_requested`
+like every other announcement, so `Weather` still does not know a screen exists. `AreaRoot`
+already set `Weather.sheltered` for interiors and that now genuinely stops the rain.
+
+**Verified:**
+
+- `--headless --import` — exit 0, clean. Run twice; the first pass is where the five new
+  `class_name` globals get registered, and every parse error before it was gotcha 1.
+- `--headless --quit-after 120` — `Session ended after 1.0s — 0 warnings, 0 errors`, exit 0.
+- `--headless res://tests/test_runner.tscn --quit-after 150` — **507 passed, 0 failed**,
+  exit 0, no leaked instances.
+- A deliberately broken assertion in `presentation_test.gd` → `506 passed, 1 failed`, exit 1,
+  naming the assertion and its line. Reverted.
+- `--headless --script tools/check_budgets.gd` — 73 files, 5,625 code lines, 0 warnings,
+  0 violations, exit 0.
+- `--headless --script tools/check_content.gd` — 92 localization keys, PASS, exit 0.
+- **Seven windowed captures, every one opened and looked at**, all at
+  `--resolution 960x540 --time=13:00 --freeze-time --shot-frame=40`:
+  - `CLEAR` — bright green grass, warm orange dais, cream walls, no particles.
+  - `RAIN --wet=1.0` — fine pale streaks across the whole frame, everything greyer, ground
+    visibly darkened.
+  - `STORM --wet=1.0` — markedly denser rain than `RAIN`, pale wind motes blowing through it,
+    darker again. Unmistakably a third image and not a brighter second one.
+  - `SNOW` — soft round flakes at varied sizes and depths, ground still dry, which is right:
+    `is_wet()` is RAIN and STORM only.
+  - The dry-out, three frames, all `CLEAR` so the ONLY variable is the wetness:
+    `--wet=1.0` / `--wet=1.0 --dry-for=13` / `--wet=1.0 --dry-for=40`, logged as wetness
+    `1.000` / `0.500` / `0.000`. Dark olive grass and dull walls -> a midpoint -> bright green
+    grass and cream walls indistinguishable from the plain `CLEAR` capture. Indistinguishable
+    by eye, not byte-identical: the two PNGs hash differently, as two renders of one frame
+    do. That drying restores the *exact* authored albedo and roughness is proved by an
+    assertion instead, which is the right tool for an exactness claim.
+  - `STORM --goto=lantern_hall` — not one drop indoors, interior lighting untouched.
+
+**One real bug and one engine trap, both found by running it:**
+
+1. **`SurfaceWetness` was driven before it had collected anything.** `WeatherVisuals` sits
+   under `Environment` and the wetness node under `Terrain`, so the driver's `_ready` ran
+   first and called `apply()` at an empty list. Because `apply()` skips a value that has not
+   moved, arriving in an area mid-downpour would have shown a dry courtyard until the wetness
+   happened to change — and it does not change once it has reached its target. Now `apply()`
+   records what was wanted and `_ready` paints it after collecting. Found by reading the boot
+   log's line ordering, not by a failing assertion.
+2. **Every `play()` against the Dummy audio driver leaks.** The test suite started reporting
+   `6 ObjectDB instances were leaked at exit`: one `AudioStreamPlaybackWAV` per `play()` call
+   — four — plus the two generated streams they held. The AudioServer releases a stopped
+   playback on the NEXT MIX, and `--headless` quits before there is one. Stopping the players
+   and nulling their streams in `_exit_tree` does nothing, because the server owns the
+   playbacks, not the players. `AmbienceBed.is_audible()` now checks
+   `AudioServer.get_driver_name()` — measured as `Dummy` headless and `WASAPI` windowed, not
+   assumed — and skips playback it could not be heard through anyway. The levels are the real
+   state and are what the assertions read.
+
+**Unblocks:**
+
+Footstep surfaces, which need to know the ground is wet and now can, from the same
+`Weather.is_wet()` the visuals key off. Any area that wants weather needs one node and no
+code. A fourth and fiftieth weather kind need a row in `MIX` and a CSV line, and the suite
+fails if either is missing.
+
+**Known gaps:**
+
+`dev_capture.gd` is at 238 of its 250 code lines and is the next file to need splitting —
+WP-14 owns it. The ambience is two layers of filtered noise, not sound design; there is still
+no real audio in the project. Rain does not collide, so it falls through the terrace roof and
+the arch — `ParticleProcessMaterial.collision_mode` is the seam and it was left off because it
+costs a depth pass for a placeholder scene. Nothing splashes where a drop lands. Wetness is
+per area and not saved, so walking out of a downpour into the hall and back resets the soak;
+that is a `SaveSystem.register` away if it ever matters. This package added 562 code lines
+against the board's ~500 guideline — 435 of them production, 127 assertions.
+
 ## 2026-08-26 — WP-05: dialogue, and a comma that had been eating text since WP-01
 
 **Did:**

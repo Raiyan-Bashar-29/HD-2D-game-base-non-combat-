@@ -82,3 +82,12 @@ talk.gardener.choice.leave,Nothing. Good day.
 talk.gardener.choice.again,Something else.
 talk.gardener.who,"I keep the garden. That is the whole of it, and it is more than enough."
 talk.gardener.gate,"The hall. Lanterns burning at every hour, and no hour admitted. Throw the lever if you must."
+weather.clear,Clear skies
+weather.cloudy,Cloud
+weather.overcast,Overcast
+weather.rain,Rain
+weather.storm,Storm
+weather.fog,Fog
+weather.snow,Snow
+weather.wind,Wind
+notify.weather.turns,The sky turns to {weather}

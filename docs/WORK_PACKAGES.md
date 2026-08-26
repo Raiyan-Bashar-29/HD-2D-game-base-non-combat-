@@ -48,7 +48,7 @@ Headless shades nothing. This project has already shipped two bugs that every ot
 | 10 | Crafting and gathering | TODO |
 | 11 | World map and fast travel | TODO |
 | 12 | Menus | TODO |
-| 13 | Presentation | TODO |
+| 13 | Presentation | **DONE** — taken out of order; see below |
 | 14 | Dev tools and hardening | TODO |
 | 15 | Release engineering | TODO |
 
@@ -322,14 +322,41 @@ correctly; all persisted.
 
 ---
 
-## WP-13 · Presentation
+## WP-13 · Presentation — **DONE**
+
+**Taken out of board order**, from WP-05's tip. WP-06 through WP-12 are still open, and this
+package touched nothing they own: five new files, plus `Audio.beds`, two capture flags, one
+node in each area scene, and nine CSV rows.
 
 **Read:** `src/systems/weather/weather.gd`, `src/gameplay/world/environment_driver.gd`,
 `src/systems/audio/audio_director.gd`.
-**Write:** rain, snow and wind particles driven by `Weather.intensity()`, wet surfaces, ambience
-layers, interior lighting. `Weather` publishes state and nothing renders it today.
-**Exit criteria:** captures of clear, rain and storm that are visibly different; wet surfaces
-appear and dry out.
+
+**Wrote**
+- `src/systems/weather/wetness_model.gd` — `WetnessModel`. Pure `RefCounted`: 0..1, rises over
+  eight seconds of rain and falls over twenty-six. Pure because drying is the only part of
+  the weather visuals with memory, and gotcha 10 means no assertion can wait for a frame.
+- `src/gameplay/world/precipitation.gd` — `Precipitation`. One `GPUParticles3D` per kind that
+  generates its own mesh, materials and snowflake texture. **Told a weight; never polls
+  Weather.**
+- `src/gameplay/world/weather_visuals.gd` — `WeatherVisuals`. One node per area. Owns the
+  `MIX` table, follows the player, cross-fades on `Weather.blend()`, steps the wetness, sets
+  the ambience levels, and toasts the change. **Decides nothing.**
+- `src/gameplay/world/surface_wetness.gd` — `SurfaceWetness`. Darkens and clearcoats an area's
+  materials, on private duplicates so wetness cannot outlive the area.
+- `src/systems/audio/ambience_bed.gd` — `AmbienceBed`, as `Audio.beds`. Named layers on
+  procedurally generated filtered noise, because there is no audio in the project.
+- `dev_capture.gd`: `--wet=<0..1>` and `--dry-for=<seconds>`.
+- `tests/unit/presentation_test.gd` — 47 assertions. 460 -> 507.
+
+**Interior lighting was already done** in WP-04 and was deliberately not rebuilt.
+
+**Exit criteria — met.** Import clean; boot `0 warnings, 0 errors`; 507 assertions pass and a
+deliberately broken one exits 1; `check_budgets` and `check_content` both exit 0. Seven
+windowed captures at 13:00 with time and weather frozen, each one opened and looked at: clear,
+rain and storm are unmistakably three different images, and a soak-to-dry triptych at wetness
+1.0 / 0.5 / 0.0 under an unchanged clear sky shows the ground darkening and coming back.
+
+**Commit:** see `docs/DEVLOG.md`, entry `2026-08-26 — WP-13`.
 
 ---
 

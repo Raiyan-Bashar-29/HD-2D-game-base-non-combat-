@@ -3,10 +3,12 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-26 · WP-05 complete · branch `claude/wp-05-dialogue`
-**Note:** this branch fast-forwarded WP-01 and WP-02 in from `claude/trusting-curran-04a4f9`
-and `claude/intelligent-wilbur-ae8141`, neither of which was merged to `main`. Merge order is
-WP-01 through WP-05, in that order, or just merge the branches in order.
+**Last updated:** 2026-08-26 · WP-13 complete · branch `claude/wp-13-presentation`
+**Note:** none of WP-01 through WP-05 or WP-13 is merged to `main`. This branch was cut from
+WP-05's tip, which had itself fast-forwarded WP-01 and WP-02 in from
+`claude/trusting-curran-04a4f9` and `claude/intelligent-wilbur-ae8141`. Merge order is WP-01
+through WP-05 and then WP-13, in that order, or just merge the branches in order. **WP-13 was
+taken out of board order** — WP-06 through WP-12 are still open.
 **Remote:** https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-
 
 ## What this is
@@ -21,7 +23,7 @@ architecture.
 
 ## Where it stands
 
-Phase 0 complete, Phase 1 done, Phase 2 well begun. 67 files, 5,063 code lines, 16 scenes,
+Phase 0 complete, Phase 1 done, Phase 2 well begun. 73 files, 5,625 code lines, 16 scenes,
 2 areas, 3 items, 1 conversation.
 Boots headless with **0 warnings, 0 errors**.
 
@@ -30,7 +32,7 @@ input actions · settings · save/load with atomic writes and versioning · plot
 director with a re-entrancy guard and threaded loading · world clock · weather state · audio
 buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 8-way character ·
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
-placeholder art generator · line-budget checker · headless test suite (460 assertions) ·
+placeholder art generator · line-budget checker · headless test suite (507 assertions) ·
 interaction sensor with ranking and Tab-cycling · Interactable contract · localized prompt and
 toasts · readable signs · levers · gates gated by flag or by a carried key · per-object
 persistence (ADR-0005) · typed item definitions found by directory scan (ADR-0006) · an
@@ -40,13 +42,28 @@ a screen stack with real pause semantics · a token input lock · a HUD clock re
 inventory screen with focus navigation · one action-to-screen binding · a SECOND area, an
 interior, and a door that really travels · a loading readout drawn above the curtain ·
 shader warm-up behind black · a dialogue runner with conditions, branches and effects · a
-non-pausing dialogue box with a typewriter reveal · an authorable .tres conversation format.
+non-pausing dialogue box with a typewriter reveal · an authorable .tres conversation format ·
+**weather you can see**: generated rain, snow and wind emitters driven by `Weather.intensity()`,
+surfaces that darken and gain a wet clearcoat and then dry out over twenty-six seconds, and a
+layered ambience bed on procedurally generated noise.
 
 **Not built:** NPCs · quests · the pause, main, settings, save and journal screens
-(WP-12) · hard-coded-string audit · weather visuals · item instances (durability) · equipment ·
-item tooltips, sorting and drag-and-drop.
+(WP-12) · hard-coded-string audit · item instances (durability) · equipment ·
+item tooltips, sorting and drag-and-drop · rain that collides with a roof, or splashes.
 
 ## Known defects
+
+**Fixed 2026-08-26 in WP-13, both found by running it and neither by a static gate:**
+
+1. **`SurfaceWetness` was driven before it had collected anything to drive.** `WeatherVisuals`
+   sits under `Environment` and the wetness node under `Terrain`, so the driver's `_ready` ran
+   first and called `apply()` at an empty list. `apply()` skips a value that has not moved, so
+   arriving in an area mid-downpour would have shown a dry courtyard until the wetness next
+   changed — and it does not change once it has reached its target. Found by reading the line
+   ORDER in the boot log. `apply()` now records what was wanted and `_ready` paints it.
+2. **Every `play()` against the Dummy audio driver leaks an instance.** The suite reported
+   `6 ObjectDB instances were leaked at exit` — one `AudioStreamPlaybackWAV` per `play()`,
+   plus the two generated streams they held. See gotcha 18.
 
 **Fixed 2026-08-26 in WP-05, found by a capture:**
 
@@ -190,6 +207,24 @@ three compiled cleanly and passed every static gate:**
   decides for itself in its own `_ready()`. The full table is the header of
   `src/ui/root/ui_root.gd`. Clock and Weather stop; Audio, Director, ScreenFade,
   NotificationToast and DevCapture do not.
+- **`Weather` renders NOTHING, and `WeatherVisuals` decides NOTHING.** Every number in the
+  visuals is read from `Weather`; the toast on a change is emitted by the visuals, not by
+  `Weather`, so the state machine still does not know a screen exists. Forcing a storm for a
+  story beat stays one call to `Weather.force()`.
+- **A weather emitter is TOLD its weight; it never polls.** `WeatherVisuals.MIX` is one table
+  of "what does this kind look like", and `Precipitation` renders whatever weight it is
+  handed. An emitter that read `Weather` itself would be a second place the rules live, and
+  the two would disagree the first time a cross-fade was half done.
+- **Weather particles are GENERATED, never authored.** Quad meshes, a radial-gradient flake,
+  numbers in one file. Art is deferred indefinitely, so a rain texture is a dependency this
+  project will not take.
+- **`SurfaceWetness` duplicates every material it touches.** A scene's sub-resources are
+  shared across every instantiation, so writing wetness onto one would leave the courtyard wet
+  after a reload on a clear day — and follow the player into any other area using it.
+- **Wetness is a pure `RefCounted`, not a node field.** Drying is the only part of the weather
+  visuals with memory, gotcha 10 means no assertion can wait for a `_process` frame, and
+  memory is exactly what needs assertions. `WetnessModel.advance()` runs it forward without
+  frames, for tests and for captures alike.
 - Four ADRs in `docs/decisions/` cover the layered `src/`, warnings-as-errors, the input map,
   and save-via-callables.
 
@@ -200,13 +235,13 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 120               # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 150   # 355 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 150   # 507 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --resolution 960x540 --quit-after 55 -- --shot=<path> --time=18:40 --freeze-time
 ```
 
-## Seventeen gotchas that each cost an hour
+## Eighteen gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -269,6 +304,13 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     zero-argument method at runtime. Third time this project has been bitten by a native-name
     collision, after `Area3D.priority` and `class_name Container`. Regenerate with
     `--headless --doctool <dir>` and grep it.
+18. **Under `--headless` the audio driver is `Dummy`, and every `play()` against it LEAKS.**
+    The AudioServer releases a stopped `AudioStreamPlayback` on the next mix, and headless
+    quits before there is one — so each `play()` in a test run shows up as a leaked ObjectDB
+    instance, along with the stream it held. Stopping the player and nulling its stream in
+    `_exit_tree` does NOT help: the server owns the playback, not the player. Anything that
+    starts a sound gates on `AmbienceBed.is_audible()`, which reads
+    `AudioServer.get_driver_name()` — measured as `Dummy` headless and `WASAPI` windowed.
 
 ## How work is sliced
 
@@ -278,7 +320,7 @@ should read, so a session loads a few hundred lines instead of three thousand. T
 (`core -> content -> systems -> gameplay -> ui`, downward only) is what makes that possible: a
 package never has to read upward.
 
-**Next package: WP-06, NPCs and navigation.**
+**Next package: WP-06, NPCs and navigation.** WP-13 was taken early and is done.
 
 ## Plan — where this is going
 
@@ -291,7 +333,7 @@ world — then walk north through a door into a lantern-lit hall that has never 
 and come back, and ask the garden-keeper who they are and what lies behind the north gate, in a
 box that leaves the world running behind it. Every one of those changes survives a save and a
 reload, including from the far side of an area that is no longer loaded. All of it is covered
-by 460 headless assertions.
+by 507 headless assertions.
 
 **Next, in this order.** The order matters and is not arbitrary:
 
@@ -299,7 +341,8 @@ by 460 headless assertions.
    exists for them to speak. `Speaker` is already the shape an NPC talk component will take.
 2. **Quests**, which need a conversation that can set a flag. It can.
 
-**Then the rest of Phase 2:** NPC schedules, navigation baking, weather visuals.
+**Then the rest of Phase 2:** NPC schedules and navigation baking. Weather visuals landed
+out of order in WP-13.
 
 **Still open, and expensive later:**
 - **Sprite sheet layout is hardcoded.** `CharacterVisual` has `FACING_COUNT = 8` and

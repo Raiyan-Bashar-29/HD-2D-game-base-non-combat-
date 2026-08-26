@@ -151,6 +151,8 @@ previous project started as a system that was allowed to know one thing too many
 | Test fixtures | tests/framework/fixtures.gd + fixture_content.gd — the content a case needs, built in code. In memory where a system is HANDED content, written to a temp directory the registries scan where a system looks it up by id | DONE — T1.3 |
 | Engine script-error watch | tests/framework/error_watch.gd — an OS.add_logger Logger counting ERROR_TYPE_SCRIPT, because a GDScript crash aborts only its own frame and the tally cannot see it | DONE — T1.3 |
 | Redirectable content root | ItemDb/DialogueDb/ScheduleDb.content_dir — a game, or the fixtures, may point the scan somewhere other than data/ | DONE — T1.3 |
+| Continuous integration | .github/workflows/ladder.yml — six of the seven rungs on every push, PR and manual dispatch, in two jobs: full checkout and a stripped template. Engine downloaded, SHA512 verified against a pinned literal, build string asserted. Rung 2 grepped for SCRIPT ERROR / Parse Error with zero tolerance. .godot/ deliberately NOT cached | DONE — T1.4 |
+| Pinned engine setup | .github/actions/setup-godot — the version lives in one file so two jobs cannot drift onto different engines | DONE — T1.4 |
 | Hard-coded string audit | Catches player-facing text that is not a localization key | TODO |
 | Localization | String IDs from the first string; CSV translation | PART — CSV wired, 188 keys, all UI text localized. Unquoted commas are now a gate; no full audit tool yet. docs/NEW_GAME.md names the engine and demo halves |
 | New-game checklist | docs/NEW_GAME.md — what to delete, what to keep, the full rename surface | DONE — T1.2, and its claims were run against a stripped copy |

@@ -65,8 +65,8 @@ original board rather than continuing it.
 | T1.1 | Integration — every package onto `main` | **DONE** — PR #10 |
 | T1.2 | Engine/demo boundary: the rule, a gate, and the leaks fixed | **DONE** — see T1.2 below |
 | T1.3 | Test fixtures + framework hardening | **DONE** — see T1.3 below |
-| T1.4 | CI — automate the ladder | **TODO — next** |
-| T2.1 | Art contract seams | TODO |
+| T1.4 | CI — automate the ladder | **DONE** — see T1.4 below |
+| T2.1 | Art contract seams | **TODO — next** |
 | T2.2 | Consumer documentation | TODO |
 
 **Re-framed rows on the original board.** WP-09's exit criterion "the lantern gates an area" is a
@@ -548,4 +548,57 @@ none could: **`ItemDb.reload()` had never called our function** — `Script.relo
 the fourth native-name collision in this project — so every `reload()` in the three registries and
 in `check_content.gd` was a script reload that happened to have the same effect.
 
-**Left for T1.4:** none of this runs automatically. The ladder is seven commands a human types.
+**Left for T1.4, and CLOSED by it:** none of this ran automatically. The ladder was seven
+commands a human types.
+
+---
+
+## T1.4 · CI — automate the ladder — **DONE**
+
+**Goal.** A pushed branch with a broken assertion goes red. That was the last unmet Phase T1
+criterion, and Phase T1 is now complete.
+
+**Read:** `CLAUDE.md`, `docs/TEMPLATE.md`, `docs/CONTEXT.md` (gotchas 22 and 24 shape the
+workflow), `tests/test_runner.gd`, `tests/framework/`, and the headers of the three `tools/check_*`
+gates for their exit-code contracts.
+
+**Wrote**
+- `.github/workflows/ladder.yml` — two jobs. **Ladder (full checkout)**: rung 2 import with
+  `SCRIPT ERROR` / `Parse Error` grepped at zero tolerance, rung 3 boot asserting the last
+  `Session ended` line, rung 4 the suite, then `check_budgets`, `check_content`, `check_boundary`,
+  each its own step. **Ladder (stripped template)**: `rm -rf data scenes/areas` then the same
+  rungs minus the boot, and it asserts the run reports named skips so a stripped run can never
+  look identical to a full one.
+- `.github/actions/setup-godot/action.yml` — downloads `Godot_v4.7.2-stable_linux.x86_64.zip`,
+  verifies it against a SHA512 pinned as a literal, and asserts `godot --version` is exactly
+  `4.7.2.stable.official.ed1daf0bf` before any rung depends on it. Standard build, never mono.
+  One file, because a version pinned in two jobs is a version that drifts.
+
+**Four decisions to not re-litigate**, each argued in the workflow's own comments. **`.godot/` is
+not cached and the engine archive is** — a restored cache can resolve a `class_name` this commit
+deleted, and "CI is green and a fresh clone is broken" is the exact failure this package exists to
+prevent; the engine zip is immutable and keyed by version, so cache the fixed thing and never the
+derived one. **Rung 1 is absent** because autoload identifiers do not resolve under `--check-only`
+and a machine cannot tell that expected error from a real one. **The boot rung asserts one line,
+not the whole log**, because quitting mid-load prints spurious `Parse Error` lines after a clean
+report and a whole-log grep would be a flake generator; the frame count is 300, not 120, since a
+headless frame is nearly free and racing a threaded load is not. **The windowed capture is stated
+as impossible, not dropped** — a GPU-less runner shades nothing, so any capture it produced would
+be exactly the evidence gotcha 2 calls worthless.
+
+**Closed 2026-08-26**, commit `272053f`. The one exit criterion met, and Phase T1 with it. Proved
+red: one assertion in `core_test.gd` changed to expect 6 where the answer is 5, and run
+[32989608134](https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-/actions/runs/32989608134)
+failed at `Rung 4 - test suite` in BOTH jobs, printing `FAILED: dict_read int — expected 6, got
+5`. Restored, and run
+[32989771404](https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-/actions/runs/32989771404)
+went green: `911 passed, 0 failed, 0 skipped` full, `861 passed, 0 failed, 12 skipped` stripped —
+reproducing T1.3's hand-run numbers exactly. Nothing in `src/` changed and the one line touched in
+`tests/` was reverted, so the stated tripwire for this package never fired. Two new gotchas, 25
+and 26: GitHub runs every `run:` block as `bash -e {0}` so a step's own `set -uo pipefail` does not
+turn errexit off — the first red run said only `exit code 1` — and `gh`'s run listing lags enough
+to support a confident wrong diagnosis.
+
+**Left for T2.1:** no branch protection, so the gate reports and nothing stops a red branch
+merging — that is a repository setting, not a file. No status badge, deliberately: on a private
+repo it renders as "unknown".

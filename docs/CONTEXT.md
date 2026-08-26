@@ -3,7 +3,7 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-26 · T1.3 (test fixtures + framework hardening) complete
+**Last updated:** 2026-08-26 · T1.4 (CI) complete — **Phase T1 is COMPLETE**
 
 > **This is a TEMPLATE, not a game.** Read [`TEMPLATE.md`](TEMPLATE.md) — it is short, and the
 > roadmap, the board and parts of this file were written before that reframing. The courtyard and
@@ -14,9 +14,10 @@ Keep it short. When it drifts from reality, fix it in the same commit as the cha
 Every package — WP-01 through WP-07, plus WP-12 and WP-13 — is on **`claude/integration`** (PR
 #10 into `main`); the reframing docs are on **`claude/template-reframing`** (PR #11); T1.2 is on
 **`claude/t1-2-boundary`**, branched from the reframing tip; T1.3 is on
-**`claude/t1-3-fixtures`**, branched from T1.2. The nine earlier PRs are superseded.
+**`claude/t1-3-fixtures`**, branched from T1.2; T1.4 is on **`claude/t1-4-ci`**, branched from
+T1.3. The nine earlier PRs are superseded.
 
-**Branch new work from `claude/t1-3-fixtures`**, or from `main` once #10, #11, T1.2 and T1.3 have
+**Branch new work from `claude/t1-4-ci`**, or from `main` once #10, #11 and T1.2-T1.4 have
 landed. The older
 per-package branches (`claude/wp-04-second-area`, `claude/wp-05-dialogue`, `claude/wp-06-npcs`,
 `claude/wp-07-path-actions`, `claude/wp-12-menus`, `claude/wp-13-presentation`) are history and
@@ -36,7 +37,7 @@ game built on this will need, so a new game is content and data rather than new 
 
 ## Where it stands
 
-Phase 0 complete, Phase 1 COMPLETE, Phase 2 well under way, Phase T1 three quarters done. 98
+Phase 0 complete, Phase 1 COMPLETE, Phase 2 well under way, **Phase T1 COMPLETE**. 98
 files, 8,100 code lines,
 18 scenes, 2 areas, 3 items, 1 conversation, 1 schedule, 2 path actions.
 Boots headless with **0 warnings, 0 errors**.
@@ -50,6 +51,9 @@ placeholder art generator · line-budget checker · a headless test suite (911 a
 builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
 returns early, asserts nothing, or is not listed in the runner ·
 an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
+**CI that runs six of the seven rungs on every push, PR and manual dispatch**, in two jobs (full
+checkout and a stripped template), on a downloaded engine whose SHA512 and build string are both
+verified — proved red on a broken assertion and green again ·
 interaction sensor with ranking and Tab-cycling · Interactable contract · localized prompt and
 toasts · readable signs · levers · gates gated by flag or by a carried key · per-object
 persistence (ADR-0005) · typed item definitions found by directory scan (ADR-0006) · an
@@ -67,8 +71,8 @@ that they move Â· **weather you can see**: generated rain, snow and wind emitt
 twenty-six seconds, and a layered ambience bed on procedurally generated noise.
 
 **Not built:** quests · hard-coded-string audit · item instances (durability) · equipment ·
-item tooltips, sorting and drag-and-drop · CI, so the ladder is still seven commands a human
-types (T1.4).
+item tooltips, sorting and drag-and-drop · branch protection, so CI reports but nothing stops a
+red branch merging · the art contract seams (T2.1).
 
 ## Known defects
 
@@ -365,6 +369,11 @@ three compiled cleanly and passed every static gate:**
 
 ## Verify before claiming anything is done
 
+Since T1.4 these run in CI too — `.github/workflows/ladder.yml`, on every push, pull request and
+manual `gh workflow run ladder.yml --ref <branch>`. CI is not a substitute for running them: the
+windowed capture is the one rung a GPU-less runner cannot do, and push events on this repo have
+lagged by as much as 25 minutes.
+
 ```bash
 G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe
 "$G" --headless --check-only --script <file>   # type gate
@@ -377,7 +386,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 55 -- --shot=<path> --time=18:40 --freeze-time
 ```
 
-## Twenty-four gotchas that each cost an hour
+## Twenty-six gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -497,6 +506,29 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     Related and useful: `get_tree().quit(1)` followed later by `quit(0)` exits 0, last call wins,
     which is why the runner ARMS its exit code to failure on its first line.
 
+
+25. **GITHUB RUNS EVERY `run:` BLOCK AS `bash -e {0}`, so `set -uo pipefail` inside a step does
+    NOT turn errexit off.** T1.4's first red run reported nothing but `Process completed with exit
+    code 1`: the step died on the failing `godot` line, before the line that prints WHICH
+    assertion failed. The uploaded artefact had the answer and the step did not, which is a gate
+    that fails without saying why — half a gate. Any rung that must outlive its own command's
+    failure captures the status with `|| status=$?`, which is exempt from errexit, and judges it
+    afterwards. Related, and it wasted an hour on its own: **verifying a shell fragment
+    interactively with `( ... )` inside an `&&` chain also silently disables `set -e`** — the same
+    fragment reported exit 0 on a deliberately failing suite inline and exit 1 as a script file.
+    Test a workflow fragment as a FILE, never inline.
+
+26. **`gh`'s run listing lags, and believing it produces a confident wrong diagnosis.**
+    `actions/runs` reported `total_count: 0` for four minutes after a push whose run had already
+    been created AND completed. On that evidence CI looked disabled, which cost a needless
+    visibility change to rule out a private-repo minutes limit — the runs that had already passed
+    were pushed while the repo was private. Push-event delivery on this repo ran up to **25
+    minutes** behind at times. Check `run_started_at` against the push time before concluding
+    anything is broken, and prefer `gh workflow run` for a prompt answer: `workflow_dispatch` is a
+    trigger on the ladder precisely because a gate with one way in has a single point of failure.
+    A manual run gets its own `concurrency` group keyed on its run id, because a dispatch was
+    once cancelled by the very push it was verifying and a cancelled run reports neither pass nor
+    fail.
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the

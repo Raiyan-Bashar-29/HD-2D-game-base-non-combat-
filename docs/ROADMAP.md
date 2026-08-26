@@ -135,7 +135,7 @@ What follows replaces them.
 
 ---
 
-## Phase T1 — Make it a base, not a demo · **IN PROGRESS**
+## Phase T1 — Make it a base, not a demo · **COMPLETE**
 
 *Goal: the demo can be deleted and the template still stands up.*
 
@@ -144,7 +144,7 @@ What follows replaces them.
 | **T1.1 Integration** — every package onto `main` in one linear chain | **DONE** 2026-08-26, PR #10. WP-12 and WP-13 were built in parallel and merged in; the `UiRoot`/`ScreenKeys` duplicate close-on-travel was resolved in favour of `ScreenKeys`. |
 | **T1.2 The boundary** — the rule, a gate that enforces it, and the leaks fixed | **DONE** 2026-08-26, commit `06ce363`. `tools/check_boundary.gd` derives the demo ids from `scenes/areas/` and `data/` and fails on any of them in `src/` code. All four known leaks closed. |
 | **T1.3 Test fixtures + framework hardening** | **DONE** 2026-08-26, commit `a8377a0`. `tests/framework/fixtures.gd` and `fixture_content.gd` build the content a case needs; the three content registries gained a redirectable `content_dir`. Four silent-pass modes now fail: a crash, an early return, a case that asserts nothing, and a suite file nobody listed. `check_boundary` now scans `tests/` too. |
-| **T1.4 CI** — automate the ladder | **NEXT** |
+| **T1.4 CI** — automate the ladder | **DONE** 2026-08-26. `.github/workflows/ladder.yml` runs six of the seven rungs on every push, pull request and manual dispatch, in two jobs: the full checkout and a stripped template. The engine is downloaded, its SHA512 verified against a pinned literal and its build string asserted before any rung runs. Proved red then green. |
 
 Exit criteria:
 - [x] `main` contains the template — done 2026-08-26
@@ -167,7 +167,14 @@ Exit criteria:
       T1.3: `861 passed, 0 failed, 12 skipped`, exit 0, with every skip named and counted. Full
       checkout: `911 passed, 0 failed, 0 skipped`. Restored, and `git status` showed no change to
       any demo file
-- [ ] A pushed branch with a broken assertion goes red in CI
+- [x] A pushed branch with a broken assertion goes red in CI — done 2026-08-26, T1.4. One
+      assertion in `core_test.gd` changed to expect 6 where the answer is 5; run
+      [32989608134](https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-/actions/runs/32989608134)
+      failed at `Rung 4 - test suite` in BOTH jobs, printing `FAILED: dict_read int — expected 6,
+      got 5` and `910 passed, 1 failed`; rungs 5-7 were skipped. Restored, and run
+      [32989771404](https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-/actions/runs/32989771404)
+      went green: `911 passed, 0 failed, 0 skipped` full, `861 passed, 0 failed, 12 skipped`
+      stripped
 
 ## Phase T2 — Make it swappable
 

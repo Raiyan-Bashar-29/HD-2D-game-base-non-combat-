@@ -16,6 +16,144 @@ Append-only. Newest entry at the top. One entry per working session.
 
 ---
 
+## 2026-08-26 — T1.4: the ladder stops being seven commands a human remembers
+
+**Did:** `.github/workflows/ladder.yml` and `.github/actions/setup-godot/action.yml`. Six of the
+seven rungs now run on every push, every pull request and on manual dispatch, in two jobs:
+
+- **Ladder (full checkout)** — rung 2 import, rung 3 boot, rung 4 suite, then `check_budgets`,
+  `check_content`, `check_boundary`, each its own step so a failure names itself.
+- **Ladder (stripped template)** — `rm -rf data scenes/areas`, then the same rungs minus the boot.
+
+The composite action downloads `Godot_v4.7.2-stable_linux.x86_64.zip`, verifies it against a
+SHA512 **pinned as a literal in the workflow**, installs it, and asserts
+`godot --version` is exactly `4.7.2.stable.official.ed1daf0bf` before any rung depends on it.
+Standard build, never mono. Nothing in `src/` changed, and the one line touched in `tests/` was
+reverted to its original value.
+
+**Why:** the ladder was seven commands a human types in order, remembering to grep rung 2. That
+held for eleven packages, and it is not a system. It could not have been automated before T1.3:
+until then rung 4 reported success on a case that crashed, and a green badge over a suite that
+cannot fail is worth *less* than no badge, because it is believed.
+
+**Four decisions, and the reasoning is in the workflow file's own comments:**
+
+1. **`.godot/` is NOT cached, the engine archive is.** The cache would be exactly the artefact
+   whose absence causes the fresh-clone parse failures, which is the temptation. It is refused
+   because a restored `.godot/` can resolve a `class_name` this commit deleted, or hand a `.tres`
+   an importer for a file that changed shape — "CI is green and a fresh clone is broken" is the
+   precise failure this package exists to prevent, and there is no correctness-preserving cache
+   key short of the whole tree. The engine zip is immutable and keyed by version, so it cannot go
+   stale. Cache the fixed thing, never the derived one. Cost of the decision: an import per run,
+   measured at 8 seconds.
+2. **Rung 1 (`--check-only`) is not automatable and is absent.** Autoload identifiers do not
+   resolve under it and that error is EXPECTED (gotcha 1); a machine cannot tell it from a real
+   one. Rung 2 is the compile check and is where zero tolerance lives.
+3. **The boot rung asserts only its last `Session ended` line**, not the whole log. Gotcha 13:
+   quitting mid-load prints spurious `Parse Error` lines *after* a clean report, so a whole-log
+   grep here would be a flake generator. Frame count is 300, not the local 120 — `--quit-after`
+   counts frames, a headless frame costs milliseconds, and a shared runner has no reason to be
+   handed a tighter margin than it needs.
+4. **The windowed capture rung is stated as impossible, not dropped.** `--headless` shades
+   nothing (gotcha 2) and a runner has no GPU, so any capture it produced would be exactly the
+   evidence that gotcha calls worthless. Anything with a visual consequence still needs a human.
+
+**Connects:** nothing in `src/` or `tests/` was changed to accommodate CI — which was the stated
+tripwire for this package, and it never fired. The workflow calls the same six commands
+`docs/CONTEXT.md` already listed, so the local ladder and CI cannot diverge without one of them
+going red. The stripped job turns T1.3's by-hand claim into a mechanism.
+
+**Verified:**
+
+*The gate goes RED.* One assertion in `tests/unit/core_test.gd:23` changed to expect `6` where
+`DictRead.get_int` returns `5`, pushed as commit `ad6e225`. Run
+[32989608134](https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-/actions/runs/32989608134)
+— `completed/failure`. **Failing step: `Rung 4 - test suite`, in BOTH jobs.** Its output:
+
+```
+=== 910 passed, 1 failed, 0 skipped ===
+FAILED: dict_read int — expected 6, got 5
+##[error]Process completed with exit code 1.
+```
+
+Rungs 2 and 3 passed, correctly: a wrong expected value is not a parse error. Rungs 5, 6 and 7
+were skipped. The stripped job failed the same way at `860 passed, 1 failed, 12 skipped`.
+
+*And GREEN again.* Assertion restored, commit `272053f`, run
+[32989771404](https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-/actions/runs/32989771404)
+— `completed/success`, both jobs:
+
+```
+godot.zip: OK
+No SCRIPT ERROR / Parse Error lines: every script compiled.
+Session ended after 2.1s — 0 warnings, 0 errors
+=== 911 passed, 0 failed, 0 skipped ===          (full checkout)
+=== 861 passed, 0 failed, 12 skipped ===         (stripped) — named skips: 8
+98 files, 8100 code lines, 0 warnings, 0 violations
+```
+
+The stripped numbers reproduce T1.3's hand-run result exactly.
+
+*Local ladder, after all CI work, on the final tree:*
+
+```
+--headless --import                                  exit 0, 0 SCRIPT ERROR / Parse Error lines
+--headless --quit-after 120                          Session ended after 1.3s — 0 warnings, 0 errors
+--headless res://tests/test_runner.tscn --quit-after 400   exit 0, 911 passed, 0 failed, 0 skipped
+--headless --script tools/check_budgets.gd           exit 0
+--headless --script tools/check_content.gd           exit 0
+--headless --script tools/check_boundary.gd          exit 0
+```
+
+*The stripped run was also measured locally before CI existed*, by moving `data/` and
+`scenes/areas/` aside: `861 passed, 0 failed, 12 skipped`, true exit code 0, all three checkers
+exit 0, then restored with `git status` clean. That is what the stripped job was written against.
+
+**Three things this cost an hour each, and two are new gotchas:**
+
+1. **GitHub runs every `run:` block as `bash -e {0}`, so `set -uo pipefail` inside a step does
+   NOT turn errexit off.** The first red run reported nothing but `Process completed with exit
+   code 1` — the step died on the failing `godot` line, before the line that prints which
+   assertion failed. The artefact had the answer and the step did not, which is a step that fails
+   without saying why. Every rung that needs to survive its own command's failure now captures
+   the status with `|| status=$?`, which is exempt from errexit. Fixed in the same package that
+   introduced it, and the fix is proved by the quoted red run above.
+2. **Verifying a shell fragment interactively with `( ... )` inside an `&&` chain silently
+   disables `set -e`.** While checking rung 4 before pushing, the fragment reported exit 0 on a
+   deliberately failing suite, which looked exactly like the workflow being broken. It was not:
+   run as a real script file — which is how Actions runs it — the same fragment exits 1.
+   Measured both ways. A workflow fragment must be tested as a FILE, never inline.
+3. **`gh`'s run listing lagged several minutes and led to a wrong diagnosis.** `actions/runs`
+   reported `total_count: 0` for four minutes after a push whose run had already been created and
+   completed. On that evidence CI looked disabled, and the repo was made public to rule out a
+   private-minutes limit — which was unnecessary; the runs that had already passed were pushed
+   while it was private. The repo was returned to private and pushes still trigger. Push-event
+   delivery on this repo ran up to **25 minutes** behind at times, which is why
+   `workflow_dispatch` is now a trigger: a gate with exactly one way to be invoked has a single
+   point of failure. A manual run also gets its own `concurrency` group, keyed on its run id,
+   because a dispatch mid-verification was cancelled by the very push it was verifying and a
+   cancelled run reports neither pass nor fail.
+
+**Unblocks:** every later package. A completion claim is now checkable by a third party instead
+of trusted, which is the precondition for a consumer trusting this template at all. T2.1 can
+refactor the art seams knowing that breaking a system will be visible without anyone remembering
+to run anything.
+
+**Known gaps:**
+- **The windowed capture rung has no automation and cannot have one** on a GPU-less runner. Every
+  visual claim still rests on a human looking at a PNG. This is stated in the workflow, not
+  hidden.
+- **No branch protection.** The gate reports; nothing stops a red branch being merged. That is a
+  repository setting, not a file in this repo, and it is the natural follow-on.
+- **No status badge in `README.md`,** deliberately: a badge on a private repo renders as "unknown"
+  to anyone who can see the README, which is worse than no badge.
+- **The stripped job does not prune the demo half of `localization/strings.csv`.** `NEW_GAME.md`
+  says a game should; pruning it mechanically here would only be the job testing its own regex.
+- Push-event delivery latency is outside this repo's control. `workflow_dispatch` is the
+  mitigation, not a fix.
+
+---
+
 ## 2026-08-26 — T1.3: the suite stops testing the demo, and stops passing when it crashes
 
 **Did:**

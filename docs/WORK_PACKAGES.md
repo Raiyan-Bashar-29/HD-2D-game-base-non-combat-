@@ -539,7 +539,7 @@ own frame and nothing else can see a swallowed assertion. And `ErrorWatch` count
 `ERROR_TYPE_SCRIPT`, because deliberate negative-path tests raise `push_error` and a gate that
 fires on those gets switched off within a day.
 
-**Closed 2026-08-26**, commit `PENDING`. Both exit criteria met, plus the two Phase T1 criteria
+**Closed 2026-08-26**, commit `a8377a0`. Both exit criteria met, plus the two Phase T1 criteria
 that were waiting on it. 911 assertions (was 921 — the drop is aggregation: named per-item and
 per-waypoint assertions became set-level ones that also cover content added later). Stripped run:
 `861 passed, 0 failed, 12 skipped`, exit 0, every skip named and counted. All four silent-pass

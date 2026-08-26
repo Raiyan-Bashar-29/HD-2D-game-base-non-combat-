@@ -131,3 +131,12 @@ folder_colors={
 [internationalization]
 
 locale/translations=PackedStringArray("res://localization/strings.en.translation")
+
+[navigation]
+
+; Must match the cell_size and cell_height on every NavigationMesh in the project. The engine
+; rasterises the navigation MAP at these values and each REGION at its own, and a mismatch is a
+; runtime warning plus real rasterisation error along region edges. Two numbers in two places
+; that have to agree, so they are written down here and in scenes/areas/*/navmesh.
+3d/default_cell_size=0.2
+3d/default_cell_height=0.1

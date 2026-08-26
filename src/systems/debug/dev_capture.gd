@@ -1,5 +1,5 @@
 extends Node
-## Developer capture and scene-state overrides. Lives in the game root.
+## Screenshot capture and lighting overrides. Lives in the game root.
 ##
 ## WHY THIS IS A REAL SYSTEM AND NOT A THROWAWAY SNIPPET
 ## The look of an HD-2D game is its whole point, and the look changes with the hour and the
@@ -22,25 +22,19 @@ extends Node
 ##   --freeze-time        stop the clock, so a capture is reproducible to the pixel.
 ##   --skip-to-hour=<int> perform the same time skip a rest point does, after --time.
 ##   --weather=<KIND>     force weather. Any GameEnums.WeatherKind name.
-##   --give=<list>        put items in the player's bag: item/rose_key,item/rose_petal:3
-##   --cross-area-save    empty a chest in the hall, take an item in the courtyard, save,
-##                        reload, and report whether BOTH survived. Proves world state on the
-##                        far side of an unloaded area, which no assertion can: a threaded
-##                        load needs frames and TestCase.run() is synchronous.
-##   --round-trips=<n>    travel courtyard -> lantern_hall -> courtyard n times, reporting
-##                        node count and static memory before and after. This is how the
-##                        twenty-round-trip leak criterion is actually measured.
-##   --talk=<id>          open a conversation once the boot load has settled, so the dialogue
-##                        box can be captured. Takes the bare id: --talk=talk/gardener
-##   --talk-advance=<n>   press through n lines after --talk, to capture a branch rather than
-##                        always the opening line
-##   --goto=<area>        travel to an area once the boot load has settled, so a capture can
-##                        be taken somewhere other than the starting area.
-##   --open-inventory     push the inventory screen, to capture a real screen over a
-##                        stopped world. Apply --give first or the capture shows an empty bag.
+##
+## The scenario probes — --goto, --give, --talk, --round-trips, --npc-day and the rest — are
+## documented in dev_probes.gd, which owns them.
+##
+## THE SCENARIO PROBES LIVE NEXT DOOR, in dev_probes.gd, and this file deliberately knows
+## nothing about them. This one answers "what does the game LOOK like under condition X"; that
+## one answers "does sequence Y actually work". They were one file until it hit 310 of its 250
+## allowed code lines, which is the budget checker doing precisely its job: the split was
+## already there in the reasoning and only the line count made it visible.
 ##
 ## OWNS: capture, and CLI-driven overrides for time and weather.
-## MUST NOT: be depended upon by gameplay. Deleting this file must not break the game.
+## MUST NOT: be depended upon by gameplay, or drive a scenario. Deleting this file must not
+## break the game.
 
 const SHOT_DIR: String = "user://screenshots"
 const DEFAULT_SHOT_FRAME: int = 30
@@ -49,7 +43,6 @@ var _shot_path: String = ""
 var _shot_frame: int = DEFAULT_SHOT_FRAME
 var _frames: int = 0
 var _captured: bool = false
-var _talk_advance: int = 0
 
 
 func _ready() -> void:
@@ -96,7 +89,6 @@ func _capture(path: String) -> void:
 	else:
 		Log.error("test", "Capture to %s failed: %s" % [path, error_string(err)])
 
-
 func _parse_arguments() -> void:
 	for argument: String in OS.get_cmdline_user_args():
 		if argument.begins_with("--shot="):
@@ -110,22 +102,9 @@ func _parse_arguments() -> void:
 			Log.info("test", "Clock frozen by command line")
 		elif argument.begins_with("--skip-to-hour="):
 			_skip_to_hour(argument.trim_prefix("--skip-to-hour="))
-		elif argument.begins_with("--give="):
-			_give(argument.trim_prefix("--give="))
-		elif argument.begins_with("--talk="):
-			_talk(StringName(argument.trim_prefix("--talk=")))
-		elif argument.begins_with("--talk-advance="):
-			_talk_advance = maxi(0, argument.trim_prefix("--talk-advance=").to_int())
-		elif argument.begins_with("--goto="):
-			_goto(StringName(argument.trim_prefix("--goto=")))
-		elif argument == "--cross-area-save":
-			_cross_area_save()
-		elif argument.begins_with("--round-trips="):
-			_round_trips(maxi(1, argument.trim_prefix("--round-trips=").to_int()))
-		elif argument == "--open-inventory":
-			_open_inventory()
 		elif argument.begins_with("--weather="):
 			_force_weather(argument.trim_prefix("--weather="))
+
 
 
 func _force_time(value: String) -> void:
@@ -158,198 +137,3 @@ func _skip_to_hour(value: String) -> void:
 ## Fills the player's bag from the command line, so a capture of the inventory shows real rows
 ## produced by the real Inventory.add() rather than a mock the screen was posed against.
 ## Deferred: GameRoot spawns the player in the same _ready() pass that reads these arguments.
-func _give(list: String) -> void:
-	await get_tree().process_frame
-	var bag: Inventory = Inventory.of(Director.player)
-	if bag == null:
-		Log.error("test", "--give found no inventory on the player")
-		return
-	for entry: String in list.split(",", false):
-		var parts: PackedStringArray = entry.split(":")
-		var count: int = parts[1].to_int() if parts.size() > 1 else 1
-		var added: bool = bag.add(StringName(parts[0]), maxi(1, count))
-		Log.info("test", "--give %s x%d: %s" % [parts[0], count, str(added)])
-
-
-## Pushes the inventory screen so a windowed capture can show a real screen over a real,
-## stopped world. Deferred by two frames: UiRoot is a sibling built in the same _ready() pass
-## as this node, and --give needs its own frame before this one reads the bag.
-func _open_inventory() -> void:
-	await get_tree().process_frame
-	await get_tree().process_frame
-	var stack: UiRoot = UiRoot.find(self)
-	if stack == null:
-		Log.error("test", "--open-inventory found no UiRoot in the tree")
-		return
-	var opened: bool = stack.open(InventoryScreen.for_carrier(Director.player))
-	Log.info("test", "--open-inventory pushed the inventory screen: %s" % str(opened))
-
-
-## Travel back and forth `count` times and report what it cost. A leak in a transition is
-## invisible in a single trip and obvious over twenty, which is why the criterion is twenty
-## and why this is a RUN rather than an assertion: TestCase.run() is synchronous and cannot
-## await a threaded load.
-##
-## Node count and static memory are sampled with the area settled and the same area loaded at
-## both ends, so the two numbers are directly comparable. Anything that grows per trip shows
-## up as a slope rather than noise.
-func _round_trips(count: int) -> void:
-	# Wait for the FIRST area, not merely for the tree to settle. Arguments are read in _ready,
-	# before GameRoot has even requested the boot transition, so is_transitioning() is still
-	# false here — settling on it alone reads an empty home and sends every return trip to "".
-	while Director.current_area_id == &"":
-		await get_tree().process_frame
-	await _settled()
-	var home: StringName = Director.current_area_id
-	var nodes_before: int = _node_count()
-	var memory_before: int = _static_memory()
-	Log.info("test", "--round-trips %d from '%s': %d nodes, %d KiB" % [
-		count, home, nodes_before, memory_before / 1024,
-	])
-
-	for trip: int in count:
-		await _travel(&"lantern_hall", &"from_courtyard")
-		await _travel(home, &"north_arch")
-		Log.info("test", "  trip %d/%d: %d nodes, %d KiB" % [
-			trip + 1, count, _node_count(), _static_memory() / 1024,
-		])
-
-	var nodes_after: int = _node_count()
-	var memory_after: int = _static_memory()
-	Log.info("test", "--round-trips done: nodes %d -> %d (%+d), memory %d -> %d KiB (%+d)" % [
-		nodes_before, nodes_after, nodes_after - nodes_before,
-		memory_before / 1024, memory_after / 1024, (memory_after - memory_before) / 1024,
-	])
-
-
-func _travel(area_id: StringName, spawn_id: StringName) -> void:
-	Events.area_change_requested.emit(area_id, spawn_id)
-	# A SECOND request in the same frame, which the guard must refuse. Asserted here rather
-	# than in the suite because only a live transition can be interrupted.
-	Events.area_change_requested.emit(area_id, spawn_id)
-	await _settled()
-
-
-## Wait for the transition to end, then let the freed area actually leave the tree —
-## queue_free() takes effect at the end of a frame, so sampling immediately after arrival
-## counts the old area as still present and reports a leak that is not there.
-func _settled() -> void:
-	while Director.is_transitioning():
-		await get_tree().process_frame
-	for _i: int in 4:
-		await get_tree().process_frame
-
-
-func _node_count() -> int:
-	return DictRead.to_float(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)) as int
-
-
-func _static_memory() -> int:
-	return DictRead.to_float(Performance.get_monitor(Performance.MEMORY_STATIC)) as int
-
-
-## The criterion no assertion can reach: state in an area that is no longer loaded.
-##
-## Empty the hall's coffer, come back, take the courtyard's key, save, reload, and go and look
-## at the coffer again. Per-object persistence is already covered by the suite, but only
-## within ONE area that never left the tree. What is new here is that unloading an area must
-## not take its world state with it.
-const PROBE_SLOT: int = 5
-
-
-func _cross_area_save() -> void:
-	while Director.current_area_id == &"":
-		await get_tree().process_frame
-	await _settled()
-	await _travel(&"lantern_hall", &"from_courtyard")
-	Log.info("test", "--cross-area-save hall coffer emptied: %s" % str(_empty_the_coffer()))
-	var bag: Inventory = Inventory.of(Director.player)
-	bag.add(&"item/rose_key", 1)
-	# Saved IN THE HALL and reloaded from the courtyard, deliberately. A save taken where the
-	# reload already is cannot tell "the area was restored" from "the area never changed" —
-	# which is exactly how a broken DictRead.get_name hid in Director for three packages.
-	Log.info("test", "--cross-area-save saved in '%s': %s" % [
-		Director.current_area_id, error_string(SaveSystem.save_to_slot(PROBE_SLOT)),
-	])
-	await _travel(&"courtyard", &"north_arch")
-
-	# Wipe what a fresh session would not have, so a survival that is really just a value
-	# nobody cleared cannot pass for a value that was restored.
-	bag.clear_all()
-	Flags.set_flag(&"obj/lantern_hall/hall_chest/emptied", false)
-	Log.info("test", "--cross-area-save wiped: carrying %d, coffer emptied=%s" % [
-		bag.total_count(), str(Flags.get_bool(&"obj/lantern_hall/hall_chest/emptied")),
-	])
-
-	Log.info("test", "--cross-area-save loaded: %s" % error_string(SaveSystem.load_from_slot(PROBE_SLOT)))
-	await _settled()
-	Log.info("test", "--cross-area-save after reload: area='%s', carrying %d" % [
-		Director.current_area_id, Inventory.of(Director.player).total_count(),
-	])
-	await _travel(&"lantern_hall", &"from_courtyard")
-	Log.info("test", "--cross-area-save coffer still empty: %s" % str(_coffer_is_empty()))
-	SaveSystem.delete_slot(PROBE_SLOT)
-
-
-func _empty_the_coffer() -> bool:
-	var coffer: ItemContainer = _coffer()
-	return coffer != null and coffer.attempt(Director.player)
-
-
-func _coffer_is_empty() -> bool:
-	var coffer: ItemContainer = _coffer()
-	return coffer != null and coffer.is_emptied()
-
-
-func _coffer() -> ItemContainer:
-	var tree: SceneTree = get_tree()
-	var found: Node = tree.root.find_child("HallChest", true, false)
-	if found == null:
-		Log.error("test", "--cross-area-save found no HallChest in the tree")
-	return found as ItemContainer
-
-
-## Travel somewhere for a capture. Waits for the boot load first: a request made before the
-## first area exists is refused by the guard, which would look like the flag not working.
-func _goto(area_id: StringName) -> void:
-	while Director.current_area_id == &"":
-		await get_tree().process_frame
-	await _settled()
-	Events.area_change_requested.emit(area_id, &"")
-	await _settled()
-	Log.info("test", "--goto arrived in '%s'" % Director.current_area_id)
-
-
-## Open a conversation for a capture. Goes through the SAME bus signal a Speaker emits, so what
-## is photographed is the real path and not a screen posed by hand.
-func _talk(talk_id: StringName) -> void:
-	while Director.current_area_id == &"":
-		await get_tree().process_frame
-	await _settled()
-	Events.dialogue_requested.emit(talk_id)
-	await get_tree().process_frame
-	var stack: UiRoot = UiRoot.find(self)
-	var screen: DialogueScreen = stack.top() as DialogueScreen
-	if screen == null:
-		Log.error("test", "--talk opened no dialogue screen for '%s'" % talk_id)
-		return
-	Log.info("test", "--talk opened '%s' at node '%s'" % [
-		talk_id, screen.runner.current_node().node_id,
-	])
-	for _i: int in _talk_advance:
-		await _reveal_done(screen)
-		screen.runner.advance()
-		await get_tree().process_frame
-	await _reveal_done(screen)
-	Log.info("test", "--talk resting on node '%s', %d choices" % [
-		screen.runner.current_node().node_id, screen.runner.available_choices().size(),
-	])
-
-
-## Let the typewriter finish. A capture taken mid-reveal photographs half a sentence, which
-## looks like a truncation bug rather than the feature it is.
-func _reveal_done(screen: DialogueScreen) -> void:
-	for _i: int in 240:
-		if screen.reveal_complete():
-			return
-		await get_tree().process_frame

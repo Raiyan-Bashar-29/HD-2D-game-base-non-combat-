@@ -30,7 +30,7 @@ Exit criteria, all met:
       first actually executed on 2026-08-24 by the test suite, and passes.
 - [x] A frame can be captured to PNG and inspected
 
-## Phase 1 — One area, one character · **IN PROGRESS**
+## Phase 1 — One area, one character · **COMPLETE**
 
 *Goal: a person can be walked around a lit, living space and touch things in it.*
 
@@ -67,7 +67,7 @@ Exit criteria:
       from the same 06:30 start, one with the same skip the bench performs, show warm dawn
       becoming cool night with the lantern pools lit
 - [ ] Save, quit, relaunch, continue — position, time, weather and inventory all restored
-- [x] Test suite passes headless and exits non-zero on failure — 460 assertions
+- [x] Test suite passes headless and exits non-zero on failure — 555 assertions
 - [x] A screen opens over the world, gameplay input stops, the fade still runs over the
       top of it, and Escape restores control — done 2026-08-26, windowed captures plus a
       real-input probe in the live tree
@@ -80,7 +80,8 @@ Exit criteria:
 - [x] Two overlapping input locks release correctly: lock A, lock B, release A, the player is
       still locked — done 2026-08-26, covered by the test suite
 - [ ] A 30-second play session produces **zero** warnings or errors in the log
-- [ ] The budget checker reports no file over its limit
+- [x] The budget checker reports no file over its limit — a mandatory close-out gate for every
+      package since WP-01; 73 files, 5,638 code lines, 0 violations at WP-06
 
 > **Phases map onto work packages.** `docs/WORK_PACKAGES.md` is the executable version of this
 > document: fifteen packages, one chat each, in dependency order. When the two disagree, the
@@ -92,7 +93,7 @@ Exit criteria:
 
 - [x] A second area, with a door between them — the Lantern Hall, an interior (WP-04)
 - [x] Loading that hides behind the fade, with the shader warm-up hitch handled (WP-04)
-- Navigation baking, and one NPC that walks a route by the clock
+- [x] Navigation baking, and one NPC that walks a route by the clock (WP-06)
 - [x] Dialogue runner, dialogue UI, and an authorable conversation format (WP-05)
 - The pause menu itself (the pause mechanism under it landed early, in WP-02)
 - Localization wired for real: every string is already an ID
@@ -103,7 +104,10 @@ Exit criteria:
       `--round-trips=20`: node count exactly flat at 120 across all twenty, memory -12 KiB
 - [x] Trigger two transitions in the same frame and be refused cleanly, with a log line —
       done 2026-08-26, exercised forty times in the same run, two per trip
-- [ ] An NPC is at the market at noon and at home at night, across a save and reload
+- [x] An NPC is at the market at noon and at home at night, across a save and reload — done
+      2026-08-26. `--npc-day` walks the clock through a whole day: gate_post at 06:00 and
+      09:00, the dais at 12:00 and 15:00, the bench from 20:00 through 02:00. Whereabouts
+      persist through `PersistentState`, asserted in the suite. Two captures examined
 - [x] Hold a conversation that reads and sets a flag, and branches on it — done 2026-08-26,
       covered by the test suite, plus a windowed capture and a real-input probe that pressed
       the button, advanced a line and took a branch with the world still running

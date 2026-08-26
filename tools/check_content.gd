@@ -37,6 +37,7 @@ func _initialize() -> void:
 	_report_scan()
 	_check_items()
 	_check_dialogue()
+	_check_schedules()
 	_check_scenes()
 	print("=".repeat(78))
 	if _violations > 0:
@@ -215,3 +216,44 @@ func _require_key(context: String, field: String, key: String) -> void:
 	if key == "" or _keys.has(key):
 		return
 	_fail("%s %s '%s' is not in the CSV" % [context, field, key])
+
+
+## Schedules get the same treatment as items and conversations, plus the check no text scan can
+## do: every waypoint a schedule names must exist as a marker in at least one area, or the NPC
+## following it stands still forever and nothing says why.
+func _check_schedules() -> void:
+	ScheduleDb.reload()
+	for problem: String in ScheduleDb.problems():
+		_fail(problem)
+	print("  schedules: %d" % ScheduleDb.count())
+	var known: Dictionary[StringName, bool] = _all_waypoint_names()
+	for schedule_id: StringName in ScheduleDb.all():
+		var schedule: NpcSchedule = ScheduleDb.schedule(schedule_id)
+		print("     %-22s %d entries" % [schedule_id, schedule.entries.size()])
+		for entry: ScheduleEntry in schedule.entries:
+			if entry == null or entry.waypoint == &"":
+				continue
+			if not known.has(entry.waypoint):
+				_fail("%s sends an NPC to '%s', which no area has a marker for" % [
+					schedule_id, entry.waypoint,
+				])
+
+
+## Every waypoint name in every area, pooled. Pooled rather than per-area on purpose: a schedule
+## does not name an area, so the only thing that can be checked here is that the name exists
+## SOMEWHERE. An NPC in the wrong area for its schedule is a placement mistake this tool cannot
+## see, and pretending otherwise would be the partial check that looks complete.
+func _all_waypoint_names() -> Dictionary[StringName, bool]:
+	var found: Dictionary[StringName, bool] = {}
+	for directory: String in DirAccess.get_directories_at("res://scenes/areas"):
+		var path: String = "res://scenes/areas/%s/%s.tscn" % [directory, directory]
+		var packed: PackedScene = ResourceLoader.load(path) as PackedScene
+		if packed == null:
+			continue
+		var area: Node = packed.instantiate()
+		var markers: Node = area.get_node_or_null(^"Waypoints")
+		if markers != null:
+			for child: Node in markers.get_children():
+				found[StringName(child.name)] = true
+		area.free()
+	return found

@@ -49,10 +49,11 @@ previous project started as a system that was allowed to know one thing too many
 | Environment driver | Turns clock and weather into real lighting and post | Clock, Weather | what time it is or what weather it is; it only renders consequences | DONE |
 | Screen fade | The black rectangle transitions hide behind | Events | why it is fading | DONE |
 | Audio director | Bus layout, music and ambience cross-fade | Settings, Events | positional world sound; a door owns its own player | PART |
-| Dev capture | Screenshots, and forcing time, weather and a time skip from the CLI | Clock, Weather | nothing may depend on it | DONE |
+| Dev capture | Screenshots, and forcing time, weather and a time skip from the CLI | Clock, Weather | driving a scenario; nothing may depend on it | DONE |
+| Dev probes | Scripted scenarios no assertion can run: round trips, cross-area saves, a whole NPC day, a crowd | everything | being depended on by gameplay | DONE |
 | Weather visuals | Rain, snow, wind particles and wet surfaces | Weather | weather scheduling | TODO |
 | Area streaming | Chunked load for large regions | Director | — | LATER — discrete areas first; Director already loads threaded, so this is a swap, not a rewrite |
-| Navigation | Baked navmesh for NPC pathing | Area root | who is walking | TODO |
+| Navigation | Navmesh baked from each area's own geometry at load, behind the fade | Area root | who is walking | DONE — polygon count logged, so an empty bake is an error rather than silence |
 | Interior lighting | Areas that ignore the outdoor sun | Environment driver | — | DONE — authored ambient, fog and background applied once; the outdoor path never touches an interior sun |
 
 ## 2. Interaction, items, objects — the current milestone
@@ -87,9 +88,9 @@ previous project started as a system that was allowed to know one thing too many
 |---|---|---|---|---|
 | Character attributes | Stamina, carry capacity, skills that gate interactions | Save | what gates what | TODO |
 | Footsteps and surfaces | Surface-aware step audio and particles | Audio, Player controller | — | TODO |
-| NPC brain | Idle, wander, react to the player | Navigation, Clock | dialogue content | TODO |
-| NPC schedules | Routines driven by the world clock | Clock, NPC brain | — | TODO |
-| NPC level of detail | Cheap offscreen behaviour so a town scales | NPC brain | — | LATER |
+| NPC brain | Schedule-driven: travel to a named waypoint, then stand, wander or sleep | Navigation, Clock, ScheduleDb | what a waypoint means, routes, dialogue content | DONE |
+| NPC schedules | Hour blocks as authored .tres, found by directory scan like items | — | moving anything, or resolving its own waypoint | DONE |
+| NPC level of detail | Cheap offscreen behaviour so a town scales | NPC brain | — | LATER — 30 NPCs cost +0.077 ms/frame, so nothing forces it yet |
 | Path actions | Non-combat NPC verbs, in the spirit of Octopath's Scrutinise and Inquire | Interactable, Flags, Inventory | — | TODO |
 | Followers | A companion that trails the player | Navigation | — | LATER — leave a seam, build nothing |
 | Animation state machine | Drives sprite animation from movement and actions | Character visual | — | PART — code-driven frames work now; revisit if authored animation is needed |
@@ -190,5 +191,5 @@ screen fade, audio buses, dev capture, placeholder art, the screen stack and pau
 persistence, the HUD, the inventory screen, the test runner and the smoke test all exist and
 are verified by running the engine.
 
-**Explicitly not in slice one:** dialogue, quests, NPCs, weather visuals, navigation, world
-map, main menu, streaming, followers, crafting, water.
+**Explicitly not in slice one:** quests, weather visuals, world map, main menu, streaming,
+followers, crafting, water. Dialogue, NPCs and navigation have since shipped in WP-05 and WP-06.

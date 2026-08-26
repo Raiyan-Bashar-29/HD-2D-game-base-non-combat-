@@ -10,7 +10,10 @@ and people, watching it change with the hour and the weather, and following a pl
 
 - **Engine:** Godot 4.7.2 stable, standard build. GDScript only — the installed engine is not
   the .NET build, so C# is not available.
-- **Status:** Phase 0 complete. Phase 1 in progress. See [ROADMAP](docs/ROADMAP.md).
+- **Status:** Phases 0 and 1 complete, Phase 2 well under way. See [ROADMAP](docs/ROADMAP.md).
+- **Branches:** `main` does NOT contain the completed work. The packages are an unmerged
+  linear stack; `docs/CONTEXT.md` opens with the branch map. Branch from the stack tip, never
+  from `main`.
 
 ---
 
@@ -71,13 +74,13 @@ Import gate — broken scenes, resources and asset references:
 Boot for real and watch the log. Should end with `0 warnings, 0 errors`:
 
 ```bash
-"$GODOT" --headless --quit-after 30
+"$GODOT" --headless --quit-after 120
 ```
 
-Run the tests. 55 assertions; exits 1 if any fail:
+Run the tests. 555 assertions; exits 1 if any fail:
 
 ```bash
-"$GODOT" --headless res://tests/test_runner.tscn --quit-after 150
+"$GODOT" --headless res://tests/test_runner.tscn --quit-after 300
 ```
 
 Look at the game at a specific hour, in specific weather, without waiting for it:
@@ -98,8 +101,8 @@ Regenerate the placeholder art:
 ## Layout
 
 ```
-src/          all GDScript, in five layers: core -> systems -> gameplay -> content -> ui
-scenes/       boot, areas, characters, objects, ui, vfx
+src/          all GDScript, in five layers: core -> content -> systems -> gameplay -> ui
+scenes/       boot, areas, characters, objects
 data/         authored content instances (.tres / .json)
 assets/       art and audio, including generated placeholders
 localization/ translation sources
@@ -128,5 +131,5 @@ editor's Input Map panel will look empty. That is deliberate — see
    first line.
 3. Every script header states what the file **must not** know. When a change needs that rule
    broken, add a system instead.
-4. Depth before breadth. One area, genuinely good, before a second one exists.
+4. Depth before breadth. A region finished before the next one is started.
 5. Every session appends to the [DEVLOG](docs/DEVLOG.md).

@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://src/core/boot/game_root.gd" id="1_root"]
 [ext_resource type="Script" path="res://src/ui/hud/screen_fade.gd" id="2_fade"]
@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://src/ui/hud/hud_clock.gd" id="7_clock"]
 [ext_resource type="Script" path="res://src/ui/root/screen_keys.gd" id="8_keys"]
 [ext_resource type="Script" path="res://src/ui/hud/loading_indicator.gd" id="9_load"]
+[ext_resource type="Script" path="res://src/systems/debug/dev_probes.gd" id="10_probes"]
 
 [node name="GameRoot" type="Node"]
 script = ExtResource("1_root")
@@ -54,3 +55,6 @@ script = ExtResource("9_load")
 
 [node name="DevCapture" type="Node" parent="."]
 script = ExtResource("3_dev")
+
+[node name="DevProbes" type="Node" parent="."]
+script = ExtResource("10_probes")

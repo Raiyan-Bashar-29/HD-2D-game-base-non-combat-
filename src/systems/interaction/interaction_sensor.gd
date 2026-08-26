@@ -221,8 +221,13 @@ func _on_area_exited(area: Area3D) -> void:
 		target.availability_changed.disconnect(_on_availability_changed)
 
 
+## Resets the hold and the cycle, exactly as the other two paths that change _current do.
+## Without it, a 1.5s hold on a slow chest carried over to an adjacent object that became
+## available mid-hold, and fired it on the next physics frame from a hold nobody gave it.
 func _on_availability_changed() -> void:
 	_current = _select()
+	_cycle = 0
+	_hold = 0.0
 	_announce()
 
 

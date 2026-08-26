@@ -89,22 +89,48 @@ func available_choices() -> Array[DialogueChoice]:
 	return out
 
 
-## Move on from a plain line. Does nothing while the node is waiting on a choice, so a stray
+## Move on from a plain line. Does nothing while the node is OFFERING a choice, so a stray
 ## advance cannot skip a branch the player has not answered.
+##
+## AVAILABLE choices, not authored ones, and the difference is a hard soft-lock. Testing
+## `_node.has_choices()` asks the .tres; the screen draws `available_choices()`. A node whose
+## every choice fails its condition therefore rendered a box with no buttons that would not
+## advance, could not be escaped (`closes_on_cancel` is false for a conversation), and held the
+## player's and the sensor's `&"dialogue"` tokens until the process was killed. Falling through
+## to `next_node` - which is empty on such a node, so the conversation simply ends - is the
+## recoverable behaviour, on the same reasoning that makes a dangling link end rather than hang.
 func advance() -> void:
-	if _node == null or _node.has_choices():
+	if _node == null or not available_choices().is_empty():
 		return
 	_go_to(_node.next_node)
 
 
-## Take a branch. The index is into `available_choices()`, i.e. into what is on screen, not into
-## the authored array: the two differ whenever a condition hid an option.
+## Take a branch by index into `available_choices()`, i.e. into what is on screen rather than
+## into the authored array - the two differ whenever a condition hid an option.
+##
+## FOR TESTS AND SCRIPTS. A UI must call `take()` with the choice object instead: this screen
+## keeps the world running, so a flag written while the box is open can change which options
+## are available and shift every index under the player's finger between the frame a button was
+## built and the frame it was pressed.
 func choose(index: int) -> bool:
 	var offered: Array[DialogueChoice] = available_choices()
 	if index < 0 or index >= offered.size():
 		Log.warn(CATEGORY, "Choice %d is not on offer" % index)
 		return false
-	_go_to(offered[index].target_node)
+	return take(offered[index])
+
+
+## Take a specific branch. Immune to the index shifting, because the caller names the choice it
+## actually drew rather than a position in a list that is recomputed on every read.
+func take(choice: DialogueChoice) -> bool:
+	if choice == null:
+		return false
+	if not available_choices().has(choice):
+		# It was on screen and is not on offer now, so a flag moved under the player. Refuse
+		# rather than silently taking a neighbouring branch and firing the wrong effect.
+		Log.warn(CATEGORY, "That choice is no longer on offer")
+		return false
+	_go_to(choice.target_node)
 	return true
 
 

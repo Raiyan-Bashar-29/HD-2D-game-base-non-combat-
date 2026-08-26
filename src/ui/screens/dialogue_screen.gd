@@ -137,8 +137,8 @@ func _on_line_changed(node: DialogueNode, choices: Array[DialogueChoice]) -> voi
 	_clear_choices()
 	# Choices are built but hidden until the line finishes revealing, so the answer cannot be
 	# picked before the question has been read.
-	for index: int in choices.size():
-		_choice_box.add_child(_choice_button(choices[index], index))
+	for choice: DialogueChoice in choices:
+		_choice_box.add_child(_choice_button(choice))
 	_choice_box.visible = false
 	_hint.visible = choices.is_empty()
 
@@ -152,18 +152,21 @@ func _show_choices() -> void:
 		first.grab_focus()
 
 
-func _choice_button(choice: DialogueChoice, index: int) -> Button:
+func _choice_button(choice: DialogueChoice) -> Button:
 	var button := Button.new()
 	button.text = tr(choice.text_key)
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	button.add_theme_font_size_override(&"font_size", CHOICE_SIZE)
-	button.pressed.connect(_on_choice_pressed.bind(index))
+	# Bound to the CHOICE, not to its index. The world keeps running behind this box, so a flag
+	# written between building the button and pressing it can change which options are available
+	# and shift every index by one - and the player would take a branch they did not pick.
+	button.pressed.connect(_on_choice_pressed.bind(choice))
 	return button
 
 
-func _on_choice_pressed(index: int) -> void:
+func _on_choice_pressed(choice: DialogueChoice) -> void:
 	if runner != null:
-		runner.choose(index)
+		runner.take(choice)
 
 
 func _finish_reveal() -> void:

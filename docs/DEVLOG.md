@@ -16,6 +16,172 @@ Append-only. Newest entry at the top. One entry per working session.
 
 ---
 
+## 2026-08-26 — WP-06: NPCs that keep a timetable, and eight defects an audit found
+
+**Did:**
+
+A navmesh baked from the geometry that is actually present, an NPC that walks to a named place
+because the clock says so, and a schedule authored as data.
+
+- `src/content/npc/` — `ScheduleEntry`, `NpcSchedule`, `ScheduleDb`. The third registry, and
+  deliberately identical to the first two.
+- `src/gameplay/character/npc_brain.gd` — `NpcBrain`. Reads a schedule for a waypoint NAME,
+  resolves it against the area's `Waypoints/` node, hands the position to a `NavigationAgent3D`.
+- `AreaRoot` bakes its own navmesh at load, behind the curtain, and reports the polygon count.
+- `scenes/characters/npc.tscn` — reuses `CharacterVisual` unchanged, and carries a `Speaker`
+  child, so an NPC is a conversation partner with no new code at all.
+- `data/schedules/keeper.tres`, two `Waypoints/` nodes, `GameEnums.NpcActivity`.
+- `dev_capture.gd` split into itself plus `dev_probes.gd`; `--npc-day`, `--npc-storm`,
+  `--npc-settle` added.
+- `tests/unit/npc_test.gd` — 74 new assertions, plus 17 more covering the fixes below.
+  460 -> 555.
+
+**Why:**
+
+**A schedule names a waypoint, not a position.** Coordinates would be authored against one
+area's geometry, silently wrong the moment a bench moved, and unusable by a second NPC. A name
+resolves at runtime, so moving the marker moves everyone who goes there.
+
+**There is no `until_hour`.** An entry runs until the next one begins and the last wraps past
+midnight, so a day is always completely covered and two entries cannot disagree about who owns
+14:00. `entry_for_hour` falls back to the LAST entry when the hour precedes every block, which
+is what makes a night shift work — asserted for all twenty-four hours.
+
+**The navmesh is baked at load, not checked in.** A committed `NavigationMesh` goes stale the
+moment someone moves a wall, and a stale navmesh fails silently. Baking from the geometry that
+is present cannot disagree with it, and the cost is paid behind the same black curtain that
+already hides the shader warm-up.
+
+**Arrival is the agent's answer, not a distance check.** `is_navigation_finished()` accounts for
+a target that is unreachable; a hand-rolled `distance < 0.5` reports "not there yet" forever when
+a waypoint ends up inside a wall.
+
+**Three defects found while building it, each by running the engine:**
+
+1. **The navmesh baked EMPTY and said nothing.** `SOURCE_GEOMETRY_ROOT_NODE_CHILDREN` parses the
+   children of the `NavigationRegion3D`, which has none — the terrain is a sibling. An empty
+   navmesh means every NPC concludes it has already arrived, everywhere, and an empty bake takes
+   0ms, so "baked in 0ms" is exactly what the failure looks like. Now group-sourced, and the
+   log line reports the POLYGON COUNT and errors at zero.
+2. **The navmesh bridged a step the body cannot climb.** `agent_max_climb` was 0.55 and the dais
+   is 0.4 high, so the bake connected the ground to the dais top — but `move_and_slide()` has no
+   step-up at all, so the NPC walked into the riser and stopped while the agent insisted it had
+   not arrived, with no error anywhere. This game has no jumping and authored vertical movement,
+   so the climb limit is now BELOW anything the body cannot manage and waypoints sit on the
+   ground.
+3. **My own reachability guard fired before the navigation map had synchronised**, and acted on
+   the answer: an unsynchronised map reports everything unreachable, and the guard then parked
+   the NPC at `get_final_position()`, which is the origin. It now waits for a decision and for a
+   non-empty path before believing the answer.
+
+**Eight more defects, from an independent adversarial review of WP-01 to WP-05.** Reviewing code
+that has already passed every gate is worth doing, and this is the evidence:
+
+1. **A hard soft-lock in dialogue.** `advance()` asked `_node.has_choices()` — the AUTHORED array
+   — while the screen drew `available_choices()`. A node whose every choice fails its condition
+   therefore rendered a box with no buttons that would not advance, could not be escaped
+   (`closes_on_cancel` is false for a conversation, on purpose) and held the player's and the
+   sensor's `&"dialogue"` tokens forever. Killing the process was the only way out. `advance()`
+   now reads the filtered list and falls through, which ends the conversation and returns
+   control — the same recoverable behaviour a dangling link already had.
+2. **A non-`Node3D` area root left the curtain black permanently.** That failure path returned
+   without lifting the fade, with the previous area already freed and `current_area_id` empty, so
+   not even `reload_current_area()` could recover. Every failure path now goes through
+   `_abandon()`, which lifts the curtain on the way out.
+3. **A failed load left "Loading" pinned over the game for the rest of the session**, because the
+   indicator hid only on `area_entered`. It now hides when the curtain lifts, which every path
+   out of a transition does.
+4. **A refused transition left a save's position override armed for the NEXT one.** Load a save
+   whose area was renamed, then walk through any door, and the player is placed at coordinates
+   authored for a different area — inside geometry, or outside the level. Cleared on every path
+   that does not place the player.
+5. **The loading readout could never appear during the boot load** — the one load, on a cold
+   cache, that most needs it — because it showed only on `area_unloading`, which the first load
+   does not emit. Progress now shows it as well as updating it.
+6. **Nothing closed screens on an area change; `UiRoot.close_all()` was dead code** called only by
+   tests. Travel does not lock the player, so a conversation opened during the 0.35s fade-out
+   kept running over the newly loaded area with its speaker already freed. Same shape as WP-04's
+   prompt-survives-an-area-change bug, one layer up. `UiRoot` now unwinds on `area_unloading`.
+7. **Choice buttons and `choose(index)` indexed two different lists.** A dialogue box deliberately
+   leaves the world running, so a flag written while it is open can hide an option and shift
+   every index between the frame a button was built and the frame it was pressed — and the player
+   takes a branch they did not pick, firing its effect. The UI now calls `take(choice)` with the
+   object it actually drew, and a choice that has left the offer is REFUSED rather than resolved
+   to a neighbour.
+8. **`InteractionSensor._on_availability_changed` swapped `_current` without resetting the hold**,
+   so a 1.5s hold on a slow chest carried over to an adjacent object that became available
+   mid-hold and fired it on the next physics frame.
+
+Findings 1, 6 and 7 have assertions. 2 to 5 are single-branch fixes in `Director` and the
+indicator whose failure paths need a broken area scene to reach, which is a fixture this suite
+has no way to build; they are covered by reading and by the boot run, and that is stated here
+rather than implied.
+
+**Connections:**
+
+`Clock` -> `hour_passed` -> `NpcBrain.decide_for_hour`. `ScheduleDb` supplies the waypoint name;
+`AreaRoot`'s `Waypoints/` node supplies the position; `NavigationRegion3D` supplies the path.
+`PersistentState` stores the waypoint, so an NPC's whereabouts ride the save machinery that
+already exists — keyed `obj/<area>/<npc>/waypoint`, so two NPCs cannot overwrite each other and
+a second area cannot overwrite the first. The NPC's `Speaker` child emits
+`Events.dialogue_requested` exactly as the standalone one did.
+
+**Verified:**
+
+```
+--headless --import                                   clean
+--headless --quit-after 120                           0 warnings, 0 errors
+--headless res://tests/test_runner.tscn                555 passed, 0 failed, exit 0
+  with one assertion deliberately broken               554 passed, 1 failed, exit 1
+--headless --script tools/check_budgets.gd            73 files, 5638 lines, 0 violations
+--headless --script tools/check_content.gd            PASS, incl. 1 schedule
+--headless --quit-after 2400 -- --round-trips=20      nodes 135 -> 135 (+0), memory +9 KiB
+```
+
+**A whole day**, `--npc-day`, which is how the schedule criterion is measured — no assertion can
+drive a navmesh, because `TestCase.run()` is synchronous and pathing needs physics frames:
+
+```
+06:00  Keeper   wants gate_post  WANDER   0.00m away  arrived
+09:00  Keeper   wants gate_post  WANDER   0.00m away  arrived
+12:00  Keeper   wants dais       WANDER   0.47m away  arrived
+15:00  Keeper   wants dais       WANDER   0.47m away  arrived
+20:00  Keeper   wants bench      SLEEP    0.48m away  arrived
+23:00  Keeper   wants bench      SLEEP    0.48m away  arrived
+02:00  Keeper   wants bench      SLEEP    0.48m away  arrived
+```
+
+02:00 resolving to the bench is the midnight wrap working: the keeper's day starts at 06:00, so
+the small hours belong to the previous evening's block rather than to the morning's.
+
+**Thirty NPCs**, `--npc-storm=30`: `16.598 ms/frame with 1 NPC, 16.675 with 31 (+0.077)`. The
+floor is the 60Hz physics tick, and thirty more NPCs move it by less than a tenth of a
+millisecond. Both numbers are printed rather than asserted against a threshold, because a
+threshold picked on this machine would mean nothing on another.
+
+**Two captures, examined.** At 12:30 the keeper stands at its dais post offering "Speak — The
+Garden-Keeper"; at 21:30 it has walked to the bench and is lit by the west lantern. The first
+attempt had it standing inside the player, because the dais waypoint was 1.3m from the spawn
+marker; moved, and re-shot.
+
+**Unblocks:**
+
+WP-07's path actions, which need an NPC to act on, and WP-08's quests, which need one to talk to
+across a schedule. `CharacterVisual` is now proven shared between the player and NPCs unchanged,
+which was the claim in its header and is now a fact.
+
+**Known gaps:**
+
+An NPC cannot travel between areas — a schedule names a waypoint and the waypoint must be in the
+area the NPC is standing in, so a keeper who goes indoors at night is not expressible yet.
+`check_content.gd` pools waypoint names across all areas for exactly this reason, and says so:
+it can catch a name that exists nowhere, not an NPC in the wrong area for its schedule. Wander is
+a random offset on a timer, not a behaviour tree, and level-of-detail for offscreen NPCs is
+deferred as the manifest says. NPCs do not collide with the player or with each other, which
+keeps them from getting stuck and lets them overlap. And the navmesh is rebaked on every area
+entry; at 25-42ms for these two areas that is invisible behind the curtain, but a large area will
+eventually want a checked-in bake plus a staleness check rather than an unconditional rebake.
+
 ## 2026-08-26 — WP-05: dialogue, and a comma that had been eating text since WP-01
 
 **Did:**

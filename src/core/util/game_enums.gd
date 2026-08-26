@@ -32,6 +32,11 @@ enum InteractVerb { LOOK, TAKE, OPEN, CLOSE, USE, TALK, READ, SIT, CLIMB, ENTER,
 ## Why an interaction was refused, so the UI can say something useful instead of nothing.
 enum RefusalReason { NONE, LOCKED, MISSING_ITEM, MISSING_SKILL, WRONG_TIME, ALREADY_DONE, HANDS_FULL, STORY_GATED, NOT_GROUNDED }
 
+## What an NPC is doing while it is at a scheduled place. Deliberately tiny: the schedule says
+## WHERE and roughly what posture, and anything richer belongs to a future behaviour tree
+## rather than to a data enum that every schedule .tres would then have to be migrated for.
+enum NpcActivity { STAND, WANDER, SLEEP }
+
 ## How a dialogue condition tests a flag. Deliberately a CLOSED set of comparisons rather than
 ## an expression language: a conversation is data authored in the editor, and the moment it can
 ## contain an expression, it needs a parser, error reporting and a sandbox. ALWAYS is the

@@ -24,7 +24,9 @@ package that gets half-finished.
 5. `CONTEXT.md` updated — counts, new settled decisions, new gotchas, next package.
 6. This file marks the package `DONE` with its commit.
 7. Committed and pushed.
-8. **The chip for the next package is created**, so the handoff is automatic. Use the
+8. **The chip for the next package is created**, so the handoff is automatic. If no chip ever
+   arrives, nothing is lost: this file's row for the next package IS the fallback handoff, and
+   `docs/CONTEXT.md` opens with the branch map saying which tip to build from. Use the
    spawn-task mechanism with a self-contained prompt: it must name the start-here docs, the
    goal, the files to write, the exit criteria, and what is deferred - everything a session
    with no memory of this one needs. WP-01 chip is the worked example; copy its shape.
@@ -41,8 +43,8 @@ Headless shades nothing. This project has already shipped two bugs that every ot
 | 03 | HUD and inventory screen | **DONE** — see below |
 | 04 | Second area, transitions, loading | **DONE** — see below |
 | 05 | Dialogue | **DONE** — see below |
-| 06 | NPCs and navigation | **TODO — next** |
-| 07 | Path actions | TODO |
+| 06 | NPCs and navigation | **DONE** — see below |
+| 07 | Path actions | **TODO — next** |
 | 08 | Quests | TODO |
 | 09 | Character depth | TODO |
 | 10 | Crafting and gathering | TODO |
@@ -240,7 +242,7 @@ any CSV row that parses to more than two columns.
 
 ---
 
-## WP-06 · NPCs and navigation
+## WP-06 · NPCs and navigation — **DONE**
 
 **Goal.** Navmesh baking, an NPC brain, and schedules driven by the world clock.
 
@@ -254,6 +256,21 @@ NPCs is deferred.
 
 **Exit criteria:** an NPC is at the market at noon and home at night, across a save and reload,
 and thirty NPCs do not measurably cost frame time.
+
+
+**Done 2026-08-26**, commit `PLACEHOLDER6`.
+`src/content/npc/` (three classes), `src/gameplay/character/npc_brain.gd`,
+`scenes/characters/npc.tscn`, `data/schedules/keeper.tres`, `Navigation/` and `Waypoints/` added
+to both areas and to the `AreaRoot` contract, `GameEnums.NpcActivity`, `tests/unit/npc_test.gd`.
+`dev_capture.gd` was SPLIT — it had reached 310 of its 250 allowed lines — into itself plus
+`src/systems/debug/dev_probes.gd`, which now owns every scripted scenario. Suite 460 -> 555.
+The schedule criterion is measured by `--npc-day`, which steps the clock through a whole day:
+gate_post at 06:00 and 09:00, the dais at 12:00 and 15:00, the bench from 20:00 through 02:00 —
+the last of those being the midnight wrap working. `--npc-storm=30` reports
+`16.598 ms/frame with 1 NPC, 16.675 with 31`.
+Three defects found while building it and eight more from an independent adversarial review of
+WP-01 to WP-05, including a HARD SOFT-LOCK in dialogue that could only be escaped by killing the
+process. All eleven are listed in `CONTEXT.md` and justified in `DEVLOG.md`.
 
 ---
 

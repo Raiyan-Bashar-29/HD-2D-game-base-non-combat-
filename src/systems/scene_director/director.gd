@@ -97,6 +97,9 @@ func _begin_transition(area_id: StringName, spawn_id: StringName) -> void:
 		return
 	if not area_exists(area_id):
 		Log.error("world", "Area '%s' has no scene at %s" % [area_id, area_path(area_id)])
+		# A refused transition must not leave a save's position override armed for the next one.
+		_position_override = null
+		_yaw_override = null
 		return
 	_transitioning = true
 	_pending_area = area_id
@@ -117,9 +120,7 @@ func _run_transition(area_id: StringName, spawn_id: StringName) -> void:
 
 	var scene: PackedScene = await _load_area_scene(area_id)
 	if scene == null:
-		_transitioning = false
-		_pending_area = &""
-		Events.screen_fade_requested.emit(false, FADE_IN)
+		_abandon()
 		return
 
 	var instance: Node = scene.instantiate()
@@ -127,8 +128,7 @@ func _run_transition(area_id: StringName, spawn_id: StringName) -> void:
 	if area == null:
 		Log.error("world", "Area '%s' root is %s, expected Node3D" % [area_id, instance.get_class()])
 		instance.free()
-		_transitioning = false
-		_pending_area = &""
+		_abandon()
 		return
 
 	_current_area = area
@@ -144,6 +144,24 @@ func _run_transition(area_id: StringName, spawn_id: StringName) -> void:
 	_transitioning = false
 	_pending_area = &""
 	Log.info("world", "Entered '%s'" % area_id)
+
+
+## Give up on a transition, and LIFT THE CURTAIN on the way out.
+##
+## Every failure path has to come through here. One of them used to return without the fade,
+## which left the screen permanently black with the previous area already freed and
+## current_area_id empty, so not even reload_current_area() could recover - the exact failure
+## mode game_root.gd was fixed for in the WP-00 audit, reintroduced one layer down.
+##
+## The overrides are cleared too. A save whose area no longer exists sets them and then fails,
+## and they would otherwise survive to the NEXT transition and teleport the player to a
+## position authored for a different area.
+func _abandon() -> void:
+	_transitioning = false
+	_pending_area = &""
+	_position_override = null
+	_yaw_override = null
+	Events.screen_fade_requested.emit(false, FADE_IN)
 
 
 ## Draw the new area a few times while the curtain is still opaque, so shader compilation

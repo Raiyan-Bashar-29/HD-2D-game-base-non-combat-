@@ -18,8 +18,10 @@ extends Node3D
 ##     |- Spawns/              Marker3D per entry point, named to match travel requests
 ##     |- Triggers/            Area3D volumes: transitions, plot triggers, audio zones
 ##     |- Camera/              the HD2DCameraRig for this area
+##     |- Navigation/          NavigationRegion3D, baked from this area's own geometry on entry
+##     |- Waypoints/           Marker3D per named place an NPC can be sent to
 ##
-## OWNS: the area's identity, its weather rules, and its audio beds.
+## OWNS: the area's identity, its weather rules, its audio beds, and baking its navmesh.
 ## MUST NOT: contain gameplay logic. It announces itself and configures ambience.
 
 ## Must match the folder and file name: scenes/areas/<id>/<id>.tscn
@@ -58,8 +60,10 @@ func _ready() -> void:
 	Audio.play_music(music)
 	Audio.play_ambience(ambience)
 
-	Log.info("area", "Area '%s' ready (%d spawns, %d interactables)" % [
-		area_id, _count_in(^"Spawns"), _count_in(^"Interactables"),
+	_bake_navigation()
+
+	Log.info("area", "Area '%s' ready (%d spawns, %d interactables, %d waypoints)" % [
+		area_id, _count_in(^"Spawns"), _count_in(^"Interactables"), _count_in(^"Waypoints"),
 	])
 
 
@@ -73,3 +77,36 @@ func flag_key(local_name: String) -> StringName:
 func _count_in(group: NodePath) -> int:
 	var node: Node = get_node_or_null(group)
 	return node.get_child_count() if node != null else 0
+
+
+## Bake the navmesh from the area's own geometry, here, at load.
+##
+## WHY AT RUNTIME AND NOT CHECKED IN. A baked NavigationMesh committed beside the scene goes
+## stale the moment someone moves a wall, and a stale navmesh fails SILENTLY: NPCs walk through
+## the new geometry or refuse to path around it, and nothing errors. Baking from the geometry
+## that is actually present cannot disagree with it. The cost is milliseconds per area entry,
+## paid where nobody can see it — Director holds the curtain for WARM_UP_FRAMES after this runs,
+## so the bake and the shader compile hide behind the same black screen.
+##
+## SYNCHRONOUS on purpose. The threaded variant returns before the map is usable, and every NPC
+## in the area would then ask for a path against an empty navmesh and conclude it had already
+## arrived. NpcBrain still waits two physics frames for the map to synchronise.
+func _bake_navigation() -> void:
+	var region: NavigationRegion3D = get_node_or_null(^"Navigation/Region") as NavigationRegion3D
+	if region == null:
+		return
+	if region.navigation_mesh == null:
+		Log.error("area", "%s has a Navigation/Region with no NavigationMesh resource" % area_id)
+		return
+	var started: int = Time.get_ticks_msec()
+	region.bake_navigation_mesh(false)
+	# The POLYGON COUNT, not just the duration. A bake that produces nothing takes no time at
+	# all, so "baked in 0ms" on its own is exactly what a silently empty navmesh looks like -
+	# and an empty navmesh means every NPC concludes it has already arrived, everywhere.
+	var polygons: int = region.navigation_mesh.get_polygon_count()
+	if polygons == 0:
+		Log.error("area", "Navmesh for '%s' baked EMPTY; nothing can path here" % area_id)
+		return
+	Log.info("area", "Navmesh for '%s' baked: %d polygons in %dms" % [
+		area_id, polygons, Time.get_ticks_msec() - started,
+	])

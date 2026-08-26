@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://src/gameplay/world/area_root.gd" id="1_area"]
 [ext_resource type="Script" path="res://src/gameplay/world/environment_driver.gd" id="2_env"]
@@ -37,6 +37,17 @@ size = Vector3(20, 6, 0.6)
 [sub_resource type="BoxShape3D" id="shape_wall"]
 size = Vector3(20, 6, 0.6)
 
+[sub_resource type="NavigationMesh" id="navmesh"]
+agent_radius = 0.4
+agent_height = 1.7
+agent_max_climb = 0.2
+cell_size = 0.2
+cell_height = 0.1
+geometry_parsed_geometry_type = 1
+geometry_source_geometry_mode = 1
+geometry_source_group_name = &"navmesh_source"
+filter_walkable_low_height_spans = true
+
 [node name="LanternHall" type="Node3D"]
 script = ExtResource("1_area")
 area_id = &"lantern_hall"
@@ -64,7 +75,7 @@ world_environment = NodePath("../WorldEnvironment")
 sun = NodePath("../Sun")
 follow_clock = false
 
-[node name="Terrain" type="Node3D" parent="."]
+[node name="Terrain" type="Node3D" parent="." groups=["navmesh_source"]]
 
 [node name="Floor" type="StaticBody3D" parent="Terrain"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
@@ -166,6 +177,19 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 1.0)
 
 [node name="from_courtyard" type="Marker3D" parent="Spawns"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, -4.2)
+
+[node name="Navigation" type="Node3D" parent="."]
+
+[node name="Region" type="NavigationRegion3D" parent="Navigation"]
+navigation_mesh = SubResource("navmesh")
+
+[node name="Waypoints" type="Node3D" parent="."]
+
+[node name="plinth" type="Marker3D" parent="Waypoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.6, 0, -2)
+
+[node name="hearth" type="Marker3D" parent="Waypoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.4, 0, -2)
 
 [node name="Triggers" type="Node3D" parent="."]
 

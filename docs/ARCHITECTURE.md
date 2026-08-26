@@ -162,8 +162,8 @@ Every rung is proven working on this machine. Nothing here is aspirational.
 |---|---|---|
 | 1. Parse and type gate | `--headless --check-only --script <file>` | Type errors, unknown functions, with file and line |
 | 2. Import gate | `--headless --import` | Broken scenes, resources, asset references |
-| 3. Headless run | `--headless --quit-after 30` | Boot order, null references, real `_process` frames |
-| 4. Tests | `--headless res://tests/test_runner.tscn --quit-after 150` | Logic, save round-trips. 74 assertions, exit 1 on failure |
+| 3. Headless run | `--headless --quit-after 120` | Boot order, null references, real `_process` frames |
+| 4. Tests | `--headless res://tests/test_runner.tscn --quit-after 300` | Logic, save round-trips. 555 assertions, exit 1 on failure |
 | 5. Visual capture | `--quit-after 55 -- --shot=<path> --time=HH:MM` | The actual look, at any hour, on demand |
 
 **Rung 1 gotcha:** autoload identifiers such as `Log` do not resolve under `--check-only`,
@@ -202,11 +202,14 @@ never resolve.
 
 - **Input actions are invisible in the editor.** They are built in code, so Project Settings
   shows an empty Input Map. Accepted; see `docs/decisions/ADR-0003`.
-- **No test runner yet.** Rung 4 of the ladder is the next gap to close.
+- **No hard-coded-string audit.** Computed keys (`verb.*`, `refusal.*`, `item.category.*`,
+  `time.phase.*`) are each covered by an enum loop in the suite, and `tools/check_content.gd`
+  fails a CSV row with an unquoted comma — but literal player-facing text in code is still
+  caught only by review.
 - **Audio has no assets,** so every audio path is written but unexercised. It accepts `null`
   everywhere by design, which means it is untested rather than broken.
 - **`Weather` publishes state but nothing renders it yet.** No rain exists.
-- **Only one area exists,** so the transition path is written and logged but has never
-  actually swapped two areas.
-- **The content validator and string audit are not built yet.** The line-budget checker is,
-  and passes at 23 files / 1,890 code lines / 0 violations.
+- **The export path is unproven.** Items, conversations and schedules are all found by scanning
+  a directory, which is verified in the editor and headless only. See ADR-0006.
+- **`Director` does not cancel its threaded load on shutdown**, which is why the boot rung needs
+  `--quit-after 120` rather than 30. Deferred to WP-14.

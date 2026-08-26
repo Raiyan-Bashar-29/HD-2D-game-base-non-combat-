@@ -46,6 +46,12 @@ func _ready() -> void:
 	# MOUSE_FILTER_STOP on itself, so only an actually-open screen blocks the pointer.
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_to_group(GROUP)
+	# UNWIND ON AN AREA CHANGE. Travel does not lock the player, so a conversation can be opened
+	# during the 0.35s fade-out - and a dialogue screen does not pause the world, so it would
+	# keep running over the newly loaded area with its speaker already freed, holding the
+	# player's and the sensor's tokens until the player talked their way out. Same shape as the
+	# prompt that survived an area change in WP-04, one layer up.
+	Events.area_unloading.connect(_on_area_unloading)
 	Log.info("ui", "Screen stack ready")
 
 
@@ -174,6 +180,13 @@ func _derive_mode() -> GameEnums.UiMode:
 		if screen.pauses_world:
 			return GameEnums.UiMode.MODAL
 	return GameEnums.UiMode.OVERLAY
+
+
+## Every screen goes, top first. A screen belongs to the world it was opened over.
+func _on_area_unloading(_area_id: StringName) -> void:
+	if not _stack.is_empty():
+		Log.info("ui", "Area change closing %d screen(s)" % _stack.size())
+		close_all()
 
 
 ## The stack, found by group rather than by path. Returns null before the UI tree is built,

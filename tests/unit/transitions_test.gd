@@ -17,6 +17,7 @@ extends TestCase
 
 const REQUIRED_CHILDREN: Array[String] = [
 	"Environment", "Terrain", "Props", "Interactables", "Actors", "Spawns", "Triggers", "Camera",
+	"Navigation", "Waypoints",
 ]
 const AREAS: Array[StringName] = [&"courtyard", &"lantern_hall"]
 

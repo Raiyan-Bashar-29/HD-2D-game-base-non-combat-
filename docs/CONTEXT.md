@@ -3,10 +3,29 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-26 · WP-05 complete · branch `claude/wp-05-dialogue`
-**Note:** this branch fast-forwarded WP-01 and WP-02 in from `claude/trusting-curran-04a4f9`
-and `claude/intelligent-wilbur-ae8141`, neither of which was merged to `main`. Merge order is
-WP-01 through WP-05, in that order, or just merge the branches in order.
+**Last updated:** 2026-08-26 · WP-06 complete
+
+## Which branch to work from — read this before `git checkout`
+
+**`main` is ten commits behind and contains NONE of WP-01 to WP-06.** A fresh clone lands there
+and finds no screen stack, no dialogue, no second area and no NPCs. The packages were never
+merged; they are a **strictly linear stack of branches**, each based on the one before:
+
+| Package | Branch | Commit |
+|---|---|---|
+| WP-01 Triggers and traversal | `claude/trusting-curran-04a4f9` | `81b28b0` |
+| WP-02 UI foundation | `claude/intelligent-wilbur-ae8141` | `444dbd2` |
+| WP-03 HUD and inventory | `claude/loving-nightingale-aa2114` | `1563915` |
+| WP-04 Second area | `claude/wp-04-second-area` | `3ed321f` |
+| WP-05 Dialogue | `claude/wp-05-dialogue` | `addf337` |
+| WP-06 NPCs and navigation | `claude/wp-06-npcs` | see the board |
+
+**Branch new work from the LAST row, never from `main`.** Because the stack is linear, merging
+the tip alone fast-forwards every package at once — there is no five-way merge to perform.
+
+`git branch -a` will also show `claude/wp-12-menus` and `claude/wp-13-presentation`, which are
+packages built in parallel off WP-05's tip rather than continuations of the stack.
+
 **Remote:** https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-
 
 ## What this is
@@ -21,8 +40,8 @@ architecture.
 
 ## Where it stands
 
-Phase 0 complete, Phase 1 done, Phase 2 well begun. 67 files, 5,063 code lines, 16 scenes,
-2 areas, 3 items, 1 conversation.
+Phase 0 complete, Phase 1 COMPLETE, Phase 2 well under way. 73 files, 5,638 code lines,
+16 scenes, 2 areas, 3 items, 1 conversation, 1 schedule.
 Boots headless with **0 warnings, 0 errors**.
 
 **Works, and verified by running it:** logging with rotation · signal registry (`events.gd`) ·
@@ -30,7 +49,7 @@ input actions · settings · save/load with atomic writes and versioning · plot
 director with a re-entrancy guard and threaded loading · world clock · weather state · audio
 buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 8-way character ·
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
-placeholder art generator · line-budget checker · headless test suite (460 assertions) ·
+placeholder art generator · line-budget checker · headless test suite (555 assertions) ·
 interaction sensor with ranking and Tab-cycling · Interactable contract · localized prompt and
 toasts · readable signs · levers · gates gated by flag or by a carried key · per-object
 persistence (ADR-0005) · typed item definitions found by directory scan (ADR-0006) · an
@@ -40,13 +59,49 @@ a screen stack with real pause semantics · a token input lock · a HUD clock re
 inventory screen with focus navigation · one action-to-screen binding · a SECOND area, an
 interior, and a door that really travels · a loading readout drawn above the curtain ·
 shader warm-up behind black · a dialogue runner with conditions, branches and effects · a
-non-pausing dialogue box with a typewriter reveal · an authorable .tres conversation format.
+non-pausing dialogue box with a typewriter reveal · an authorable .tres conversation format ·
+a navmesh baked from each area's own geometry · an NPC that keeps a timetable and can be
+talked to · schedules as authored data.
 
-**Not built:** NPCs · quests · the pause, main, settings, save and journal screens
+**Not built:** quests · the pause, main, settings, save and journal screens
 (WP-12) · hard-coded-string audit · weather visuals · item instances (durability) · equipment ·
 item tooltips, sorting and drag-and-drop.
 
 ## Known defects
+
+**Fixed 2026-08-26 in WP-06. Three found by running it, eight more by an independent
+adversarial review of code that had already passed every gate:**
+
+1. **A HARD SOFT-LOCK in dialogue.** `advance()` asked the AUTHORED choice array while the
+   screen drew the FILTERED one, so a node whose every choice failed its condition rendered a
+   box with no buttons that would not advance and could not be escaped, holding the player's
+   and the sensor's tokens until the process was killed. `advance()` now reads
+   `available_choices()`.
+2. **The navmesh baked EMPTY and said nothing.** `SOURCE_GEOMETRY_ROOT_NODE_CHILDREN` parses
+   children of the `NavigationRegion3D`, which has none. An empty bake takes 0ms, so "baked in
+   0ms" is what the failure looks like. Now group-sourced, and the log reports the polygon count
+   and errors at zero.
+3. **The navmesh bridged a step the body cannot climb.** `agent_max_climb` was above the dais's
+   0.4m riser, but `move_and_slide()` has NO step-up, so the NPC walked into it and stopped
+   while the agent insisted it had not arrived â silently. See the settled decision below.
+4. **A non-`Node3D` area root left the curtain black forever**, with the old area already freed
+   and `current_area_id` empty, so not even `reload_current_area()` could recover. Every failure
+   path now goes through `Director._abandon()`, which lifts the fade on the way out.
+5. **A failed load left "Loading" pinned over the game** for the rest of the session. It now
+   hides when the curtain lifts, which every path out of a transition does.
+6. **A refused transition left a save's position override armed for the NEXT one**, teleporting
+   the player to coordinates authored for a different area. Cleared on every path that does not
+   place the player.
+7. **The loading readout could never appear during the boot load** â the one load, on a cold
+   cache, that most needs it. Progress now shows it as well as updating it.
+8. **Nothing closed screens on an area change; `UiRoot.close_all()` was dead code.** Travel does
+   not lock the player, so a conversation opened during the fade-out kept running over the new
+   area with its speaker freed. `UiRoot` now unwinds on `area_unloading`.
+9. **Choice buttons and `choose(index)` indexed two different lists.** The world runs behind a
+   dialogue box, so a flag written while it is open shifts every index between drawing a button
+   and pressing it. The UI now calls `take(choice)` with the object it drew.
+10. **`InteractionSensor._on_availability_changed` swapped `_current` without resetting the
+    hold**, so a part-finished hold fired an adjacent object that became available mid-hold.
 
 **Fixed 2026-08-26 in WP-05, found by a capture:**
 
@@ -173,6 +228,21 @@ three compiled cleanly and passed every static gate:**
   load into a position that no longer exists. The section exists, is always empty, and logs what
   it discarded. A save taken mid-conversation reloads with the conversation over and control
   returned.
+- **A waypoint must be somewhere the BODY can walk, which is not the same as somewhere the
+  navmesh covers.** A `NavigationMesh` bakes `agent_max_climb` into the walkable surface and
+  will happily bridge a knee-high step, but `CharacterBody3D.move_and_slide()` has no step-up at
+  all. This game has no jumping and authored vertical movement, so the climb limit is kept BELOW
+  anything the body cannot manage and waypoints sit on the ground.
+- **A navmesh is baked at load, never checked in.** A committed one goes stale the moment
+  someone moves a wall, and a stale navmesh fails silently. It is baked behind the same curtain
+  that already hides the shader warm-up, and the polygon count is logged so an empty bake is an
+  error rather than silence.
+- **A schedule names a WAYPOINT, not a position**, and has no `until_hour`: an entry runs until
+  the next begins and the last wraps past midnight, so a day is always completely covered and
+  two entries cannot disagree about who owns 14:00.
+- **A UI takes a dialogue choice by IDENTITY, never by index.** `take(choice)`, not
+  `choose(index)`. A conversation leaves the world running, so any flag written while the box is
+  open can shift every index under the player's finger.
 - **A door names an id and a spawn, and nothing else.** `AreaDoor` emits
   `Events.area_change_requested` and stops. It does not load, fade or place the player.
   `Director` owns the sequence and the guard, and nothing else calls `change_area()` — a door
@@ -190,7 +260,7 @@ three compiled cleanly and passed every static gate:**
   decides for itself in its own `_ready()`. The full table is the header of
   `src/ui/root/ui_root.gd`. Clock and Weather stop; Audio, Director, ScreenFade,
   NotificationToast and DevCapture do not.
-- Four ADRs in `docs/decisions/` cover the layered `src/`, warnings-as-errors, the input map,
+- Six ADRs in `docs/decisions/` cover the layered `src/`, warnings-as-errors, the input map,
   and save-via-callables.
 
 ## Verify before claiming anything is done
@@ -200,13 +270,13 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 120               # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 150   # 355 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 300   # 555 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --resolution 960x540 --quit-after 55 -- --shot=<path> --time=18:40 --freeze-time
 ```
 
-## Seventeen gotchas that each cost an hour
+## Nineteen gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -241,8 +311,10 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     moment a menu opens — and it is the autoload *node* that needs it, not just the
     `AudioStreamPlayer` children, because the cross-fade tweens are created on the node.
     Verified with `can_process()` in `tests/unit/ui_test.gd`, not assumed.
-12. **Child order in a `CanvasLayer` is draw order.** `ScreenFade` has to be the LAST child of
-    `UILayer` or the curtain does not cover the screens. It was the first child until WP-02.
+12. **Child order in a `CanvasLayer` is draw order.** `ScreenFade` has to come after every
+    SCREEN or the curtain does not cover them. It was the first child until WP-02. Since WP-04
+    exactly one node sits after it, `LoadingIndicator`, which has to be readable while the
+    curtain is up — that is the only deliberate exception and there should not be a second.
 13. **Use `--quit-after 120` for the boot rung, not 30.** The area load is threaded, and 30
     frames does not reliably finish it on a cold cache — quitting mid-load aborts the loader
     thread and prints spurious `Parse Error` lines for `courtyard.tscn` plus leaked RIDs,
@@ -269,6 +341,19 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     zero-argument method at runtime. Third time this project has been bitten by a native-name
     collision, after `Area3D.priority` and `class_name Container`. Regenerate with
     `--headless --doctool <dir>` and grep it.
+18. **A navmesh bake that finds nothing takes NO TIME and reports SUCCESS.** `bake_navigation_mesh`
+    on a region whose geometry mode does not actually reach the terrain produces zero polygons,
+    logs nothing, and every NPC then concludes it has already arrived, everywhere. Always report
+    `navigation_mesh.get_polygon_count()` and treat zero as an error. Godot's default
+    `SOURCE_GEOMETRY_ROOT_NODE_CHILDREN` parses the children of the `NavigationRegion3D` itself,
+    which in this project's area layout has none — the terrain is a sibling, so the areas use
+    `SOURCE_GEOMETRY_GROUPS_WITH_CHILDREN` with the group `navmesh_source`.
+19. **`agent_max_climb` describes an abstraction the character controller does not implement.**
+    The bake will bridge a knee-high step; `CharacterBody3D.move_and_slide()` has no step-up at
+    all, so the body walks into the riser and stops while the agent reports "not finished"
+    forever. Keep the climb limit below anything the body cannot manage. Related: do not ask the
+    navigation map anything before it has synchronised — an unsynchronised map answers
+    "unreachable" to everything, and acting on that answer strands an agent at the origin.
 
 ## How work is sliced
 
@@ -278,7 +363,7 @@ should read, so a session loads a few hundred lines instead of three thousand. T
 (`core -> content -> systems -> gameplay -> ui`, downward only) is what makes that possible: a
 package never has to read upward.
 
-**Next package: WP-06, NPCs and navigation.**
+**Next package: WP-07, path actions.**
 
 ## Plan — where this is going
 
@@ -295,9 +380,10 @@ by 460 headless assertions.
 
 **Next, in this order.** The order matters and is not arbitrary:
 
-1. **NPCs and navigation.** Two areas exist for them to move between and a conversation format
-   exists for them to speak. `Speaker` is already the shape an NPC talk component will take.
-2. **Quests**, which need a conversation that can set a flag. It can.
+1. **Path actions** (WP-07), the non-combat NPC verbs in the spirit of Octopath's Scrutinise
+   and Inquire. There is now an NPC to use them on.
+2. **Quests** (WP-08), which need a conversation that can set a flag and an NPC to talk to.
+   Both exist.
 
 **Then the rest of Phase 2:** NPC schedules, navigation baking, weather visuals.
 

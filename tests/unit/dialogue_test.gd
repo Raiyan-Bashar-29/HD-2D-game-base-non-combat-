@@ -32,6 +32,9 @@ func run() -> void:
 	_a_hidden_choice_is_omitted_not_disabled()
 	_a_dangling_link_ends_it_rather_than_hanging()
 	_the_whole_exit_criterion()
+	_a_node_whose_choices_all_fail_still_advances()
+	_a_choice_is_taken_by_identity_not_by_index()
+	_a_stale_choice_is_refused()
 	_tear_down()
 
 
@@ -202,3 +205,88 @@ func _tear_down() -> void:
 	DialogueDb.reload()
 	Flags.clear_all()
 	_runner = null
+
+
+## THE SOFT-LOCK. A node whose every choice fails its condition rendered a box with no buttons
+## that would not advance and could not be escaped, because `advance()` asked the AUTHORED array
+## while the screen drew the FILTERED one. `closes_on_cancel` is false for a conversation and
+## the inventory key refuses while a screen is up, so the only way out was killing the process.
+func _a_node_whose_choices_all_fail_still_advances() -> void:
+	var talk: Conversation = DialogueDb.conversation(TALK)
+	var menu: DialogueNode = talk.node(&"menu")
+	var restore: Array[GameEnums.FlagTest] = []
+	for choice: DialogueChoice in menu.choices:
+		restore.append(choice.condition_test)
+		choice.condition_flag = &"test/never_true"
+		choice.condition_test = GameEnums.FlagTest.IS_TRUE
+
+	Flags.clear_all()
+	_ended.clear()
+	equal("the conversation opens", _runner.begin(TALK), true)
+	_runner.advance()
+	equal("we reach the branch node", _runner.current_node().node_id, &"menu")
+	equal("it authored some choices", menu.choices.size() > 0, true)
+	equal("but none are on offer", _runner.available_choices().size(), 0)
+	_runner.advance()
+	equal("advancing is NOT swallowed", _runner.is_running(), false)
+	equal("and control came back", _ended.has(TALK), true)
+
+	for index: int in menu.choices.size():
+		menu.choices[index].condition_flag = &""
+		menu.choices[index].condition_test = restore[index]
+
+
+## A UI must name the choice it drew, not its position. The world keeps running behind a
+## dialogue box, so a flag written while it is open can hide an option and shift every index
+## under the player's finger between the frame a button was built and the frame it was pressed.
+func _a_choice_is_taken_by_identity_not_by_index() -> void:
+	Flags.clear_all()
+	equal("the conversation opens", _runner.begin(TALK), true)
+	_runner.advance()
+	var offered: Array[DialogueChoice] = _runner.available_choices()
+	equal("three options are offered", offered.size(), 3)
+	# A LATER option that leads somewhere. It must not be the one about to be hidden, and it
+	# must not be the goodbye - taking that ends the conversation and asserts nothing about
+	# where we landed.
+	var target: DialogueChoice = null
+	for index: int in range(1, offered.size()):
+		if offered[index].target_node != &"" and target == null:
+			target = offered[index]
+	equal("a later option leads somewhere", target != null, true)
+
+	# Hide the FIRST option, exactly as a flag written mid-conversation would. Every index at or
+	# below the target now points one place to the left.
+	offered[0].condition_flag = &"test/never_true"
+	offered[0].condition_test = GameEnums.FlagTest.IS_TRUE
+	equal("only two remain", _runner.available_choices().size(), 2)
+	equal("the target moved down an index",
+		_runner.available_choices().find(target), offered.find(target) - 1)
+
+	equal("taking the object still works", _runner.take(target), true)
+	equal("and lands where THAT option pointed", _runner.current_node().node_id,
+		target.target_node)
+
+	offered[0].condition_flag = &""
+	offered[0].condition_test = GameEnums.FlagTest.ALWAYS
+	_runner.stop()
+
+
+## A choice that has left the offer between drawing and pressing is REFUSED, not silently
+## resolved to a neighbour. Firing the wrong node's effect is worse than doing nothing.
+func _a_stale_choice_is_refused() -> void:
+	Flags.clear_all()
+	equal("the conversation opens", _runner.begin(TALK), true)
+	_runner.advance()
+	var offered: Array[DialogueChoice] = _runner.available_choices()
+	var vanishing: DialogueChoice = offered[0]
+	var before: StringName = _runner.current_node().node_id
+
+	vanishing.condition_flag = &"test/never_true"
+	vanishing.condition_test = GameEnums.FlagTest.IS_TRUE
+	equal("the stale choice is refused", _runner.take(vanishing), false)
+	equal("and nothing moved", _runner.current_node().node_id, before)
+	equal("a null choice is refused too", _runner.take(null), false)
+
+	vanishing.condition_flag = &""
+	vanishing.condition_test = GameEnums.FlagTest.ALWAYS
+	_runner.stop()

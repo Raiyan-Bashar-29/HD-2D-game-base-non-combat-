@@ -39,24 +39,44 @@ func _ready() -> void:
 	Events.area_unloading.connect(_on_area_unloading)
 	Events.area_load_progress.connect(_on_progress)
 	Events.area_entered.connect(_on_area_entered)
+	# HIDDEN BY THE CURTAIN LIFTING, not only by an area arriving. Every path out of a
+	# transition lifts the fade, including the ones that fail, and hiding on area_entered alone
+	# left "Loading" pinned over the game for the rest of the session when a load failed.
+	Events.screen_fade_requested.connect(_on_fade_requested)
 
 
 ## Shown from the moment the old area starts leaving, not from the first progress report: the
 ## fade out happens before the load begins, and a blank black screen with nothing on it is
 ## indistinguishable from a hang.
 func _on_area_unloading(_area_id: StringName) -> void:
-	text = tr(LOADING_KEY)
+	_show(tr(LOADING_KEY))
+
+
+## Progress SHOWS the readout as well as updating it. The boot load emits no area_unloading —
+## there is no old area to unload — so gating this on already being visible meant the longest
+## load in the game, on a cold cache, was the one load that showed nothing at all.
+func _on_progress(_area_id: StringName, ratio: float) -> void:
+	_show(tr(PROGRESS_KEY).format({"percent": roundi(clampf(ratio, 0.0, 1.0) * 100.0)}))
+
+
+func _show(line: String) -> void:
+	text = line
 	visible = true
 
 
-func _on_progress(_area_id: StringName, ratio: float) -> void:
-	if not visible:
-		return
-	text = tr(PROGRESS_KEY).format({"percent": roundi(clampf(ratio, 0.0, 1.0) * 100.0)})
+## The curtain coming down is a transition starting; the curtain going up is one ending, however
+## it ended — including the paths that failed.
+func _on_fade_requested(to_black: bool, _seconds: float) -> void:
+	if not to_black:
+		_hide()
 
 
 ## Hidden on area_entered, which fires before the fade in begins, so the last frame the player
 ## sees behind the curtain is the one where loading finished.
 func _on_area_entered(_area_id: StringName) -> void:
+	_hide()
+
+
+func _hide() -> void:
 	text = ""
 	visible = false

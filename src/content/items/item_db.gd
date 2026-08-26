@@ -81,8 +81,11 @@ static func _ensure_loaded() -> void:
 	_loaded = true
 	for path: String in resource_paths(ITEM_DIR):
 		_register(path)
-	if _by_id.is_empty():
-		_problems.append("no item definitions found in %s" % ITEM_DIR)
+	# NO ITEMS IS NOT A PROBLEM. It was one until T1.2, and it made a stripped template fail its
+	# own content gate on the first command of docs/NEW_GAME.md. An empty folder is the legal
+	# starting state of a base template; a file that is present and does not load is the real
+	# error, and _register reports that per file. Whether a GAME needs items is that game's
+	# question, not this base's.
 
 
 ## Public so the validator can print exactly what the scan saw. That printout is how the

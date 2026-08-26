@@ -56,6 +56,10 @@ var _fresh_game: bool = false
 func _ready() -> void:
 	# Staging has to work with a screen open: half of what is worth photographing is a screen.
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	# THE DEBUG SURFACE DOES NOT EXIST IN A SHIPPED BUILD. Same guard, same reason, as
+	# dev_capture.gd: until T1.2 a release export still answered these flags.
+	if not OS.is_debug_build():
+		return
 	_parse_arguments()
 
 
@@ -314,7 +318,7 @@ func _all_npcs() -> Array[Node]:
 func _new_game() -> void:
 	await get_tree().process_frame
 	Director.start_new_game()
-	Log.info("test", "--new-game requested '%s'" % Director.FIRST_AREA)
+	Log.info("test", "--new-game requested '%s'" % GameConfig.first_area())
 
 
 ## Push menus by name for a capture, innermost last.

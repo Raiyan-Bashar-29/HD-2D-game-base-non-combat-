@@ -15,8 +15,9 @@ package that gets half-finished.
 
 **Closing a package.** Not done until all of this is true:
 
-1. Ladder green — `--import`, boot `0 warnings, 0 errors`, tests pass, `check_budgets` exits 0,
-   `check_content` exits 0.
+1. Ladder green — `--import` with **zero `SCRIPT ERROR` / `Parse Error` lines** (gotcha 22: the
+   boot rung's `0 warnings, 0 errors` does not see them), boot `0 warnings, 0 errors`, tests
+   pass, `check_budgets` exits 0, `check_content` exits 0, `check_boundary` exits 0.
 2. New behaviour covered by assertions in `tests/unit/`, and a deliberately broken assertion
    still exits 1.
 3. `SYSTEMS_INVENTORY.md` statuses and `ROADMAP.md` criteria updated.
@@ -62,8 +63,8 @@ original board rather than continuing it.
 | # | Package | Status |
 |---|---|---|
 | T1.1 | Integration — every package onto `main` | **DONE** — PR #10 |
-| T1.2 | Engine/demo boundary: the rule, a gate, and the leaks fixed | **TODO — next** |
-| T1.3 | Test fixtures + framework hardening | TODO |
+| T1.2 | Engine/demo boundary: the rule, a gate, and the leaks fixed | **DONE** — see T1.2 below |
+| T1.3 | Test fixtures + framework hardening | **TODO — next** |
 | T1.4 | CI — automate the ladder | TODO |
 | T2.1 | Art contract seams | TODO |
 | T2.2 | Consumer documentation | TODO |
@@ -465,3 +466,47 @@ that changes.
 
 **Exit criteria:** an exported build runs on a machine without Godot installed, with a non-empty
 item catalogue, and a thirty-minute soak produces zero errors.
+
+---
+
+## T1.2 · Engine/demo boundary — **DONE**
+
+**Goal.** Turn `TEMPLATE.md`'s prose rule — *no file under `src/` may name demo content* — into a
+mechanical gate, and fix the four leaks it already had.
+
+**Read:** `CLAUDE.md`, `docs/TEMPLATE.md`, `docs/CONTEXT.md`, this row.
+
+**Wrote**
+- `tools/check_boundary.gd` — the gate. Demo names **derived** from the folders under
+  `scenes/areas/` and the `id` of every `.tres` under `data/`, plus each id's last segment.
+  Fails on any of them in a CODE line under `src/`. Also fails if a debug script defining
+  `_parse_arguments()` loses its `OS.is_debug_build()` guard, because that guard is the
+  precondition the one exemption rests on.
+- `src/core/util/game_config.gd` — `GameConfig`. Reads the new `[game]` section of
+  `project.godot`. The only file under `src/` that knows a game-specific answer.
+- `director.gd` lost `const FIRST_AREA := &"courtyard"`; `log.gd` lost the literal `Gulistan`
+  from the banner and the log file name; the three debug nodes got their release guard.
+- `docs/NEW_GAME.md` — the strip-and-start checklist, performed against a stripped copy.
+
+**Two decisions to not re-litigate.** Comments are exempt from the gate and code is not — a `##`
+line teaching `id = &"item/rose_key"` changes no behaviour and forbidding it would make the
+documentation useless. And `src/systems/debug/` is the single exempt directory, justified in the
+tool's header, conditional on the release guard, with its demo names counted and printed rather
+than silently skipped. **A second exempt directory means the rule is gone.**
+
+**It became its own tool, not part of `check_content.gd`.** The combined file came out at 252 of
+the 250 allowed code lines and the budget checker refused it. That is the fourth split the
+checker has forced and the fourth that was already in the reasoning: `check_content.gd` validates
+that the *demo* is well formed, this validates that the *engine* does not know the demo exists.
+
+**Closed 2026-08-26.** All five exit criteria met. 921 assertions (was 910), boot
+`0 warnings, 0 errors`, all three checkers exit 0. The gate proved by planting `&"courtyard"` in
+`src/core/util/layers.gd` — `FAIL — 1 boundary violation(s)`, exit 1 — and removing it. Two bugs
+found that no gate had caught: `dev_capture.gd` had failed to *parse* since the WP-13 merge while
+every rung stayed green (gotcha 22), and a stripped template failed its own content gate on step
+one of `NEW_GAME.md` because an empty content folder was treated as a problem. Both written up in
+`DEVLOG.md`.
+
+**Left for T1.3:** the suite is still welded to the demo — a third of its assertions name demo
+content, so `data/` cannot actually be deleted. Everything else on the ladder survives it, which
+T1.2 ran and quoted.

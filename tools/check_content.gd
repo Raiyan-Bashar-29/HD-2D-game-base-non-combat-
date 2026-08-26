@@ -2,6 +2,11 @@ extends SceneTree
 ## Content gate: the checks that catch a broken item, a duplicate object id, or a localization
 ## key that will render on screen as its own name.
 ##
+## ITS SIBLING IS tools/check_boundary.gd, which asks the opposite question: this tool checks
+## that the DEMO is well formed, that one checks that the ENGINE does not know the demo exists.
+## Both must exit 0. They were one tool for about ten minutes, until check_budgets.gd refused
+## the result at 252 of the 250 allowed code lines.
+##
 ## RUN:  godot_console --headless --script tools/check_content.gd
 ## Exit 0 if clean, 1 on any violation. Safe in a commit hook next to check_budgets.gd.
 ##
@@ -24,6 +29,7 @@ extends SceneTree
 
 const CSV: String = "res://localization/strings.csv"
 const SCENE_DIRS: Array[String] = ["res://scenes"]
+const AREA_ROOT: String = "res://scenes/areas"
 
 var _violations: int = 0
 var _keys: Dictionary[String, bool] = {}
@@ -121,17 +127,17 @@ func _check_stray_definitions(root: String) -> void:
 func _check_scenes() -> void:
 	var scenes: Array[String] = []
 	for directory: String in SCENE_DIRS:
-		_collect_scenes(directory, scenes)
+		_collect_files(directory, ".tscn", scenes)
 	print("  scenes scanned: %d" % scenes.size())
 	for path: String in scenes:
 		_check_scene(path)
 
 
-func _collect_scenes(directory: String, into: Array[String]) -> void:
+func _collect_files(directory: String, extension: String, into: Array[String]) -> void:
 	for sub: String in DirAccess.get_directories_at(directory):
-		_collect_scenes("%s/%s" % [directory, sub], into)
+		_collect_files("%s/%s" % [directory, sub], extension, into)
 	for file_name: String in DirAccess.get_files_at(directory):
-		if file_name.ends_with(".tscn"):
+		if file_name.ends_with(extension):
 			into.append("%s/%s" % [directory, file_name])
 
 
@@ -246,8 +252,8 @@ func _check_schedules() -> void:
 ## see, and pretending otherwise would be the partial check that looks complete.
 func _all_waypoint_names() -> Dictionary[StringName, bool]:
 	var found: Dictionary[StringName, bool] = {}
-	for directory: String in DirAccess.get_directories_at("res://scenes/areas"):
-		var path: String = "res://scenes/areas/%s/%s.tscn" % [directory, directory]
+	for directory: String in DirAccess.get_directories_at(AREA_ROOT):
+		var path: String = "%s/%s/%s.tscn" % [AREA_ROOT, directory, directory]
 		var packed: PackedScene = ResourceLoader.load(path) as PackedScene
 		if packed == null:
 			continue
@@ -284,3 +290,4 @@ func _check_path_actions() -> void:
 		_require_key(name, "success_key", action.success_key)
 		_require_key(name, "failure_key", action.failure_key)
 		_require_key(name, "refusal_key", action.refusal_key)
+

@@ -38,6 +38,17 @@ Weather="*res://src/systems/weather/weather.gd"
 Audio="*res://src/systems/audio/audio_director.gd"
 Director="*res://src/systems/scene_director/director.gd"
 
+
+[game]
+
+; THE DEMO'S CONTENT IDS LIVE HERE, NOT IN src/. No file under src/ may name demo content —
+; docs/TEMPLATE.md states the rule and tools/check_content.gd enforces it — but the engine
+; still has to be told where a new game begins. This section is that answer, and it is the
+; one place tools/check_content.gd deliberately does not scan.
+; Read through GameConfig (src/core/util/game_config.gd). See docs/NEW_GAME.md.
+world/first_area="courtyard"
+world/first_spawn="default"
+
 [debug]
 
 ; Static enforcement. This is deliberate and load-bearing: it makes GDScript behave like a

@@ -72,8 +72,7 @@ static func _ensure_loaded() -> void:
 	_loaded = true
 	for path: String in ItemDb.resource_paths(SCHEDULE_DIR):
 		_register(path)
-	if _by_id.is_empty():
-		_problems.append("no schedules found in %s" % SCHEDULE_DIR)
+	# No schedules is not a problem. Same reasoning as ItemDb, and the same T1.2 finding.
 
 
 static func _register(path: String) -> void:

@@ -16,6 +16,7 @@ situation; [`docs/TEMPLATE.md`](docs/TEMPLATE.md) is the framing both assume.
 | surprised by the engine | the gotcha list in `docs/CONTEXT.md` — twenty-one, each cost an hour |
 | wondering why a file is shaped that way | its own `##` header first, then `docs/ARCHITECTURE.md` and `docs/decisions/` |
 | about to write a player-facing string | `localization/strings.csv`, and quote any value containing a comma |
+| starting a new game on this base | `docs/NEW_GAME.md` |
 
 **Never read `docs/DEVLOG.md` whole** — it is over 1,300 lines and grows every session. Find the
 entry you need by its `## date — WP-nn` header.
@@ -28,7 +29,10 @@ board, several of whose older lines predate it.
 
 The product is the systems and the seams between them. The courtyard, the garden-keeper and the
 rose key are the *proof that a system works*, and they are deletable. **No file under `src/` may
-name demo content** â an area id, an item id, a conversation id, any of it.
+name demo content** — an area id, an item id, a conversation id, any of it. That is not a
+convention: `tools/check_boundary.gd` fails the build. One directory is exempt,
+`src/systems/debug/`, and the exemption is justified in that tool's header.
+**[`docs/NEW_GAME.md`](docs/NEW_GAME.md)** is the strip-and-start checklist.
 
 **There is no combat.** No battles, no enemies, no damage, no encounters. This was an explicit
 retraction by the owner, not an oversight. If a task seems to need combat, it does not — redirect
@@ -75,9 +79,10 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate; filter "Identifier not found: <Autoload>"
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 120               # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 300   # 555 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 921 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd
 "$G" --headless --script tools/check_content.gd    # ids, duplicate object_ids, CSV keys
+"$G" --headless --script tools/check_boundary.gd   # no file under src/ names demo content
 "$G" --resolution 960x540 --quit-after 55 -- --shot=<path> --time=18:40 --freeze-time
 ```
 

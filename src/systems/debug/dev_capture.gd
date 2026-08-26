@@ -58,6 +58,12 @@ func _ready() -> void:
 	# Captures must work while the game is paused - proving that a screen stops the world is
 	# exactly what the capture is for. Pause table: src/ui/root/ui_root.gd.
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	# THE DEBUG SURFACE DOES NOT EXIST IN A SHIPPED BUILD. Until T1.2 only the F12 hotkey was
+	# gated, so a release export still answered --give=, --standing= and --goto= from the
+	# command line: every one of these flags reaches past the game to pose it, and a player who
+	# found the list could hand themselves any item in the game.
+	if not OS.is_debug_build():
+		return
 	_parse_arguments()
 
 
@@ -175,3 +181,17 @@ func _skip_to_hour(value: String) -> void:
 ## Fills the player's bag from the command line, so a capture of the inventory shows real rows
 ## produced by the real Inventory.add() rather than a mock the screen was posed against.
 ## Deferred: GameRoot spawns the player in the same _ready() pass that reads these arguments.
+
+
+## Wait for a transition to finish and for the freed area to actually leave the tree.
+## The third copy of these five lines, and deliberately so — the note in dev_stage.gd applies
+## here too. This one was MISSING until T1.2: the WP-13 merge added the `await _settled()` in
+## `_soak_and_dry` without the function, so this entire file failed to parse and F12, --shot,
+## --time and --weather had all been dead since. The boot rung still printed
+## `0 warnings, 0 errors`, because Log counts Log.error calls and an engine parse error is
+## neither. See the gotcha in docs/CONTEXT.md.
+func _settled() -> void:
+	while Director.is_transitioning():
+		await get_tree().process_frame
+	for _i: int in 4:
+		await get_tree().process_frame

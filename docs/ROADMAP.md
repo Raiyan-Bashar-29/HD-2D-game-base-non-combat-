@@ -142,17 +142,26 @@ What follows replaces them.
 | Step | State |
 |---|---|
 | **T1.1 Integration** — every package onto `main` in one linear chain | **DONE** 2026-08-26, PR #10. WP-12 and WP-13 were built in parallel and merged in; the `UiRoot`/`ScreenKeys` duplicate close-on-travel was resolved in favour of `ScreenKeys`. |
-| **T1.2 The boundary** — the rule, a gate that enforces it, and the leaks fixed | **NEXT** |
-| **T1.3 Test fixtures + framework hardening** | TODO |
+| **T1.2 The boundary** — the rule, a gate that enforces it, and the leaks fixed | **DONE** 2026-08-26. `tools/check_boundary.gd` derives the demo ids from `scenes/areas/` and `data/` and fails on any of them in `src/` code. All four known leaks closed. |
+| **T1.3 Test fixtures + framework hardening** | **NEXT** |
 | **T1.4 CI** — automate the ladder | TODO |
 
 Exit criteria:
 - [x] `main` contains the template — done 2026-08-26
-- [ ] `check_content.gd` fails on a planted `&"courtyard"` in a `src/` file, and passes otherwise
-- [ ] No file under `src/` names demo content
-- [ ] A deliberately crashing test case exits **1** — today it exits 0, which invalidates every
-      green result the project has
-- [ ] `data/` and `scenes/areas/` moved aside, and the suite still passes
+- [x] A gate fails on a planted `&"courtyard"` in a `src/` file, and passes otherwise — done
+      2026-08-26, and it is `tools/check_boundary.gd`, not `check_content.gd`: the combined file
+      came out at 252 of the 250 allowed code lines and the budget checker refused it
+- [x] No file under `src/` names demo content — done 2026-08-26. One exemption,
+      `src/systems/debug/`, justified in the tool header and conditional on those files staying
+      behind `OS.is_debug_build()`, which the same tool now checks
+- [x] The debug surface cannot be driven in a release build — done 2026-08-26
+- [x] `docs/NEW_GAME.md` exists, and its claims were run against a stripped copy of the repo
+- [ ] A deliberately crashing test case exits **1**. A deliberately FAILING assertion already
+      does — verified 2026-08-26, `920 passed, 1 failed`, exit 1 — but a case that throws is a
+      different path and is still unhardened. **T1.3.**
+- [ ] `data/` and `scenes/areas/` moved aside, and the suite still passes. Half done: with them
+      moved aside the boot, both content gates and the budget checker all pass (T1.2 ran it), but
+      the suite does not, because a third of its assertions name demo content. **T1.3.**
 - [ ] A pushed branch with a broken assertion goes red in CI
 
 ## Phase T2 — Make it swappable

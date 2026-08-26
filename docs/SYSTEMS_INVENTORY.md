@@ -22,7 +22,8 @@ previous project started as a system that was allowed to know one thing too many
 
 | System | Purpose | Depends on | Boundary — must NOT know | Status |
 |---|---|---|---|---|
-| Logging | Severity- and category-tagged log to console and rotating file | nothing | any game rule; it never reads Flags | DONE |
+| Logging | Severity- and category-tagged log to console and rotating file | GameConfig | any game rule; it never reads Flags, and since T1.2 it does not know the game's NAME either | DONE |
+| Game config | The four values a consuming game sets in project.godot: first area, first spawn, name, slug | nothing | what an area contains, or whether the id it hands out is real | DONE — T1.2 |
 | Event registry | One declared, typed home for every cross-system signal | nothing | holds zero state and zero logic, permanently | DONE |
 | Shared enums | Vocabulary two or more systems must agree on | nothing | anything used by only one system | DONE |
 | Safe data reads | Typed reads out of untyped JSON and save data | nothing | what the data means | DONE |
@@ -144,10 +145,12 @@ previous project started as a system that was allowed to know one thing too many
 |---|---|---|
 | Placeholder art generation | Procedural stand-ins so code can be finished before art | DONE |
 | Content validator | tools/check_content.gd — ids, duplicate object_ids, CSV keys, stray defs | DONE |
+| Engine/demo boundary gate | tools/check_boundary.gd — FAILS if any file under src/ names demo content, and fails if the exempt debug surface loses its release guard. Demo ids derived from scenes/areas/ and data/, never listed | DONE — T1.2 |
 | Line-budget checker | Mechanical enforcement of file and function size limits | DONE |
 | Test runner | Headless integration tests, scene-entered, exit 1 on failure | DONE |
 | Hard-coded string audit | Catches player-facing text that is not a localization key | TODO |
-| Localization | String IDs from the first string; CSV translation | PART — CSV wired, 83 keys, all UI text localized. Unquoted commas are now a gate; no full audit tool yet |
+| Localization | String IDs from the first string; CSV translation | PART — CSV wired, 188 keys, all UI text localized. Unquoted commas are now a gate; no full audit tool yet. docs/NEW_GAME.md names the engine and demo halves |
+| New-game checklist | docs/NEW_GAME.md — what to delete, what to keep, the full rename surface | DONE — T1.2, and its claims were run against a stripped copy |
 | Smoke test | Boots, loads an area, saves, reloads, asserts zero errors | TODO |
 | Export presets | Windows build configuration | LATER |
 | Performance overlay | Frame time, draw calls, node counts | TODO |

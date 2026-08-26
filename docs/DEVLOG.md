@@ -16,6 +16,218 @@ Append-only. Newest entry at the top. One entry per working session.
 
 ---
 
+## 2026-08-26 — T1.2: the engine/demo boundary becomes a gate, and four leaks close
+
+**Did:**
+
+The boundary rule existed only as prose in `TEMPLATE.md`. It is now mechanical.
+
+- `tools/check_boundary.gd` — new gate, rung 6 of the ladder. **FAILS if any file under `src/`
+  names demo content.** The forbidden names are **derived, never listed**: every folder under
+  `scenes/areas/`, the `id` of every `.tres` under `data/`, and each id's last segment, so
+  `schedule/keeper` also forbids the bare `keeper`. Twelve names today, and it cannot go stale
+  when content is added.
+- `src/core/util/game_config.gd` — new. `GameConfig`, a pure reader of the `[game]` section of
+  `project.godot`: `first_area()`, `first_spawn()`, `game_name()`, `game_slug()`. Depends on
+  nothing.
+- `project.godot` — new `[game]` section: `world/first_area="courtyard"`,
+  `world/first_spawn="default"`.
+- `src/systems/scene_director/director.gd` — `const FIRST_AREA := &"courtyard"` **deleted**.
+  `start_new_game()` reads `GameConfig.first_area()` and refuses, before clearing anything, when
+  it is empty.
+- `src/core/log/log.gd` — the literal `Gulistan` gone from both the boot banner and the log file
+  name; both now come from `application/config/name` through `GameConfig`.
+- `src/systems/debug/{dev_capture,dev_probes,dev_stage}.gd` — argument parsing is now behind
+  `OS.is_debug_build()`. Only the F12 hotkey was gated before.
+- `src/systems/debug/dev_capture.gd` — **restored a missing `_settled()`**; see the bug below.
+- `src/content/{items/item_db,dialogue/dialogue_db,npc/schedule_db}.gd` — "no items / no
+  conversations / no schedules found" is **no longer a problem**. See the second bug below.
+- `docs/NEW_GAME.md` — new. The strip-and-start checklist.
+- `tests/unit/core_test.gd` — 11 assertions on `GameConfig`, comparing against `ProjectSettings`
+  rather than against a literal, because a test asserting `first_area() == "courtyard"` would
+  rebuild the leak it exists to prove is gone.
+
+**Why:**
+
+`TEMPLATE.md` already recorded the failure mode: `game_root.gd` once carried
+`const FIRST_AREA := &"courtyard"` and it passed eight verification rungs, a budget checker, a
+content checker, 900 assertions and an adversarial review, **because no rule forbade it.** A rule
+only a human enforces is the rule that let that through.
+
+**Three decisions worth writing down:**
+
+1. **Comments are exempt; code is not.** Mechanically: a line whose first non-whitespace character
+   is `#` is not scanned — the same definition `check_budgets.gd` uses. A `##` line saying
+   `data/items/rose_key.tres must declare id = &"item/rose_key"` is *teaching by example*: it
+   changes no behaviour, it is how the file-name-is-the-id rule is explained, and forbidding it
+   would push the documentation into abstraction nobody can follow. A `const` changes behaviour.
+   That is the whole difference. A **trailing** comment on a code line IS scanned, which is
+   stricter than the rule needs — stricter is the safe direction for a gate.
+
+   **What it cannot see, stated so nobody mistakes green for proof:** a name assembled at runtime
+   (`"item/" + kind`); a demo name that appears in neither `data/` nor `scenes/areas/` — a
+   waypoint marker like `north_arch`, a node name inside an area scene, a flag namespace invented
+   in code; and anything outside `src/**/*.gd`, so the prefabs in `scenes/objects/` are unscanned.
+   The exempt-directory count is *printed*, not swallowed.
+
+2. **`src/systems/debug/` is exempt, and the exemption has a precondition the tool checks.**
+   Those three files exist to drive the demo: `--give=item/rose_key` stages a photograph, and a
+   probe that travelled to an abstract area would verify nothing. They are the development
+   harness, not the engine. But an exemption granted to code a *player* could drive would be
+   worthless, so `_check_debug_gate()` fails if any debug script defining `_parse_arguments()`
+   loses its `OS.is_debug_build()` guard. The exemption and the condition it rests on live in one
+   file. Fourteen demo names sit inside it today, counted and printed.
+
+3. **The first area is a project setting, not an `@export`.** An `@export` on
+   `scenes/boot/game_root.tscn` was the alternative and was rejected: `TEMPLATE.md` classifies
+   `scenes/boot/` as engine, so that would have moved the leak rather than closed it.
+   `project.godot` is already the one file a new game must edit, and the gate deliberately does
+   not scan it.
+
+**Connects:**
+
+`Log` now depends on `GameConfig` — the first dependency the logger has ever had, and its header
+says so. It is safe because `GameConfig` reads `ProjectSettings` and nothing else, so the
+"everything may depend on Log; Log depends on nothing" invariant degrades to one edge that cannot
+cycle. `Director.start_new_game()` is still the one place that knows what a new game is; it just
+no longer knows *which* game. `dev_stage.gd`'s `--new-game` reports `GameConfig.first_area()`
+instead of `Director.FIRST_AREA`.
+
+The gate became its own tool rather than living in `check_content.gd`, which is where the brief
+put it: the combined file came out at **252 of the 250 allowed code lines** and `check_budgets.gd`
+refused it. The seam was already in the reasoning — `check_content.gd` validates that the *demo*
+is well formed, `check_boundary.gd` validates that the *engine* does not know the demo exists —
+and the new tool loads nothing, so it keeps working when the content it scans for has been
+deleted, which is exactly the state a new game starts in. Fourth time the budget checker has
+exposed a split that was already there.
+
+**Two bugs found, neither by a static gate:**
+
+1. **`dev_capture.gd` had failed to parse since the WP-13 merge, and the ladder said nothing.**
+   The merge added `await _settled()` in `_soak_and_dry` without the function, so the whole file
+   was dead — F12, `--shot`, `--time`, `--freeze-time` and `--weather` had all been broken for a
+   package. Found by `--headless --import`, which prints
+   `Parse Error: Function "_settled()" not found in base self`. **The boot rung still printed
+   `0 warnings, 0 errors`**, because `Log` counts `Log.error` calls and an engine parse error is
+   neither. New gotcha in `CONTEXT.md`. Fixed by adding the five-line `_settled()`, the third
+   copy, for the reason already written in `dev_stage.gd`.
+
+2. **A stripped template failed its own content gate on the first command of `NEW_GAME.md`.**
+   `ItemDb`, `DialogueDb` and `ScheduleDb` each reported "no X found in ..." as a problem, so
+   deleting `data/**` — step one of starting a new game — turned `check_content.gd` red. An empty
+   folder is the *legal starting state* of a base template; a file that is present and does not
+   load is the real error, and `_register` already reports that per file. Whether a game needs
+   items is that game's question, not this base's. Removed from all three. Found by actually
+   performing the checklist rather than writing it.
+
+**Verified:**
+
+Baseline before starting: 910 assertions.
+
+Full ladder, on the restored demo:
+
+```
+$ "$G" --headless --import                                  # 0 SCRIPT ERROR / Parse Error lines
+$ "$G" --headless --quit-after 120
+17:45:31 [INFO ] [boot] Session ended after 1.2s - 0 warnings, 0 errors
+$ "$G" --headless res://tests/test_runner.tscn --quit-after 400
+17:45:42 [INFO ] [test] === 921 passed, 0 failed ===          exit 0
+$ "$G" --headless --script tools/check_budgets.gd
+95 files, 7742 code lines, 0 warnings, 0 violations   PASS    exit 0
+$ "$G" --headless --script tools/check_content.gd     PASS    exit 0
+$ "$G" --headless --script tools/check_boundary.gd    PASS    exit 0
+```
+
+**The gate bites.** Planted `const PLANTED_VIOLATION: StringName = &"courtyard"` at the end of
+`src/core/util/layers.gd`:
+
+```
+$ "$G" --headless --script tools/check_boundary.gd
+  !! res://src/core/util/layers.gd:32 names demo content 'courtyard' (from res://scenes/areas/courtyard)
+FAIL - 1 boundary violation(s)                              exit 1
+```
+
+Removed it, restored the file from a copy, `git diff --stat` empty:
+
+```
+$ "$G" --headless --script tools/check_boundary.gd
+PASS                                                        exit 0
+```
+
+**The debug-gate precondition bites too.** Deleted the `OS.is_debug_build()` guard from
+`dev_probes.gd`:
+
+```
+  !! res://src/systems/debug/dev_probes.gd parses command-line arguments with no OS.is_debug_build() guard
+FAIL - 1 boundary violation(s)                              exit 1
+```
+
+Restored, `PASS`.
+
+**A deliberately broken assertion still exits 1.** Flipped `slug is not empty` to expect `false`:
+
+```
+17:41:05 [ERROR] [test] FAILED: slug is not empty - expected false, got true
+=== 920 passed, 1 failed ===                                exit 1
+```
+
+**`NEW_GAME.md` was performed, not imagined.** Deleted every `.tres` under `data/`, both area
+folders, pruned the CSV from 189 rows to 147, and set `world/first_area=""`:
+
+```
+  localization keys: 146
+  item definitions: 0 - conversations: 0 - schedules: 0 - path actions: 0 - scenes scanned: 14
+PASS                                                     (check_content,  exit 0)
+  demo names derived: 0 - []
+  src scripts scanned: 74 (res://src/systems/debug/ is exempt)
+PASS                                                     (check_boundary, exit 0)
+PASS                                                     (check_budgets,  exit 0)
+17:44:28 [INFO ] [boot] Session ended after 1.2s - 0 warnings, 0 errors
+$ "$G" --headless --quit-after 60 -- --new-game
+17:44:41 [ERROR] [world] No first area - set game/world/first_area in project.godot
+```
+
+Everything restored afterwards; `git status` shows `data/`, `scenes/areas/` and `strings.csv`
+unmodified.
+
+**Windowed capture**, which is also the proof that `dev_capture.gd` parses again — `--shot`,
+`--time` and `--freeze-time` could not have taken effect otherwise:
+
+```
+$ "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 \
+      --time=18:40 --freeze-time
+17:41:21 [INFO ] [test] --new-game requested 'courtyard'
+17:41:21 [INFO ] [area] Area 'courtyard' ready (2 spawns, 9 interactables, 3 waypoints)
+```
+
+Looked at the PNG: the setting-driven first area, at dusk, with the clock readout reading
+`Day 1 | 18:40 | Dusk` and an interaction prompt up. The boot banner now reads
+`Project Gulistan 0.0.1 | Godot 4.7.2-stable (official) | headless | debug=true`, and the log file
+is `project_gulistan_2026-08-26T17-36-20.log` — both from `project.godot`, neither from a literal.
+
+**Unblocks:**
+
+T1.3 (test fixtures). The boundary is now a gate rather than a promise, so the one remaining weld
+— a third of the assertions naming demo content — is the last thing standing between the template
+and a demo that can actually be deleted. T2.2 (consumer documentation) has its spine in
+`NEW_GAME.md`.
+
+**Gaps:**
+
+- **The suite still cannot survive the demo being deleted.** Everything else on the ladder can;
+  T1.2 ran it. T1.3.
+- The gate reads text. It cannot see a computed id, a waypoint name, or anything outside
+  `src/**/*.gd`. Written into the tool header so a green run is not mistaken for a proof.
+- **A deliberately CRASHING test case has still not been proved to exit 1** — only a failing
+  assertion has. Different path, still unhardened, still T1.3.
+- The debug surface's release gate is verified by a text scan for `OS.is_debug_build()`, not by
+  running a release export. An actual export run belongs with T1.4 or WP-15.
+- `ui.menu.title` holds the game's *name* in a `ui.*` key — an engine key with a game-specific
+  value. Called out in `NEW_GAME.md` rather than restructured; a `[game]`-driven title would mean
+  the menu reading a project setting for a player-facing string, which is a bigger decision.
+
+---
+
 ## 2026-08-26 — WP-07: path actions, and the difference between a refusal and a failure
 
 **Did:**

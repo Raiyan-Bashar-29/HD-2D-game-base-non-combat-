@@ -71,23 +71,50 @@ boundary that accumulates silently.
 | `scenes/areas/**` | **Demo.** | Delete, and author your own. |
 | `localization/strings.csv` | **Mixed.** `verb.*`, `refusal.*`, `ui.*`, `time.phase.*`, `item.category.*` are engine; `object.*`, `item.*`, `talk.*`, `action.*`, `area.*` are demo. | Prune the demo half. |
 | `tests/unit/` | **Mixed, and currently welded to the demo.** | See the known gap below. |
+| `project.godot` | **Mixed, and the one place a demo id belongs.** `[game] world/first_area` names the starting area. | Rename the four `application/config/*` fields and point `first_area` at your own. |
 
 `data/` and `scenes/areas/` being demo is not a coupling — they are the **content roots a game
 fills**, and the registries scanning them is a convention the template defines. A new game puts
 its own items in `data/items/` and its own areas in `scenes/areas/`.
 
+**The full checklist is [`NEW_GAME.md`](NEW_GAME.md)**, and its claims were run against a
+stripped copy rather than written from intent.
+
+### The gate
+
+`tools/check_boundary.gd` enforces the rule as of T1.2, 2026-08-26. It **derives** the forbidden
+names rather than listing them — every folder under `scenes/areas/`, the `id` of every `.tres`
+under `data/`, and each id's last segment — so it cannot go stale when content is added, and it
+fails on any of them appearing in a CODE line under `src/`.
+
+**Comments are exempt, code is not**, and that line was drawn deliberately. A `##` line saying
+`data/items/rose_key.tres must declare id = &"item/rose_key"` is teaching by example; it changes
+no behaviour, and forbidding it would push the documentation into abstraction nobody can follow.
+A `const FIRST_AREA := &"courtyard"` changes behaviour. That is the whole difference.
+
+**One directory is exempt: `src/systems/debug/`.** Those three files exist to drive the demo —
+`--give=item/rose_key` stages a photograph, a probe that travelled to an abstract area would
+verify nothing. The exemption rests on a precondition the same tool checks: their argument
+parsing is behind `OS.is_debug_build()`, so they are unreachable in a shipped build. The names
+they use are counted and printed, never silently skipped.
+
+What the gate cannot see is stated in its own header: a name assembled at runtime, a demo name
+that exists in neither `data/` nor `scenes/areas/` (a waypoint marker, a node name inside an area
+scene), and anything outside `src/**/*.gd`.
+
 ### Known gaps in the boundary, as of 2026-08-26
 
 These are planned, not accepted:
 
-1. **`game_root.gd` names the demo's first area**, and `log.gd` bakes the string `Gulistan` into
-   the boot banner and the log filename — both in `core`.
-2. **Nothing enforces the rule.** `check_content.gd` has no such gate yet.
-3. **The test suite is welded to the demo.** Roughly a third of the assertions assert facts about
+1. **The test suite is welded to the demo.** Roughly a third of the assertions assert facts about
    demo content rather than about systems, so deleting `data/` today would delete rung 4 of the
-   verification ladder. A fixture layer is planned.
-4. **The debug nodes ship in release builds** — no `OS.is_debug_build()` guard on their argument
-   parsing.
+   verification ladder. A fixture layer is planned — **T1.3**. Everything else on the ladder
+   survives the deletion; T1.2 stripped the repo and ran it.
+
+**Closed by T1.2:** `game_root.gd`/`director.gd` naming the first area (now the project setting
+`[game] world/first_area`, read through `GameConfig`); `log.gd` baking in `Gulistan` (now
+`application/config/name`); nothing enforcing the rule (now `tools/check_boundary.gd`); and the
+debug nodes answering `--give=`, `--standing=` and `--goto=` in a release build.
 
 ## Optional modules
 

@@ -52,6 +52,10 @@ func _ready() -> void:
 	# A probe has to keep running while the game is paused: half of what they verify is what
 	# happens with a screen open. Pause table: src/ui/root/ui_root.gd.
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	# THE DEBUG SURFACE DOES NOT EXIST IN A SHIPPED BUILD. Same guard, same reason, as
+	# dev_capture.gd: until T1.2 a release export still answered these flags.
+	if not OS.is_debug_build():
+		return
 	_parse_arguments()
 
 

@@ -8,7 +8,10 @@ extends Node
 ##
 ## OWNS: severity threshold, category tagging, the on-disk log file, log rotation.
 ## MUST NOT: know any game rule. It never reads Flags, never touches gameplay, and imports
-## nothing from src/gameplay or src/systems. Everything may depend on Log; Log depends on nothing.
+## nothing from src/gameplay or src/systems. Everything may depend on Log; Log depends only on
+## `GameConfig`, which is a pure reader of project.godot and depends on nothing itself. That one
+## edge is what lets the banner and the log file name say which GAME this is without this file
+## containing the answer — see T1.2 in docs/DEVLOG.md.
 ##
 ## USAGE
 ##     Log.info("world", "Area transition %s -> %s" % [from, to])
@@ -48,7 +51,12 @@ func _ready() -> void:
 		min_level = Level.INFO
 	if write_file:
 		_open_file()
-	info("boot", "Gulistan %s | Godot %s | %s | debug=%s" % [
+	# THE GAME'S NAME IS NOT THIS FILE'S TO KNOW. It read the literal `Gulistan` until T1.2,
+	# which is exactly the leak docs/TEMPLATE.md describes: the layer that depends on nothing
+	# had a game baked into it. Both the banner and the log file name now come from
+	# project.godot through GameConfig.
+	info("boot", "%s %s | Godot %s | %s | debug=%s" % [
+		GameConfig.game_name(),
 		ProjectSettings.get_setting("application/config/version", "?"),
 		Engine.get_version_info().get("string", "?"),
 		DisplayServer.get_name(),
@@ -121,7 +129,7 @@ func _open_file() -> void:
 		return
 	_rotate()
 	var stamp: String = Time.get_datetime_string_from_system(false, false).replace(":", "-")
-	_path = "%s/gulistan_%s.log" % [LOG_DIR, stamp]
+	_path = "%s/%s_%s.log" % [LOG_DIR, GameConfig.game_slug(), stamp]
 	_file = FileAccess.open(_path, FileAccess.WRITE)
 	if _file == null:
 		push_warning("Log could not open %s (%s)" % [_path, error_string(FileAccess.get_open_error())])

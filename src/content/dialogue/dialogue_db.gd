@@ -73,8 +73,7 @@ static func _ensure_loaded() -> void:
 	_loaded = true
 	for path: String in ItemDb.resource_paths(DIALOGUE_DIR):
 		_register(path)
-	if _by_id.is_empty():
-		_problems.append("no conversations found in %s" % DIALOGUE_DIR)
+	# No conversations is not a problem. Same reasoning as ItemDb, and the same T1.2 finding.
 
 
 static func _register(path: String) -> void:

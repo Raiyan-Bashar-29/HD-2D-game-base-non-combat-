@@ -19,11 +19,11 @@ extends Node
 ## one place and the guard cannot be bypassed.
 
 const AREA_PATH_TEMPLATE: String = "res://scenes/areas/%s/%s.tscn"
-## Where a new game begins. It lived in `game_root.gd` until WP-12, next to a comment saying the
-## main menu would choose instead once it existed. It belongs here rather than on the menu: the
-## menu names an intention, this file knows what areas are.
-const FIRST_AREA: StringName = &"courtyard"
-const FIRST_SPAWN: StringName = &"default"
+## WHERE A NEW GAME BEGINS IS NOT THIS FILE'S BUSINESS. It lived in `game_root.gd` as
+## `const FIRST_AREA := &"courtyard"` until WP-12 and then here until T1.2, and both times it
+## was engine code naming demo content. It is now a project setting, read through `GameConfig`.
+## The menu names an intention, this file knows what areas are, and project.godot knows which
+## game this is.
 const FADE_OUT: float = 0.35
 const FADE_IN: float = 0.45
 ## Frames the curtain is held after the new area enters the tree, before the fade in. The
@@ -87,10 +87,16 @@ func is_transitioning() -> bool:
 ## itself - it asks, through the same guarded signal every door uses, so a new game started
 ## during a transition in flight is refused with a log line like any other travel.
 func start_new_game() -> void:
+	# Refused BEFORE anything is cleared. A template with no game in it yet is a real state, and
+	# wiping the flags and then failing to load would be worse than not starting at all.
+	var first: StringName = GameConfig.first_area()
+	if first == &"":
+		Log.error("world", "No first area — set %s in project.godot" % GameConfig.FIRST_AREA_SETTING)
+		return
 	Flags.clear_all()
 	SaveSystem.reset_playtime()
 	Events.game_started.emit()
-	Events.area_change_requested.emit(FIRST_AREA, FIRST_SPAWN)
+	Events.area_change_requested.emit(first, GameConfig.first_spawn())
 
 
 ## Reload the area in place. Useful for debugging and after editing an area scene.

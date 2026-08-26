@@ -72,7 +72,9 @@ twenty-six seconds, and a layered ambience bed on procedurally generated noise.
 
 **Not built:** quests · hard-coded-string audit · item instances (durability) · equipment ·
 item tooltips, sorting and drag-and-drop · branch protection, so CI reports but nothing stops a
-red branch merging · the art contract seams (T2.1).
+red branch merging · **an exported build has never been run**, so the content pipeline rests on an
+untested assumption (T2.0, and it is why that package jumps the queue) · the art contract seams
+(T2.1).
 
 ## Known defects
 
@@ -532,12 +534,20 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the
-board of fifteen packages from here to skeleton-complete. Each names the exact files that chat
-should read, so a session loads a few hundred lines instead of three thousand. The layer rule
+board of every package from here to skeleton-complete — WP-01 to WP-15 plus the T-phases. Each
+names the exact files that chat should read, so a session loads a few hundred lines instead of three thousand. The layer rule
 (`core -> content -> systems -> gameplay -> ui`, downward only) is what makes that possible: a
 package never has to read upward.
-**Next package: T1.4 — CI, automating the ladder.** See the board and [`TEMPLATE.md`](TEMPLATE.md).
-**Next package: T1.2 â the engine/demo boundary.** See the board and [`TEMPLATE.md`](TEMPLATE.md).
+
+**Next package: T2.0 — the export proof.** See the board and [`TEMPLATE.md`](TEMPLATE.md). It is
+sequenced ahead of T2.1 by RISK rather than by theme: no exported build has ever been run, the
+three registries find content by directory scan, and if the exporter omits unreferenced `.tres`
+files every catalogue ships EMPTY while every ladder rung and both CI jobs stay green — they run
+from `res://`, where the files are plainly there. Cheap to test, architectural to fix.
+
+*(This line names ONE package. Earlier revisions accumulated a stale line per package and two were
+left stranded here; if you ever find two, the lower one is history — delete it.)*
+
 The original WP-08 through WP-15 continue after the T1 and T2 phases, several of them re-framed.
 
 ## Plan — where this is going

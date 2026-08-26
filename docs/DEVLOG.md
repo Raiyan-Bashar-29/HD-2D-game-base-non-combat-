@@ -16,6 +16,67 @@ Append-only. Newest entry at the top. One entry per working session.
 
 ---
 
+
+## 2026-08-26 — Resequencing: the export proof jumps the queue, and one contradiction is settled
+
+**Did:** no code. Three planning corrections, all found by reading the docs against each other
+rather than against the engine.
+
+1. **New package T2.0 — the export proof**, at the FRONT of Phase T2, ahead of T2.1. It has its
+   own section on the board with a manifest and exit criteria, so the row is a real fallback
+   handoff and not a title.
+2. **Settled a direct contradiction between two documents.** `SYSTEMS_INVENTORY.md` marked export
+   presets `LATER`; `ROADMAP.md`'s Phase T3 called the export proof *"the one genuinely blocking
+   item from WP-15"*. Both had been true in writing for as long as the T-phases have existed.
+   Settled in favour of **blocking**, and the inventory row now says so and records that it was
+   changed.
+3. **WP-10 (crafting and gathering) marked OPTIONAL** on the board. `TEMPLATE.md` already said it
+   should be — *"crafting is the clearest case: a genre choice, not a requirement of every game"* —
+   and the row still said `TODO`. The note and the row now agree.
+
+Also swept two smaller drifts in `CONTEXT.md`: it carried a stale `**Next package:**` line per
+package, two of them stranded and contradicting each other (T1.4 and T1.2), and it described the
+board as "fifteen packages" from before the T-phases were added.
+
+**Why:** the asymmetry decides the order. The export proof is cheap to run — one preset, one
+export, one count — and if it FAILS the fix is architectural, a revision to ADR-0006 touching how
+all content is found. Every package built before it would then have been built on an assumption
+known to be false. T2.1 by contrast fails locally, inside `CharacterVisual` and a `Theme`. Cheap
+test, architectural blast radius, so it goes first.
+
+The underlying risk is a familiar shape: the three registries find items, conversations and
+schedules by DIRECTORY SCAN (ADR-0006), and nothing in any scene references those `.tres` files —
+the registry discovers them at runtime. Godot's exporter walks *dependencies*. If it therefore
+omits them, an exported build has an empty inventory, dialogue that will not start and NPCs that
+stand still, **while every ladder rung, both CI jobs, `check_content` and 911 assertions stay
+green** — because they all run from `res://` in the editor, where the files are plainly there.
+That is "409 passing checks and never rendered a frame" reproduced at the last possible moment,
+and T1.4's CI cannot see it either.
+
+**Connects:** T1.4 made completion claims checkable by a third party. This is the first thing that
+CI provably cannot check, which is why it needs a package rather than a gate.
+
+**Verified:** docs only — no `.gd`, `.tscn` or `.tres` touched. Ladder re-run anyway, because a
+docs-only claim is still a claim:
+`--headless --import` exit 0 with zero `SCRIPT ERROR` / `Parse Error` lines · boot
+`0 warnings, 0 errors` · `911 passed, 0 failed, 0 skipped`, exit 0 · `check_budgets`,
+`check_content`, `check_boundary` all exit 0 · CI green.
+
+One claim in the new T2.0 section was **wrong when first written and corrected before commit**: it
+said `export_presets.cfg` is gitignored by the `*.cfg` conventions. It is not — `.gitignore` names
+only `override.cfg`, checked with `git check-ignore -v`, which reports it as not ignored. The
+section now says so. Worth recording because it is exactly the kind of plausible-sounding detail
+that a later session would have trusted.
+
+**Unblocks:** T2.0 as the next chat, with a written manifest. T2.1's chip was replaced rather than
+left pending, so the board and the handoff agree.
+
+**Known gaps:** the `## Plan — where this is going` section of `CONTEXT.md` is still stale — it
+names WP-07 as next and cites 460 assertions when there are 911. Left alone deliberately: it is a
+narrative section, rewriting it is not this pass's job, and a partial rewrite would be worse than
+an obviously old one. Whoever closes T2.0 should replace it wholesale.
+
+---
 ## 2026-08-26 — T1.4: the ladder stops being seven commands a human remembers
 
 **Did:** `.github/workflows/ladder.yml` and `.github/actions/setup-godot/action.yml`. Six of the

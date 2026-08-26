@@ -48,12 +48,12 @@ Headless shades nothing. This project has already shipped two bugs that every ot
 | 07 | Path actions | **DONE** — see below |
 | 08 | Quests | **TODO — next** |
 | 09 | Character depth | TODO |
-| 10 | Crafting and gathering | TODO |
+| 10 | Crafting and gathering | **OPTIONAL** — a genre choice, not a requirement of every game (TEMPLATE.md). Does not block v1.0 |
 | 11 | World map and fast travel | TODO |
 | 12 | Menus | **DONE** — taken out of order; it needed only WP-02 |
 | 13 | Presentation | **DONE** — taken out of order; see below |
 | 14 | Dev tools and hardening | TODO |
-| 15 | Release engineering | **SPLIT** — export proof is template work; credits and the accessibility pass belong to a consuming game |
+| 15 | Release engineering | **SPLIT** — the export proof is template work and is now **T2.0**; credits and the accessibility pass belong to a consuming game |
 
 ### The template phases, added 2026-08-26
 
@@ -66,12 +66,28 @@ original board rather than continuing it.
 | T1.2 | Engine/demo boundary: the rule, a gate, and the leaks fixed | **DONE** — see T1.2 below |
 | T1.3 | Test fixtures + framework hardening | **DONE** — see T1.3 below |
 | T1.4 | CI — automate the ladder | **DONE** — see T1.4 below |
-| T2.1 | Art contract seams | **TODO — next** |
+| T2.0 | **The export proof** | **TODO — next.** Sequenced by RISK, not by theme — see below |
+| T2.1 | Art contract seams | TODO |
 | T2.2 | Consumer documentation | TODO |
+
+**Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
+T3 by subject and is sequenced FIRST by risk. The three content registries find items,
+conversations and schedules by DIRECTORY SCAN (ADR-0006). No export preset exists, so nobody has
+ever run an exported build. If a Godot export omits unreferenced resources, every catalogue ships
+EMPTY — and every ladder rung, both CI jobs, `check_content` and 911 assertions all stay green,
+because they run from `res://` in the editor where the files are plainly there. That is the
+"409 passing checks and never rendered a frame" failure this project was founded to prevent,
+reproduced at the last possible moment.
+
+The asymmetry is what decides the order: the proof is cheap (one preset, one export, one count),
+and if it FAILS the fix is architectural — a revision to ADR-0006 touching how all content is
+found. Every package built in the meantime would be built on an assumption known to be false.
+T2.1 by contrast fails locally, inside `CharacterVisual` and a `Theme`. Cheap test, architectural
+blast radius, so it goes first.
 
 **Re-framed rows on the original board.** WP-09's exit criterion "the lantern gates an area" is a
 content claim; restate it as *equipment can gate traversal, a lantern is the example*. WP-10 is a
-genre choice and should be marked OPTIONAL. WP-14's "a smoke test that drives **the whole demo**"
+genre choice, and the board row now says OPTIONAL. WP-14's "a smoke test that drives **the whole demo**"
 hard-wires the demo into a permanent gate; it should drive *a* game, from fixtures.
 
 When every package is `DONE`, the skeleton is complete: every system has a working minimal
@@ -602,3 +618,46 @@ to support a confident wrong diagnosis.
 **Left for T2.1:** no branch protection, so the gate reports and nothing stops a red branch
 merging — that is a repository setting, not a file. No status badge, deliberately: on a private
 repo it renders as "unknown".
+
+---
+
+## T2.0 · The export proof — **TODO, next**
+
+**Goal.** Prove that an exported build finds its content. Everything about this project's content
+pipeline rests on an assumption nobody has ever tested: that a Godot export ships resources that
+no scene references.
+
+**The risk, stated plainly.** `ItemDb`, `DialogueDb` and `ScheduleDb` find content by scanning a
+directory (ADR-0006). Nothing in a scene points at `data/items/rose_key.tres` — the registry
+discovers it at runtime. Godot's exporter walks *dependencies*. If it therefore omits the `.tres`
+files, then in an exported build every item, every conversation and every NPC schedule is simply
+absent, the inventory is empty, dialogue does not start, and NPCs stand still — while `res://`
+runs in the editor stay perfectly green, because there the files are right there on disk. No
+current gate can see this. That is why it is sequenced ahead of T2.1.
+
+**Read:** `CLAUDE.md`, `docs/TEMPLATE.md`, `docs/CONTEXT.md`, `docs/decisions/ADR-0006*`,
+`src/content/**` (the three registries and their directory scan — headers first), `project.godot`.
+Do NOT read the whole `src/` tree.
+
+**Write**
+- An export preset for Windows desktop, with whatever include filter actually makes `data/**`
+  ship. `export_presets.cfg` is NOT gitignored (checked: `.gitignore` names only `override.cfg`),
+  so commit it — a preset nobody else has is not a preset.
+- A catalogue-count report reachable in an exported build — the simplest honest thing is a debug
+  print of `ItemDb`/`DialogueDb`/`ScheduleDb` counts at boot, gated on `OS.is_debug_build()` so it
+  does not ship to players. `src/systems/debug/` is the exempt directory it belongs in.
+- Whatever `docs/NEW_GAME.md` must say about exporting a game built on this base.
+
+**Exit criteria**
+- An exported build **run on a machine without Godot** (or at minimum outside the editor, from the
+  exported `.exe`, with `res://` unavailable as a loose directory) reports **non-zero** counts for
+  all three catalogues. Quote the actual numbers.
+- The counts match the editor's. A partial ship is worse than an empty one, because it looks fine.
+- If it FAILS: do not paper over it with a hard-coded manifest. Write up what the exporter
+  actually did, and open an ADR revising ADR-0006 — that is the correct outcome of this package
+  and is not a failure of it.
+- Local ladder green, and CI green.
+
+**Deferred here:** the credits screen and the accessibility pass (they belong to a consuming
+game, per WP-15's split), export presets for platforms other than Windows, and any of T2.1's art
+seams.

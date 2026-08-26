@@ -180,6 +180,11 @@ Exit criteria:
 
 *Goal: a second, visually different game starts from this without editing `src/`.*
 
+- **T2.0 The export proof.** Sequenced FIRST in Phase T2 by RISK, not by theme — it belongs to
+  T3 by subject. An export preset, and the first run of an exported build there has ever been.
+  The three registries find content by directory scan, so if the exporter omits unreferenced
+  `.tres` files every catalogue ships empty while every gate stays green. Cheap to test,
+  architectural to fix, so nothing else should be built on the assumption first. See the board.
 - **T2.1 The art contract.** A `SpriteSheetLayout` resource replacing `FACING_COUNT`/`FRAME_COUNT`;
   the sector maths derived from it rather than from a separate literal `TAU / 8.0`; an
   `animation_row` offset so idle-vs-walk is not structurally impossible; a project `Theme` so the
@@ -190,19 +195,21 @@ Exit criteria:
   and a stated extension surface versus internals.
 
 Exit criteria:
+- [ ] An exported build reports **non-zero** catalogue counts for items, conversations and
+      schedules, matching the editor — T2.0. Moved here from Phase T3, where it was listed while
+      `SYSTEMS_INVENTORY.md` simultaneously marked export presets LATER; that contradiction was
+      settled 2026-08-26 in favour of blocking
 - [ ] Swap in a sprite sheet with a different cell and frame count, changing **no code**
 - [ ] One `Theme` change restyles every screen at once
 - [ ] Someone who has not read `src/` can author an area, an NPC and a conversation from the docs
 
 ## Phase T3 — Finish the system catalogue
 
-The remaining packages, re-framed — see the board — plus **the export proof**, which is the one
-genuinely blocking item from WP-15: three registries find content by directory scan, no export
-preset exists, and if an export omits unreferenced resources then every item, conversation and
-schedule ships empty while every current gate still passes.
+The remaining packages, re-framed — see the board. **The export proof moved OUT of this phase and
+into T2.0**, at the front of Phase T2: it was always described here as "the one genuinely blocking
+item", and a blocking item scheduled last is a contradiction. Sequenced by risk, not by theme.
 
 Exit criteria:
-- [ ] An exported build on a machine without Godot reports non-zero catalogue counts
 - [ ] Every system has one proof, and no system has a second area's worth of content
 
 ## Phase T4 — Template v1.0

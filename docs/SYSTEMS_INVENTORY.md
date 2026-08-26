@@ -157,7 +157,7 @@ previous project started as a system that was allowed to know one thing too many
 | Localization | String IDs from the first string; CSV translation | PART — CSV wired, 188 keys, all UI text localized. Unquoted commas are now a gate; no full audit tool yet. docs/NEW_GAME.md names the engine and demo halves |
 | New-game checklist | docs/NEW_GAME.md — what to delete, what to keep, the full rename surface | DONE — T1.2, and its claims were run against a stripped copy |
 | Smoke test | Boots, loads an area, saves, reloads, asserts zero errors | TODO |
-| Export presets | Windows build configuration | LATER |
+| Export presets and the export proof | Windows build configuration, and the first ever run of an exported build. Registries find content by directory scan, so if the exporter omits unreferenced .tres files every catalogue ships EMPTY while every gate stays green | **TODO — T2.0, and it is BLOCKING.** Was marked LATER, which contradicted the roadmap; settled 2026-08-26 in favour of blocking |
 | Performance overlay | Frame time, draw calls, node counts | TODO |
 | Debug console | Teleport, set flag, set time, spawn item | TODO |
 

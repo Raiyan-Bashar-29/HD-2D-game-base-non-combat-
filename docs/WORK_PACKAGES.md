@@ -52,7 +52,26 @@ Headless shades nothing. This project has already shipped two bugs that every ot
 | 12 | Menus | **DONE** — taken out of order; it needed only WP-02 |
 | 13 | Presentation | **DONE** — taken out of order; see below |
 | 14 | Dev tools and hardening | TODO |
-| 15 | Release engineering | TODO |
+| 15 | Release engineering | **SPLIT** — export proof is template work; credits and the accessibility pass belong to a consuming game |
+
+### The template phases, added 2026-08-26
+
+Read [`TEMPLATE.md`](TEMPLATE.md) first. These are NOT numbered WP-nn because they cut across the
+original board rather than continuing it.
+
+| # | Package | Status |
+|---|---|---|
+| T1.1 | Integration — every package onto `main` | **DONE** — PR #10 |
+| T1.2 | Engine/demo boundary: the rule, a gate, and the leaks fixed | **TODO — next** |
+| T1.3 | Test fixtures + framework hardening | TODO |
+| T1.4 | CI — automate the ladder | TODO |
+| T2.1 | Art contract seams | TODO |
+| T2.2 | Consumer documentation | TODO |
+
+**Re-framed rows on the original board.** WP-09's exit criterion "the lantern gates an area" is a
+content claim; restate it as *equipment can gate traversal, a lantern is the example*. WP-10 is a
+genre choice and should be marked OPTIONAL. WP-14's "a smoke test that drives **the whole demo**"
+hard-wires the demo into a permanent gate; it should drive *a* game, from fixtures.
 
 When every package is `DONE`, the skeleton is complete: every system has a working minimal
 implementation plus one piece of placeholder content proving it. Everything after that is

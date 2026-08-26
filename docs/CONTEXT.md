@@ -3,41 +3,33 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-26 · WP-07 complete
+**Last updated:** 2026-08-26 · T1.1 (integration) complete
 
-## Which branch to work from — read this before `git checkout`
+> **This is a TEMPLATE, not a game.** Read [`TEMPLATE.md`](TEMPLATE.md) — it is short, and the
+> roadmap, the board and parts of this file were written before that reframing. The courtyard and
+> the garden-keeper are *proof that a system works*, not the product.
 
-**`main` is ten commits behind and contains NONE of WP-01 to WP-06.** A fresh clone lands there
-and finds no screen stack, no dialogue, no second area and no NPCs. The packages were never
-merged; they are a **strictly linear stack of branches**, each based on the one before:
+## Which branch to work from
 
-| Package | Branch | Commit |
-|---|---|---|
-| WP-01 Triggers and traversal | `claude/trusting-curran-04a4f9` | `81b28b0` |
-| WP-02 UI foundation | `claude/intelligent-wilbur-ae8141` | `444dbd2` |
-| WP-03 HUD and inventory | `claude/loving-nightingale-aa2114` | `1563915` |
-| WP-04 Second area | `claude/wp-04-second-area` | `3ed321f` |
-| WP-05 Dialogue | `claude/wp-05-dialogue` | `addf337` |
-| WP-06 NPCs and navigation | `claude/wp-06-npcs` | `c42c844` |
-| WP-07 Path actions | `claude/wp-07-path-actions` | `e5f90bc` |
+Every package — WP-01 through WP-07, plus WP-12 and WP-13 — is now on **`claude/integration`**,
+which is PR #10 into `main`. The nine earlier PRs are superseded by it.
 
-**Branch new work from the LAST row, never from `main`.** Because the stack is linear, merging
-the tip alone fast-forwards every package at once — there is no five-way merge to perform.
-
-`git branch -a` will also show `claude/wp-12-menus` and `claude/wp-13-presentation`, which are
-packages built in parallel off WP-05's tip rather than continuations of the stack.
+**Branch new work from `claude/integration`**, or from `main` once PR #10 has landed. The older
+per-package branches (`claude/wp-04-second-area`, `claude/wp-05-dialogue`, `claude/wp-06-npcs`,
+`claude/wp-07-path-actions`, `claude/wp-12-menus`, `claude/wp-13-presentation`) are history and
+should not be built on.
 
 **Remote:** https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-
 
 ## What this is
 
-HD-2D semi-open-world **exploration and narrative** game. Godot 4.7.2, GDScript.
+A reusable BASE TEMPLATE for HD-2D exploration games. Godot 4.7.2, GDScript.
 Visual reference: Octopath Traveler I/II/0, The Adventures of Elliot.
 
 **No combat.** Explicitly retracted by the owner — not an oversight. **Art is deferred**;
-everything runs on procedural placeholders. The goal is a *base prototype*: a skeleton with a
-home for every system the finished game will need, so later work is content and data, not new
-architecture.
+everything runs on procedural placeholders, permanently â the template ships an art *contract*,
+never art, and each game brings its own. The goal is a skeleton with a home for every system a
+game built on this will need, so a new game is content and data rather than new architecture.
 
 ## Where it stands
 
@@ -415,7 +407,8 @@ should read, so a session loads a few hundred lines instead of three thousand. T
 (`core -> content -> systems -> gameplay -> ui`, downward only) is what makes that possible: a
 package never has to read upward.
 
-**Next package: WP-08, quests.**
+**Next package: T1.2 â the engine/demo boundary.** See the board and [`TEMPLATE.md`](TEMPLATE.md).
+The original WP-08 through WP-15 continue after the T1 and T2 phases, several of them re-framed.
 
 ## Plan — where this is going
 

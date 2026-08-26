@@ -1,5 +1,9 @@
 # Roadmap
 
+> **Read [`TEMPLATE.md`](TEMPLATE.md) first.** This project is a reusable base for many games,
+> not one game. Phases 0 to 2 below happened and are accurate. Phases 3 and 4 were retired on
+> 2026-08-26 because they planned a *consuming game's* work, and are replaced by the T-phases.
+
 Phases, and the exit criteria that decide when each one is actually finished. An exit
 criterion must be checkable by running the engine, not by reading the code and feeling good
 about it.
@@ -119,44 +123,86 @@ Exit criteria:
       the button, advanced a line and took a branch with the world still running
 - [ ] Switch language at runtime and see every visible string change
 
-## Phase 3 — The vertical slice
+## Phases 3 and 4 — RETIRED, out of scope
 
-*Goal: thirty minutes that represent the finished game.*
+They used to read *"thirty minutes that represent the finished game"* and *"regions, quest lines,
+the full plot"*. Under the reframing in [`TEMPLATE.md`](TEMPLATE.md) those are not deferred work,
+they are **a consuming game's phases**. A criterion like *"a new player finishes the slice with no
+guidance and no soft-lock"* is one no template can meet, and leaving it here would keep pointing
+effort at polishing the demo.
 
-- [x] Main menu, save/load screen, settings screen, key rebinding, full controller navigation —
-      done 2026-08-26 in WP-12, ahead of this phase. Every menu is a column of Buttons, so
-      ui_up/ui_down/ui_accept navigate it for free; proved with real events in a windowed run,
-      which is also what caught a menu backed out of having no focused row left
-- A quest with steps, a journal, and map markers
-- Path actions: non-combat NPC verbs in the spirit of Octopath's Scrutinise and Inquire
-- Equipment that changes traversal — a lantern that opens the dark places
-- Cutscene support with scripted camera
-- Real art begins replacing placeholders, area by area
-- Performance pass, and a Windows export
+What follows replaces them.
+
+---
+
+## Phase T1 — Make it a base, not a demo · **IN PROGRESS**
+
+*Goal: the demo can be deleted and the template still stands up.*
+
+| Step | State |
+|---|---|
+| **T1.1 Integration** — every package onto `main` in one linear chain | **DONE** 2026-08-26, PR #10. WP-12 and WP-13 were built in parallel and merged in; the `UiRoot`/`ScreenKeys` duplicate close-on-travel was resolved in favour of `ScreenKeys`. |
+| **T1.2 The boundary** — the rule, a gate that enforces it, and the leaks fixed | **NEXT** |
+| **T1.3 Test fixtures + framework hardening** | TODO |
+| **T1.4 CI** — automate the ladder | TODO |
 
 Exit criteria:
-- [ ] A new player finishes the slice with no guidance and no soft-lock
-- [ ] 60 fps at 1080p on the target machine, measured not assumed
-- [ ] Exported build runs on a machine without Godot installed
-- [ ] A 30-minute soak produces zero errors
-- [ ] Every player-facing string is a localization key, proven by the string audit
+- [x] `main` contains the template — done 2026-08-26
+- [ ] `check_content.gd` fails on a planted `&"courtyard"` in a `src/` file, and passes otherwise
+- [ ] No file under `src/` names demo content
+- [ ] A deliberately crashing test case exits **1** — today it exits 0, which invalidates every
+      green result the project has
+- [ ] `data/` and `scenes/areas/` moved aside, and the suite still passes
+- [ ] A pushed branch with a broken assertion goes red in CI
 
-## Phase 4 — Production
+## Phase T2 — Make it swappable
 
-Content scaled on proven systems: regions, quest lines, the full plot, audio, accessibility
-pass, and release engineering. Deliberately unplanned in detail — planning it now would be
-the same mistake as the previous project's eleven regions.
+*Goal: a second, visually different game starts from this without editing `src/`.*
+
+- **T2.1 The art contract.** A `SpriteSheetLayout` resource replacing `FACING_COUNT`/`FRAME_COUNT`;
+  the sector maths derived from it rather than from a separate literal `TAU / 8.0`; an
+  `animation_row` offset so idle-vs-walk is not structurally impossible; a project `Theme` so the
+  UI look stops living as constants inside five screen files; shared materials; the environment
+  post-stack as `@export`s rather than code constants; camera exports set per area; the texture
+  import defaults flipped before real art lands; the Git LFS lines enabled.
+- **T2.2 Consumer documentation.** `NEW_GAME.md`, `AUTHORING.md`, `ART_CONTRACT.md`, `TESTING.md`,
+  and a stated extension surface versus internals.
+
+Exit criteria:
+- [ ] Swap in a sprite sheet with a different cell and frame count, changing **no code**
+- [ ] One `Theme` change restyles every screen at once
+- [ ] Someone who has not read `src/` can author an area, an NPC and a conversation from the docs
+
+## Phase T3 — Finish the system catalogue
+
+The remaining packages, re-framed — see the board — plus **the export proof**, which is the one
+genuinely blocking item from WP-15: three registries find content by directory scan, no export
+preset exists, and if an export omits unreferenced resources then every item, conversation and
+schedule ships empty while every current gate still passes.
+
+Exit criteria:
+- [ ] An exported build on a machine without Godot reports non-zero catalogue counts
+- [ ] Every system has one proof, and no system has a second area's worth of content
+
+## Phase T4 — Template v1.0
+
+Version and tag it. Write the upgrade note for games already forked from it — nothing currently
+describes how a game receives a later fix to the base.
 
 ---
 
 ## Sequencing rules
 
-1. **Depth before breadth.** No second region until the first one is genuinely good. This is
-   the single lesson from eleven shallow regions.
+1. **Breadth of systems, one shallow proof each.** This *replaces* "depth before breadth", which
+   is retracted — see [`TEMPLATE.md`](TEMPLATE.md). It was the right rule for one game and the
+   wrong one for a formula library.
 2. **No content without a system.** If an area needs a feature that does not exist, build the
-   feature or cut the area. Do not special-case it.
-3. **Nothing is done until the engine says so.** Every completion claim cites a command that
-   was run and its result.
-4. **Every session appends to `DEVLOG.md`.** What changed, why, how it connects, what was
-   verified.
-5. **Art stays deferred** until Phase 3. Systems must run on placeholders indefinitely.
+   feature or cut the area. Do not special-case it. *(Unchanged, still correct.)*
+3. **No file under `src/` may name demo content.** The boundary that had no rule until T1.2.
+4. **A system is proved by a fixture, demonstrated by the demo.** An assertion that names
+   `item/rose_key` is testing the demo, not the item system.
+5. **Nothing is done until the engine says so.** Every completion claim cites a command that was
+   run and its result. *(Unchanged. This is the project's spine.)*
+6. **Every session appends to `DEVLOG.md`.** What changed, why, how it connects, what was verified.
+7. **Art stays deferred, permanently.** The template ships a *contract* art must satisfy, never
+   art. Each game brings its own.

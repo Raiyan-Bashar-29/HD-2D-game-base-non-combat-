@@ -4,11 +4,31 @@ Read this before touching anything. It is short because the detail lives in `doc
 
 **Start with [`docs/CONTEXT.md`](docs/CONTEXT.md)** — one minute, and it tells you what exists,
 what is broken right now, and what not to re-litigate. This file is the rules; that one is the
-situation.
+situation; [`docs/TEMPLATE.md`](docs/TEMPLATE.md) is the framing both assume.
+
+**Which doc do I need?**
+
+| If you are… | Read |
+|---|---|
+| starting any session | `docs/CONTEXT.md`, then your package on the board |
+| confused about what this project IS | `docs/TEMPLATE.md` |
+| picking the next package | `docs/WORK_PACKAGES.md` (the board) and `docs/ROADMAP.md` |
+| surprised by the engine | the gotcha list in `docs/CONTEXT.md` — twenty-one, each cost an hour |
+| wondering why a file is shaped that way | its own `##` header first, then `docs/ARCHITECTURE.md` and `docs/decisions/` |
+| about to write a player-facing string | `localization/strings.csv`, and quote any value containing a comma |
+
+**Never read `docs/DEVLOG.md` whole** — it is over 1,300 lines and grows every session. Find the
+entry you need by its `## date — WP-nn` header.
 
 ## What this is
 
-An HD-2D semi-open-world **exploration and narrative** game. Godot 4.7.2, GDScript.
+**A reusable BASE TEMPLATE for HD-2D exploration games. Not one game.** Godot 4.7.2, GDScript.
+Read [`docs/TEMPLATE.md`](docs/TEMPLATE.md) â it is short, and it reframes the roadmap and the
+board, several of whose older lines predate it.
+
+The product is the systems and the seams between them. The courtyard, the garden-keeper and the
+rose key are the *proof that a system works*, and they are deletable. **No file under `src/` may
+name demo content** â an area id, an item id, a conversation id, any of it.
 
 **There is no combat.** No battles, no enemies, no damage, no encounters. This was an explicit
 retraction by the owner, not an oversight. If a task seems to need combat, it does not — redirect

@@ -39,8 +39,13 @@ on:
 permissions:
   contents: read
 
+# Superseding a push on the same ref is the point: nobody needs the ladder for a commit that has
+# already been replaced. A MANUAL run is deliberately given a group of its own, keyed on its run
+# id, so it can never be cancelled by a push that lands while it is running - a human who asked
+# for the ladder asked for an answer, and a cancelled run reports neither pass nor fail. Measured:
+# a dispatch mid-verification was cancelled by the very push it was verifying.
 concurrency:
-  group: ladder-${{ github.ref }}
+  group: ladder-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || 'auto' }}
   cancel-in-progress: true
 
 jobs:

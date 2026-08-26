@@ -426,6 +426,156 @@ that is a `SaveSystem.register` away if it ever matters. This package added 562 
 against the board's ~500 guideline: 434 production (406 in five new files, 4 in
 `audio_director.gd`, 24 in `dev_capture.gd`) and 128 of test.
 
+## 2026-08-26 — WP-12: the menus, and the game stops booting into an area
+
+**Did:**
+
+Five menus, on the screen stack WP-02 built and never had a real consumer for.
+
+- `src/ui/screens/menu_screen.gd` — `MenuScreen`. A titled column of focusable rows: panel,
+  title, scroller, hint, and `add_row` / `add_note` / `refresh` / `focus_first` / `depart` /
+  `push`. Written once, so the five menus below are 43 to 150 code lines each.
+- `src/ui/screens/main_menu_screen.gd` — new game, continue, load, settings, controls, quit.
+- `src/ui/screens/pause_menu_screen.gd` — resume, save, load, settings, controls, main menu,
+  quit, over a status line naming the area and the playtime.
+- `src/ui/screens/settings_screen.gd` — all 23 rows in `Settings.DEFAULTS`, **generated from
+  the dictionary**, with bools, named enums, choice lists, percentages and multipliers, plus a
+  reset row. Press a row or push left/right on it.
+- `src/ui/screens/save_screen.gd` — the six slots with their headers, in either direction.
+- `src/ui/screens/rebind_screen.gd` — every `Actions.REBINDABLE`, its key and its pad button.
+- `src/systems/input/key_bindings.gd` — `KeyBindings`. Overrides in `user://input.cfg`, stored
+  as integer codes. `Actions` gained `reset_bindings()` and one `KeyBindings.load_all()` call.
+- `Director.start_new_game()` and `SaveSystem.latest_slot()`.
+- `Events.main_menu_requested` and `Events.quit_requested`.
+- `ScreenKeys` gained the pause binding, `menu_for()`, and `unwind()`.
+- **`GameRoot` no longer requests an area.** It emits `main_menu_requested` and lifts the
+  curtain. `FIRST_AREA` moved to `Director`, where area knowledge already lives.
+- 86 CSV rows. `tests/unit/menus_test.gd` and `tests/unit/options_test.gd`: 257 new
+  assertions, 460 -> 717.
+
+**Why:**
+
+`Settings` had declared 23 rows since Phase 0 with nothing reading seventeen of them, and the
+board's own note said they existed "so the settings screen has something to bind to". So the
+settings screen is **generated from `DEFAULTS`** rather than hand-listed: adding a setting is
+one line in `settings.gd` and one CSV row, and there is no second list to fall out of step with
+the first. The cost is that every row label is a computed key no text scan can find, which is
+why `options_test.gd` loops `DEFAULTS` and asserts each one translates — the same trick the
+prompt's verb keys use.
+
+Rebinding lives in its own file because `Actions` owns the action NAMES and their DEFAULTS,
+which is ADR-0003's whole point, while what one player has since changed belongs to their
+machine like `Settings` does. Folding it in would also have taken `actions.gd` from 83 code
+lines to 148 of its 150 — the shape of a file about to be given an exemption.
+
+`MenuScreen` exists because the five menus differ only in what their rows say. That is also the
+whole of "playable on a gamepad": a `VBoxContainer` of `Button`s already answers `ui_up`,
+`ui_down` and `ui_accept`, so no screen in this package contains a cursor, a selected index, or
+a direction-key handler.
+
+**Connects:**
+
+Nothing new was added to make the menus work. `pauses_world` and `UiRoot` do the pause; the
+player takes its own `&"ui"` token on `Events.ui_mode_changed`; `is_gameplay_input_allowed()`
+stays the one truth and no boolean joined it. No autoload was added.
+
+The one genuinely new wire is that **`ScreenKeys` now closes the stack on
+`area_change_requested`**, so no screen ever calls `close_all()` on the stack it is standing on.
+That is what lets a menu row start a new game or restore a save and simply stop: the transition
+it asked for is what dismisses it. It also fixes a latent bug nobody had hit — the inventory
+open when a door fired would have survived the transition.
+
+`GameRoot` is `core` and may not name a `ui` class, so the boot path is a bus signal, exactly
+like `dialogue_requested`. The pause menu's "Main Menu" row uses the same one.
+
+**Verified:**
+
+```
+G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe
+"$G" --headless --import                                       # exit 0, no errors
+"$G" --headless --quit-after 120                               # 0 warnings, 0 errors
+"$G" --headless res://tests/test_runner.tscn --quit-after 250  # 717 passed, 0 failed
+"$G" --headless --script tools/check_budgets.gd                # 76 files, 0 violations
+"$G" --headless --script tools/check_content.gd                # PASS, 167 keys
+"$G" --headless --quit-after 400 -- --new-game --cross-area-save   # WP-04 still holds
+```
+
+A deliberately broken assertion in `options_test.gd` reported
+`FAILED: nothing is listening yet` and exited **1**.
+
+Four windowed captures at 1280x720, each one actually looked at:
+`--shot=... --shot-frame=40 --freeze-time` for the main menu, and
+`--new-game --open-menu=pause` / `pause,settings` / `pause,controls` for the rest.
+
+**A REAL-INPUT PROBE, added to `dev_capture.gd`, run windowed, read, and removed.** Gotcha 15:
+`TestCase.run()` is synchronous, so no assertion can press a key. The probe fed real
+`InputEventAction`s and a real `InputEventKey`, pressing AND releasing each in separate frames
+because a `Button` acts on release. Its log, verbatim:
+
+```
+PROBE start: depth 0, gameplay allowed true
+PROBE pause key -> top 'pause', depth 1, tree paused true
+PROBE down x2 + accept -> top 'settings', depth 2
+PROBE focused row 'video/bloom' = Off
+PROBE ui_right -> 'video/bloom' = On
+PROBE escape -> top 'pause', depth 1
+PROBE controls open, first row: Move forward  —  W  /  Joypad Button 11 (D-pad Up)
+PROBE row pressed, listening on 'move_up'
+PROBE after K: listening '', row: Move forward  —  K  /  Joypad Button 11 (D-pad Up)
+PROBE reset, row back to: Move forward  —  W  /  Joypad Button 11 (D-pad Up)
+```
+
+That line about the pad button surviving a keyboard rebind is the point of the whole
+`KeyBindings` design, and it is the only place it is visible.
+
+**Three bugs the engine caught that no static gate could:**
+
+1. **A menu backed out of had no focused row, and a gamepad then did nothing at all.** Focus
+   follows a sub-screen when one opens and does not come back on its own. The probe found it:
+   the rebind half of the run could not reach the controls screen, because `ui_down` and
+   `ui_accept` had nothing to act on. `UiScreen._opened` is documented as "each time the screen
+   reaches the top of the stack" and `UiRoot` only ever called it once — so `_close` now
+   notifies the screen it revealed, which is what that docstring always promised.
+2. **Two translucent screens stacked let the lower one print through the upper one.** A capture
+   showed the pause menu's status line running through the settings screen's first heading.
+   Every screen dims rather than blanks on purpose, so `UiRoot._settle` now hides a covered
+   screen along with disabling it — stack business, derived in one place.
+3. **`InputEventJoypadButton.as_text()` prints every console's name for a button** — "Joypad
+   Button 2 (Left Action, Sony Square, Xbox X, Nintendo Y)" — sixty characters that ran off the
+   side of the controls screen and grew a horizontal scrollbar under it. `KeyBindings` now keeps
+   the first name only, and no menu scrolls sideways.
+
+**Unblocks:**
+
+WP-08's journal and WP-11's map are `MenuScreen` subclasses and a row in `ScreenKeys.menu_for`.
+WP-14's debug console has a screen contract to sit on. WP-15's accessibility pass has somewhere
+to put its options, and every one of them already has a row.
+
+**Known gaps:**
+
+- **Thirteen settings still have no runtime consumer.** They can now all be seen and changed
+  and they persist, but bloom, shadows, tilt-shift, camera shake, reduce-motion, high-contrast
+  prompts, subtitles, hold-to-confirm, text scale, render scale, autosave and
+  show-interact-hints are read by nothing yet. That is WP-13 and WP-15 work, not menu work.
+  Ten do have consumers: the five volumes, `text_speed`, `run_is_toggle`, and the three video
+  rows `Settings._apply_display` acts on.
+- **The language row cycles one locale, because one locale is loaded.** Changing it stores the
+  value and nothing calls `TranslationServer.set_locale`. Phase 2's runtime-language criterion
+  is still open.
+- **Rebinding does not warn about a duplicate.** Binding K to two actions is accepted silently.
+- **`Actions.JUMP` is listed on the controls screen and this game has no jumping.** The action
+  exists, so the screen shows it; pruning `REBINDABLE` is an ADR-0003 decision, not a menu one.
+- **"Main Menu" does not unload the area.** It leaves it loaded behind an opaque, world-stopping
+  screen, and the next New Game or Continue replaces it through the ordinary guarded transition.
+  Deliberate: freeing it from under a menu would empty `Director.current_area_id`, so the next
+  transition would believe it was the session's first and skip its fade-out.
+- **This package is over the board's size guidance**: 11 files and roughly 700 new code lines
+  against "about 8 files or 500". It was landed whole rather than split because the five menus
+  share one base and one CSV block, and a half-landed menu set is a game with no way back to
+  the main menu. Reported here rather than rounded down.
+
+---
+
 ## 2026-08-26 — WP-05: dialogue, and a comma that had been eating text since WP-01
 
 **Did:**

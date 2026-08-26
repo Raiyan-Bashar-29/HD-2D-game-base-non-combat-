@@ -30,8 +30,9 @@ previous project started as a system that was allowed to know one thing too many
 | Settings | Player machine preferences, on disk | Log, Events | how to apply audio or gameplay settings; it announces, owners react | DONE |
 | Save system | Slots, atomic writes, schema version, migration | Log, Events | what any save section contains | DONE |
 | Flag store | Plot and world state, one source of truth | Log, Events, Save | what any flag means | DONE |
-| Game root | Builds the persistent tree, spawns the player | Director | game logic of any kind. 60-code-line hard budget | DONE |
+| Game root | Builds the persistent tree, spawns the player, asks for the main menu | Director | game logic of any kind. 60-code-line hard budget | DONE |
 | Input actions | Action names and default bindings, declared in code | Log | what an action means; it names, never interprets | DONE |
+| Key bindings store | One player's overrides of the input map, in user://input.cfg | Log, DictRead | naming an action or deciding a default; it never mentions Actions | DONE |
 | Verification harness | Parse gate, import gate, headless run, visual capture | Godot only | — | PART |
 
 ## 1. World and presentation
@@ -125,15 +126,16 @@ previous project started as a system that was allowed to know one thing too many
 | Input lock | Named tokens so two systems holding input cannot release each other | nothing | what input is | DONE |
 | Pause semantics | Deliberate process_mode per node; music and the fade keep running | — | — | DONE |
 | HUD | Clock readout. The prompt and the toasts are their own siblings under UILayer | Events, Clock | game rules, and owning the other readouts | DONE |
-| Screen keys | The one action-to-screen binding. I opens and closes the inventory | Actions, UiRoot | holding a screen reference, or a flag for "a screen is open" | DONE |
+| Screen keys | Action-to-screen and request-to-screen bindings, the one menu factory, and unwinding the stack on travel | Actions, UiRoot | holding a screen reference, or a flag for "a screen is open" | DONE |
 | Notifications | Transient localized toasts | Events | — | DONE |
-| Pause menu | The actual menu. The pause mechanism underneath it is DONE | Actions, UiRoot | — | TODO |
-| Main menu | New game, continue, settings, quit | Save, Director | — | TODO |
-| Save and load screen | Slot list with headers and playtime | Save | — | TODO |
-| Settings screen | Every entry in the Settings defaults table | Settings | — | TODO |
-| Key rebinding | Rebind, and glyph swapping per device | Actions, Settings | — | TODO |
+| Menu contract | MenuScreen: a titled column of focusable rows, written once for all five menus | UiScreen, UiRoot | what a row means, or pausing | DONE |
+| Pause menu | Resume, save, load, settings, controls, main menu, quit, over a stopped world | Actions, UiRoot, Save, Director | unloading an area or writing a save itself | DONE |
+| Main menu | New game, continue, load, settings, controls, quit. The boot path now stops here | Save, Director | loading an area or clearing a flag itself | DONE |
+| Save and load screen | Slot list with headers and playtime, in either direction | Save | the save format, or what a section holds | DONE |
+| Settings screen | Every entry in the Settings defaults table, generated from it | Settings | applying a setting; it writes and Settings announces | DONE |
+| Key rebinding | Rebind a key or a pad button per action; overrides persist in user://input.cfg | Actions, KeyBindings | naming an action or deciding a default | PART — no glyph swapping per device, and no duplicate-binding warning |
 | World map | Region map, discovery, fast travel | Director, Flags | — | TODO |
-| Controller navigation | Every screen fully usable on a gamepad | Actions | — | PART — the inventory navigates on ui_up/ui_down; every new screen must earn its own |
+| Controller navigation | Every screen fully usable on a gamepad | Actions | — | DONE — a VBoxContainer of Buttons answers ui_up/ui_down and ui_accept, so no screen owns a cursor; proved windowed with real events |
 | Loading screen | Covers threaded area loads | Director | — | DONE — fade plus a progress readout drawn above it; the one node after ScreenFade |
 
 ## 6. Content pipeline and production
@@ -197,5 +199,7 @@ screen fade, audio buses, dev capture, placeholder art, the screen stack and pau
 persistence, the HUD, the inventory screen, the test runner and the smoke test all exist and
 are verified by running the engine.
 
-**Explicitly not in slice one:** quests, weather visuals, world map, main menu, streaming,
-followers, crafting, water. Dialogue, NPCs and navigation have since shipped in WP-05 and WP-06.
+**Explicitly not in slice one:** quests, world map, streaming, followers, crafting, water.
+Dialogue (WP-05), NPCs and navigation (WP-06), path actions (WP-07), the menus (WP-12) and the
+weather visuals (WP-13) have all since shipped, several of them ahead of this list rather than
+in it.

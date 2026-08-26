@@ -95,7 +95,8 @@ Exit criteria:
 - [x] Loading that hides behind the fade, with the shader warm-up hitch handled (WP-04)
 - [x] Navigation baking, and one NPC that walks a route by the clock (WP-06)
 - [x] Dialogue runner, dialogue UI, and an authorable conversation format (WP-05)
-- The pause menu itself (the pause mechanism under it landed early, in WP-02)
+- [x] The pause menu itself, and the other four menus with it (WP-12, taken early because
+      Phase 3's controller-navigation criterion needed screens to navigate)
 - Localization wired for real: every string is already an ID
 - [x] Weather visuals: rain, snow and wind particles, wet surfaces, ambience layers (WP-13)
 
@@ -122,7 +123,10 @@ Exit criteria:
 
 *Goal: thirty minutes that represent the finished game.*
 
-- Main menu, save/load screen, settings screen, full controller navigation
+- [x] Main menu, save/load screen, settings screen, key rebinding, full controller navigation —
+      done 2026-08-26 in WP-12, ahead of this phase. Every menu is a column of Buttons, so
+      ui_up/ui_down/ui_accept navigate it for free; proved with real events in a windowed run,
+      which is also what caught a menu backed out of having no focused row left
 - A quest with steps, a journal, and map markers
 - Path actions: non-combat NPC verbs in the spirit of Octopath's Scrutinise and Inquire
 - Equipment that changes traversal — a lantern that opens the dark places

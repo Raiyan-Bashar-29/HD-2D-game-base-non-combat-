@@ -46,12 +46,11 @@ func _ready() -> void:
 	# MOUSE_FILTER_STOP on itself, so only an actually-open screen blocks the pointer.
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_to_group(GROUP)
-	# UNWIND ON AN AREA CHANGE. Travel does not lock the player, so a conversation can be opened
-	# during the 0.35s fade-out - and a dialogue screen does not pause the world, so it would
-	# keep running over the newly loaded area with its speaker already freed, holding the
-	# player's and the sensor's tokens until the player talked their way out. Same shape as the
-	# prompt that survived an area change in WP-04, one layer up.
-	Events.area_unloading.connect(_on_area_unloading)
+	# NOTE: this node does NOT listen for an area change. WP-06 and WP-12 independently solved
+	# the same problem — a conversation opened during a fade-out kept running over the newly
+	# loaded area — and only one solution may survive. `ScreenKeys` owns it, because it fires on
+	# `area_change_requested` (BEFORE travel begins, not mid-transition) and because it keeps
+	# this file from knowing that areas exist at all, which its MUST NOT line forbids.
 	Log.info("ui", "Screen stack ready")
 
 
@@ -141,6 +140,15 @@ func _close(screen: UiScreen) -> bool:
 	remove_child(screen)
 	screen.queue_free()
 	_settle()
+	# The screen underneath has REACHED THE TOP OF THE STACK AGAIN, which is exactly what
+	# `_opened` is documented to mean - "each time the screen reaches the top" - and until WP-12
+	# this call was missing, so it only ever meant "once". Without it a menu backed out of is
+	# visible and processing but has no focused row, and a player on a gamepad is stranded on a
+	# menu that answers nothing. Found by the WP-12 input probe; no assertion could press the
+	# escape that reveals it.
+	var revealed: UiScreen = top()
+	if revealed != null:
+		revealed.notify_opened()
 	Log.info("ui", "Closed '%s', depth now %d" % [screen.screen_id, _stack.size()])
 	return true
 
@@ -154,11 +162,19 @@ func _on_close_requested(screen: UiScreen) -> void:
 
 ## Re-derive everything the stack implies, in one place, after every push and pop. Only the
 ## top screen processes: a covered screen must not answer the button that closes the one on
-## top of it.
+## top of it. And only the top screen is DRAWN - see below.
 func _settle() -> void:
 	var last: int = _stack.size() - 1
 	for index: int in _stack.size():
-		_stack[index].process_mode = Node.PROCESS_MODE_ALWAYS if index == last else Node.PROCESS_MODE_DISABLED
+		var covered: bool = index != last
+		_stack[index].process_mode = Node.PROCESS_MODE_DISABLED if covered else Node.PROCESS_MODE_ALWAYS
+		# A COVERED SCREEN IS NOT DRAWN EITHER. Every screen in this game dims rather than
+		# blanks, on purpose, so that the stopped world stays visible behind it - which means
+		# two of them stacked let the lower one's rows print through the upper one's. A WP-12
+		# capture caught the pause menu's status line running through the settings screen's
+		# first heading. Visibility of a covered screen is stack business, not screen business,
+		# so it is derived here with everything else rather than fixed in one screen's panel.
+		_stack[index].visible = not covered
 	var next: GameEnums.UiMode = _derive_mode()
 	if is_inside_tree():
 		get_tree().paused = next == GameEnums.UiMode.MODAL
@@ -180,13 +196,6 @@ func _derive_mode() -> GameEnums.UiMode:
 		if screen.pauses_world:
 			return GameEnums.UiMode.MODAL
 	return GameEnums.UiMode.OVERLAY
-
-
-## Every screen goes, top first. A screen belongs to the world it was opened over.
-func _on_area_unloading(_area_id: StringName) -> void:
-	if not _stack.is_empty():
-		Log.info("ui", "Area change closing %d screen(s)" % _stack.size())
-		close_all()
 
 
 ## The stack, found by group rather than by path. Returns null before the UI tree is built,

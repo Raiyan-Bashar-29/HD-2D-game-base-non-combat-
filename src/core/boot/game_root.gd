@@ -25,9 +25,8 @@ extends Node
 ## state-loss bug. They are spawned once, and Director repositions them on each transition.
 
 const PLAYER_SCENE: String = "res://scenes/characters/player.tscn"
-## The area loaded on a fresh boot. When the main menu exists, it will choose instead.
-const FIRST_AREA: StringName = &"courtyard"
-const FIRST_SPAWN: StringName = &"default"
+## How long the curtain takes to lift off the main menu on a cold boot.
+const BOOT_FADE: float = 0.4
 
 @onready var world_root: Node3D = $WorldRoot
 @onready var ui_layer: CanvasLayer = $UILayer
@@ -36,19 +35,18 @@ const FIRST_SPAWN: StringName = &"default"
 func _ready() -> void:
 	# Handle the window's close button ourselves so a quit can be made safe later.
 	get_tree().set_auto_accept_quit(false)
+	Events.quit_requested.connect(_shutdown)
 
 	Director.attach_world_root(world_root)
 	_spawn_player()
 	Log.info("boot", "Game root ready")
 
-	if Director.area_exists(FIRST_AREA):
-		Events.area_change_requested.emit(FIRST_AREA, FIRST_SPAWN)
-	else:
-		# Once an area exists this is a real failure, not an early-development state. Fade in
-		# regardless: ScreenFade starts opaque and only Director lifts it, so returning here
-		# without fading leaves the player staring at black with no recovery.
-		Log.error("boot", "First area '%s' not found at %s — world is empty" % [FIRST_AREA, Director.area_path(FIRST_AREA)])
-		Events.screen_fade_requested.emit(false, 0.4)
+	# NO AREA ON BOOT. This used to request `courtyard` here, with a comment saying the main
+	# menu would choose instead once it existed. It exists (WP-12), so all this does is ask for
+	# it and lift the curtain: ScreenFade starts opaque and only something asking lifts it, so
+	# without this the menu would sit under black with no recovery.
+	Events.main_menu_requested.emit()
+	Events.screen_fade_requested.emit(false, BOOT_FADE)
 
 
 ## Spawned before the first area is requested, so Director already holds the reference and

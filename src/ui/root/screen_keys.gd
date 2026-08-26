@@ -13,7 +13,8 @@ extends Node
 ## paused. It never asks "is a screen open" with a flag of its own: `UiRoot.top()` and
 ## `is_gameplay_input_allowed()` are the only truth, and this node reads them.
 ##
-## OWNS: the action-to-screen and request-to-screen bindings.
+## OWNS: the action-to-screen and request-to-screen bindings, the one factory that turns a menu
+## id into a screen, and unwinding the stack when the world travels.
 ## MUST NOT: hold a reference to any screen, pause anything, or decide what a screen shows.
 
 const CATEGORY: String = "ui"
@@ -24,17 +25,85 @@ func _ready() -> void:
 	# A conversation is REQUESTED by something in the gameplay layer, which must not name a
 	# screen. This is the ui-side half of that hand-over.
 	Events.dialogue_requested.connect(_on_dialogue_requested)
+	# So is the main menu, and GameRoot is in `core`, which may not name a `ui` class at all.
+	Events.main_menu_requested.connect(_on_main_menu_requested)
+	# THE STACK UNWINDS HERE, which is why no screen in this game calls close_all() on the stack
+	# it is standing on. Every travel goes through this one signal - a door, a load, a new game -
+	# so a menu left open across a transition cannot end up over an area that no longer exists.
+	Events.area_change_requested.connect(_on_area_change_requested)
 
 
+## Marked handled only when a binding actually did something, so an unclaimed press falls
+## through to UiRoot - which is what lets ESCAPE close the inventory even though escape is also
+## the pause key.
 func _unhandled_input(event: InputEvent) -> void:
-	if not event.is_action_pressed(Actions.INVENTORY):
-		return
 	var stack: UiRoot = UiRoot.find(self)
 	if stack == null:
-		Log.error(CATEGORY, "No UiRoot in the tree; %s does nothing" % Actions.INVENTORY)
 		return
-	get_viewport().set_input_as_handled()
-	toggle_inventory(stack)
+	if event.is_action_pressed(Actions.PAUSE) and toggle_pause_menu(stack):
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed(Actions.INVENTORY) and toggle_inventory(stack):
+		get_viewport().set_input_as_handled()
+
+
+## Same shape as toggle_inventory, and for the same reason: the key that raised a screen closes
+## it again, and only when that screen is ITSELF on top. Pressing pause under a settings screen
+## must not reach past it, and pressing it during a conversation must not stop the world.
+func toggle_pause_menu(stack: UiRoot) -> bool:
+	var top: UiScreen = stack.top()
+	if top != null and top.screen_id == PauseMenuScreen.SCREEN_ID:
+		return stack.close_top()
+	if not stack.is_gameplay_input_allowed():
+		return false
+	return stack.open(PauseMenuScreen.new())
+
+
+## Every menu this game can be asked for by name, and how one is made. The ONE factory: a dev
+## capture naming a screen on the command line must not become a second place that knows how a
+## screen is constructed.
+static func menu_for(menu_id: StringName) -> UiScreen:
+	if menu_id == MainMenuScreen.SCREEN_ID:
+		return MainMenuScreen.new()
+	if menu_id == PauseMenuScreen.SCREEN_ID:
+		return PauseMenuScreen.new()
+	if menu_id == SettingsScreen.SCREEN_ID:
+		return SettingsScreen.new()
+	if menu_id == SaveScreen.SCREEN_ID:
+		return SaveScreen.new()
+	if menu_id == RebindScreen.SCREEN_ID:
+		return RebindScreen.new()
+	Log.error(CATEGORY, "No menu is named '%s'" % menu_id)
+	return null
+
+
+## Idempotent on purpose. GameRoot asks on boot and the pause menu asks on its way out; a second
+## main menu stacked on the first would be unreachable and un-closable, because the main menu is
+## the one screen in the game that cancel cannot dismiss.
+func _on_main_menu_requested() -> void:
+	var stack: UiRoot = UiRoot.find(self)
+	if stack == null:
+		Log.error(CATEGORY, "No UiRoot in the tree; the main menu cannot be shown")
+		return
+	if stack.has_screen(MainMenuScreen.SCREEN_ID):
+		return
+	stack.open(MainMenuScreen.new())
+
+
+## DEFERRED: the request usually arrives from inside a menu row's own `pressed` handler, and
+## unwinding the stack that owns the button mid-emission is a crash rather than a bug report -
+## the same reasoning UiRoot connects `close_requested` deferred for.
+func _on_area_change_requested(_area_id: StringName, _spawn_id: StringName) -> void:
+	unwind.call_deferred()
+
+
+## Close every screen. Separate from the handler above and public so the suite can assert what
+## the deferred call does - TestCase.run() is synchronous and never reaches the idle frame a
+## deferred call lands on. That the deferral itself works is proved by the boot run's log.
+func unwind() -> void:
+	var stack: UiRoot = UiRoot.find(self)
+	if stack != null and stack.depth() > 0:
+		stack.close_all()
 
 
 ## Toggle rather than open: the key that raised a screen closing it again is what every player

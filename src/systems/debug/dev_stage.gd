@@ -35,6 +35,11 @@ extends Node
 ##   --interact=<n>       press the interact key n times, so a capture shows the OUTCOME of an
 ##                        action rather than only its prompt. A refusal, a failure and a
 ##                        success look identical until the button is pressed.
+##   --new-game           start a game. Since WP-12 the boot goes to the main menu, not to an
+##                        area, so without this there is no world to photograph.
+##   --open-menu=<list>   push menus by name, innermost last: main_menu, pause, settings,
+##                        saves, controls. `--open-menu=pause,settings` puts settings over the
+##                        pause menu.
 ##   --npc-settle=<n>     let NPCs walk for n physics frames, so a screenshot shows them AT
 ##                        their posts rather than halfway there.
 ##
@@ -43,6 +48,9 @@ extends Node
 ## Deleting this file must not break the game.
 
 var _talk_advance: int = 0
+## Set by --new-game, read by --open-menu: a menu pushed before the transition lands is closed
+## again by it, because ScreenKeys unwinds the stack on every travel.
+var _fresh_game: bool = false
 
 
 func _ready() -> void:
@@ -71,6 +79,11 @@ func _parse_arguments() -> void:
 			_cycle_target(maxi(1, argument.trim_prefix("--cycle=").to_int()))
 		elif argument.begins_with("--interact="):
 			_press_interact(maxi(1, argument.trim_prefix("--interact=").to_int()))
+		elif argument == "--new-game":
+			_fresh_game = true
+			_new_game()
+		elif argument.begins_with("--open-menu="):
+			_open_menu(argument.trim_prefix("--open-menu="))
 		elif argument.begins_with("--npc-settle="):
 			_npc_settle(maxi(1, argument.trim_prefix("--npc-settle=").to_int()))
 
@@ -293,3 +306,30 @@ func _all_npcs() -> Array[Node]:
 ## Spawn a crowd and measure. The criterion is that thirty NPCs do not MEASURABLY cost frame
 ## time, so both numbers are reported and the comparison is left visible rather than asserted
 ## against a threshold that would be meaningless on another machine.
+
+
+## Start a game. Since WP-12 the boot sequence goes to the main menu rather than straight into
+## an area, which is exactly what makes this a base rather than a demo — but it means a capture
+## of the world needs this flag first.
+func _new_game() -> void:
+	await get_tree().process_frame
+	Director.start_new_game()
+	Log.info("test", "--new-game requested '%s'" % Director.FIRST_AREA)
+
+
+## Push menus by name for a capture, innermost last.
+##
+## Waits for the transition when --new-game is on the same line, because `ScreenKeys` unwinds
+## the stack on every travel — a menu pushed before the area lands is closed again by it.
+func _open_menu(list: String) -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if _fresh_game:
+		await _wait_for_area()
+	var stack: UiRoot = UiRoot.find(self)
+	for menu_id: String in list.split(",", false):
+		var screen: UiScreen = ScreenKeys.menu_for(StringName(menu_id))
+		if stack == null or screen == null:
+			Log.error("test", "--open-menu=%s found no stack or no such menu" % menu_id)
+			return
+		Log.info("test", "--open-menu %s pushed: %s" % [menu_id, str(stack.open(screen))])

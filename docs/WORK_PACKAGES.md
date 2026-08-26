@@ -258,7 +258,7 @@ NPCs is deferred.
 and thirty NPCs do not measurably cost frame time.
 
 
-**Done 2026-08-26**, commit `PLACEHOLDER6`.
+**Done 2026-08-26**, commit `c42c844`.
 `src/content/npc/` (three classes), `src/gameplay/character/npc_brain.gd`,
 `scenes/characters/npc.tscn`, `data/schedules/keeper.tres`, `Navigation/` and `Waypoints/` added
 to both areas and to the `AreaRoot` contract, `GameEnums.NpcActivity`, `tests/unit/npc_test.gd`.

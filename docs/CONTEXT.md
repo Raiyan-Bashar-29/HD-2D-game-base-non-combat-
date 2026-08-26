@@ -18,7 +18,7 @@ merged; they are a **strictly linear stack of branches**, each based on the one 
 | WP-03 HUD and inventory | `claude/loving-nightingale-aa2114` | `1563915` |
 | WP-04 Second area | `claude/wp-04-second-area` | `3ed321f` |
 | WP-05 Dialogue | `claude/wp-05-dialogue` | `addf337` |
-| WP-06 NPCs and navigation | `claude/wp-06-npcs` | see the board |
+| WP-06 NPCs and navigation | `claude/wp-06-npcs` | `c42c844` |
 
 **Branch new work from the LAST row, never from `main`.** Because the stack is linear, merging
 the tip alone fast-forwards every package at once — there is no five-way merge to perform.

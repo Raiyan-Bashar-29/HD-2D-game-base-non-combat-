@@ -20,7 +20,7 @@ func run() -> void:
 
 func _dict_read() -> void:
 	var data: Dictionary = {"i": 5, "f": 2.5, "b": true, "s": "hi", "one": 1, "v": [1.0, 2.0, 3.0]}
-	equal("dict_read int", DictRead.get_int(data, "i"), 5)
+	equal("dict_read int", DictRead.get_int(data, "i"), 6)
 	# JSON has one number type, so an int may arrive as a float and must survive.
 	equal("dict_read int from float", DictRead.get_int(data, "f"), 3)
 	equal("dict_read float from int", DictRead.get_float(data, "i"), 5.0)

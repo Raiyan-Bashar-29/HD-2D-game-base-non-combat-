@@ -719,5 +719,5 @@ template and is enough to see *which files* ship; only a real template proves th
 own template, and a consuming game's decision). No CI export rung — a GPU-less runner has no
 platform template, and this is the same honesty as T1.4's stance on the windowed capture.
 
-**Closed 2026-08-26.** New gotcha 27.
+**Closed 2026-08-26**, commit `835fb79`. New gotcha 27.
 

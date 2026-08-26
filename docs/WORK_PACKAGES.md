@@ -290,7 +290,7 @@ already has.
 persisted.
 
 
-**Done 2026-08-26**, commit `PLACEHOLDER7`.
+**Done 2026-08-26**, commit `e5f90bc`.
 `src/content/npc/path_action.gd`, `src/gameplay/interactables/path_action_point.gd`,
 `src/gameplay/character/standing.gd`, `scenes/objects/path_action.tscn`, two authored actions in
 `data/actions/`, five new `InteractVerb`s and `RefusalReason.LOW_STANDING`,

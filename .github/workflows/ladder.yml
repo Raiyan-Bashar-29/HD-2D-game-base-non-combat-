@@ -1,0 +1,253 @@
+# THE VERIFICATION LADDER, RUN BY A MACHINE.
+#
+# WHY THIS FILE EXISTS
+# The ladder was seven commands a human types, in order, remembering to grep rung 2 for
+# `SCRIPT ERROR`. Every completion claim in docs/DEVLOG.md was a human having run it honestly.
+# That held, and it is not a system. This project exists because a previous one had 409 passing
+# static checks and had never rendered a frame; a ladder nothing enforces is the same shape of
+# reassurance one level up.
+#
+# WHY IT COULD NOT BE WRITTEN BEFORE T1.3
+# Until T1.3, rung 4 reported success on a case that CRASHED - a GDScript runtime error aborts
+# only the innermost frame (gotcha 24), so the runner saw a case that returned normally. A green
+# badge over a suite that cannot fail is worth less than no badge, because it is believed. T1.3
+# planted four silent-pass modes and each exited 1. That is what made this worth automating.
+#
+# THE ONE RUNG THAT IS NOT HERE, SAID OUT LOUD
+# The windowed capture:
+#     godot --resolution 960x540 --quit-after 55 -- --shot=<path> --time=18:40 --freeze-time
+# It CANNOT run here and is not silently dropped. `--headless` uses a dummy rasteriser and
+# shades NOTHING (gotcha 2) - a day/night system once ran headless, logged correct times,
+# reported no errors and lit nothing at all, because one `@export` was unwired in the scene. A
+# runner has no GPU, so any capture it produced would be exactly the evidence that gotcha warns
+# is worthless. Anything with a visual consequence still needs a human to run it windowed and
+# LOOK at the PNG. CI covers the six rungs a machine can honestly judge, and claims nothing
+# about the seventh.
+
+name: Ladder
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ladder-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------------------------
+  # The full checkout: demo content present, exactly what a developer runs locally.
+  # ---------------------------------------------------------------------------------------------
+  ladder:
+    name: Ladder (full checkout)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-godot
+
+      # WHY `.godot/` IS DELIBERATELY NOT CACHED.
+      # It is tempting: it is the exact artefact whose absence makes every script fail to parse
+      # on a fresh clone, and caching it would cut a chunk off each run.
+      #
+      # It is refused because a build cache that can go stale is a gate that can lie. `.godot/`
+      # holds the `class_name` global map, the resource UID table and every import result - so a
+      # restored cache can resolve a `class_name` this commit deleted, or hand a `.tres` an
+      # importer for a file that changed shape. The failure mode is not "CI is slow", it is
+      # "CI is green and a fresh clone is broken", which is the failure this package exists to
+      # make impossible. There is no correctness-preserving key for it either: the honest key
+      # would be the whole tree, at which point it never hits.
+      #
+      # A FRESH CLONE IS ALSO THE STATE A CONSUMER ARRIVES IN. This is a template. Importing
+      # from nothing on every run means the "on a fresh clone, run --import FIRST" instruction
+      # in CLAUDE.md is exercised on every push instead of trusted.
+      #
+      # What IS cached is the engine archive - immutable, keyed by its exact version, incapable
+      # of going stale. Cache the fixed thing, never the derived one.
+
+      # === RUNG 2 - THE REAL COMPILE CHECK.
+      # Rung 1 (`--check-only`) is not automatable: autoload identifiers (Log, Events, Flags)
+      # do not resolve under it and the resulting error is EXPECTED (gotcha 1), so a machine
+      # cannot tell that expected error from a real one. Rung 2 is where compilation is judged.
+      #
+      # THIS IS THE STEP THE PACKAGE IS BUILT AROUND. `0 warnings, 0 errors` on the boot rung
+      # counts `Log.warn`/`Log.error` CALLS; an engine-level `Parse Error` is neither, so a file
+      # that fails to load prints `SCRIPT ERROR` on stderr and the boot rung still reports a
+      # clean session (gotcha 22). `dev_capture.gd` was dead for an entire package that way -
+      # F12, `--shot`, `--time` and `--weather` all broken while every rung stayed green.
+      # ZERO TOLERANCE. Not a threshold, not a warning: a single match fails the run.
+      - name: Rung 2 - import, zero SCRIPT ERROR / Parse Error
+        run: |
+          set -uo pipefail
+          godot --headless --import > import.log 2>&1
+          status=$?
+          echo "--- last 20 lines of import.log ---"
+          tail -n 20 import.log
+          echo "--- godot --headless --import exited ${status} ---"
+          if grep -nE 'SCRIPT ERROR|Parse Error' import.log; then
+            echo "::error::A script failed to compile. The lines above are the whole problem."
+            exit 1
+          fi
+          echo "No SCRIPT ERROR / Parse Error lines: every script compiled."
+          exit "${status}"
+
+      # === RUNG 3 - BOOT.
+      # Asserts the LAST `Session ended` line reports a clean session, which is what a human
+      # reads. On that line and not the whole log, on purpose: quitting mid-load aborts the
+      # threaded area loader and prints spurious `Parse Error` lines AFTER the run has already
+      # reported cleanly (gotcha 13), so a whole-log grep here would be a flake generator. The
+      # compile check is rung 2 and is not repeated.
+      #
+      # FRAME COUNT: 300, not the 120 used locally. `--quit-after` counts FRAMES, and the area
+      # load is threaded - 30 frames provably does not finish it, 120 does on a developer
+      # machine, and a shared runner has no reason to be handed a tighter margin than it needs.
+      # A headless frame costs milliseconds, so the margin is nearly free; racing a threaded
+      # load is not.
+      - name: Rung 3 - boot, 0 warnings 0 errors
+        run: |
+          set -euo pipefail
+          godot --headless --quit-after 300 > boot.log 2>&1
+          echo "--- last 10 lines of boot.log ---"
+          tail -n 10 boot.log
+          ended="$(grep 'Session ended' boot.log | tail -n 1 || true)"
+          if [ -z "${ended}" ]; then
+            echo "::error::The boot never reached 'Session ended' - it died before shutdown."
+            exit 1
+          fi
+          echo "${ended}"
+          case "${ended}" in
+            *"0 warnings, 0 errors"*) echo "Clean session." ;;
+            *) echo "::error::The boot logged warnings or errors."; exit 1 ;;
+          esac
+
+      # === RUNG 4 - THE SUITE.
+      # The exit code is the gate, and it is trustworthy for a specific reason: the runner ARMS
+      # it to failure on its first line and only clears it at the end, because `quit()` sets the
+      # code at end of frame and a later call overwrites it. So a crash that aborts `_ready()`
+      # itself still exits 1.
+      #
+      # DO NOT ADD A `0 errors` CHECK HERE. This run legitimately logs warnings and errors: the
+      # negative-path cases raise them deliberately. The summary line and the exit code are the
+      # only things that mean anything.
+      - name: Rung 4 - test suite
+        run: |
+          set -euo pipefail
+          godot --headless res://tests/test_runner.tscn --quit-after 400 > tests.log 2>&1
+          grep -E '=== [0-9]+ passed' tests.log
+
+      - name: Rung 5 - check_budgets
+        run: godot --headless --script tools/check_budgets.gd
+
+      - name: Rung 6 - check_content
+        run: godot --headless --script tools/check_content.gd
+
+      - name: Rung 7 - check_boundary
+        run: godot --headless --script tools/check_boundary.gd
+
+      # A failing rung prints its own tail, but the full logs are what a diagnosis needs, and
+      # the interesting ones are exactly the runs that failed. Hence `always()`.
+      - name: Keep the logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ladder-logs
+          path: |
+            import.log
+            boot.log
+            tests.log
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------------------------
+  # The stripped template: `data/` and `scenes/areas/` DELETED, which is step one of NEW_GAME.md.
+  #
+  # WHY THIS IS A JOB AND NOT A SENTENCE IN A DOCUMENT
+  # T1.3 proved by hand that the suite survives the strip - `861 passed, 0 failed, 12 skipped`,
+  # exit 0. That claim starts decaying the moment someone writes a test that names demo content,
+  # and the decay is invisible: the full run stays green. A job that performs the strip
+  # mechanically is the only thing that keeps the claim true rather than historical.
+  #
+  # WHY A SEPARATE JOB RATHER THAN A MATRIX LEG: it runs a DIFFERENT set of rungs. A matrix
+  # would need a conditional on nearly every step, which is a matrix pretending to be an if.
+  # ---------------------------------------------------------------------------------------------
+  stripped:
+    name: Ladder (stripped template)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-godot
+
+      # DELETED, not moved aside. This is literally what NEW_GAME.md tells a consuming game to
+      # do, and a checkout is disposable. Moved-aside content inside the project folder would
+      # still be importable, which would make this job prove less than it appears to.
+      - name: Strip the demo content
+        run: |
+          set -euo pipefail
+          rm -rf data scenes/areas
+          echo "data/ and scenes/areas/ deleted."
+      # NOT STRIPPED, and that boundary is deliberate: the demo half of localization/strings.csv
+      # (object.*, item.*, talk.*, action.*, area.*) stays. Pruning it is a judgement a game
+      # makes key by key, and a mechanical prune here would only be this job testing its own
+      # regex. TEMPLATE.md's table is the authority on which prefixes are which.
+
+      - name: Rung 2 - import, zero SCRIPT ERROR / Parse Error
+        run: |
+          set -uo pipefail
+          godot --headless --import > import.log 2>&1
+          status=$?
+          echo "--- last 20 lines of import.log ---"
+          tail -n 20 import.log
+          if grep -nE 'SCRIPT ERROR|Parse Error' import.log; then
+            echo "::error::A script failed to compile with the demo content deleted."
+            exit 1
+          fi
+          exit "${status}"
+
+      # RUNG 3 IS ABSENT ON PURPOSE. A stripped template is NOT bootable, by design:
+      # `project.godot`'s `[game] world/first_area` names the starting area, and that is the one
+      # place in the repo where a demo id legitimately lives (TEMPLATE.md). Pointing it at your
+      # own area is a step in NEW_GAME.md, so a stripped checkout has nothing to boot into.
+      # Asserting a clean boot here would be asserting that the template ships a game.
+
+      # The skip accounting is asserted, not just the pass count. If a future change made this
+      # run report zero skips, a stripped run would look IDENTICAL to a full one while covering
+      # a third less - the exact confusion `TestCase.skip()` was added to prevent.
+      - name: Rung 4 - test suite, and the skips are named
+        run: |
+          set -euo pipefail
+          godot --headless res://tests/test_runner.tscn --quit-after 400 > tests.log 2>&1
+          grep -E '=== [0-9]+ passed' tests.log
+          named="$(grep -c 'SKIPPED:' tests.log || true)"
+          echo "named skips: ${named}"
+          if [ "${named}" -eq 0 ]; then
+            echo "::error::A stripped run reported no skips, so it cannot be told from a full one."
+            exit 1
+          fi
+          grep 'SKIPPED:' tests.log
+
+      - name: Rung 5 - check_budgets
+        run: godot --headless --script tools/check_budgets.gd
+
+      # Both gates must survive the strip, and one once did not: check_content failed on a
+      # stripped template at step one of NEW_GAME.md, because the three content registries
+      # reported an empty folder as a problem (fixed in T1.2). check_boundary is pure text
+      # precisely so it keeps working when the content it scans FOR has been deleted - which is
+      # the one moment it most needs to run, and is this job.
+      - name: Rung 6 - check_content
+        run: godot --headless --script tools/check_content.gd
+
+      - name: Rung 7 - check_boundary
+        run: godot --headless --script tools/check_boundary.gd
+
+      - name: Keep the logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stripped-logs
+          path: |
+            import.log
+            tests.log
+          if-no-files-found: warn

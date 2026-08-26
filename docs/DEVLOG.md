@@ -139,7 +139,8 @@ the arch — `ParticleProcessMaterial.collision_mode` is the seam and it was lef
 costs a depth pass for a placeholder scene. Nothing splashes where a drop lands. Wetness is
 per area and not saved, so walking out of a downpour into the hall and back resets the soak;
 that is a `SaveSystem.register` away if it ever matters. This package added 562 code lines
-against the board's ~500 guideline — 435 of them production, 127 assertions.
+against the board's ~500 guideline: 434 production (406 in five new files, 4 in
+`audio_director.gd`, 24 in `dev_capture.gd`) and 128 of test.
 
 ## 2026-08-26 — WP-05: dialogue, and a comma that had been eating text since WP-01
 

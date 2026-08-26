@@ -499,7 +499,7 @@ the 250 allowed code lines and the budget checker refused it. That is the fourth
 checker has forced and the fourth that was already in the reasoning: `check_content.gd` validates
 that the *demo* is well formed, this validates that the *engine* does not know the demo exists.
 
-**Closed 2026-08-26.** All five exit criteria met. 921 assertions (was 910), boot
+**Closed 2026-08-26**, commit `06ce363`. All five exit criteria met. 921 assertions (was 910), boot
 `0 warnings, 0 errors`, all three checkers exit 0. The gate proved by planting `&"courtyard"` in
 `src/core/util/layers.gd` — `FAIL — 1 boundary violation(s)`, exit 1 — and removing it. Two bugs
 found that no gate had caught: `dev_capture.gd` had failed to *parse* since the WP-13 merge while

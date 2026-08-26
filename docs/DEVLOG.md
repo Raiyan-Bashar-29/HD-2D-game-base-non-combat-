@@ -2334,3 +2334,5 @@ that makes a content regression visible in the one place it was previously invis
 - **`tools/check_content.gd` is at 237 of 250 code lines.** The next check added to it will not
   fit, and the seam is already visible: the scene checks are a different question from the
   content-registry checks.
+
+**CI green**, run [32995130430](https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-/actions/runs/32995130430), both jobs: `930 passed, 0 failed, 0 skipped` full and `880 passed, 0 failed, 12 skipped` stripped — the hand-run numbers exactly.

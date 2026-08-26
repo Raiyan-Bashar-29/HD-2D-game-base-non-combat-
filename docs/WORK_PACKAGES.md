@@ -719,5 +719,11 @@ template and is enough to see *which files* ship; only a real template proves th
 own template, and a consuming game's decision). No CI export rung — a GPU-less runner has no
 platform template, and this is the same honesty as T1.4's stance on the windowed capture.
 
+**CI green**, run
+[32995130430](https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-/actions/runs/32995130430),
+both jobs: `930 passed, 0 failed, 0 skipped` full checkout, `880 passed, 0 failed, 12 skipped`
+stripped, reproducing the hand-run numbers exactly. Dispatched manually rather than waited for,
+per gotcha 26.
+
 **Closed 2026-08-26**, commit `835fb79`. New gotcha 27.
 

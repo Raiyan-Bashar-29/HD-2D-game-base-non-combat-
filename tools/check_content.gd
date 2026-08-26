@@ -131,6 +131,7 @@ func _check_scenes() -> void:
 	print("  scenes scanned: %d" % scenes.size())
 	for path: String in scenes:
 		_check_scene(path)
+		_check_editable_instances(path)
 
 
 func _collect_files(directory: String, extension: String, into: Array[String]) -> void:
@@ -291,3 +292,79 @@ func _check_path_actions() -> void:
 		_require_key(name, "failure_key", action.failure_key)
 		_require_key(name, "refusal_key", action.refusal_key)
 
+
+
+## THE EDITABLE-INSTANCE TRAP, and it is a SILENT EXPORT failure — found by T2.0 running an
+## exported build, not by any gate. courtyard.tscn overrode object_id, label_key and
+## conversation_id on two nodes INSIDE its instanced npc.tscn without the `[editable path=...]`
+## marker that makes those internals addressable. From source that works: the text loader applies
+## the overrides and every rung, both CI jobs and 911 assertions were green. An export converts
+## .tscn to BINARY .scn, and the conversion drops overrides on a non-editable instance — so the
+## exported build booted with a keeper who had no object_id, no prompt and no conversation, and
+## said so in three log lines nobody would have seen for months.
+##
+## This project hand-authors its .tscn files, so the marker the editor would have written is
+## exactly the thing a hand-authored scene forgets. Hence a gate rather than a note.
+##
+## THE RULE: a [node] block whose parent path descends into an instanced node requires an
+## [editable path="<that instance>"] for that instance. Deliberately STRICTER than the failure
+## needs — an ADDED node inside an instance was observed to survive the conversion, and it is
+## still required to be declared editable, because "which of the two kinds is this" is a
+## distinction the export makes and the author should not have to remember.
+func _check_editable_instances(path: String) -> void:
+	var instances: PackedStringArray = PackedStringArray()
+	var editable: PackedStringArray = PackedStringArray()
+	var inside: Dictionary[String, int] = {}
+	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return
+	var line_number: int = 0
+	while not file.eof_reached():
+		var line: String = file.get_line()
+		line_number += 1
+		if line.begins_with("[editable path=\""):
+			editable.append(_quoted_after(line, "[editable path=\""))
+		elif line.begins_with("[node "):
+			_note_node(line, line_number, instances, inside)
+	file.close()
+	_report_uneditable(path, instances, editable, inside)
+
+
+## One [node] header: remember it if it is an instance, and remember where it sits if its parent
+## is not the scene root. The full path of a node is its parent path plus its name, and a parent
+## of "." is the root.
+func _note_node(
+	line: String,
+	line_number: int,
+	instances: PackedStringArray,
+	inside: Dictionary[String, int],
+) -> void:
+	var node_name: String = _quoted_after(line, "name=\"")
+	var parent: String = _quoted_after(line, "parent=\"")
+	if node_name == "" or parent == "":
+		return
+	var full: String = node_name if parent == "." else "%s/%s" % [parent, node_name]
+	if line.contains(" instance="):
+		instances.append(full)
+	if parent != ".":
+		inside[full] = line_number
+
+
+## For every node sitting under an instance, the instance must be declared editable. Godot needs
+## the marker at EVERY level, so a nested instance reports one violation per level that lacks
+## one rather than only the outermost.
+func _report_uneditable(
+	path: String,
+	instances: PackedStringArray,
+	editable: PackedStringArray,
+	inside: Dictionary[String, int],
+) -> void:
+	for full: String in inside:
+		for instance: String in instances:
+			if full == instance or not full.begins_with("%s/" % instance):
+				continue
+			if editable.has(instance):
+				continue
+			_fail("%s:%d overrides '%s' inside the instance '%s' with no [editable path=\"%s\"] — the override is DROPPED in an exported build" % [
+				path, inside[full], full, instance, instance,
+			])

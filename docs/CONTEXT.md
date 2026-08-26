@@ -3,7 +3,7 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-26 · T1.4 (CI) complete — **Phase T1 is COMPLETE**
+**Last updated:** 2026-08-26 · T2.0 (the export proof) complete — **an exported build has been run, and it finds its content**
 
 > **This is a TEMPLATE, not a game.** Read [`TEMPLATE.md`](TEMPLATE.md) — it is short, and the
 > roadmap, the board and parts of this file were written before that reframing. The courtyard and
@@ -15,9 +15,9 @@ Every package — WP-01 through WP-07, plus WP-12 and WP-13 — is on **`claude/
 #10 into `main`); the reframing docs are on **`claude/template-reframing`** (PR #11); T1.2 is on
 **`claude/t1-2-boundary`**, branched from the reframing tip; T1.3 is on
 **`claude/t1-3-fixtures`**, branched from T1.2; T1.4 is on **`claude/t1-4-ci`**, branched from
-T1.3. The nine earlier PRs are superseded.
+T1.3; T2.0 is on **`claude/t2-0-export-proof`**, branched from T1.4. The nine earlier PRs are superseded.
 
-**Branch new work from `claude/t1-4-ci`**, or from `main` once #10, #11 and T1.2-T1.4 have
+**Branch new work from `claude/t2-0-export-proof`**, or from `main` once #10, #11, T1.2-T1.4 and T2.0 have
 landed. The older
 per-package branches (`claude/wp-04-second-area`, `claude/wp-05-dialogue`, `claude/wp-06-npcs`,
 `claude/wp-07-path-actions`, `claude/wp-12-menus`, `claude/wp-13-presentation`) are history and
@@ -37,8 +37,8 @@ game built on this will need, so a new game is content and data rather than new 
 
 ## Where it stands
 
-Phase 0 complete, Phase 1 COMPLETE, Phase 2 well under way, **Phase T1 COMPLETE**. 98
-files, 8,100 code lines,
+Phase 0 complete, Phase 1 COMPLETE, Phase 2 well under way, **Phase T1 COMPLETE, T2.0 done**. 100
+files, 8,273 code lines,
 18 scenes, 2 areas, 3 items, 1 conversation, 1 schedule, 2 path actions.
 Boots headless with **0 warnings, 0 errors**.
 
@@ -47,7 +47,7 @@ input actions · settings · save/load with atomic writes and versioning · plot
 director with a re-entrancy guard and threaded loading · world clock · weather state · audio
 buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 8-way character ·
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
-placeholder art generator · line-budget checker · a headless test suite (911 assertions) that
+placeholder art generator · line-budget checker · a headless test suite (930 assertions) that
 builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
 returns early, asserts nothing, or is not listed in the runner ·
 an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
@@ -68,15 +68,29 @@ a navmesh baked from each area's own geometry · an NPC that keeps a timetable a
 talked to · schedules as authored data · path actions with a standing that gates them and
 that they move Â· **weather you can see**: generated rain, snow and wind emitters driven by
 `Weather.intensity()`, surfaces that darken and gain a wet clearcoat and then dry out over
-twenty-six seconds, and a layered ambience bed on procedurally generated noise.
+twenty-six seconds, and a layered ambience bed on procedurally generated noise ·
+**an exported build that finds its content**: a committed Windows preset, and a boot-time readout
+of every catalogue's count and resolved paths that WARNS on an empty one in an export.
 
 **Not built:** quests · hard-coded-string audit · item instances (durability) · equipment ·
 item tooltips, sorting and drag-and-drop · branch protection, so CI reports but nothing stops a
-red branch merging · **an exported build has never been run**, so the content pipeline rests on an
-untested assumption (T2.0, and it is why that package jumps the queue) · the art contract seams
-(T2.1).
+red branch merging · no CI export rung (a GPU-less runner has no platform template) · export
+presets for platforms other than Windows · a release-build content readout, since the debug gate
+means a release export prints nothing · the art contract seams (T2.1).
 
 ## Known defects
+
+**Fixed 2026-08-26 in T2.0, and it was invisible until an export existed:**
+
+1. **A missing `[editable]` marker silently dropped every instance override in an exported build.**
+   `courtyard.tscn` set `object_id`, `label_key` and `conversation_id` on two nodes INSIDE its
+   instanced `npc.tscn` with no `[editable path="Actors/Keeper"]`. From source the text loader
+   applies them; an export converts `.tscn` to binary `.scn` and the conversion DROPS overrides on
+   a non-editable instance. So the shipped keeper had no identity, no prompt, no conversation and
+   never ran its schedule — while every ladder rung, both CI jobs and 930 assertions stayed green.
+   This project hand-authors its `.tscn` files, so the marker the editor would have written is
+   exactly what a hand-authored scene forgets. Now a `tools/check_content.gd` gate, proved red on
+   the real bug. See gotcha 27.
 
 **Fixed 2026-08-26 in T1.3, and it had been wrong since ADR-0006:**
 
@@ -366,6 +380,21 @@ three compiled cleanly and passed every static gate:**
   report "no items found" as a problem, which made a stripped template fail its own gate on step
   one of `docs/NEW_GAME.md`. A file that is present and does not load is the error, and it is
   reported per file. Whether a game needs items is that game's question, not this base's.
+- **`export_filter="all_resources"` IS PART OF THE ENGINE CONTRACT, NOT A PREFERENCE.** The three
+  registries find content by directory scan, so those resources are nobody's dependency and only
+  that setting ships them — measured both ways in T2.0, and asserted by `tests/unit/export_test.gd`
+  so a consuming game that narrows it fails rung 4 instead of shipping empty catalogues.
+- **THE EXPORT IS VERIFIED BY A DEBUG BUILD, AND THE READOUT NEVER REACHES A PLAYER.**
+  `CatalogueReport` reports every catalogue's count and RESOLVED PATHS at boot, behind
+  `OS.is_debug_build()`. The paths and not only the counts, because a partial ship is worse than an
+  empty one: three of four items is a plausible number. It ASKS the same registries the game asks —
+  a reporter that did its own scan would be reporting on itself.
+- **AN EXPORT PROOF CANNOT BE AN ASSERTION, and the suite says so out loud.** A test running under
+  `res://` cannot test a build it is not running in, so `export_test.gd` asserts
+  `is_exported() == false` rather than leaving the blindness implied. The proof is a RUN of the
+  exported executable with both sides' numbers quoted in `DEVLOG.md`. There is deliberately no CI
+  export rung: a GPU-less runner has no platform template, the same honesty T1.4 applied to the
+  windowed capture.
 - Six ADRs in `docs/decisions/` cover the layered `src/`, warnings-as-errors, the input map,
   and save-via-callables.
 
@@ -381,14 +410,14 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 120               # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 911 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 930 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content
 "$G" --resolution 960x540 --quit-after 55 -- --shot=<path> --time=18:40 --freeze-time
 ```
 
-## Twenty-six gotchas that each cost an hour
+## Twenty-seven gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -531,6 +560,22 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     A manual run gets its own `concurrency` group keyed on its run id, because a dispatch was
     once cancelled by the very push it was verifying and a cancelled run reports neither pass nor
     fail.
+
+27. **AN EXPORT DROPS AN INSTANCE OVERRIDE THAT HAS NO `[editable]` MARKER, and running from
+    source cannot see it.** A hand-authored `.tscn` that sets a property on a node INSIDE an
+    instanced scene needs `[editable path="<the instance>"]` at the foot of the file. Without it
+    the text loader applies the override happily; the exporter converts `.tscn` to binary `.scn`
+    and the conversion silently discards it, so the prefab reverts to its defaults in the shipped
+    build ONLY. The demo's NPC lost its `object_id`, its prompt and its conversation exactly this
+    way, and every rung, both CI jobs and 930 assertions were green throughout. Stale `index=`
+    values look like the culprit and are not — correcting them changed nothing.
+    `tools/check_content.gd` gates it now. Related, from the same package:
+    **`export_filter="all_resources"` is the only setting that ships directory-scanned content**
+    (`"scenes"` ships zero of it), **`include_filter="*.tres"` is the plausible wrong fix** because
+    the include filter is for NON-resource files, and **a debug export is required to verify
+    content at all**, because the readout is behind `OS.is_debug_build()`. An export template must
+    be installed first, and it comes only in a 1.28 GB `.tpz`.
+
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the
@@ -539,11 +584,10 @@ names the exact files that chat should read, so a session loads a few hundred li
 (`core -> content -> systems -> gameplay -> ui`, downward only) is what makes that possible: a
 package never has to read upward.
 
-**Next package: T2.0 — the export proof.** See the board and [`TEMPLATE.md`](TEMPLATE.md). It is
-sequenced ahead of T2.1 by RISK rather than by theme: no exported build has ever been run, the
-three registries find content by directory scan, and if the exporter omits unreferenced `.tres`
-files every catalogue ships EMPTY while every ladder rung and both CI jobs stay green — they run
-from `res://`, where the files are plainly there. Cheap to test, architectural to fix.
+**Next package: T2.1 — art contract seams.** See the board and [`ROADMAP.md`](ROADMAP.md)'s
+Phase T2. `CharacterVisual` hard-codes `FACING_COUNT = 8` and `FRAME_COUNT = 4`, so a different
+sprite sheet needs a code edit; the UI look lives as constants inside five screen files. Unlike
+T2.0 this one fails locally, inside `CharacterVisual` and a `Theme`, which is why it went second.
 
 *(This line names ONE package. Earlier revisions accumulated a stale line per package and two were
 left stranded here; if you ever find two, the lower one is history — delete it.)*
@@ -575,9 +619,9 @@ by 460 headless assertions.
 **Still open, and expensive later:**
 - **Sprite sheet layout is hardcoded.** `CharacterVisual` has `FACING_COUNT = 8` and
   `FRAME_COUNT = 4` as constants; a different sheet needs a code edit. Should be a resource.
-- **The export path is unproven.** Items are found by scanning a directory, which is verified
-  in the editor and headless only. There is no export preset yet, and it must export *all*
-  resources or the item catalogue ships empty. See ADR-0006.
+- **The export path is PROVEN as of T2.0** — an exported `.exe` reports the same catalogue counts
+  and resolved paths the editor does. What remains unproven is a RELEASE export's content, because
+  the readout is behind `OS.is_debug_build()`, and every platform other than Windows.
 - **No hard-coded-string audit.** Computed keys (`verb.*`, `refusal.*`) are covered by an enum
   loop in the test suite, but literal player-facing text in code is still caught only by review.
 

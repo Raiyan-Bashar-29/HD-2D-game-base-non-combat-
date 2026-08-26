@@ -2202,3 +2202,135 @@ assets, so every audio path is written but unexercised. Weather publishes state 
 renders rain. Only one area exists, so the transition code has never actually swapped two
 areas. Input actions do not appear in the editor's Input Map panel, which is a known accepted
 trade-off.
+
+---
+
+## 2026-08-26 — T2.0 · The export proof
+
+**Did.** Built the first export this project has ever had, ran it, and found out whether an
+exported build finds content that nothing references. It does. Also found a second, unrelated
+export-only defect while looking, and gated it.
+
+- `export_presets.cfg` — one Windows Desktop preset, committed. `export_filter="all_resources"`,
+  and the file's header carries the measurement rather than a preference.
+- `src/systems/debug/catalogue_report.gd` — reports each catalogue's count, root and resolved
+  paths at boot, behind `OS.is_debug_build()`. Fifth root node in `scenes/boot/game_root.tscn`.
+- `tools/check_content.gd` — `_check_editable_instances()`, 189 → 237 of 250 code lines.
+- `tests/unit/export_test.gd` — 19 assertions, registered in `test_runner.gd`. 911 → 930.
+- `scenes/areas/courtyard/courtyard.tscn` — the missing `[editable path="Actors/Keeper"]`.
+- `docs/NEW_GAME.md` § 7 Export; ADR-0006's honest limit closed; inventory, roadmap and board.
+
+**Why.** The three registries find items, conversations and schedules by DIRECTORY SCAN
+(ADR-0006), so most of `data/**` is nobody's dependency, and Godot's exporter walks dependencies.
+If it omitted them every catalogue would ship empty and NOTHING here could see it — every ladder
+rung, both CI jobs, `check_content` and 911 assertions run from `res://` in the editor. Cheap to
+test, architectural to fix, so it was sequenced ahead of T2.1 by risk.
+
+**Connects.** `CatalogueReport` asks the same three registries the game asks, so it cannot report
+a number the game does not have. It joins `dev_capture`/`dev_probes`/`dev_stage` in the one
+directory `check_boundary` exempts, and it needs no exemption of its own: a count readout names no
+demo content. The new gate lives beside `check_content`'s other scene checks because it is a
+statement about whether the DEMO is well formed, not about whether the engine knows the demo
+exists — the same seam that split `check_boundary` out in T1.2.
+
+**Verified.**
+
+```
+--headless --import                             0 SCRIPT ERROR / Parse Error
+--headless --quit-after 120                     Session ended after 1.3s - 0 warnings, 0 errors
+--headless res://tests/test_runner.tscn         930 passed, 0 failed, 0 skipped   exit 0
+--headless --script tools/check_budgets.gd      exit 0  (check_content 237/250)
+--headless --script tools/check_content.gd      PASS    exit 0  (16 scenes)
+--headless --script tools/check_boundary.gd     PASS    exit 0  (95 scripts, 14 exempted)
+stripped (data/ + scenes/areas/ moved aside)    880 passed, 0 failed, 12 skipped  exit 0
+```
+
+The export itself, and the numbers from both sides:
+
+```
+--headless --export-debug "Windows Desktop" .../build/windows/game.exe    exit 0
+
+editor    origin: template=false editor=true debug=true exe=Godot_v4.7.2-stable_win64.exe
+          items: 3 found in res://data/items -> [rose_key.tres, rose_petal.tres, stone_chip.tres]
+          dialogue: 1 found in res://data/dialogue -> [gardener.tres]
+          schedules: 1 found in res://data/schedules -> [keeper.tres]
+
+exported  origin: template=true editor=false debug=true exe=game.exe
+          items: 3 found in res://data/items -> [rose_key.tres, rose_petal.tres, stone_chip.tres]
+          dialogue: 1 found in res://data/dialogue -> [gardener.tres]
+          schedules: 1 found in res://data/schedules -> [keeper.tres]
+          Session ended after 1.3s - 0 warnings, 0 errors
+```
+
+(Paths abbreviated to their file names here; the real lines carry the full `res://data/...` path,
+which is the point — a partial ship is worse than an empty one and only the paths show it.)
+
+Run from a scratch directory holding only `game.exe`, `game.console.exe` and `game.pck` — no
+`project.godot`, no loose `data/`. The exported build also USED the content:
+`--give=item/rose_key,item/rose_petal:3` logged `+1 item/rose_key` and `+3 item/rose_petal`, so the
+definitions loaded through the pack's `.remap` indirection rather than merely being counted.
+
+Both new gates proved RED before green (gotcha 23):
+
+```
+[editable] line deleted     !! courtyard.tscn:337 overrides 'Actors/Keeper/PersistentState'
+                               inside the instance 'Actors/Keeper' with no
+                               [editable path="Actors/Keeper"] - the override is DROPPED in an
+                               exported build       (+3 more)   FAIL - 4 content violation(s)
+
+REQUIRED_FILTER = "scenes"  FAIL the preset ships every resource, not only dependencies
+                            - expected scenes, got all_resources               exit 1
+```
+
+And the readout itself was proved to fail, which is the part no gate can do —
+`exclude_filter="data/*"` exported and booted cleanly to the main menu:
+
+```
+items: 0 found in res://data/items -> []
+[WARN] items catalogue is EMPTY in an exported build - check export_filter   (x3)
+Session ended after 1.5s - 3 warnings, 0 errors
+```
+
+**The four measured facts.** `export_filter="all_resources"` stores all seven `data/**` resources;
+`export_filter="scenes"` stores **zero**. `ResourceLoader.list_directory()` works through the pack
+— it returns the `.tres` path for a stored `.tres.remap`, which is the first evidence ADR-0006's
+choice of the undocumented method was right. `include_filter="*.tres"` is the plausible wrong fix:
+the include filter is for NON-resource files and changes nothing. And a narrowed `export_filter`
+fails LOUDLY, not silently — it also strips the `class_name` scripts nobody depends on
+(`GameConfig`, `GameEnums`, `DictRead`, `KeyBindings`) and the build dies at boot on parse errors.
+The silent version needs an *exclude* filter, which is why the readout warns rather than only
+reporting.
+
+**The second defect, which is why running this early paid for itself.** The exported build printed
+three lines the editor never did: `Keeper has a PersistentState with no object_id`, `Talk has no
+label_key`, `Talk names no conversation`. `courtyard.tscn` overrode those properties on nodes
+INSIDE its instanced `npc.tscn` with no `[editable path="Actors/Keeper"]`. The text loader applies
+such overrides; the export's `.tscn` → binary `.scn` conversion DROPS them. So the demo's NPC
+shipped with no identity, no prompt and no conversation, and its schedule never ran — while every
+rung, both CI jobs and 930 assertions stayed green throughout. Stale `index=` values were the first
+hypothesis and were ruled out by correcting them (4,5,6,7 → 3,4,5,6) and re-exporting: no change,
+same three lines. Adding the marker fixed it completely, including
+`obj/courtyard/keeper/waypoint = dais` reappearing in the log.
+
+**Setup, recorded because it is not obvious.** No export template was installed. They come only in
+`Godot_v4.7.2-stable_export_templates.tpz` (1.28 GB); the four Windows x86_64 files plus
+`version.txt` were extracted into `%APPDATA%/Godot/export_templates/4.7.2.stable/`.
+`--export-pack` needs no template at all and is enough to see WHICH files ship; only a real
+template proves they are FOUND at runtime, which is the actual question.
+
+**Unblocks.** T2.1 (art contract seams) can now be built on a content pipeline proven end to end
+rather than assumed. Every package after this one inherits a working preset and a boot-time readout
+that makes a content regression visible in the one place it was previously invisible.
+
+**Gaps.**
+- **No CI export rung.** A GPU-less runner has no platform template. Same honesty as T1.4's stance
+  on the windowed capture: stated as impossible, not quietly dropped.
+- **Windows only.** Other platforms each need their own template and are a consuming game's call.
+- **The readout is debug-only, by design.** A release export prints nothing, so verifying a release
+  build's content would need a different mechanism. Nothing needs it yet; noted so the absence is a
+  decision rather than an oversight.
+- **The `[editable]` gate reads text.** Same limit as `check_boundary`: a scene assembled at
+  runtime, or an override written by a tool, is invisible to it.
+- **`tools/check_content.gd` is at 237 of 250 code lines.** The next check added to it will not
+  fit, and the seam is already visible: the scene checks are a different question from the
+  content-registry checks.

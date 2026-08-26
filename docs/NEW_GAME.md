@@ -101,7 +101,7 @@ than clearing the flags and going quiet.
 
 **The test suite comes with you, and it tells you what it stopped covering.** As of T1.3 the
 cases build the content they need from `tests/framework/fixtures.gd`, so deleting `data/` and
-`scenes/areas/` leaves rung 4 intact: `861 passed, 0 failed, 12 skipped`, exit 0. Those twelve are
+`scenes/areas/` leaves rung 4 intact: `880 passed, 0 failed, 12 skipped`, exit 0. Those twelve are
 the assertions that genuinely ask something about authored content — that the catalogue matches the
 disk, that every item name has a CSV row, that every waypoint a schedule names exists in some
 area. They come back one at a time as you author your own content, and until then the run PRINTS
@@ -155,6 +155,48 @@ The boot run is clean and lands on the main menu. Starting a game before you hav
 That is the template telling you the one thing it still needs.
 
 The test suite passes, with skips reported. Section 5 says what the skips are.
+
+## 7. Export
+
+**`export_filter="all_resources"` in `export_presets.cfg`. If you change one thing in this
+document, do not change that one.** `ItemDb`, `DialogueDb` and `ScheduleDb` find content by
+SCANNING a directory (ADR-0006), so nothing in any scene references most of `data/**`. Those
+resources are nobody's dependency, and Godot's exporter walks dependencies. Narrow that filter and
+your items, conversations and NPC schedules do not ship — while every editor run, both CI jobs,
+`check_content` and all 930 assertions stay perfectly green, because there the files are plainly on
+disk. `tests/unit/export_test.gd` now asserts the field, so a change fails rung 4 rather than a
+release.
+
+The preset is committed (only `override.cfg` is gitignored), so a new game inherits a working one.
+Rename `export_path` and the `application/*` fields; leave `export_filter` alone.
+
+```bash
+G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe
+"$G" --headless --export-debug "Windows Desktop" "$(pwd -W)/build/windows/game.exe"
+cd build/windows && ./game.console.exe --headless --quit-after 120
+```
+
+**Use `--export-debug`, and read the `[content]` lines.** `src/systems/debug/catalogue_report.gd`
+reports every catalogue's count and resolved paths at boot, and WARNS on an empty one in an
+exported build. It is behind `OS.is_debug_build()`, so a release export prints nothing — which is
+correct for players and useless for verifying, hence the debug export. Compare against the same
+lines from a source run; equal is the only acceptable answer. A PARTIAL ship is worse than an empty
+one, because three of four items is a plausible number.
+
+**An export template must be installed first** — Godot will refuse otherwise. That is expected
+setup, not a problem to route around. `--export-pack` does not need one and is enough to check
+*which files* ship; only a real template can prove they are *found* at runtime.
+
+**Two things that go wrong here, both silent from source:**
+
+1. **A hand-authored `.tscn` that overrides a node inside an instanced scene needs
+   `[editable path="<the instance>"]`.** Without it the text loader applies the override and the
+   exporter's binary conversion DROPS it, so your prefab reverts to its defaults in the shipped
+   build only. This bit the demo: the keeper lost its `object_id`, its prompt and its
+   conversation in an export and nowhere else. `tools/check_content.gd` now fails on it.
+2. **A narrowed `export_filter` does not just cost you content.** It also strips the `class_name`
+   scripts that are nobody's dependency — `GameConfig`, `GameEnums`, `DictRead` — and the build
+   dies at boot on parse errors. Loud, and worth knowing so the symptom is not misread.
 
 ## Read next
 

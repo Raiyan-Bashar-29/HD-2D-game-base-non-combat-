@@ -353,3 +353,5 @@ object_id = &"keeper_barter"
 action = ExtResource("22_barter")
 standing_id = &"keeper"
 interact_priority = 1
+
+[editable path="Actors/Keeper"]

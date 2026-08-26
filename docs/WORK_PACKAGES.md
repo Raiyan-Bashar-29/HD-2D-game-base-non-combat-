@@ -66,8 +66,8 @@ original board rather than continuing it.
 | T1.2 | Engine/demo boundary: the rule, a gate, and the leaks fixed | **DONE** — see T1.2 below |
 | T1.3 | Test fixtures + framework hardening | **DONE** — see T1.3 below |
 | T1.4 | CI — automate the ladder | **DONE** — see T1.4 below |
-| T2.0 | **The export proof** | **TODO — next.** Sequenced by RISK, not by theme — see below |
-| T2.1 | Art contract seams | TODO |
+| T2.0 | **The export proof** | **DONE** — the assumption HELD; see T2.0 below |
+| T2.1 | Art contract seams | **TODO — next** |
 | T2.2 | Consumer documentation | TODO |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -621,43 +621,103 @@ repo it renders as "unknown".
 
 ---
 
-## T2.0 · The export proof — **TODO, next**
+## T2.0 · The export proof — **DONE**
 
 **Goal.** Prove that an exported build finds its content. Everything about this project's content
-pipeline rests on an assumption nobody has ever tested: that a Godot export ships resources that
+pipeline rested on an assumption nobody had ever tested: that a Godot export ships resources that
 no scene references.
 
-**The risk, stated plainly.** `ItemDb`, `DialogueDb` and `ScheduleDb` find content by scanning a
-directory (ADR-0006). Nothing in a scene points at `data/items/rose_key.tres` — the registry
-discovers it at runtime. Godot's exporter walks *dependencies*. If it therefore omits the `.tres`
-files, then in an exported build every item, every conversation and every NPC schedule is simply
-absent, the inventory is empty, dialogue does not start, and NPCs stand still — while `res://`
-runs in the editor stay perfectly green, because there the files are right there on disk. No
-current gate can see this. That is why it is sequenced ahead of T2.1.
+**THE ANSWER: IT DOES. The assumption held, and ADR-0006 needed no revision.** A Windows *debug*
+export was built and run from its own `.exe`, outside the editor, in a directory containing nothing
+but the executable and its `.pck` — no `project.godot`, no loose `data/`. Both sides, quoted:
 
-**Read:** `CLAUDE.md`, `docs/TEMPLATE.md`, `docs/CONTEXT.md`, `docs/decisions/ADR-0006*`,
-`src/content/**` (the three registries and their directory scan — headers first), `project.godot`.
-Do NOT read the whole `src/` tree.
+```
+editor    origin: template=false editor=true debug=true exe=Godot_v4.7.2-stable_win64.exe
+exported  origin: template=true  editor=false debug=true exe=game.exe
 
-**Write**
-- An export preset for Windows desktop, with whatever include filter actually makes `data/**`
-  ship. `export_presets.cfg` is NOT gitignored (checked: `.gitignore` names only `override.cfg`),
-  so commit it — a preset nobody else has is not a preset.
-- A catalogue-count report reachable in an exported build — the simplest honest thing is a debug
-  print of `ItemDb`/`DialogueDb`/`ScheduleDb` counts at boot, gated on `OS.is_debug_build()` so it
-  does not ship to players. `src/systems/debug/` is the exempt directory it belongs in.
-- Whatever `docs/NEW_GAME.md` must say about exporting a game built on this base.
+both      items: 3 found in res://data/items -> [rose_key.tres, rose_petal.tres, stone_chip.tres]
+both      dialogue: 1 found in res://data/dialogue -> [gardener.tres]
+both      schedules: 1 found in res://data/schedules -> [keeper.tres]
+```
 
-**Exit criteria**
-- An exported build **run on a machine without Godot** (or at minimum outside the editor, from the
-  exported `.exe`, with `res://` unavailable as a loose directory) reports **non-zero** counts for
-  all three catalogues. Quote the actual numbers.
-- The counts match the editor's. A partial ship is worse than an empty one, because it looks fine.
-- If it FAILS: do not paper over it with a hard-coded manifest. Write up what the exporter
-  actually did, and open an ADR revising ADR-0006 — that is the correct outcome of this package
-  and is not a failure of it.
-- Local ladder green, and CI green.
+Counts, roots and resolved paths identical, and `Session ended … 0 warnings, 0 errors` in both. The
+exported build also *used* the content, not merely counted it: `--give=item/rose_key,item/rose_petal:3`
+logged `+1 item/rose_key` and `+3 item/rose_petal`, which means the definitions loaded through the
+pack's `.remap` indirection.
 
-**Deferred here:** the credits screen and the accessibility pass (they belong to a consuming
-game, per WP-15's split), export presets for platforms other than Windows, and any of T2.1's art
-seams.
+**Four measured facts, and three of them were assumptions until now.**
+
+1. **`export_filter` is the entire risk, and `"all_resources"` is the only right answer.**
+   Measured both ways: with it, all seven `data/**` resources are stored in the pack; with
+   `export_filter="scenes"`, **zero** are.
+2. **`ResourceLoader.list_directory()` works through the pack.** The pack stores
+   `data/items/rose_key.tres.remap`; the scan returns the `.tres` path and the load follows the
+   remap. ADR-0006 chose it *because* it is the resource-aware one and recorded that as unproven.
+   It is now proven, and `_normalise`'s `.remap` handling is observed rather than defensive.
+3. **`include_filter="*.tres"` would have been the plausible wrong fix.** The include filter is for
+   NON-resource files. It is empty, and setting it instead of `export_filter` changes nothing while
+   looking like a remedy.
+4. **A narrowed filter fails LOUDLY here, not silently.** With `export_filter="scenes"` and the
+   boot scene selected, the build strips the `class_name` scripts that are nobody's dependency —
+   `GameConfig`, `GameEnums`, `DictRead`, `KeyBindings` — and dies at boot on parse errors. So the
+   feared *silent empty catalogue* cannot be produced by narrowing the filter alone. It CAN be
+   produced by an exclude filter, which is silent: `exclude_filter="data/*"` exported and booted
+   cleanly to the main menu with `items: 0, dialogue: 0, schedules: 0`. That run is also how the
+   new readout was proved to FAIL — three warnings, `1 warnings` → `3 warnings, 0 errors`.
+
+**A SECOND DEFECT, EXPORT-ONLY, AND THE REAL PRIZE OF RUNNING THIS EARLY.** The exported build
+booted with three lines the editor never printed:
+
+```
+[ERROR] [world   ] Keeper has a PersistentState with no object_id — its state cannot persist
+[WARN ] [interact] Talk has no label_key, so its prompt will be blank
+[ERROR] [dialogue] Talk names no conversation and will refuse every attempt
+```
+
+`courtyard.tscn` overrode `object_id`, `label_key` and `conversation_id` on two nodes **inside** its
+instanced `npc.tscn` without the `[editable path="Actors/Keeper"]` marker. From source the text
+loader applies those overrides; an export converts `.tscn` to binary `.scn` and the conversion
+**drops** overrides on a non-editable instance. So the NPC shipped with no identity, no prompt and
+no conversation, and its schedule never ran — while every rung, both CI jobs, `check_content` and
+930 assertions stayed green. This project hand-authors its `.tscn` files, so the marker the editor
+would have written is exactly what a hand-authored scene forgets. Stale `index=` values were ruled
+out first by correcting them and re-exporting: no change.
+
+**Wrote**
+- `export_presets.cfg` — one Windows Desktop preset, committed (`git check-ignore -v` exits 1; only
+  `override.cfg` is ignored). Its header carries the measurement, not a preference.
+- `src/systems/debug/catalogue_report.gd` — reports every catalogue's count, root and resolved
+  paths at boot, behind `OS.is_debug_build()`, in the one directory `check_boundary` exempts. It
+  reports the PATHS and not only the counts because a partial ship is worse than an empty one.
+  Wired into `scenes/boot/game_root.tscn` as a fifth root node.
+- `tools/check_content.gd` — `_check_editable_instances()`, the gate for the second defect. 189 →
+  237 of 250 code lines. Deliberately stricter than the failure needs: an *added* node inside an
+  instance was observed to survive the conversion and is still required to be declared editable,
+  because "which kind is this" is a distinction the exporter makes and an author should not have to.
+- `tests/unit/export_test.gd` — 19 assertions. It **cannot test an exported build** and says so in
+  its header and in an assertion (`is_exported() == false`), so it can never quietly start looking
+  like the proof. What it does do is pin `export_filter="all_resources"` as a tested invariant,
+  prove the reporter agrees with the registries, and prove every resolved path loads.
+- `scenes/areas/courtyard/courtyard.tscn` — the missing `[editable]` marker.
+- `docs/NEW_GAME.md` § 7 Export, and ADR-0006's honest limit closed.
+
+**Verified.** Ladder green: import 0 `SCRIPT ERROR`/`Parse Error`; boot `0 warnings, 0 errors`;
+suite **930 passed, 0 failed, 0 skipped** (911 + 19), exit 0; `check_budgets`, `check_content`,
+`check_boundary` all exit 0. Stripped template: **880 passed, 0 failed, 12 skipped**, exit 0, with
+`check_content` and `check_boundary` still green. Both new gates proved RED before green
+(gotcha 23): deleting the `[editable]` line made `check_content` print four named violations and
+`FAIL — 4 content violation(s)`; flipping `REQUIRED_FILTER` to `"scenes"` made rung 4 print
+`FAIL the preset ships every resource, not only dependencies — expected scenes, got all_resources`
+and exit 1. Both reverted.
+
+**Setup note for the next person:** the export templates were not installed. Only
+`Godot_v4.7.2-stable_export_templates.tpz` (1.28 GB) provides them; the four Windows x86_64 files
+were extracted into `%APPDATA%/Godot/export_templates/4.7.2.stable/`. `--export-pack` needs no
+template and is enough to see *which files* ship; only a real template proves they are *found*.
+
+**Left for later, deliberately:** export presets for platforms other than Windows (each needs its
+own template, and a consuming game's decision). No CI export rung — a GPU-less runner has no
+platform template, and this is the same honesty as T1.4's stance on the windowed capture.
+
+**Closed 2026-08-26.** New gotcha 27.
+

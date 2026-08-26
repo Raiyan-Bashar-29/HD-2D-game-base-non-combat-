@@ -180,11 +180,15 @@ Exit criteria:
 
 *Goal: a second, visually different game starts from this without editing `src/`.*
 
-- **T2.0 The export proof.** Sequenced FIRST in Phase T2 by RISK, not by theme — it belongs to
-  T3 by subject. An export preset, and the first run of an exported build there has ever been.
-  The three registries find content by directory scan, so if the exporter omits unreferenced
-  `.tres` files every catalogue ships empty while every gate stays green. Cheap to test,
-  architectural to fix, so nothing else should be built on the assumption first. See the board.
+- **T2.0 The export proof — DONE, 2026-08-26.** Sequenced FIRST in Phase T2 by RISK, not by theme
+  — it belongs to T3 by subject. A Windows preset, and the first run of an exported build there
+  has ever been. **The assumption held:** `export_filter="all_resources"` ships resources that no
+  scene references, and the exported `.exe` reports the same 3 items, 1 conversation and 1
+  schedule the editor does. ADR-0006's honest limit is closed and needed no revision. The proof
+  was not wasted, though: running the export found a SECOND defect that every rung, both CI jobs
+  and 930 assertions were blind to — a missing `[editable]` marker dropped an instance's property
+  overrides in the binary conversion only, so the demo's NPC shipped with no id, no prompt and no
+  conversation. Fixed, and now a `check_content` gate. See the board.
 - **T2.1 The art contract.** A `SpriteSheetLayout` resource replacing `FACING_COUNT`/`FRAME_COUNT`;
   the sector maths derived from it rather than from a separate literal `TAU / 8.0`; an
   `animation_row` offset so idle-vs-walk is not structurally impossible; a project `Theme` so the
@@ -195,10 +199,11 @@ Exit criteria:
   and a stated extension surface versus internals.
 
 Exit criteria:
-- [ ] An exported build reports **non-zero** catalogue counts for items, conversations and
-      schedules, matching the editor — T2.0. Moved here from Phase T3, where it was listed while
-      `SYSTEMS_INVENTORY.md` simultaneously marked export presets LATER; that contradiction was
-      settled 2026-08-26 in favour of blocking
+- [x] An exported build reports **non-zero** catalogue counts for items, conversations and
+      schedules, matching the editor — T2.0, **2026-08-26**. Ran the exported `.exe` outside the
+      editor: `items: 3, dialogue: 1, schedules: 1`, resolved paths identical to a source run.
+      Moved here from Phase T3, where it was listed while `SYSTEMS_INVENTORY.md` simultaneously
+      marked export presets LATER; that contradiction was settled 2026-08-26 in favour of blocking
 - [ ] Swap in a sprite sheet with a different cell and frame count, changing **no code**
 - [ ] One `Theme` change restyles every screen at once
 - [ ] Someone who has not read `src/` can author an area, an NPC and a conversation from the docs

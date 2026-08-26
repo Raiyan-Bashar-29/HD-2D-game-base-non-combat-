@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://src/core/boot/game_root.gd" id="1_root"]
 [ext_resource type="Script" path="res://src/ui/hud/screen_fade.gd" id="2_fade"]
@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://src/ui/hud/loading_indicator.gd" id="9_load"]
 [ext_resource type="Script" path="res://src/systems/debug/dev_probes.gd" id="10_probes"]
 [ext_resource type="Script" path="res://src/systems/debug/dev_stage.gd" id="11_stage"]
+[ext_resource type="Script" path="res://src/systems/debug/catalogue_report.gd" id="12_catalogue"]
 
 [node name="GameRoot" type="Node"]
 script = ExtResource("1_root")
@@ -62,3 +63,6 @@ script = ExtResource("10_probes")
 
 [node name="DevStage" type="Node" parent="."]
 script = ExtResource("11_stage")
+
+[node name="CatalogueReport" type="Node" parent="."]
+script = ExtResource("12_catalogue")

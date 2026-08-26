@@ -44,8 +44,8 @@ Headless shades nothing. This project has already shipped two bugs that every ot
 | 04 | Second area, transitions, loading | **DONE** — see below |
 | 05 | Dialogue | **DONE** — see below |
 | 06 | NPCs and navigation | **DONE** — see below |
-| 07 | Path actions | **TODO — next** |
-| 08 | Quests | TODO |
+| 07 | Path actions | **DONE** — see below |
+| 08 | Quests | **TODO — next** |
 | 09 | Character depth | TODO |
 | 10 | Crafting and gathering | TODO |
 | 11 | World map and fast travel | TODO |
@@ -274,7 +274,7 @@ process. All eleven are listed in `CONTEXT.md` and justified in `DEVLOG.md`.
 
 ---
 
-## WP-07 · Path actions
+## WP-07 · Path actions — **DONE**
 
 **Goal.** The signature mechanic: per-NPC non-combat verbs in the spirit of Octopath's
 Scrutinise, Inquire, Purchase and Guide.
@@ -288,6 +288,24 @@ already has.
 
 **Exit criteria:** one NPC with two actions, one of which can fail and change standing, all
 persisted.
+
+
+**Done 2026-08-26**, commit `PLACEHOLDER7`.
+`src/content/npc/path_action.gd`, `src/gameplay/interactables/path_action_point.gd`,
+`src/gameplay/character/standing.gd`, `scenes/objects/path_action.tscn`, two authored actions in
+`data/actions/`, five new `InteractVerb`s and `RefusalReason.LOW_STANDING`,
+`tests/unit/path_actions_test.gd`. Suite 555 -> 606.
+NO FOURTH REGISTRY: a path action is only ever reached through the NPC that offers it, exactly
+as a chest reaches its `ItemDefinition`s, so nothing looks one up by id and the note in
+`schedule_db.gd` about three being a pattern does not fire.
+The criterion is met by barter's three bands: refused below standing 1, committed and FAILING at
+1, committed and succeeding at 2 — captured once per band, and in the success shot the prompt
+has already fallen back to the other action because `once` applies to success only.
+`dev_probes.gd` was SPLIT again, into itself plus `dev_stage.gd`; the budget checker has now
+found three seams in the debug surface, at 310, 320 and 250 lines.
+One defect fixed in WP-06's code: the unreachable guard believed a single frame's answer, and a
+`NavigationAgent3D` recomputing after a wander re-target legitimately answers "unreachable"
+before it has finished thinking. It now requires thirty consecutive frames.
 
 ---
 

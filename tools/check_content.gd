@@ -38,6 +38,7 @@ func _initialize() -> void:
 	_check_items()
 	_check_dialogue()
 	_check_schedules()
+	_check_path_actions()
 	_check_scenes()
 	print("=".repeat(78))
 	if _violations > 0:
@@ -257,3 +258,29 @@ func _all_waypoint_names() -> Dictionary[StringName, bool]:
 				found[StringName(child.name)] = true
 		area.free()
 	return found
+
+
+## Path actions are referenced by path, not found by scan, so there is no registry to validate.
+## What CAN be validated is every .tres in data/actions: that it really is a PathAction, that its
+## own problems() is empty, and that every key it names exists in the CSV. A path action that
+## says nothing on success is a mechanic the player performs and cannot tell they performed.
+func _check_path_actions() -> void:
+	var directory: String = "res://data/actions"
+	var files: PackedStringArray = ItemDb.resource_paths(directory)
+	print("  path actions: %d" % files.size())
+	for path: String in files:
+		var resource: Resource = ResourceLoader.load(path)
+		var action: PathAction = resource as PathAction
+		if action == null:
+			_fail("%s is not a PathAction" % path)
+			continue
+		var name: String = path.get_file()
+		print("     %-24s %-11s standing %d/%d" % [
+			name, action.verb_name(), action.required_standing, action.success_standing,
+		])
+		for problem: String in action.problems(name):
+			_fail(problem)
+		_require_key(name, "label_key", action.label_key)
+		_require_key(name, "success_key", action.success_key)
+		_require_key(name, "failure_key", action.failure_key)
+		_require_key(name, "refusal_key", action.refusal_key)

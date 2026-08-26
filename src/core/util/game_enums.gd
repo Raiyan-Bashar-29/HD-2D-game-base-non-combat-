@@ -27,10 +27,20 @@ enum ItemCategory { TOOL, CONSUMABLE, KEY_ITEM, QUEST, MATERIAL, CLOTHING, DOCUM
 
 ## The verb shown on the interaction prompt. Purely presentational. The interactable
 ## itself decides what actually happens.
-enum InteractVerb { LOOK, TAKE, OPEN, CLOSE, USE, TALK, READ, SIT, CLIMB, ENTER, HARVEST, LIGHT }
+## APPENDED TO, NEVER REORDERED. Scene files store an exported enum as its ORDINAL, so moving
+## LOOK from 0 would silently repoint every authored .tscn in the project at a different verb.
+## The last five are the path actions, in the spirit of Octopath's Scrutinise and Inquire.
+enum InteractVerb {
+	LOOK, TAKE, OPEN, CLOSE, USE, TALK, READ, SIT, CLIMB, ENTER, HARVEST, LIGHT,
+	SCRUTINISE, INQUIRE, BARTER, GUIDE, SOOTHE,
+}
 
 ## Why an interaction was refused, so the UI can say something useful instead of nothing.
-enum RefusalReason { NONE, LOCKED, MISSING_ITEM, MISSING_SKILL, WRONG_TIME, ALREADY_DONE, HANDS_FULL, STORY_GATED, NOT_GROUNDED }
+## Also append-only, and for the same reason.
+enum RefusalReason {
+	NONE, LOCKED, MISSING_ITEM, MISSING_SKILL, WRONG_TIME, ALREADY_DONE, HANDS_FULL,
+	STORY_GATED, NOT_GROUNDED, LOW_STANDING,
+}
 
 ## What an NPC is doing while it is at a scheduled place. Deliberately tiny: the schedule says
 ## WHERE and roughly what posture, and anything richer belongs to a future behaviour tree

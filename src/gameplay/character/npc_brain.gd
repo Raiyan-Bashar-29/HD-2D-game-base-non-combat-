@@ -45,6 +45,12 @@ var _rng := RandomNumberGenerator.new()
 ## Whether the current target has already been reported as unreachable. Logged ONCE per target,
 ## not once per frame, or one badly placed marker fills the log at sixty lines a second.
 var _unreachable_reported: bool = false
+## Consecutive physics frames the current target has looked unreachable. A SINGLE frame means
+## nothing: the agent recomputes its path asynchronously, so the frame after a target moves -
+## which for a wandering NPC is every few seconds - it legitimately has no path yet and answers
+## "unreachable" to a question it has not finished thinking about. Only a sustained answer is
+## a real one.
+var _unreachable_frames: int = 0
 ## Set once the two-physics-frame settle has run. Nothing may ask the navigation map a question
 ## before this, because an unsynchronised map answers "unreachable" to everything.
 var _decided: bool = false
@@ -97,6 +103,11 @@ func _physics_process(delta: float) -> void:
 		_visual.update_from_velocity(Vector3(velocity.x, 0.0, velocity.z), delta)
 
 
+## Consecutive frames an answer must hold before it is believed. Half a second at 60Hz, which
+## is far longer than a path query takes and far shorter than a player would notice.
+const UNREACHABLE_FRAMES: int = 30
+
+
 ## An unreachable target is the failure this whole file is most likely to hit, because a
 ## waypoint is authored by hand and a navmesh is baked from geometry: put a marker inside a
 ## wall, or on a ledge a step too high, and the agent paths as close as it can and then reports
@@ -108,8 +119,13 @@ func _check_reachable() -> void:
 	# unreachable. Asking before the map has synchronised gets "unreachable" for everything,
 	# and acting on that answer strands the NPC at get_final_position(), which is the origin.
 	if _agent.get_current_navigation_path().is_empty():
+		_unreachable_frames = 0
 		return
 	if _agent.is_target_reachable():
+		_unreachable_frames = 0
+		return
+	_unreachable_frames += 1
+	if _unreachable_frames < UNREACHABLE_FRAMES:
 		return
 	_unreachable_reported = true
 	Log.error("npc", "%s cannot reach '%s'; it will stop where the path ends" % [name, _waypoint])
@@ -200,6 +216,7 @@ func _go_to_waypoint(waypoint: StringName) -> void:
 		return
 	_agent.target_position = marker.global_position
 	_unreachable_reported = false
+	_unreachable_frames = 0
 	_wander_left = _next_wander_delay()
 
 
@@ -241,6 +258,10 @@ func _tick_wander(delta: float) -> void:
 		return
 	var angle: float = _rng.randf() * TAU
 	var reach: float = _rng.randf() * wander_radius
+	# A new target invalidates any accumulated unreachable evidence: the old answer was about a
+	# different destination.
+	_unreachable_reported = false
+	_unreachable_frames = 0
 	_agent.target_position = marker.global_position + Vector3(cos(angle), 0.0, sin(angle)) * reach
 
 

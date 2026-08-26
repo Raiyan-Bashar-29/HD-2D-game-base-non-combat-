@@ -67,7 +67,7 @@ Exit criteria:
       from the same 06:30 start, one with the same skip the bench performs, show warm dawn
       becoming cool night with the lantern pools lit
 - [ ] Save, quit, relaunch, continue — position, time, weather and inventory all restored
-- [x] Test suite passes headless and exits non-zero on failure — 555 assertions
+- [x] Test suite passes headless and exits non-zero on failure — 606 assertions
 - [x] A screen opens over the world, gameplay input stops, the fade still runs over the
       top of it, and Escape restores control — done 2026-08-26, windowed captures plus a
       real-input probe in the live tree

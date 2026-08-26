@@ -82,3 +82,15 @@ talk.gardener.choice.leave,Nothing. Good day.
 talk.gardener.choice.again,Something else.
 talk.gardener.who,"I keep the garden. That is the whole of it, and it is more than enough."
 talk.gardener.gate,"The hall. Lanterns burning at every hour, and no hour admitted. Throw the lever if you must."
+verb.scrutinise,Observe
+verb.inquire,Ask About
+verb.barter,Barter
+verb.guide,Ask to Guide
+verb.soothe,Reassure
+refusal.low_standing,"They do not know you well enough. ({standing} of {needed})"
+action.keeper.scrutinise.label,The Keeper's Hands
+action.keeper.scrutinise.success,"Soil under every nail, and a thorn-scar across the left palm. This one does the work themselves."
+action.keeper.barter.label,The Keeper's Basket
+action.keeper.barter.success,"They part with a handful of petals, and almost smile."
+action.keeper.barter.failure,"They look at the basket, then at you, and move it to their other arm."
+action.keeper.barter.refused,"Not for a stranger."

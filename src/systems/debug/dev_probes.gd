@@ -10,22 +10,15 @@ extends Node
 ## this is the means. Each probe drives the REAL game through the REAL bus and prints what
 ## actually happened, so a claim in `DEVLOG.md` is a quotation rather than an assurance.
 ##
-## SPLIT FROM dev_capture.gd when that file hit 310 of its 250 allowed code lines. The two do
-## genuinely different jobs — that one answers "what does the game LOOK like under condition X",
-## this one answers "does sequence Y actually work" — and the budget checker is what made a
-## seam that was already there in the reasoning visible in the line count.
+## THREE DEBUG FILES, AND THE BUDGET CHECKER FOUND EVERY SEAM. `dev_capture.gd` answers "what
+## does the game LOOK like under condition X" and owns the shutter; this file answers "does
+## sequence Y actually work" and owns the measurements; `dev_stage.gd` answers "put the player
+## THERE, holding THAT" and owns the posing. All three were one file until the checker refused
+## it at 310 and then at 320 of the 250 allowed code lines, and both times the seam it exposed
+## was already there in the reasoning.
 ##
 ## EVERYTHING AFTER THE BARE `--` IS PASSED TO THE GAME:
 ##
-##   --give=<list>        put items in the player's bag: item/rose_key,item/rose_petal:3
-##   --open-inventory     push the inventory screen, to capture a real screen over a stopped
-##                        world. Apply --give first or the capture shows an empty bag.
-##   --talk=<id>          open a conversation, so the dialogue box can be captured. Takes the
-##                        bare id: --talk=talk/gardener
-##   --talk-advance=<n>   press through n lines after --talk, to capture a branch rather than
-##                        always the opening line.
-##   --goto=<area>        travel to an area once the boot load has settled, so a capture can be
-##                        taken somewhere other than the starting area.
 ##   --round-trips=<n>    travel courtyard -> lantern_hall -> courtyard n times, reporting node
 ##                        count and static memory. This is how the leak criterion is measured,
 ##                        and each trip also fires a second request in the same frame, so the
@@ -37,8 +30,6 @@ extends Node
 ##                        each NPC actually ends up. This is how the schedule criterion is
 ##                        measured: no assertion can drive a navmesh.
 ##   --npc-storm=<n>      spawn n extra NPCs and report frame time with and without them.
-##   --npc-settle=<n>     let NPCs walk for n physics frames before a capture, so a screenshot
-##                        shows them AT their posts rather than halfway there.
 ##
 ## A TEMPORARY PROBE IS THE APPROVED WAY TO TEST AN INPUT PATH. Add one here, run it windowed,
 ## read the log, quote it in `DEVLOG.md`, then REMOVE it. Two facts that have each cost an hour:
@@ -57,9 +48,6 @@ const PROBE_SLOT: int = 5
 ## real frames, not game time.
 const WALK_FRAMES: int = 260
 
-var _talk_advance: int = 0
-
-
 func _ready() -> void:
 	# A probe has to keep running while the game is paused: half of what they verify is what
 	# happens with a screen open. Pause table: src/ui/root/ui_root.gd.
@@ -69,17 +57,7 @@ func _ready() -> void:
 
 func _parse_arguments() -> void:
 	for argument: String in OS.get_cmdline_user_args():
-		if argument.begins_with("--give="):
-			_give(argument.trim_prefix("--give="))
-		elif argument == "--open-inventory":
-			_open_inventory()
-		elif argument.begins_with("--talk-advance="):
-			_talk_advance = maxi(0, argument.trim_prefix("--talk-advance=").to_int())
-		elif argument.begins_with("--talk="):
-			_talk(StringName(argument.trim_prefix("--talk=")))
-		elif argument.begins_with("--goto="):
-			_goto(StringName(argument.trim_prefix("--goto=")))
-		elif argument.begins_with("--round-trips="):
+		if argument.begins_with("--round-trips="):
 			_round_trips(maxi(1, argument.trim_prefix("--round-trips=").to_int()))
 		elif argument == "--cross-area-save":
 			_cross_area_save()
@@ -87,44 +65,8 @@ func _parse_arguments() -> void:
 			_npc_day()
 		elif argument.begins_with("--npc-storm="):
 			_npc_storm(maxi(1, argument.trim_prefix("--npc-storm=").to_int()))
-		elif argument.begins_with("--npc-settle="):
-			_npc_settle(maxi(1, argument.trim_prefix("--npc-settle=").to_int()))
-func _give(list: String) -> void:
-	await get_tree().process_frame
-	var bag: Inventory = Inventory.of(Director.player)
-	if bag == null:
-		Log.error("test", "--give found no inventory on the player")
-		return
-	for entry: String in list.split(",", false):
-		var parts: PackedStringArray = entry.split(":")
-		var count: int = parts[1].to_int() if parts.size() > 1 else 1
-		var added: bool = bag.add(StringName(parts[0]), maxi(1, count))
-		Log.info("test", "--give %s x%d: %s" % [parts[0], count, str(added)])
 
 
-## Pushes the inventory screen so a windowed capture can show a real screen over a real,
-## stopped world. Deferred by two frames: UiRoot is a sibling built in the same _ready() pass
-## as this node, and --give needs its own frame before this one reads the bag.
-func _open_inventory() -> void:
-	await get_tree().process_frame
-	await get_tree().process_frame
-	var stack: UiRoot = UiRoot.find(self)
-	if stack == null:
-		Log.error("test", "--open-inventory found no UiRoot in the tree")
-		return
-	var opened: bool = stack.open(InventoryScreen.for_carrier(Director.player))
-	Log.info("test", "--open-inventory pushed the inventory screen: %s" % str(opened))
-
-
-
-## Travel back and forth `count` times and report what it cost. A leak in a transition is
-## invisible in a single trip and obvious over twenty, which is why the criterion is twenty
-## and why this is a RUN rather than an assertion: TestCase.run() is synchronous and cannot
-## await a threaded load.
-##
-## Node count and static memory are sampled with the area settled and the same area loaded at
-## both ends, so the two numbers are directly comparable. Anything that grows per trip shows
-## up as a slope rather than noise.
 func _round_trips(count: int) -> void:
 	# Wait for the FIRST area, not merely for the tree to settle. Arguments are read in _ready,
 	# before GameRoot has even requested the boot transition, so is_transitioning() is still
@@ -239,53 +181,6 @@ func _coffer() -> ItemContainer:
 
 ## Travel somewhere for a capture. Waits for the boot load first: a request made before the
 ## first area exists is refused by the guard, which would look like the flag not working.
-func _goto(area_id: StringName) -> void:
-	while Director.current_area_id == &"":
-		await get_tree().process_frame
-	await _settled()
-	Events.area_change_requested.emit(area_id, &"")
-	await _settled()
-	Log.info("test", "--goto arrived in '%s'" % Director.current_area_id)
-
-
-## Open a conversation for a capture. Goes through the SAME bus signal a Speaker emits, so what
-## is photographed is the real path and not a screen posed by hand.
-func _talk(talk_id: StringName) -> void:
-	while Director.current_area_id == &"":
-		await get_tree().process_frame
-	await _settled()
-	Events.dialogue_requested.emit(talk_id)
-	await get_tree().process_frame
-	var stack: UiRoot = UiRoot.find(self)
-	var screen: DialogueScreen = stack.top() as DialogueScreen
-	if screen == null:
-		Log.error("test", "--talk opened no dialogue screen for '%s'" % talk_id)
-		return
-	Log.info("test", "--talk opened '%s' at node '%s'" % [
-		talk_id, screen.runner.current_node().node_id,
-	])
-	for _i: int in _talk_advance:
-		await _reveal_done(screen)
-		screen.runner.advance()
-		await get_tree().process_frame
-	await _reveal_done(screen)
-	Log.info("test", "--talk resting on node '%s', %d choices" % [
-		screen.runner.current_node().node_id, screen.runner.available_choices().size(),
-	])
-
-
-## Let the typewriter finish. A capture taken mid-reveal photographs half a sentence, which
-## looks like a truncation bug rather than the feature it is.
-func _reveal_done(screen: DialogueScreen) -> void:
-	for _i: int in 240:
-		if screen.reveal_complete():
-			return
-		await get_tree().process_frame
-
-
-
-## Step the clock through a whole day and report where every NPC actually stands at each hour.
-## The criterion is "at the market at noon and home at night"; this is the measurement.
 func _npc_day() -> void:
 	while Director.current_area_id == &"":
 		await get_tree().process_frame
@@ -395,15 +290,3 @@ func _dress_storm_npc(npc: Node, index: int) -> void:
 ## Give the NPCs time to reach their posts before the shutter opens. A capture taken on the
 ## default frame catches them mid-stride between the spawn point and wherever the clock says
 ## they belong, which photographs the transition rather than the schedule.
-func _npc_settle(frames: int) -> void:
-	while Director.current_area_id == &"":
-		await get_tree().process_frame
-	await _settled()
-	for _i: int in frames:
-		await get_tree().physics_frame
-	for npc: Node in _all_npcs():
-		var brain: NpcBrain = npc as NpcBrain
-		Log.info("test", "--npc-settle %s at '%s' (%s), %.2fm away" % [
-			npc.name, brain.current_waypoint(), brain.activity_name(),
-			_distance_to_intent(brain),
-		])

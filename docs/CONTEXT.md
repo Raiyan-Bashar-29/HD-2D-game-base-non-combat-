@@ -3,7 +3,7 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-26 · WP-06 complete
+**Last updated:** 2026-08-26 · WP-07 complete
 
 ## Which branch to work from — read this before `git checkout`
 
@@ -19,6 +19,7 @@ merged; they are a **strictly linear stack of branches**, each based on the one 
 | WP-04 Second area | `claude/wp-04-second-area` | `3ed321f` |
 | WP-05 Dialogue | `claude/wp-05-dialogue` | `addf337` |
 | WP-06 NPCs and navigation | `claude/wp-06-npcs` | `c42c844` |
+| WP-07 Path actions | `claude/wp-07-path-actions` | see the board |
 
 **Branch new work from the LAST row, never from `main`.** Because the stack is linear, merging
 the tip alone fast-forwards every package at once — there is no five-way merge to perform.
@@ -40,8 +41,8 @@ architecture.
 
 ## Where it stands
 
-Phase 0 complete, Phase 1 COMPLETE, Phase 2 well under way. 73 files, 5,638 code lines,
-16 scenes, 2 areas, 3 items, 1 conversation, 1 schedule.
+Phase 0 complete, Phase 1 COMPLETE, Phase 2 well under way. 78 files, 6,012 code lines,
+18 scenes, 2 areas, 3 items, 1 conversation, 1 schedule, 2 path actions.
 Boots headless with **0 warnings, 0 errors**.
 
 **Works, and verified by running it:** logging with rotation · signal registry (`events.gd`) ·
@@ -49,7 +50,7 @@ input actions · settings · save/load with atomic writes and versioning · plot
 director with a re-entrancy guard and threaded loading · world clock · weather state · audio
 buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 8-way character ·
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
-placeholder art generator · line-budget checker · headless test suite (555 assertions) ·
+placeholder art generator · line-budget checker · headless test suite (606 assertions) ·
 interaction sensor with ranking and Tab-cycling · Interactable contract · localized prompt and
 toasts · readable signs · levers · gates gated by flag or by a carried key · per-object
 persistence (ADR-0005) · typed item definitions found by directory scan (ADR-0006) · an
@@ -61,7 +62,8 @@ interior, and a door that really travels · a loading readout drawn above the cu
 shader warm-up behind black · a dialogue runner with conditions, branches and effects · a
 non-pausing dialogue box with a typewriter reveal · an authorable .tres conversation format ·
 a navmesh baked from each area's own geometry · an NPC that keeps a timetable and can be
-talked to · schedules as authored data.
+talked to · schedules as authored data · path actions with a standing that gates them and
+that they move.
 
 **Not built:** quests · the pause, main, settings, save and journal screens
 (WP-12) · hard-coded-string audit · weather visuals · item instances (durability) · equipment ·
@@ -243,6 +245,20 @@ three compiled cleanly and passed every static gate:**
 - **A UI takes a dialogue choice by IDENTITY, never by index.** `take(choice)`, not
   `choose(index)`. A conversation leaves the world running, so any flag written while the box is
   open can shift every index under the player's finger.
+- **A REFUSAL and a FAILURE are different things.** A refusal happens before anything: the
+  player is told why and nothing changes. A failure happens after committing: the action ran, it
+  did not work, and it COST something. An action that could only refuse is a lock with extra
+  steps; one that could only fail gives the player no way to read the situation first. Path
+  actions have both, and `once` applies to SUCCESS only, or a single early failure would lock
+  the player out forever with no way back.
+- **A path action is a THRESHOLD, never a dice roll.** A random one makes the player save-scum,
+  and a save-scummed mechanic is experienced as a slot machine rather than as a relationship.
+- **Standing is a namespace over `Flags`, not a store**, keyed `standing/<who>` and NOT through
+  `PersistentState` â that namespaces per area, which is right for a chest and wrong for a
+  person: the keeper who dislikes you in the courtyard must still dislike you in the hall.
+- **An NPC's actions are overlapping Interactables, not a menu.** The sensor already ranks and
+  Tab-cycles between overlapping targets; a menu would be a second selection mechanism competing
+  with the first.
 - **A door names an id and a spawn, and nothing else.** `AreaDoor` emits
   `Events.area_change_requested` and stops. It does not load, fade or place the player.
   `Director` owns the sequence and the guard, and nothing else calls `change_area()` — a door
@@ -270,13 +286,13 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 120               # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 300   # 555 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 320   # 606 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --resolution 960x540 --quit-after 55 -- --shot=<path> --time=18:40 --freeze-time
 ```
 
-## Nineteen gotchas that each cost an hour
+## Twenty gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -354,6 +370,14 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     forever. Keep the climb limit below anything the body cannot manage. Related: do not ask the
     navigation map anything before it has synchronised — an unsynchronised map answers
     "unreachable" to everything, and acting on that answer strands an agent at the origin.
+20. **An asynchronous system needs a PERSISTENCE test, not just a delay before you ask it.**
+    `NavigationAgent3D` recomputes its path over frames, so the frame after a target moves it
+    answers "unreachable" to a question it has not finished thinking about. WP-06 added a delay
+    before the first question and it was still wrong â the keeper reported "cannot reach" in
+    windowed runs and never in headless ones, because a WANDER activity re-targets every few
+    seconds and only real-framerate timing landed inside the window. The answer must now hold
+    for thirty consecutive physics frames, and a new target clears the evidence. Anything asked
+    of an async subsystem should be treated the same way.
 
 ## How work is sliced
 
@@ -363,7 +387,7 @@ should read, so a session loads a few hundred lines instead of three thousand. T
 (`core -> content -> systems -> gameplay -> ui`, downward only) is what makes that possible: a
 package never has to read upward.
 
-**Next package: WP-07, path actions.**
+**Next package: WP-08, quests.**
 
 ## Plan — where this is going
 

@@ -1,4 +1,4 @@
-[gd_scene load_steps=30 format=3]
+[gd_scene load_steps=33 format=3]
 
 [ext_resource type="Script" path="res://src/gameplay/world/area_root.gd" id="1_area"]
 [ext_resource type="Script" path="res://src/gameplay/world/environment_driver.gd" id="2_env"]
@@ -19,6 +19,9 @@
 [ext_resource type="PackedScene" path="res://scenes/objects/climb_point.tscn" id="17_climb"]
 [ext_resource type="PackedScene" path="res://scenes/objects/area_door.tscn" id="18_door"]
 [ext_resource type="PackedScene" path="res://scenes/characters/npc.tscn" id="19_npc"]
+[ext_resource type="PackedScene" path="res://scenes/objects/path_action.tscn" id="20_pap"]
+[ext_resource type="Resource" path="res://data/actions/keeper_scrutinise.tres" id="21_scrut"]
+[ext_resource type="Resource" path="res://data/actions/keeper_barter.tres" id="22_barter"]
 
 [sub_resource type="StandardMaterial3D" id="m_ground"]
 albedo_texture = ExtResource("4_grass")
@@ -326,3 +329,15 @@ object_id = &"keeper"
 object_id = &"keeper_talk"
 label_key = "object.gardener.label"
 conversation_id = &"talk/gardener"
+
+[node name="KeeperScrutinise" parent="Actors/Keeper" index="6" instance=ExtResource("20_pap")]
+object_id = &"keeper_scrutinise"
+action = ExtResource("21_scrut")
+standing_id = &"keeper"
+interact_priority = 1
+
+[node name="KeeperBarter" parent="Actors/Keeper" index="7" instance=ExtResource("20_pap")]
+object_id = &"keeper_barter"
+action = ExtResource("22_barter")
+standing_id = &"keeper"
+interact_priority = 1

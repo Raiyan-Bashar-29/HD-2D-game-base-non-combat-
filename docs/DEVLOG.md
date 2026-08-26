@@ -16,6 +16,124 @@ Append-only. Newest entry at the top. One entry per working session.
 
 ---
 
+## 2026-08-26 — WP-07: path actions, and the difference between a refusal and a failure
+
+**Did:**
+
+The signature mechanic. Non-combat verbs you perform on a person, with a standing that gates
+them and that they move.
+
+- `src/content/npc/path_action.gd` — `PathAction`. Verb, label, a standing floor to be offered
+  at all, a standing line to succeed at, and what it writes and says either way.
+- `src/gameplay/interactables/path_action_point.gd` — `PathActionPoint`, an `Interactable`.
+  One node per action.
+- `src/gameplay/character/standing.gd` — `Standing`. A namespace over `Flags`, and nothing more.
+- `data/actions/keeper_scrutinise.tres`, `keeper_barter.tres`, `scenes/objects/path_action.tscn`.
+- Five new `InteractVerb`s and `RefusalReason.LOW_STANDING`.
+- `tools/check_content.gd` validates every `.tres` in `data/actions`.
+- `tests/unit/path_actions_test.gd` — 51 new assertions. 555 -> 606.
+- `dev_probes.gd` split again, into itself plus `dev_stage.gd`.
+
+**Why:**
+
+**A refusal and a failure are different things, and keeping them apart is the whole design.**
+A refusal happens BEFORE anything: the player is told why and nothing changes. A failure happens
+AFTER committing: the action ran, it did not work, and it cost standing. An action that could
+only refuse would be a lock with extra steps. An action that could only fail would give the
+player no way to read the situation before spending. The interesting middle is where Octopath's
+Inquire lives, and it needs both — so barter has three bands: refused below 1, committed and
+failing at 1, committed and succeeding at 2.
+
+**No dice.** `success_standing` is a threshold, not a probability. A random path action makes
+the player save-scum, and a save-scummed mechanic is experienced as a slot machine rather than
+as a relationship. If randomness is ever wanted it goes behind that one field and every
+authored `.tres` stays valid.
+
+**One node per action, and no menu.** An NPC offering three actions is three overlapping
+`Interactable`s, which the sensor already ranks and Tab-cycles between — the exact case its
+header describes. A path-action menu would be a second selection mechanism competing with the
+first, with its own focus handling and its own screen, to solve a problem already solved.
+
+**`once` applies to SUCCESS only.** A single early failure must not lock the player out of an
+action forever with no way back, which is what `once` on any outcome would do. Asserted.
+
+**Standing is a namespace over `Flags`, not a store.** It is exactly the kind of fact `Flags`
+exists to hold: already saved, already announced, already dumpable. A second store would be a
+second truth for one integer per person. It is keyed `standing/<who>` and NOT through
+`PersistentState`, because that namespaces per area — right for a chest, wrong for a person:
+the keeper who dislikes you in the courtyard must still dislike you in the hall.
+
+**No fourth registry.** Unlike items, conversations and schedules, nothing ever looks a path
+action up by id — it is only reached through the NPC that offers it, exactly as a chest reaches
+its `ItemDefinition`s. So the note in `schedule_db.gd` about three being a pattern and four
+being a problem does not fire, and no registry was written.
+
+**One defect found, in WP-06's code:**
+
+**The unreachable guard believed a single frame.** The keeper reported "cannot reach 'dais'" in
+windowed runs and never in headless ones. A `NavigationAgent3D` recomputes its path
+asynchronously, so the frame after a target moves — which for a WANDER activity is every few
+seconds — it legitimately has no path yet and answers "unreachable" to a question it has not
+finished thinking about. The guard now requires the answer to hold for thirty consecutive
+physics frames, and a new target clears the accumulated evidence. Three windowed runs clean
+where one in two failed before. This is the second time this guard has been wrong in the same
+direction, which is itself the lesson: a question asked of an asynchronous system needs both a
+delay before asking and a persistence test on the answer.
+
+**Connections:**
+
+`PathActionPoint` -> `Standing` -> `Flags` -> the save. `Interactable.attempt()` gives it the
+refusal path and the interactor for free, so `requires_item` asks whoever is interacting rather
+than a global inventory. `Events.notify_requested` carries the outcome line. The keeper's two
+actions sit beside its `Speaker` on the same NPC, so one person now offers a conversation and
+two verbs, selected between with the cycle key.
+
+**Verified:**
+
+```
+--headless --import                                   clean
+--headless --quit-after 120                           0 warnings, 0 errors
+--headless res://tests/test_runner.tscn                606 passed, 0 failed, exit 0
+--headless --script tools/check_budgets.gd            78 files, 6012 lines, 0 violations
+--headless --script tools/check_content.gd            PASS, incl. 2 path actions
+--headless --quit-after 2400 -- --round-trips=20      nodes 142 -> 142 (+0), memory +2 KiB
+--headless --quit-after 5000 -- --npc-day             dais at 12:00, bench at 20:00
+```
+
+The content gate was proved by pointing an action's `failure_key` at a row that does not exist
+and watching it fail, then restoring it.
+
+**Three captures, examined, one per band**, taken with `--standing=keeper:N --stand-by=Keeper
+--cycle=1 --interact=1`:
+
+- **0 — refused.** `They do not know you well enough. (0 of 1)`. Standing unchanged at 0.
+- **1 — committed and failed.** `They look at the basket, then at you, and move it to their
+  other arm.` Standing 1 -> 0. The prompt still reads Barter, because a failed action stays
+  on offer.
+- **2 — committed and succeeded.** `They part with a handful of petals, and almost smile.`
+  Standing 2 -> 3, and **the prompt has changed to "Observe — The Keeper's Hands"**, because
+  barter is now `once`-done and the sensor has fallen back to the other action. The design
+  visible in a photograph.
+
+The first attempt at these three captures produced three identical images: all three outcomes
+show the same prompt until the button is pressed, and the shutter was 250 frames after the
+refusal message had already expired. The `--interact` flag and a corrected `--shot-frame` are
+what made them different.
+
+**Unblocks:**
+
+WP-08's quests, which need a mechanic whose outcome is worth tracking, and WP-09's character
+depth, where a skill would gate an action exactly as standing does now.
+
+**Known gaps:**
+
+Five verbs are declared and two are authored; `INQUIRE`, `GUIDE` and `SOOTHE` have keys and no
+content. There is no UI listing what a person offers — you discover their actions by standing
+next to them and cycling, which is honest for a skeleton and thin for a game. Standing is a
+single number per person with no factions or groups behind it. Nothing decays. And an action
+cannot yet give an item, only set a flag: `Inventory.add` from a path action is one field away
+but nothing needed it yet.
+
 ## 2026-08-26 — WP-06: NPCs that keep a timetable, and eight defects an audit found
 
 **Did:**

@@ -50,7 +50,8 @@ previous project started as a system that was allowed to know one thing too many
 | Screen fade | The black rectangle transitions hide behind | Events | why it is fading | DONE |
 | Audio director | Bus layout, music and ambience cross-fade | Settings, Events | positional world sound; a door owns its own player | PART |
 | Dev capture | Screenshots, and forcing time, weather and a time skip from the CLI | Clock, Weather | driving a scenario; nothing may depend on it | DONE |
-| Dev probes | Scripted scenarios no assertion can run: round trips, cross-area saves, a whole NPC day, a crowd | everything | being depended on by gameplay | DONE |
+| Dev probes | Scripted scenarios no assertion can run: round trips, cross-area saves, a whole NPC day, a crowd | everything | posing the world, or being depended on by gameplay | DONE |
+| Dev staging | Puts the world into the state a capture needs: stand here, hold this, feel that way, press the button | everything | measuring anything | DONE |
 | Weather visuals | Rain, snow, wind particles and wet surfaces | Weather | weather scheduling | TODO |
 | Area streaming | Chunked load for large regions | Director | — | LATER — discrete areas first; Director already loads threaded, so this is a swap, not a rewrite |
 | Navigation | Navmesh baked from each area's own geometry at load, behind the fade | Area root | who is walking | DONE — polygon count logged, so an empty bake is an error rather than silence |
@@ -91,7 +92,8 @@ previous project started as a system that was allowed to know one thing too many
 | NPC brain | Schedule-driven: travel to a named waypoint, then stand, wander or sleep | Navigation, Clock, ScheduleDb | what a waypoint means, routes, dialogue content | DONE |
 | NPC schedules | Hour blocks as authored .tres, found by directory scan like items | — | moving anything, or resolving its own waypoint | DONE |
 | NPC level of detail | Cheap offscreen behaviour so a town scales | NPC brain | — | LATER — 30 NPCs cost +0.077 ms/frame, so nothing forces it yet |
-| Path actions | Non-combat NPC verbs, in the spirit of Octopath's Scrutinise and Inquire | Interactable, Flags, Inventory | — | TODO |
+| Path actions | Non-combat NPC verbs. One Interactable per action, selected with the cycle key | Interactable, Flags, Standing | performing itself, or what a standing level means | DONE — 2 of 5 verbs authored |
+| Standing | What one person thinks of the player. A clamped namespace over Flags, not a store | Flags | what any level means, or what changes it | DONE |
 | Followers | A companion that trails the player | Navigation | — | LATER — leave a seam, build nothing |
 | Animation state machine | Drives sprite animation from movement and actions | Character visual | — | PART — code-driven frames work now; revisit if authored animation is needed |
 

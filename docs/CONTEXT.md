@@ -3,10 +3,10 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-27 · **WP-08 (quests) complete — Phase T3 is open.** A quest is authored
-data, every step names a FLAG CONDITION rather than a callback, and the placeholder quest is driven
-entirely by flags the demo was already writing: a conversation starts it, the lever advances it, the
-dais trigger completes it, and none of those three files was touched.
+**Last updated:** 2026-08-27 · **WP-08 (quests) complete — `a00ddda`, PR #16. Phase T3 is open.**
+A quest is authored data, every step names a FLAG CONDITION rather than a callback, and the
+placeholder quest is driven entirely by flags the demo was already writing: a conversation starts
+it, the lever advances it, the dais trigger completes it, and none of those three files was touched.
 
 *(Previously: T2.2, consumer documentation — **Phase T2 is closed, and
 its last criterion was PERFORMED: an area, an NPC and a conversation authored from the docs alone,

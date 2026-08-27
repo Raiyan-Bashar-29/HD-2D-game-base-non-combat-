@@ -46,7 +46,7 @@ Headless shades nothing. This project has already shipped two bugs that every ot
 | 05 | Dialogue | **DONE** — see below |
 | 06 | NPCs and navigation | **DONE** — see below |
 | 07 | Path actions | **DONE** — see below |
-| 08 | Quests | **DONE** — the first package of Phase T3; see below |
+| 08 | Quests | **DONE** — `a00ddda`, PR #16. The first package of Phase T3; see below |
 | 09 | Character depth | TODO |
 | 10 | Crafting and gathering | **OPTIONAL** — a genre choice, not a requirement of every game (TEMPLATE.md). Does not block v1.0 |
 | 11 | World map and fast travel | TODO |
@@ -476,9 +476,14 @@ lines; boot `0 warnings, 0 errors`; suite **1149 passed, 0 failed, 0 skipped**, 
 `quest/keepers_errand` and `keepers_errand` as demo names and finds neither anywhere in `src/` or
 `tests/`.
 
-**CI green, job logs read rather than the tick.** Recorded below with the run id.
+**CI green, run 33091433887, job logs read rather than the tick.** Full checkout **1149 passed, 0
+failed, 0 skipped** with `quests: 1` in `check_content`; stripped template **1094 passed, 0 failed,
+16 skipped** with `quests: 0` — the empty quest folder is not an error, which is the T1.2 finding
+holding for the fourth registry. All three checkers PASS in both jobs. The push run (33091433975)
+and the pull-request run (33091486449) are both green too.
 
-**Commit:** recorded below.
+**Commit:** `a00ddda` on `claude/wp-08-quests`, PR #16 — stacked onto `claude/t2-2-consumer-docs`
+(#15) rather than `main`, matching the rest of the chain.
 
 ---
 

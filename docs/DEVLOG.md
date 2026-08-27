@@ -2863,3 +2863,23 @@ T3.1, the registry refactor, is now scoped by an actual fourth copy rather than 
   and worth knowing before writing a listener that assumes the two are exclusive.
 - The tracker is a node in the boot scene, so a game that replaces `game_root.tscn` loses quests
   silently. `CatalogueReport` sits there on the same terms and neither is asserted to be present.
+
+**CI green, run 33091433887, job logs read rather than the tick** (gotcha 26 — the run listing lags
+and the tick is not the evidence). Full checkout: **1149 passed, 0 failed, 0 skipped**, with
+`quests: 1` in `check_content`. Stripped template: **1094 passed, 0 failed, 16 skipped**, with
+`quests: 0` — an empty quest folder is not an error, which is T1.2's finding holding for the fourth
+registry the day it was added. All three checkers PASS in both jobs, and the skip is named rather
+than silent:
+
+```
+SKIPPED: quests_test: authored quests validate (this checkout has no quests in data/quests)
+  — 0 assertion(s) not run
+```
+
+Zero rather than one because `quests_test.gd`'s plan is COMPUTED from the number of authored quests
+(`transitions_test.gd`'s shape, sanctioned in `docs/TESTING.md`), so a stripped run's plan is
+already smaller by exactly that assertion — the skip is there to SAY it gave one up, not to pad a
+count. The push run (33091433975) and the pull-request run (33091486449) are green as well.
+
+**Commit `a00ddda` on `claude/wp-08-quests`, PR #16**, stacked onto `claude/t2-2-consumer-docs`
+(#15) rather than `main`, matching the rest of the chain.

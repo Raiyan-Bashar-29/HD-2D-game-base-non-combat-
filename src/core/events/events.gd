@@ -74,8 +74,13 @@ signal interaction_started(target: Node3D)
 signal interaction_finished(target: Node3D)
 ## An interaction was rejected, with a reason the UI can explain to the player. `args` fills
 ## placeholders the same way notify_requested does - MISSING_ITEM is useless to a player
-## without naming the item.
-signal interaction_refused(target: Node3D, reason: GameEnums.RefusalReason, args: Dictionary)
+## without naming the item. `message_key` is an AUTHORED override, empty for almost everything:
+## the UI computes `refusal.<reason>` from the enum, which is right for a generic lock and wrong
+## for one whose author wrote a specific line. It travels here rather than being asked of the
+## target for the same reason `args` does - a refusal is announced once, with everything needed
+## to render it, and the prompt never has to hold a reference to a gameplay node.
+signal interaction_refused(target: Node3D, reason: GameEnums.RefusalReason, args: Dictionary,
+	message_key: String)
 
 # ---------------------------------------------------------------------------------------
 # Items and inventory. Emitted by the inventory component.
@@ -89,6 +94,16 @@ signal item_lost(item_id: StringName, count: int)
 signal item_used(item_id: StringName)
 ## Something about the inventory changed. The UI redraws on this and ignores the specifics.
 signal inventory_changed()
+
+## What one carrier has equipped changed. Emitted by an `Equipment` component and nothing else.
+## `wearer_id` is carried because equipment is per carrier — an NPC or a stash may have one — and
+## a listener that assumed "the player" would be wrong the first time a second one appeared.
+##
+## NOTHING NEEDS THIS TO GATE ANYTHING. Equipment lives in `Flags` under `equip/<wearer>/<item>`,
+## so a gate, a quest step or a dialogue condition reacts through `flag_changed` with no code at
+## all — the same reasoning that keeps a `TriggerVolume` from naming its consequence. This signal
+## exists for a UI that wants to redraw a row, which is a presentation concern and not a rule.
+signal equipment_changed(wearer_id: StringName, slot: GameEnums.EquipSlot, item_id: StringName)
 
 # ---------------------------------------------------------------------------------------
 # World state. Emitted by Flags, and by trigger volumes in the world.

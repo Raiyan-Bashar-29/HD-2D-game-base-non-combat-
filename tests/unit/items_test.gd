@@ -75,7 +75,8 @@ func _authored_names_are_translated() -> void:
 func _the_registry_finds_fixture_content() -> void:
 	equal("the fixture catalogue has no problems: %s" % str(ItemDb.problems()),
 		ItemDb.problems().is_empty(), true)
-	equal("all three fixture items loaded", ItemDb.count(), 3)
+	# Asked for, not written down: adding a fixture item must not mean editing a number here.
+	equal("every fixture item loaded", ItemDb.count(), FixtureContent.items().size())
 	var key_def: ItemDefinition = ItemDb.definition(UNIQUE)
 	equal("the unique item exists", key_def != null, true)
 	equal("its id survived the round trip", key_def.id, UNIQUE)

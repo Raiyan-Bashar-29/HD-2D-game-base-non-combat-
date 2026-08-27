@@ -47,7 +47,8 @@ Headless shades nothing. This project has already shipped two bugs that every ot
 | 06 | NPCs and navigation | **DONE** — see below |
 | 07 | Path actions | **DONE** — see below |
 | 08 | Quests | **DONE** — `a00ddda`, PR #16. The first package of Phase T3; see below |
-| 09 | Character depth | TODO |
+| 09 | Character depth — equipment | **DONE (split)** — the equipment third; see below. The row asked for three systems, which is over the size limit |
+| 09b | Character depth — attributes and surfaces | TODO — the other two thirds of the original row, with the reasons; see below |
 | 10 | Crafting and gathering | **OPTIONAL** — a genre choice, not a requirement of every game (TEMPLATE.md). Does not block v1.0 |
 | 11 | World map and fast travel | TODO |
 | 12 | Menus | **DONE** — taken out of order; it needed only WP-02 |
@@ -71,6 +72,7 @@ original board rather than continuing it.
 | T2.2 | Consumer documentation | **DONE** — `36b5abd`, PR #15. Phase T2 closes; see T2.2 below |
 | T3.1 | **A generic content registry** — a base holding the scan and cache, with a thin typed façade per registry | TODO — WP-08 made it the fourth copy of the same thirty lines and reconsidered the note in `schedule_db.gd`; the verdict and the reasoning are in the WP-08 section |
 | T3.2 | The five art-contract seams T2.1 left | TODO — shared materials, the environment post-stack and camera framing as `@export`s, the texture import defaults, the Git LFS lines |
+| T3.3 | **A quest step that can read an ITEM COUNT** | TODO — "bring me three petals" is still not authorable. Scoped by WP-09, which proved the flag seam is enough for "hold ONE of this" and not for a count; the two candidate designs and what each costs are in the WP-09 section |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
 T3 by subject and is sequenced FIRST by risk. The three content registries find items,
@@ -87,8 +89,10 @@ found. Every package built in the meantime would be built on an assumption known
 T2.1 by contrast fails locally, inside `CharacterVisual` and a `Theme`. Cheap test, architectural
 blast radius, so it goes first.
 
-**Re-framed rows on the original board.** WP-09's exit criterion "the lantern gates an area" is a
-content claim; restate it as *equipment can gate traversal, a lantern is the example*. WP-10 is a
+**Re-framed rows on the original board.** WP-09 was SPLIT rather than restated, and its section
+says why: three systems in one row is over the size limit. Its criterion "the lantern gates an
+area" was also a content claim, and what was built and proved is *equipment can gate traversal*,
+of which a lantern is the example. WP-10 is a
 genre choice, and the board row now says OPTIONAL. WP-14's "a smoke test that drives **the whole demo**"
 hard-wires the demo into a permanent gate; it should drive *a* game, from fixtures.
 
@@ -487,13 +491,159 @@ and the pull-request run (33091486449) are both green too.
 
 ---
 
-## WP-09 · Character depth
+## WP-09 · Character depth — equipment — **DONE**
 
 **Read:** `src/gameplay/character/` (all), `src/gameplay/interactables/gate.gd`,
 `src/systems/audio/audio_director.gd`.
 **Write:** an attribute container where adding an attribute is data not code; surface-aware
 footsteps; equipment that changes traversal — a lantern that makes dark places enterable.
 **Exit criteria:** the lantern gates an area, footsteps change with the surface underfoot.
+
+**THE ROW WAS THREE PACKAGES AND IT WAS SPLIT, which is the board's own rule rather than a
+shortcut.** "No package exceeds roughly 8 files or 500 new code lines. Over that, split it and add
+a row." An attribute container, a surface system with audio, and equipment are three systems with
+three sets of content, three test files and three captures. The equipment third was built because
+it is the one with a CONSUMER: traversal already has a class that gates on a flag, so equipment had
+somewhere to be proved the day it existed. `09b` carries the other two, each with its reason.
+
+**EQUIPMENT OWNS NO DICTIONARY, and everything else follows from that.** A slot is a flag:
+
+```
+equip/<wearer_id>/<item id>          equip/player/item/brass_lantern
+```
+
+which is `PersistentState`'s `obj/<area>/<object>/<field>` and `Standing`'s `standing/<who>`
+applied to a third case. Three consequences, and together they are the whole argument against a
+`Dictionary[EquipSlot, StringName]` plus a save section:
+
+1. **It is already saved.** No `SaveSystem.register`, no save version, no migration, and a new
+   game clears it for free because `start_new_game()` clears flags.
+2. **A gate can require it with no code.** A `requires_flag` pointing at one of those keys gates
+   traversal on a held lantern, and `Gate` was NOT TOUCHED. Neither was `QuestStep`, nor
+   `DialogueChoice`, nor `ClimbPoint` — so "carry a light to the dark place" is authorable as a
+   quest step today. Same seam WP-08 built quests on, used a second time by a second system, which
+   is the first evidence that the seam generalises rather than fitting one case.
+3. **It is announced already.** `flag_changed` fires, so `QuestTracker` re-derives and a dialogue
+   condition re-evaluates, and nothing had to learn that equipment exists.
+
+The cost is stated rather than hidden: the key contains an item id, so an item id becomes a public
+identifier the way an `object_id` is. Renaming an item's `.tres` brings it back stowed — the item
+itself survives, because `Inventory` deliberately keeps counts whose definition vanished.
+
+**THE ITEM STAYS IN THE BAG WHILE IT IS HELD**, and this is the load-bearing invariant. Moving it
+out would make equipment a second place items live: `count_of()` would begin lying, and
+`Gate.requires_item` would refuse a key that is in the player's hand. So equipping is purely a
+flag, and the price is that losing the item has to stow it — `_revalidate`, bound to
+`inventory_changed` rather than to `item_lost`, because that is the one signal every path emits
+including a restored save. That invariant is what the planted violation below breaks.
+
+**TWO @exports THAT HAD BEEN DECLARED, VALIDATED AND READ BY NOTHING.** Found while looking for
+where an equip-gated gate says "you need a light": `Gate.locked_key` (since WP-01) and
+`PathAction.refusal_key` (since WP-07) were both set by authored content, both checked by
+`check_content`, and both dead — the prompt computed `refusal.<reason>` from the enum and never
+asked. `PathAction.refusal_key`'s own comment claimed it was "shown for the LOW_STANDING refusal".
+This is gotcha 2's shape exactly: a message that is merely WRONG looks the same as a message that
+is right, so nothing failed. `interaction_refused` now carries a `message_key` — beside `args`, for
+the same reason `args` travels there — and `Interactable.refusal_key(who, reason)` is the override.
+An empty string means "compute it from the reason", which is what every object that has not
+authored a line returns.
+
+**Two defects the CAPTURE found and no gate could.** (1) The satchel screen redrew only on
+`inventory_changed`, so equipping from anywhere other than a row press left a held item drawn as
+merely carried — the first capture came back reading `Brass Lantern x1` with no marker while the
+log said it was equipped. It now listens to `equipment_changed` too. (2) `--open-inventory` did
+not wait for the area, so with `--new-game` it drew over the title screen. Third flag to need that
+wait after `--open-menu` and `--flag`, and gotcha 32's family again.
+
+**One engine surprise worth the gotcha list.** `Array[StringName].sort()` DOES NOT SORT
+ALPHABETICALLY — it orders by the StringName's internal handle. Two fixture ids came back reversed
+and the only trace was one failing assertion. `Inventory.ids()` already sorted through `String` for
+this reason, which is what made it findable in a minute; `equipped_ids()` now does the same.
+
+**Files.** `src/gameplay/character/equipment.gd` (82 code lines) · `GameEnums.EquipSlot` ·
+`ItemDefinition.equip_slot` and `is_equippable()` · `Events.equipment_changed`, plus `message_key`
+on `interaction_refused` · `Interactable.refusal_key` with overrides in `gate.gd` and
+`path_action_point.gd` · `interact_prompt.gd` preferring the authored line ·
+`inventory_screen.gd` (rows equip, and redraw on equipment) · `--equip=` in `dev_stage.gd` and the
+`--open-inventory` wait · `scenes/characters/player.tscn` gains an `Equipment` node ·
+`data/items/brass_lantern.tres` plus a pickup and an equip-gated `Gate` in the courtyard and 6 CSV
+rows · `tests/unit/equipment_test.gd` (70 outcomes) · three equippable fixture items and an
+`equip_slot` parameter on `FixtureContent.item()` · `docs/AUTHORING.md` § Make an item equippable.
+1149 → **1224** (70 here, and 5 that `docs_test.gd` computed from the new worked example).
+
+**`items_test.gd`'s hard-coded `3` became `FixtureContent.items().size()`**, on the same reasoning
+as a computed plan: adding a fixture must not mean editing a number somewhere else.
+
+**PROVED RED, THEN GREEN — both, with the real failure shape (gotcha 23).** (1) The gate's
+`locked_key` misspelled by one letter in the authored scene: `check_content` exits 1 with
+`courtyard.tscn:369 localization key 'object.gate.arch.lockd' is not in the CSV`; reverted, exit 0.
+(2) The load-bearing invariant broken the way it would really break — `equip()` made to remove the
+item from the bag: the suite exits 1, `1201 passed, 18 failed`, first failure
+*"it is still carried — expected true, got false"*; reverted, `1219 passed, 0 failed`, exit 0.
+
+**The input path was proved by a temporary probe and the probe was removed** (gotcha 15). Run
+windowed: `PROBE focus='@Button@26' held=[]` → press → `held=[&"item/brass_lantern"]` → press again
+→ `held=[]`. `git diff src/systems/debug/` carries only `--equip` and the `--open-inventory` wait.
+
+**Three windowed captures at midday, LOOKED AT and READ rather than glanced at** (gotcha 28 — a
+screen that merely looks fine is not evidence). The satchel showing
+`Brass Lantern  x1   [in hand]` under *Tools* beside an unmarked `Rose Petal  x2` under *Materials*
+— the discriminating pair, since a marker glued onto every row would look identical on one item.
+The arch refusing with *"It is pitch dark beyond the arch, and you have no light in hand."* while
+the lantern sits in the bag. And the same arch, same camera, same hour, one `--equip` different:
+the blocker slab GONE and *"Lantern raised, the dark under the arch gives way."* up.
+**The `Button` styleboxes were left unpopulated again** — the satchel's rows are legible against
+the shipped dark palette, so it did not force the decision either.
+
+**Deferred, with reasons, not silently.**
+- **A quest step still cannot read an ITEM COUNT**, and equipment did not make it cheaper. Being
+  HELD is a fact about one item, which is what a flag is; holding THREE OF something is a count,
+  and both ways to expose it are real design decisions rather than an afternoon: an `Inventory`
+  that mirrored `count/<item>` into `Flags` would write every carried item into the flag section
+  as well as its own, and a `QuestStep` that read the bag directly would put `gameplay/Inventory`
+  inside a `systems` tracker against the layer rule. It is **T3.3** on the board now rather than a
+  line in three documents.
+- **Attributes and footsteps** are `09b`, and the reason is stated there rather than here.
+- No equipment SCREEN — the satchel is where equipping happens, and a second window listing five
+  slots with one thing in them would be a UI for content that does not exist.
+- No stat effect from equipment: nothing reads a stat yet, which is `09b`'s problem.
+- Combat is still not a thing. `EquipSlot` has no weapon and no armour value and will not get one.
+
+**Ladder, all green.** `--headless --import` with **zero** `SCRIPT ERROR` / `Parse Error` lines;
+boot `0 warnings, 0 errors`; suite **1224 passed, 0 failed, 0 skipped**, exit 0; `check_budgets`,
+`check_content` and `check_boundary` all exit 0 — and `check_boundary` derives
+`item/brass_lantern` and `brass_lantern` as demo names and finds neither in `src/` or `tests/`.
+
+---
+
+## WP-09b · Character depth — attributes and surfaces
+
+The two thirds of the original WP-09 row that were split out. Both are real; neither had a consumer
+the way equipment did, and that is the whole reason they went second.
+
+**Read:** `src/gameplay/character/player_controller.gd`, `src/gameplay/character/standing.gd` (the
+namespace-over-Flags shape), `src/gameplay/character/equipment.gd` (the same shape, applied),
+`src/systems/audio/audio_director.gd`, `src/gameplay/world/surface_wetness.gd` (something already
+walks every material in an area), `src/core/util/layers.gd`.
+
+**Write**
+- An attribute container where adding an attribute is DATA, not code. **Decide first what reads
+  one**, because 17 of the 23 settings have no consumer and a second declared-and-unread system is
+  the failure this project keeps catching. The cheapest honest consumer is `PlayerController`'s
+  walk speed, which would make the proof a capture of two measurably different traversal times.
+- Surface tagging on area geometry, and footsteps that change with it.
+
+**Exit criteria:** an attribute changes something observable and persists; the surface under the
+player is reported correctly on at least two materials, and the step sound follows it.
+
+**Two things to know before starting.**
+- **A footstep is the one claim this ladder cannot see AT ALL.** Not visual, so no capture reads
+  it; not synchronous, so no assertion reaches it; and under `--headless` the audio driver is
+  `Dummy` and every `play()` LEAKS (gotcha 20). So the assertable part is the SURFACE QUERY — "what
+  am I standing on" as a pure function — and the sound is a windowed run with the log quoted, the
+  same split `SurfaceWetness` made for drying.
+- **Art, audio included, is deferred.** A footstep sample is a dependency this project will not
+  take. `AmbienceBed` generates its noise procedurally; a step does the same or it does not ship.
 
 ---
 

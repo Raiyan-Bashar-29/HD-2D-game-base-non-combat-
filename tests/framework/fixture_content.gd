@@ -25,6 +25,13 @@ extends RefCounted
 const UNIQUE_ITEM: StringName = &"item/fixture_unique"
 const STACK_ITEM: StringName = &"item/fixture_stack"
 const SPARE_ITEM: StringName = &"item/fixture_spare"
+## Three equippable fixtures, and each one exists to make a different rule observable: two in the
+## SAME slot (so displacing an occupant is distinguishable from adding a second) and one in
+## another slot (so two slots coexisting is distinguishable from one slot being overwritten).
+## Every other fixture item has slot NONE, which is what proves an ordinary item is refused.
+const HELD_ITEM: StringName = &"item/fixture_held"
+const OTHER_HELD_ITEM: StringName = &"item/fixture_held_two"
+const WORN_ITEM: StringName = &"item/fixture_worn"
 const STACK_LIMIT: int = 20
 
 const TALK: StringName = &"talk/fixture_speaker"
@@ -53,18 +60,24 @@ const STANDING_ID: StringName = &"fixture_person"
 const SUCCESS_FLAG: StringName = &"fixture/bartered"
 
 
-## The three items every content-shaped assertion in the suite needs: one unique key item, one
-## that stacks to a limit below its category's default, and a second material so a sort order
-## has something to be an order OF.
+## The item fixtures every content-shaped assertion in the suite needs: one unique key item, one
+## that stacks to a limit below its category's default, a second material so a sort order has
+## something to be an order OF, and three equippable ones. All six go to disk together, so
+## `ItemDb.count()` is asked for `items().size()` rather than compared to a number that would
+## have to be edited here and there both.
 static func items() -> Array[ItemDefinition]:
 	var out: Array[ItemDefinition] = []
 	out.append(item(UNIQUE_ITEM, GameEnums.ItemCategory.KEY_ITEM, 1))
 	out.append(item(STACK_ITEM, GameEnums.ItemCategory.MATERIAL, STACK_LIMIT))
 	out.append(item(SPARE_ITEM, GameEnums.ItemCategory.MATERIAL, 99))
+	out.append(item(HELD_ITEM, GameEnums.ItemCategory.TOOL, 1, GameEnums.EquipSlot.LIGHT))
+	out.append(item(OTHER_HELD_ITEM, GameEnums.ItemCategory.TOOL, 1, GameEnums.EquipSlot.LIGHT))
+	out.append(item(WORN_ITEM, GameEnums.ItemCategory.CLOTHING, 1, GameEnums.EquipSlot.GARMENT))
 	return out
 
 
-static func item(id: StringName, category: GameEnums.ItemCategory, max_stack: int) -> ItemDefinition:
+static func item(id: StringName, category: GameEnums.ItemCategory, max_stack: int,
+		equip_slot: GameEnums.EquipSlot = GameEnums.EquipSlot.NONE) -> ItemDefinition:
 	var made := ItemDefinition.new()
 	made.id = id
 	# A name_key that is deliberately NOT in strings.csv. tr() returns the key unchanged, which
@@ -72,6 +85,7 @@ static func item(id: StringName, category: GameEnums.ItemCategory, max_stack: in
 	made.name_key = "fixture.%s.name" % String(id).get_file()
 	made.category = category
 	made.max_stack = max_stack
+	made.equip_slot = equip_slot
 	return made
 
 

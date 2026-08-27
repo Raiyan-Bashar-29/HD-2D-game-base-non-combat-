@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://src/gameplay/character/player_controller.gd" id="1_ctrl"]
 [ext_resource type="Script" path="res://src/gameplay/character/character_visual.gd" id="2_vis"]
@@ -6,6 +6,7 @@
 [ext_resource type="Resource" path="res://assets/placeholder/character_layout.tres" id="6_layout"]
 [ext_resource type="Script" path="res://src/systems/interaction/interaction_sensor.gd" id="4_sensor"]
 [ext_resource type="Script" path="res://src/gameplay/character/inventory.gd" id="5_inv"]
+[ext_resource type="Script" path="res://src/gameplay/character/equipment.gd" id="7_equip"]
 
 [sub_resource type="CapsuleShape3D" id="1_body"]
 radius = 0.28
@@ -40,3 +41,6 @@ shape = SubResource("2_reach")
 
 [node name="Inventory" type="Node" parent="."]
 script = ExtResource("5_inv")
+
+[node name="Equipment" type="Node" parent="."]
+script = ExtResource("7_equip")

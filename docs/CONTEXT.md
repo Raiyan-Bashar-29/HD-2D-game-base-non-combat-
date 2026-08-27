@@ -3,14 +3,18 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-27 · **WP-08 (quests) complete — `a00ddda`, PR #16. Phase T3 is open.**
-A quest is authored data, every step names a FLAG CONDITION rather than a callback, and the
-placeholder quest is driven entirely by flags the demo was already writing: a conversation starts
-it, the lever advances it, the dais trigger completes it, and none of those three files was touched.
+**Last updated:** 2026-08-27 · **WP-09 (equipment) complete — `<COMMIT>`, PR #17. Second package
+of Phase T3.** An `ItemDefinition` gained one field and `Equipment` is a component that **owns no
+dictionary**: a slot is the flag `equip/<wearer>/<item>`, so a `Gate`, a `QuestStep` and a
+`DialogueChoice` all gate on what is in hand with no code and no new field in any of them. `Gate`
+was not touched to make the demo's equip-gated arch work. The row's other two thirds — attributes
+and surface-aware footsteps — were SPLIT onto the board as `09b`, because three systems in one row
+is over the size limit.
 
-*(Previously: T2.2, consumer documentation — **Phase T2 is closed, and
-its last criterion was PERFORMED: an area, an NPC and a conversation authored from the docs alone,
-six doc defects found that way, and the content then deleted**.)*
+*(Previously: WP-08, quests — a quest is authored data, every step names a FLAG CONDITION rather
+than a callback, and the placeholder quest is driven entirely by flags the demo was already
+writing. Before that: T2.2, consumer documentation — **Phase T2 is closed, and its last criterion
+was PERFORMED**, six doc defects found by authoring from the docs alone.)*
 
 > **This is a TEMPLATE, not a game.** Read [`TEMPLATE.md`](TEMPLATE.md) — it is short, and the
 > roadmap, the board and parts of this file were written before that reframing. The courtyard and
@@ -24,11 +28,12 @@ Every package — WP-01 through WP-07, plus WP-12 and WP-13 — is on **`claude/
 **`claude/t1-3-fixtures`**, branched from T1.2; T1.4 is on **`claude/t1-4-ci`**, branched from
 T1.3; T2.0 is on **`claude/t2-0-export-proof`**, branched from T1.4; T2.1 is on
 **`claude/t2-1-art-contract`**, branched from T2.0; T2.2 is on **`claude/t2-2-consumer-docs`**,
-branched from T2.1; WP-08 is on **`claude/wp-08-quests`**, branched from T2.2. The nine earlier
+branched from T2.1; WP-08 is on **`claude/wp-08-quests`**, branched from T2.2; WP-09 is on
+**`claude/wp-09-character`**, branched from WP-08. The nine earlier
 PRs are superseded.
 
-**Branch new work from `claude/wp-08-quests`**, or from `main` once #10, #11, T1.2-T1.4,
-T2.0, T2.1, T2.2 and WP-08 have landed. The older
+**Branch new work from `claude/wp-09-character`**, or from `main` once #10, #11, T1.2-T1.4,
+T2.0, T2.1, T2.2, WP-08 and WP-09 have landed. The older
 per-package branches (`claude/wp-04-second-area`, `claude/wp-05-dialogue`, `claude/wp-06-npcs`,
 `claude/wp-07-path-actions`, `claude/wp-12-menus`, `claude/wp-13-presentation`) are history and
 should not be built on.
@@ -48,8 +53,8 @@ game built on this will need, so a new game is content and data rather than new 
 ## Where it stands
 
 Phase 0 complete, Phase 1 COMPLETE, Phase 2 well under way, **Phase T1 COMPLETE, Phase T2
-COMPLETE as of T2.2, and Phase T3 OPEN with WP-08 done.** 111 files, 9,291 code lines,
-16 scenes, 2 areas, 3 items, 1 conversation, 1 schedule, 1 quest, 2 path actions, 2 sprite sheet
+COMPLETE as of T2.2, and Phase T3 OPEN with WP-08 and WP-09 done.** 113 files, 9,576 code lines,
+16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest, 2 path actions, 2 sprite sheet
 layouts.
 Boots headless with **0 warnings, 0 errors**.
 
@@ -58,7 +63,7 @@ input actions · settings · save/load with atomic writes and versioning · plot
 director with a re-entrancy guard and threaded loading · world clock · weather state · audio
 buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 8-way character ·
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
-placeholder art generator · line-budget checker · a headless test suite (1,149 assertions) that
+placeholder art generator · line-budget checker · a headless test suite (1,224 assertions) that
 builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
 returns early, asserts nothing, or is not listed in the runner ·
 an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
@@ -97,21 +102,56 @@ registry, every step naming a FLAG CONDITION rather than a callback, a `QuestTra
 progress from `Flags` and latches only the two things that cannot be derived, and a journal screen
 on `J` — the placeholder quest is started by the keeper's conversation, advanced by the courtyard
 lever and completed by the dais trigger volume, and **none of those three files was touched**.
-Two windowed captures LOOKED AT, and the `J` key proved by a temporary probe that was removed.
+Two windowed captures LOOKED AT, and the `J` key proved by a temporary probe that was removed ·
+**equipment as a FLAG rather than a store**: `Equipment` is a component beside `Inventory` that owns
+no dictionary — a slot is `equip/<wearer>/<item id>`, so it is already saved, already announced on
+`flag_changed`, and a `Gate`, a `QuestStep`, a `DialogueChoice` and a `ClimbPoint` gate on what is
+in hand **with no code and no new field in any of them**; the demo's equip-gated arch works with
+`Gate` untouched. Enter on a satchel row holds or stows, proved by a temporary probe that was
+removed. Three windowed captures LOOKED AT and READ · **a refusal can carry an AUTHORED line**:
+`Gate.locked_key` and `PathAction.refusal_key` had both been declared, validated by `check_content`
+and read by nothing, and the player got a generic message about a different door.
 
-**Not built:** hard-coded-string audit · item instances (durability) · equipment ·
+**Not built:** hard-coded-string audit · item instances (durability) · character ATTRIBUTES and
+surface-aware footsteps, the other two thirds of WP-09, split onto the board as `09b` ·
+an equipment SCREEN, and nothing reads a stat, because nothing has a stat ·
 item tooltips, sorting and drag-and-drop · branch protection, so CI reports but nothing stops a
 red branch merging · no CI export rung (a GPU-less runner has no platform template) · export
 presets for platforms other than Windows · a release-build content readout, since the debug gate
-means a release export prints nothing · a quest step cannot read an ITEM COUNT, because
-`Inventory` keeps counts and not flags, so "bring me three petals" is not authorable and needs a
-`Pickup` that writes a flag. The theme does not yet set the `Button` styleboxes, so a light
-palette leaves every menu row drawing Godot's default dark panel — the seam is right and in the
-same file, simply unpopulated.
+means a release export prints nothing · a quest step cannot read an ITEM COUNT — WP-09
+NARROWED this rather than closing it: a flag is enough for "HOLD one of this", because being
+held is a fact about one item, and a COUNT is not; both ways to expose one cost something
+real, so it is **T3.3** on the board with both options costed. The theme does not yet set the
+`Button` styleboxes, so a light palette leaves every menu row drawing Godot's default dark
+panel — the seam is right and in the same file, simply unpopulated. Third package to leave
+them, each time for a stated reason.
 Five of T2.1's nine roadmap items are also left: shared materials, the environment post-stack as
 `@export`s, per-area camera exports, the texture import defaults and the Git LFS lines.
 
 ## Known defects
+
+**Fixed 2026-08-27 in WP-09, and both had been wrong for packages while every rung stayed green:**
+
+1. **`Gate.locked_key` and `PathAction.refusal_key` were DECLARED, VALIDATED AND READ BY NOTHING.**
+   Since WP-01 and WP-07 respectively. Authored content set them, `check_content` required a CSV
+   row for them, and `interact_prompt.gd` computed `refusal.<reason>` from the enum and never asked
+   the object — so every gate in the game told the player "It will not budge. Something holds it
+   shut." whatever its author had written, and `PathAction.refusal_key`'s own comment claimed it was
+   "shown for the LOW_STANDING refusal". This is gotcha 2's shape in its most invisible form: a
+   message that is merely WRONG looks exactly like a message that is right, so eight rungs, both CI
+   jobs and 1,149 assertions were green over it. Found by looking for where an equip-gated gate
+   would say "you need a light". `interaction_refused` now carries a `message_key`, and the
+   authored line is photographed in WP-09's second capture.
+2. **The satchel screen redrew only on `inventory_changed`.** So equipping from anywhere other than
+   a row press left a held item drawn as merely carried — the first WP-09 capture photographed
+   exactly that while the log said `player equipped`. Found by a capture, not by a gate; the screen
+   was still right about the bag, so nothing could fail. See gotcha 34.
+
+**Also fixed 2026-08-27 in WP-09, and it is gotcha 32 for the third time:** `--open-inventory` did
+not wait for the area, so with `--new-game` it drew over the title screen and the arriving
+transition unwound it. Third staging flag to need that wait after `--open-menu` and `--flag`, and
+`dev_stage.gd` now says any flag that puts something on screen needs it.
+
 
 **Fixed 2026-08-26 in T2.0, and it was invisible until an export existed:**
 
@@ -512,6 +552,41 @@ three compiled cleanly and passed every static gate:**
   flag with no findable writer would be wrong most times it fired. A partial check that looks
   complete is the failure mode this project exists to prevent, so the flags go in the build log
   where a reviewer reads them.
+- **EQUIPMENT IS A FLAG, NOT A STORE.** `Equipment` is a component beside `Inventory` — same
+  `of(who)` reasoning, so an NPC or a stash can have one — and it owns NO DICTIONARY. A slot is
+  `equip/<wearer_id>/<item id>` in `Flags`, which is `PersistentState`'s `obj/<area>/<object>/<field>`
+  and `Standing`'s `standing/<who>` applied a third time. Three things fall out and together they
+  are the whole argument against a `Dictionary[EquipSlot, StringName]` plus a save section: it is
+  already saved (no register, no version, no migration, and a new game clears it because
+  `start_new_game()` clears flags); a `Gate`, a `QuestStep`, a `DialogueChoice` and a `ClimbPoint`
+  gate on it **with no code and no new field**, which is WP-08's seam used by a second system; and
+  `flag_changed` already announces it. The cost is stated: the key contains an item id, so renaming
+  an item's `.tres` brings it back stowed.
+- **THE ITEM STAYS IN THE BAG WHILE IT IS HELD.** Moving it out would make equipment a second place
+  items live — `Inventory.count_of()` would begin lying and `Gate.requires_item` would refuse a key
+  that is in the player's hand. So equipping is purely a flag, and the price is that losing the item
+  has to stow it: `Equipment._revalidate`, on `inventory_changed` rather than on `item_lost`, because
+  that is the one signal every path emits including a restored save. It is the invariant the suite
+  fails first when broken.
+- **ONE ITEM PER SLOT, AND THE NEWCOMER WINS.** Holding a second LIGHT stows the first rather than
+  being refused, because a refusal would make swapping a lantern a two-step chore the player cannot
+  see a reason for. `can_equip()` is the seam a strength rule or a two-handed rule goes into, the
+  analogue of `Inventory.can_accept()`.
+- **`EquipSlot` HAS NO WEAPON AND NO ARMOUR VALUE**, the same absence `ItemCategory` has, and for
+  the same retraction. A slot answers "what does holding this let you do", never "how hard do you
+  hit". It is append-only, because an `ItemDefinition` stores it as an ordinal.
+- **A REFUSAL MAY CARRY AN AUTHORED LINE, and a reason is a CATEGORY rather than a sentence.**
+  `interaction_refused` carries a `message_key` beside `args` — travelling on the signal rather than
+  asked of the target, exactly as `args` does — and `Interactable.refusal_key(who, reason)` is the
+  override, with "" meaning "compute `refusal.<reason>` from the enum". The alternative was a new
+  `RefusalReason` per authored line, which is a category per sentence and the growth the closed sets
+  exist to prevent. `Gate.locked_key` and `PathAction.refusal_key` had been declared, validated by
+  `check_content` and read by NOTHING since WP-01 and WP-07 — see the defects section.
+- **A UI REDRAWS ON THE WORLD'S SIGNAL, NEVER ONLY ON ITS OWN INPUT.** `InventoryScreen` refreshed
+  on `inventory_changed` alone, so a row press redrew and an equip from anywhere else did not — and
+  the first WP-09 capture photographed a held lantern drawn as merely carried. A press is never the
+  only writer: staging equips from the command line, and `_revalidate` stows on its own. That is
+  why `equipment_changed` exists at all, and it is a general rule rather than one screen's bug.
 - Six ADRs in `docs/decisions/` cover the layered `src/`, warnings-as-errors, the input map,
   and save-via-callables.
 
@@ -527,14 +602,14 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 120               # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,149 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,224 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Thirty-two gotchas that each cost an hour
+## Thirty-four gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -747,6 +822,23 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     never did, but staging that ran before the thing it was staging for. Any future `--` flag that
     poses state a new game resets needs the same wait, and `dev_stage.gd`'s header says so.
 
+
+33. **`Array[StringName].sort()` DOES NOT SORT ALPHABETICALLY.** It orders by the StringName's
+    internal handle, so the result is stable within a run and arbitrary between them. It compiles,
+    it looks like a sort, and `Equipment.equipped_ids()` returned two ids in the wrong order with a
+    single failing assertion as the only trace. `Inventory.ids()` had already hit this and sorts
+    through `String` with a `sort_custom`, which is the only reason this cost a minute rather than
+    an hour — a comment saying WHY a line is not the obvious one is worth more than the line.
+    Anything sorting `StringName`s goes through `String`.
+
+34. **A UI THAT REDRAWS ONLY ON ITS OWN INPUT IS SILENTLY WRONG THE MOMENT SOMETHING ELSE WRITES.**
+    `InventoryScreen` refreshed on `inventory_changed`, so pressing a row to equip redrew correctly
+    and equipping from anywhere else did not — and the first WP-09 capture came back showing a held
+    lantern drawn as merely carried while the log said `player equipped`. Nothing failed, because
+    the screen was still right about the bag. A press is never the only writer: staging equips from
+    the command line, `_revalidate` stows on its own, and a save restores. Subscribe to the fact,
+    not to the gesture. This is gotcha 2's family in the UI layer, and only a capture sees it.
+
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the
@@ -755,16 +847,20 @@ names the exact files that chat should read, so a session loads a few hundred li
 (`core -> content -> systems -> gameplay -> ui`, downward only) is what makes that possible: a
 package never has to read upward.
 
-**Next package: WP-09 — character depth, the second package of Phase T3.** WP-08 closed the widest
-hole in the catalogue; WP-09 is the next system with no proof, and it now has one it did not have
-before: a quest's start condition and a step are both flag tests, so "equipment can gate traversal"
-has a way to be *asked for* by authored content rather than hard-wired. Read the WP-09 row on the
-board. Two alternatives to it, both real and both narrower: **WP-11** (world map and fast travel),
-whose markers are now a listener on `quest_advanced` — which finally has an emitter — and **T3.1**,
-the generic content registry, which WP-08 scoped by producing the fourth copy of the same thirty
-lines. **T3.2** holds the five T2.1 leftovers (shared materials, the environment post-stack and
-camera framing as `@export`s, the texture import defaults, the LFS lines) so they stop being
-mentioned in five places and reopening T2 stays unnecessary.
+**Next package: WP-11 — world map and fast travel, the third package of Phase T3.** It is the last
+system in the catalogue with NO PROOF AT ALL, which is the same reason WP-08 went first, and it now
+has two emitters it did not have when the row was written: `quest_advanced` for objective markers,
+and area discovery is the same derive-from-`Flags` shape `QuestTracker` and `Equipment` both use, so
+"discovery persists" needs no new save section. Read the WP-11 row on the board.
+
+Three alternatives, all real and all narrower. **T3.1**, the generic content registry — WP-08 scoped
+it by producing the fourth copy of the same thirty lines and recorded the verdict. **T3.3**, a quest
+step that can read an ITEM COUNT — WP-09 narrowed the gap and costed both candidate designs, so
+whoever takes it is choosing between two stated options rather than starting from a complaint.
+**WP-09b**, the attributes and surfaces half of the split WP-09 row, whose first task is deciding
+what actually READS an attribute; 17 of the 23 settings have no consumer and a second
+declared-and-unread system is the failure this project keeps catching. **T3.2** still holds the five
+T2.1 leftovers so they stop being mentioned in five places.
 
 *(This line names ONE package. Earlier revisions accumulated a stale line per package and two were
 left stranded here; if you ever find two, the lower one is history — delete it.)*
@@ -782,18 +878,22 @@ world — then walk north through a door into a lantern-lit hall that has never 
 and come back, and ask the garden-keeper who they are and what lies behind the north gate, in a
 box that leaves the world running behind it — and that conversation now hands you an errand, which
 the lever you already threw and the dais you already crossed advance and settle, readable on `J` at
-any point. Every one of those changes survives a save and a
+any point — and pick a lantern up, hold it from the satchel with Enter, and pass under an arch
+that turned you away a moment earlier with a line its author wrote. Every one of those changes
+survives a save and a
 reload, including from the far side of an area that is no longer loaded. All of it is covered
-by 1,149 headless assertions.
+by 1,224 headless assertions.
 
 **Next, in this order.** The order matters and is not arbitrary:
 
-1. **The rest of the system catalogue**, WP-09 to WP-15 re-framed — see the board. WP-09 next.
+1. **The rest of the system catalogue**, WP-11 to WP-15 re-framed — see the board. WP-11 next,
+   because it is the last system with no proof at all.
 2. **T3.1**, a generic content registry with a typed façade per catalogue, now that there are four
-   copies of the same thirty lines, and **T3.2**, the five art-contract seams T2.1 left open.
+   copies of the same thirty lines; **T3.2**, the five art-contract seams T2.1 left open; and
+   **T3.3**, a quest step that can read an item count, which WP-09 costed rather than closed.
 
-*(Path actions, NPC schedules, navigation baking, weather visuals and quests are all DONE — WP-06,
-WP-07, WP-08 and WP-13.)*
+*(Path actions, NPC schedules, navigation baking, weather visuals, quests and equipment are all
+DONE — WP-06, WP-07, WP-08, WP-09 and WP-13.)*
 
 **Still open, and expensive later:**
 - **The export path is PROVEN as of T2.0** — an exported `.exe` reports the same catalogue counts
@@ -805,7 +905,8 @@ WP-07, WP-08 and WP-13.)*
 ## Read next
 
 `CLAUDE.md` (rules, and the doc router table) · `docs/TEMPLATE.md` (why this is not a game) ·
-**`docs/AUTHORING.md`** (add an area, an NPC, a conversation, an item, an object, a quest) ·
+**`docs/AUTHORING.md`** (add an area, an NPC, a conversation, an item, an object, a quest,
+equipment) ·
 **`docs/ART_CONTRACT.md`** (what art must satisfy) · **`docs/TESTING.md`** (adding assertions) ·
 `docs/ARCHITECTURE.md` (§ The extension surface — what may be subclassed) ·
 `docs/NEW_GAME.md` · `docs/SYSTEMS_INVENTORY.md` · `docs/ROADMAP.md` · `docs/DEVLOG.md` ·

@@ -118,3 +118,12 @@ func _mark_done() -> void:
 func _carried_by(who: Node3D) -> bool:
 	var bag: Inventory = Inventory.of(who)
 	return bag != null and bag.has(action.requires_item)
+
+
+## Same unwired field, same fix as `Gate.locked_key`: `PathAction.refusal_key`'s own comment
+## claimed it was "shown for the LOW_STANDING refusal", and nothing read it. Found while wiring
+## the gate; left half-done it would have been a second latent one.
+func refusal_key(_who: Node3D, reason: GameEnums.RefusalReason) -> String:
+	if action == null or reason != GameEnums.RefusalReason.LOW_STANDING:
+		return ""
+	return action.refusal_key

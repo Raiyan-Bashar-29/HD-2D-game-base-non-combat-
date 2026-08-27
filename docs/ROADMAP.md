@@ -254,10 +254,24 @@ item", and a blocking item scheduled last is a contradiction. Sequenced by risk,
   started, and that it completed). A `JournalScreen` on `J`, one placeholder quest, and 49 new
   assertions. See the board.
 
+- **WP-09 Character depth — PARTIAL, and deliberately: EQUIPMENT DONE, 2026-08-27.** The row asked
+  for three systems in one package — an attribute container, surface-aware footsteps and equipment
+  that changes traversal — which is over the board's own 8-file limit, so it was split and the half
+  with a consumer was built. An `ItemDefinition` gains one field, `equip_slot`, and `Equipment` is a
+  component beside `Inventory` that **owns no dictionary**: a slot is the flag
+  `equip/<wearer>/<item>`, so a `Gate`, a `QuestStep` and a `DialogueChoice` all gate on what is in
+  hand with **no code and no new field in any of them**. Enter on a satchel row holds or stows.
+  The other two thirds are **WP-09b** on the board, with the reason each was deferred.
+
 Exit criteria:
 - [ ] Every system has one proof, and no system has a second area's worth of content
       — quests: **done**, WP-08, 2026-08-27. One quest, two steps, two windowed captures LOOKED AT:
       the journal with the objective open, and the same quest under "Settled" with its toast up
+      — equipment: **done**, WP-09, 2026-08-27. One equippable item, one gate requiring it, three
+      windowed captures LOOKED AT and READ rather than glanced at: the satchel with
+      `Brass Lantern x1 [in hand]` beside an unmarked `Rose Petal x2`, the arch refusing with its
+      own authored line, and the same arch with the blocker gone one flag later
+      — attributes and surface-aware footsteps: **not done**, WP-09b
 
 ## Phase T4 — Template v1.0
 

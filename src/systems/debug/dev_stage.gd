@@ -21,6 +21,9 @@ extends Node
 ## EVERYTHING AFTER THE BARE `--` IS PASSED TO THE GAME:
 ##
 ##   --give=<list>        put items in the player's bag: item/rose_key,item/rose_petal:3
+##   --equip=<list>       put items IN HAND, after the area lands: --equip=item/lantern. The
+##                        carrier must already hold them, so --give comes first on the line.
+##                        Equipment is a flag, and --new-game clears flags — see gotcha 32.
 ##   --open-inventory     push the inventory screen over a stopped world. Apply --give first,
 ##                        or the capture shows an empty bag.
 ##   --talk=<id>          open a conversation: --talk=talk/gardener
@@ -70,6 +73,8 @@ func _parse_arguments() -> void:
 	for argument: String in OS.get_cmdline_user_args():
 		if argument.begins_with("--give="):
 			_give(argument.trim_prefix("--give="))
+		elif argument.begins_with("--equip="):
+			_equip(argument.trim_prefix("--equip="))
 		elif argument == "--open-inventory":
 			_open_inventory()
 		elif argument.begins_with("--talk-advance="):
@@ -126,12 +131,41 @@ func _give(list: String) -> void:
 		Log.info("test", "--give %s x%d: %s" % [parts[0], count, str(added)])
 
 
-## Pushes the inventory screen so a windowed capture can show a real screen over a real,
-## stopped world. Deferred by two frames: UiRoot is a sibling built in the same _ready() pass
-## as this node, and --give needs its own frame before this one reads the bag.
+
+
+## Put items in hand for a capture. AFTER the area lands, for gotcha 32's reason: equipment is a
+## flag and `--new-game` clears every flag, so this staged during argument parsing would be gone
+## by the time there was anything to photograph — exactly how WP-08's first capture came back
+## empty. Goes through `Equipment.equip`, so a capture of an item in hand is a capture of the
+## real rule: an item the player is not carrying is refused here as it would be in the screen.
+func _equip(list: String) -> void:
+	await get_tree().process_frame
+	if _fresh_game:
+		await _wait_for_area()
+	var worn: Equipment = Equipment.of(Director.player)
+	if worn == null:
+		Log.error("test", "--equip found no Equipment on the player")
+		return
+	for item_id: String in list.split(",", false):
+		var done: bool = worn.equip(StringName(item_id))
+		Log.info("test", "--equip %s: %s (flag %s)" % [
+			item_id, str(done), worn.key(StringName(item_id)),
+		])
+
+
+## Pushes the inventory screen so a windowed capture can show a real screen over a real, stopped
+## world. Deferred by two frames: UiRoot is a sibling built in the same _ready() pass as this
+## node, and --give needs its own frame before this one reads the bag.
+##
+## AND THEN FOR THE AREA, when --new-game is on the same line. Without that it drew over the
+## title screen and the arriving transition unwound it — the same shape as gotcha 32, and the
+## third flag to need this wait after --open-menu and --flag. Any new flag that puts something on
+## screen needs it too.
 func _open_inventory() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
+	if _fresh_game:
+		await _wait_for_area()
 	var stack: UiRoot = UiRoot.find(self)
 	if stack == null:
 		Log.error("test", "--open-inventory found no UiRoot in the tree")
@@ -370,3 +404,5 @@ func _open_menu(list: String) -> void:
 			Log.error("test", "--open-menu=%s found no stack or no such menu" % menu_id)
 			return
 		Log.info("test", "--open-menu %s pushed: %s" % [menu_id, str(stack.open(screen))])
+
+

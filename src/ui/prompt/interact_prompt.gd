@@ -63,8 +63,11 @@ func _on_target_changed(target: Node3D, verb: GameEnums.InteractVerb, label_key:
 		_redraw()
 
 
-func _on_refused(_target: Node3D, reason: GameEnums.RefusalReason, args: Dictionary) -> void:
-	text = tr(_refusal_key(reason)).format(args)
+func _on_refused(_target: Node3D, reason: GameEnums.RefusalReason, args: Dictionary,
+		message_key: String) -> void:
+	# An authored line wins over the one computed from the reason; see events.gd.
+	var key: String = message_key if message_key != "" else _refusal_key(reason)
+	text = tr(key).format(args)
 	visible = true
 	_refusal_left = REFUSAL_SECONDS
 

@@ -1,4 +1,4 @@
-[gd_scene load_steps=35 format=3]
+[gd_scene load_steps=36 format=3]
 
 [ext_resource type="Script" path="res://src/gameplay/world/area_root.gd" id="1_area"]
 [ext_resource type="Script" path="res://src/gameplay/world/environment_driver.gd" id="2_env"]
@@ -16,6 +16,7 @@
 [ext_resource type="Resource" path="res://data/items/rose_key.tres" id="12_key"]
 [ext_resource type="Resource" path="res://data/items/rose_petal.tres" id="13_petal"]
 [ext_resource type="Resource" path="res://data/items/stone_chip.tres" id="14_chip"]
+[ext_resource type="Resource" path="res://data/items/brass_lantern.tres" id="23_lantern"]
 [ext_resource type="PackedScene" path="res://scenes/objects/trigger_volume.tscn" id="15_trigger"]
 [ext_resource type="PackedScene" path="res://scenes/objects/rest_point.tscn" id="16_rest"]
 [ext_resource type="PackedScene" path="res://scenes/objects/climb_point.tscn" id="17_climb"]
@@ -353,5 +354,19 @@ object_id = &"keeper_barter"
 action = ExtResource("22_barter")
 standing_id = &"keeper"
 interact_priority = 1
+
+
+[node name="BrassLantern" parent="Interactables" instance=ExtResource("10_pickup")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.6, 0, 4.4)
+object_id = &"brass_lantern_pickup"
+item = ExtResource("23_lantern")
+
+[node name="ShadowedArch" parent="Interactables" instance=ExtResource("9_gate")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -9.5, 0, 6)
+object_id = &"shadowed_arch"
+label_key = "object.gate.arch.label"
+requires_flag = &"equip/player/item/brass_lantern"
+locked_key = "object.gate.arch.locked"
+opened_key = "object.gate.arch.opened"
 
 [editable path="Actors/Keeper"]

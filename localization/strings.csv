@@ -51,8 +51,9 @@ time.phase.night,Night
 time.phase.deep_night,Deep Night
 ui.inventory.title,Satchel
 ui.inventory.empty,You are carrying nothing.
-ui.inventory.hint,Escape to close
+ui.inventory.hint,Enter to hold or stow  ·  Escape to close
 ui.inventory.row,{item}  x{count}
+ui.inventory.row.held,{item}  x{count}   [in hand]
 ui.inventory.unknown,Unrecorded ({id})
 item.category.tool,Tools
 item.category.consumable,Provisions
@@ -202,3 +203,7 @@ quest.keepers_errand.name,The Keeper's Errand
 quest.keepers_errand.summary,"The garden-keeper would rather the north gate stood open, and the dais were walked."
 quest.keepers_errand.step.unlock,Unlock the north gate.
 quest.keepers_errand.step.dais,Stand on the dais.
+item.brass_lantern.name,Brass Lantern
+object.gate.arch.label,Shadowed Arch
+object.gate.arch.locked,"It is pitch dark beyond the arch, and you have no light in hand."
+object.gate.arch.opened,"Lantern raised, the dark under the arch gives way."

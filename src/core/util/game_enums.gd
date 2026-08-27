@@ -25,6 +25,15 @@ enum Facing { SOUTH, SOUTH_EAST, EAST, NORTH_EAST, NORTH, NORTH_WEST, WEST, SOUT
 ## Item taxonomy. Note the absence of weapons and armour: this game has no combat.
 enum ItemCategory { TOOL, CONSUMABLE, KEY_ITEM, QUEST, MATERIAL, CLOTHING, DOCUMENT, TREASURE }
 
+## Where an equippable item is worn or held. NONE is first and is the default, so every existing
+## ItemDefinition .tres stays valid with no edit — and, exactly like InteractVerb, this is
+## APPENDED TO AND NEVER REORDERED, because a definition stores it as an ordinal.
+##
+## Note the absence of a weapon slot and an armour slot, and it is the same absence ItemCategory
+## has: there is no combat in this template and there will not be one. A slot answers "what does
+## holding this let you do" — a light for the dark, a tool for a task — never "how hard do you hit".
+enum EquipSlot { NONE, LIGHT, TOOL, GARMENT, TRINKET }
+
 ## The verb shown on the interaction prompt. Purely presentational. The interactable
 ## itself decides what actually happens.
 ## APPENDED TO, NEVER REORDERED. Scene files store an exported enum as its ORDINAL, so moving

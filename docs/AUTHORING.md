@@ -330,6 +330,102 @@ max_stack = 1
   `3` QUEST, `4` MATERIAL, `5` CLOTHING, `6` DOCUMENT, `7` TREASURE. There is no weapon or armour
   category and there will not be one.
 - `name_key` must have a CSV row, or the inventory screen prints the key at the player.
+- `equip_slot` is optional and defaults to `0` NONE, which is what almost every item is. See the
+  next section for what a non-zero value buys.
+
+---
+
+## Make an item equippable, and gate a way through on it
+
+An equippable item is an ordinary item with one extra field. There is no equipment resource, no
+slot table to register in and nothing to wire:
+
+```
+[gd_resource type="Resource" script_class="ItemDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/items/item_definition.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+id = &"item/brass_lantern"
+name_key = "item.brass_lantern.name"
+category = 0
+max_stack = 1
+equip_slot = 1
+```
+
+`equip_slot` is a `GameEnums.EquipSlot` ordinal: `0` NONE, `1` LIGHT, `2` TOOL, `3` GARMENT,
+`4` TRINKET. There is no weapon slot and no armour slot, for the same reason `ItemCategory` has
+no weapon category. Like `InteractVerb`, the enum is appended to and never reordered, because
+your `.tres` stores the number.
+
+The player equips it from the satchel screen: `I` to open, arrow keys to the row, **Enter** to
+hold or stow. A held row reads `Brass Lantern  x1   [in hand]`. **The item stays in the bag while
+it is held** — so a gate that wants it *carried* is still satisfied, and `Inventory.count_of()`
+never disagrees with the screen.
+
+### The seam: what is held is a FLAG
+
+Holding an item writes one flag, and that is the whole interface:
+
+```
+equip/<wearer id>/<item id>          e.g.  equip/player/item/brass_lantern
+```
+
+The wearer id is `player` unless a scene overrode it on that carrier's `Equipment` node. Because
+it is a flag, **everything that can already read a flag can gate on what is in hand, with no code
+and no new field**:
+
+| To make | Set |
+|---|---|
+| a way through that needs a light | a `Gate` with `requires_flag = &"equip/player/item/brass_lantern"` |
+| a quest step that ends when you pick the lantern up and hold it | a `QuestStep` with that flag and `condition_test = 1` |
+| a reply that only appears with a light in hand | a `DialogueChoice` with that flag and `condition_test = 1` |
+| a climb only possible unencumbered | a `ClimbPoint`'s `requires_flag`, tested the other way |
+
+None of those four classes knows equipment exists. The gate in the demo courtyard is exactly the
+first row:
+
+```
+[node name="ShadowedArch" parent="Interactables" instance=ExtResource("9_gate")]
+object_id = &"shadowed_arch"
+label_key = "object.gate.arch.label"
+requires_flag = &"equip/player/item/brass_lantern"
+locked_key = "object.gate.arch.locked"
+opened_key = "object.gate.arch.opened"
+```
+
+### Write the refusal, or the player gets a line about a different door
+
+`locked_key` is what the player reads when they are turned away. Leave it out and they get the
+generic `refusal.locked` — *"It will not budge. Something holds it shut."* — which is true of
+every locked thing in every game and tells them nothing about needing a light. Every `Interactable`
+may name a line this way for the reason it refuses; `Gate` names one for LOCKED, and a
+`PathAction`'s `refusal_key` names one for LOW_STANDING.
+
+### Three behaviours worth knowing before you write
+
+- **One item per slot, and the newcomer wins.** Holding a second LIGHT stows the first rather than
+  being refused, because a refusal would make swapping a lantern a two-step chore.
+- **Losing the item stows it.** Sell, drop or lose an item and the flag goes with it, so a gate
+  gated on it locks again — though a `Gate` with `stays_open = true`, which is the default, has
+  already opened for good.
+- **A new game clears it, and a save restores it.** Equipment has no save section of its own; it
+  IS flags, so it round-trips through the machinery that already exists.
+
+### Seeing it
+
+```bash
+G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe
+"$G" --resolution 960x540 --quit-after 90 -- --new-game --give=item/brass_lantern \
+     --equip=item/brass_lantern --open-inventory --shot=held.png --shot-frame=70 \
+     --time=12:00 --freeze-time
+```
+
+`--equip` applies **after** the area lands, for the same reason `--flag` does: the flag it writes
+is a flag, and `--new-game` clears every one of them first. Swap `--open-inventory` for
+`--stand-by=ShadowedArch --interact=1` to photograph the gate being refused, and then the same
+line with `--equip` to photograph it opening.
 
 ---
 
@@ -550,7 +646,7 @@ the conversation has never heard of quests. Same for a lever, a trigger volume, 
 action — anything that writes a flag can advance a quest, and none of them needs changing.
 
 Which means the practical question when authoring a quest is **"what flag does the thing I want
-already write?"** The five writers, and where each is documented:
+already write?"** The six writers, and where each is documented:
 
 | To finish a step on | The flag comes from | Set it in |
 |---|---|---|
@@ -559,13 +655,15 @@ already write?"** The five writers, and where each is documented:
 | walking somewhere | `TriggerVolume.world_flag` | § Add an interactable object |
 | opening a gate, emptying a chest | `PersistentState` — `obj/<area_id>/<object_id>/<field>` | ADR-0005 |
 | a path action succeeding | `PathAction.success_flag` | § Add an NPC, step 3 |
+| holding an item | `Equipment` — `equip/<wearer>/<item id>` | § Make an item equippable |
 
 **AN ITEM COUNT IS NOT A FLAG, and this is the one thing the design does not give you.**
-`Inventory` keeps counts, not flags, so "bring me three petals" cannot be written as a step today.
-The nearest thing that works is a `Pickup` or an `ItemContainer` beside a `TriggerVolume`, or a
-path action gated on the item. A step that reads an item count is a *template* change and is
-recorded as open work in `docs/WORK_PACKAGES.md` — do not work around it by putting a script under
-`src/`.
+`Inventory` keeps counts, not flags, so "bring me three petals" cannot be written as a step
+today. **"Hold ONE of this" CAN be**, since WP-09 — see § Make an item equippable, whose
+`equip/<wearer>/<item>` flag is a legal step condition. For a real count the nearest working
+thing is a `Pickup` or an `ItemContainer` beside a `TriggerVolume`, or a path action gated on
+the item. A step that reads a count is a *template* change, recorded as T3.3 in
+`docs/WORK_PACKAGES.md` — do not work around it by putting a script under `src/`.
 
 ### The two resources
 
@@ -713,7 +811,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 | `--import` | a `.tscn` that does not load, a script that does not parse |
 | boot run | that the game boots clean to its main menu. **It does not enter an area** — see below |
 | test suite | a missing required child, an area with no spawn, an interior that follows the sun, a schedule waypoint no area has, a quest with no steps |
-| `check_content` | a duplicate `object_id`, a `_key` with no CSV row, an unquoted comma, a dangling dialogue link, an id that disagrees with its file name, a stray `ItemDefinition`, a quest step whose objective has no CSV row, **a missing `[editable]` marker** |
+| `check_content` | a duplicate `object_id`, a `_key` with no CSV row, an unquoted comma, a dangling dialogue link, an id that disagrees with its file name, a stray `ItemDefinition`, a quest step whose objective has no CSV row, a gate whose `locked_key` has no row, **a missing `[editable]` marker** |
 | `check_boundary` | your content id appearing in `src/` — which is a bug in the *engine*, not in your content |
 | `check_budgets` | 250 code lines per file, 40 per function. Markdown is not counted |
 | windowed capture | everything the other six cannot see |
@@ -735,6 +833,7 @@ harness answers. They are behind `OS.is_debug_build()`, so they do not exist in 
 | `--shot=<abs path>` and `--shot-frame=<n>` | capture a PNG, at that frame. The area load is threaded and needs frames — 70 with `--quit-after 90` is a safe pair |
 | `--time=HH:MM` and `--freeze-time` | a reproducible hour. Without the freeze, weather and the clock keep rolling and no two captures match |
 | `--stand-by=<node name>` | put the player beside a node, by its **node name** — not its `object_id`. Asking for `warden_talk` fails; ask for `Warden` |
+| `--equip=<item id>[,<id>]` | put carried items **in hand**, after the area lands. `--give` first, on the same line — an item nobody carries is refused |
 | `--flag=<key>:<value>` | forge a plot flag **after** the area lands, so quest progress can be posed: `--flag=met/warden:true`, `--flag=count/lit:3`. `--new-game` clears flags first, which is why it cannot be earlier |
 | `--interact=<frame>`, `--cycle=<n>`, `--talk-advance=<frame>` | press the interact key, Tab between overlapping targets, advance a conversation |
 | `--give=<item id>[:count]`, `--standing=<who>:<n>`, `--weather=<kind>` | pose the world before the shutter |

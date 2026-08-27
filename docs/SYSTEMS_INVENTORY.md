@@ -75,9 +75,10 @@ previous project started as a system that was allowed to know one thing too many
 | Item registry | id to definition by directory scan; static, not an autoload | — | who carries anything | DONE |
 | Item instances | Per-item mutable state: durability, contents | Item definitions | UI | LATER — deferred until something has durability; id plus count suffices |
 | Inventory | Held items, stacking, a capacity seam. A component, not an autoload | Events, Save | how items are displayed | DONE |
-| Inventory UI | A UiScreen: rows grouped by category, localized names and counts, focus navigation | Events, Inventory, ItemDb | inventory rules, pausing, locking the player | PART — no tooltips, sorting or drag-and-drop |
+| Inventory UI | A UiScreen: rows grouped by category, localized names and counts, focus navigation, and Enter on a row equips or stows it through `Equipment.toggle` | Events, Inventory, Equipment, ItemDb | inventory rules, what may be held, pausing, locking the player | PART — no tooltips, sorting or drag-and-drop |
 | Pickups | World items that enter the inventory | Interactable, Inventory | — | DONE |
 | Containers | Take-all chests. Named ItemContainer: Container is a native class | Interactable, Items | — | DONE |
+| Authored refusal lines | An `Interactable` may name a localization key per refusal reason, carried on `interaction_refused` and preferred by the prompt over the `refusal.<reason>` line computed from the enum | Events, the prompt | deciding WHY something is refused | DONE — WP-09; `Gate.locked_key` and `PathAction.refusal_key` had been declared and unread since WP-01 and WP-07 |
 | Doors and gates | Locked, unlocked, flag-gated, with refusal reasons | Interactable, Flags | — | DONE |
 | Readables | Signs, books, notes | Interactable, Localization | — | DONE |
 | Switches and levers | Toggle world state | Interactable, Flags | what the state causes | DONE |
@@ -87,7 +88,7 @@ previous project started as a system that was allowed to know one thing too many
 | Climbables | Ladders and authored climb points, two markers per object | Player controller | how to move a body — it asks the mover | DONE |
 | Physics props | Push, drop, stack | Layers | — | TODO |
 | Water volumes | Wading and swimming | Player controller, Layers | — | LATER |
-| Equipment | Tools, lantern, clothing that change traversal and interaction | Inventory, Flags | combat — there is none | TODO |
+| Equipment | What a carrier holds READY. A component beside Inventory that owns no dictionary: a slot is the flag `equip/<wearer>/<item>`, so a gate, a quest step or a dialogue condition gates on it with no code. One item per slot; the item stays in the bag | Inventory, Flags, Events, ItemDb | what any slot MEANS, what an item does, combat — there is none | DONE — WP-09 |
 | Object persistence | Authored object_id, state via Flags. ADR-0005 | Flags, Save | object behaviour | DONE |
 
 ## 3. Characters and life

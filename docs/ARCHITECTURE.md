@@ -275,10 +275,13 @@ never resolve.
   An area declares its own materials and takes the camera rig's defaults. Open work, not design.
 - **`Director` does not cancel its threaded load on shutdown**, which is why the boot rung needs
   `--quit-after 120` rather than 30. Deferred to WP-14.
-- **A quest step cannot read an item count.** A step is a flag condition, and `Inventory` keeps
-  counts rather than flags, so "bring me three petals" is not authorable today. The fix is a
-  `Pickup` or an `ItemContainer` that writes a flag, which is a template change with a board row —
-  not something a game should work around under `src/`.
+- **A quest step cannot read an item count.** A step is a flag condition, and `Inventory`
+  keeps counts rather than flags, so "bring me three petals" is not authorable today.
+  WP-09 narrowed it rather than closing it: `Equipment` proved a flag is enough for "HOLD one
+  of this", because being held is a fact about one item — a COUNT is not, and the two ways to
+  expose one both cost something (a mirrored `count/<item>` flag per carried item, or a
+  `systems` tracker reading `gameplay/Inventory` against the layer rule). **T3.3** on the
+  board — not something a game should work around under `src/`.
 - **The four content registries are four copies of the same thirty lines.** `ScheduleDb`'s header
   said "three is a pattern, four is a problem"; WP-08 made it four, reconsidered it, and kept the
   copy because GDScript has no generics and a shared base could only hand back untyped

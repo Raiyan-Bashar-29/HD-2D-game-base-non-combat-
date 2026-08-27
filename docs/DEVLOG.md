@@ -17,6 +17,200 @@ Append-only. Newest entry at the top. One entry per working session.
 ---
 
 
+## 2026-08-27 — WP-09 · Character depth: equipment, and two @exports nothing had ever read
+
+**Did:** the equipment third of WP-09, and split the other two thirds onto the board as `09b`.
+
+The row asked for three systems in one package — an attribute container, surface-aware footsteps,
+and equipment that changes traversal. That is three sets of content, three test files and three
+captures, well past the board's own "8 files or 500 new code lines, over that split it and add a
+row". So it was split, and the third with a CONSUMER was built: traversal already has a class that
+gates on a flag, so equipment had somewhere to be proved the day it existed.
+
+**`Equipment` owns no dictionary.** A slot is a flag:
+
+```
+equip/<wearer_id>/<item id>          equip/player/item/brass_lantern
+```
+
+`PersistentState`'s `obj/<area>/<object>/<field>` and `Standing`'s `standing/<who>`, applied a
+third time. `ItemDefinition` gains one field, `equip_slot`, a `GameEnums.EquipSlot` ordinal with
+NONE first so every `.tres` authored before it stays valid unedited. `Equipment.of(who)` resolves
+the component off the interactor the interaction contract already hands over, exactly as
+`Inventory.of(who)` does, so an NPC or a stash can have one.
+
+**Why:** three things fall out of the flag shape, and together they are the whole argument against
+a `Dictionary[EquipSlot, StringName]` plus a save section.
+
+1. **It is already saved.** No `SaveSystem.register`, no save version, no migration — and a new
+   game clears it for free, because `Director.start_new_game()` clears flags.
+2. **A gate can require it with NO CODE.** A `Gate.requires_flag` pointing at one of those keys
+   gates traversal on a held lantern, and `Gate` was not touched. Neither was `QuestStep`, nor
+   `DialogueChoice`, nor `ClimbPoint`. This is the second system to ride WP-08's seam, which is
+   the first evidence it generalises rather than fitting one case.
+3. **It is announced already.** `flag_changed` fires, so `QuestTracker` re-derives and a dialogue
+   condition re-evaluates without anything learning that equipment exists.
+
+The cost, stated: the key contains an item id, so an item id is now a public identifier the way an
+`object_id` is. Renaming an item's `.tres` brings it back stowed — the item survives, because
+`Inventory` deliberately keeps counts whose definition has vanished.
+
+**THE ITEM STAYS IN THE BAG WHILE IT IS HELD.** Moving it out would make equipment a second place
+items live: `Inventory.count_of()` would begin lying and `Gate.requires_item` would refuse a key
+that is in the player's hand. So equipping is purely a flag, and the price is that losing the item
+has to stow it — `_revalidate`, bound to `inventory_changed` rather than to `item_lost`, because
+that is the one signal every path emits, a restored save included.
+
+**Two @exports that had been declared, validated and read by nothing.** Found while looking for
+where an equip-gated gate tells the player it needs a light. `Gate.locked_key` (WP-01) and
+`PathAction.refusal_key` (WP-07) were both set by authored content, both checked by
+`check_content`, and both DEAD: `interact_prompt.gd` computed `refusal.<reason>` from the enum and
+never asked the object. `PathAction.refusal_key`'s own comment claimed it was "shown for the
+LOW_STANDING refusal". Gotcha 2's shape exactly — a message that is merely WRONG looks the same as
+a message that is right, so eight rungs, both CI jobs and 1,149 assertions were green over it for
+two packages. `interaction_refused` now carries a `message_key` alongside `args`, for the same
+reason `args` travels there rather than being asked of the target, and
+`Interactable.refusal_key(who, reason)` is the override. Empty means "compute it from the reason".
+
+**Connects:** `Equipment` sits beside `Inventory` under the player and writes through `Flags`, so
+it reaches `SaveSystem` and `flag_changed` with no wiring of its own. `InventoryScreen` binds the
+component in `for_carrier(who)` and Enter on a row calls `Equipment.toggle` — the first time
+pressing an inventory row has done anything; its comment said "use and tooltips are WP-09 and
+beyond". `Gate` reads the flag through the `requires_flag` it already had. `--equip=` joins
+`--give=` in `dev_stage.gd`. Nothing above `gameplay` learned a new name except the one signal.
+
+**Verified:**
+
+```
+$ "$G" --headless --import 2>&1 | grep -cEi "SCRIPT ERROR|Parse Error"
+0
+$ "$G" --headless --quit-after 120
+22:35:42 [INFO ] [boot     ] Session ended after 1.4s — 0 warnings, 0 errors
+$ "$G" --headless res://tests/test_runner.tscn --quit-after 400
+22:38:16 [DEBUG] [test     ] --- equipment_test: 70/70 ---
+22:38:16 [DEBUG] [test     ] --- docs_test: 90/90 ---
+22:38:16 [INFO ] [test     ] === 1224 passed, 0 failed, 0 skipped ===   (exit 0)
+$ "$G" --headless --script tools/check_budgets.gd    -> exit 0
+    ok   src/gameplay/character/equipment.gd      82 / 250
+    ok   src/ui/screens/inventory_screen.gd      123 / 250
+    ok   src/systems/debug/dev_stage.gd          235 / 250
+    ok   tests/unit/equipment_test.gd            146 / 250
+$ "$G" --headless --script tools/check_content.gd    -> exit 0
+       item/brass_lantern     TOOL         max_stack=1
+$ "$G" --headless --script tools/check_boundary.gd   -> exit 0
+    demo names derived: 16 — [..., "item/brass_lantern", "brass_lantern", ...]
+```
+
+1149 → **1224**: 70 in the new case, and 5 that `docs_test.gd` computed from the new worked `.tres`
+example in `AUTHORING.md`.
+
+**BOTH GATES PROVED RED, THEN GREEN, with the real failure shape (gotcha 23).**
+
+(1) The authored gate's `locked_key`, misspelled by one letter in `courtyard.tscn`:
+
+```
+$ "$G" --headless --script tools/check_content.gd
+  !! res://scenes/areas/courtyard/courtyard.tscn:369 localization key 'object.gate.arch.lockd' is not in the CSV
+FAIL — 1 content violation(s)
+PLANTED content exit 1
+REVERTED content exit 0
+```
+
+(2) The load-bearing invariant broken the way it would really break — `equip()` made to remove the
+item from the bag, which is the shortcut a later reader would reach for:
+
+```
+PLANTED suite exit 1
+22:31:19 [INFO ] [test] === 1201 passed, 18 failed, 0 skipped ===
+22:31:19 [ERROR] [test] FAILED: it is still carried — expected true, got false
+22:31:19 [ERROR] [test] FAILED: toggle holds it — expected true, got false
+REVERTED suite exit 0
+22:31:27 [INFO ] [test] === 1219 passed, 0 failed, 0 skipped ===
+```
+
+**THE INPUT PATH WAS PROVED BY A TEMPORARY PROBE, AND THE PROBE WAS REMOVED** (gotcha 15 —
+`TestCase.run()` is synchronous, so no assertion can press a key, and "Enter on a satchel row
+equips it" is an input path). Added to `dev_stage.gd`, run windowed, quoted here verbatim, deleted:
+
+```
+$ "$G" --resolution 960x540 --quit-after 140 -- --new-game --give=item/brass_lantern \
+       --probe-equip-row --time=12:00 --freeze-time
+22:34:40 [INFO ] [test     ] PROBE focus='@Button@26' held=[]
+22:34:40 [INFO ] [equipment] player equipped 'item/brass_lantern'
+22:34:40 [INFO ] [test     ] PROBE after press 1: held=[&"item/brass_lantern"]
+22:34:40 [INFO ] [equipment] player stowed 'item/brass_lantern'
+22:34:40 [INFO ] [test     ] PROBE after press 2: held=[]
+```
+
+`git diff src/systems/debug/` afterwards carries only `--equip` and the `--open-inventory` wait.
+
+**THREE WINDOWED CAPTURES, LOOKED AT AND READ.** All at `--time=12:00 --freeze-time` with
+`--new-game --shot-frame=70` (or 160 where an interaction had to land first), because no ordinary
+run enters an area (gotcha 31) and a propless corner at 18:40 renders near-black.
+
+1. `--give=item/brass_lantern,item/rose_petal:2 --equip=item/brass_lantern --open-inventory` —
+   the satchel over a live courtyard reading `Brass Lantern  x1   [in hand]` under *Tools* and, two
+   rows down, `Rose Petal  x2` with NO marker under *Materials*. **The unmarked row is the point**:
+   a marker glued onto every row would photograph identically on one item, which is gotcha 28's
+   lesson — a capture of something that merely looks fine is not evidence.
+2. `--give=item/brass_lantern --stand-by=ShadowedArch --interact=1` — the arch refusing with
+   *"It is pitch dark beyond the arch, and you have no light in hand."* That is `locked_key`, on
+   screen for the first time since it was declared; the generic line would have read "It will not
+   budge. Something holds it shut." The lantern is in the bag throughout, so carrying is visibly
+   not the same as holding.
+3. The same line plus `--equip=item/brass_lantern` — same camera, same hour, same position, one
+   flag different: the blocker slab that stood beside the player in (2) is GONE, and
+   *"Lantern raised, the dark under the arch gives way."* is up.
+
+**TWO DEFECTS THE CAPTURE FOUND AND NO GATE COULD.**
+
+1. **The satchel screen redrew only on `inventory_changed`.** Capture 1 came back reading
+   `Brass Lantern x1` with no marker while the log said `player equipped 'item/brass_lantern'` —
+   the screen was right about the bag and silently wrong about the hand. `_on_row_pressed` calling
+   `refresh()` itself is not enough, because a press is not the only way equipment moves: staging
+   equips from the command line and `_revalidate` stows an item the moment it leaves the bag. It
+   now listens to `equipment_changed` as well, which is the signal's whole reason for existing.
+2. **`--open-inventory` did not wait for the area**, so with `--new-game` it drew over the title
+   screen and the arriving transition unwound it. Third flag to need that wait after `--open-menu`
+   and `--flag` — gotcha 32's family, and `dev_stage.gd` now says any flag that puts something on
+   screen needs it.
+
+**ONE ENGINE SURPRISE, and it is going on the gotcha list.** `Array[StringName].sort()` DOES NOT
+SORT ALPHABETICALLY — it orders by the StringName's internal handle. `equipped_ids()` returned the
+two fixture ids reversed, and the only trace was one failing assertion:
+
+```
+FAILED: the ids come back sorted — expected item/fixture_held_two,item/fixture_worn,
+                                        got item/fixture_worn,item/fixture_held_two
+```
+
+`Inventory.ids()` already sorted through `String` with a `sort_custom`, and its comment is why this
+took a minute rather than an hour. `equipped_ids()` does the same now.
+
+**Unblocks:** "hold a light to enter the dark" as a quest step, a dialogue condition or a climb
+requirement, all with no code. `09b` (attributes, surfaces) has a worked example of the
+namespace-over-`Flags` shape to copy. Any future per-carrier state that must be saved and
+announced has a third precedent rather than a second.
+
+**Gaps:**
+- **A quest step still cannot read an ITEM COUNT, and equipment did not make it cheaper.** Being
+  HELD is a fact about one item, which is exactly what a flag is. A COUNT is not, and both ways to
+  expose one cost something real: an `Inventory` mirroring `count/<item>` into `Flags` writes every
+  carried item into the flag section as well as its own, and a `QuestStep` reading the bag directly
+  puts `gameplay/Inventory` inside a `systems` tracker against the layer rule. Now **T3.3** on the
+  board with both options costed, rather than a sentence repeated in three documents.
+- **Attributes and surface-aware footsteps are not done** — `09b`, with the reasons in its section.
+  The one worth repeating: a footstep is the single claim this ladder cannot see at all. Not
+  visual, so no capture reads it; not synchronous, so no assertion reaches it; and headless the
+  audio driver is `Dummy` and every `play()` leaks.
+- No equipment SCREEN, and no stat effect from equipment — nothing reads a stat yet.
+- The `Button` styleboxes in `ui_theme.tres` are still unpopulated. The satchel did not force the
+  decision: its rows are legible against the shipped dark palette. Third package to leave them,
+  and each time for the same stated reason rather than by omission.
+- `Gate.stays_open` defaults true, so an equip-gated gate that has opened once stays open even
+  once the lantern is stowed. Correct for "you needed a light to get in"; a gate that re-checks
+  every time is a different object, and nothing has asked for one.
+
 ## 2026-08-26 — Resequencing: the export proof jumps the queue, and one contradiction is settled
 
 **Did:** no code. Three planning corrections, all found by reading the docs against each other

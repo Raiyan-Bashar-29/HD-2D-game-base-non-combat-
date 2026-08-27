@@ -17,7 +17,13 @@ extends Node
 ##
 ## MID-CONVERSATION SAVES ARE REFUSED, LOUDLY. See `_collect_save`.
 ##
-## OWNS: the current position in a conversation, condition evaluation and effect application.
+## CONDITIONS ARE EVALUATED BY `FlagQuery`, NOT HERE. The six-way `match` used to be a private
+## method of this file, and it moved out the moment a quest step began asking the same question
+## with the same meaning — see src/core/state/flag_query.gd. `tests/unit/quests_test.gd` fails
+## if it grows back here, on the same reasoning that stops a sheet dimension returning to
+## `character_visual.gd`.
+##
+## OWNS: the current position in a conversation, and effect application.
 ## MUST NOT: draw, pause, lock input, or know what any flag means.
 
 ## The line to show now. `choices` is empty for a plain line.
@@ -84,7 +90,7 @@ func available_choices() -> Array[DialogueChoice]:
 	for choice: DialogueChoice in _node.choices:
 		if choice == null:
 			continue
-		if _passes(choice.condition_flag, choice.condition_test, choice.condition_value):
+		if FlagQuery.passes(choice.condition_flag, choice.condition_test, choice.condition_value):
 			out.append(choice)
 	return out
 
@@ -189,26 +195,9 @@ func _first_passing() -> DialogueNode:
 	for entry: DialogueNode in _talk.nodes:
 		if entry == null:
 			continue
-		if _passes(entry.condition_flag, entry.condition_test, entry.condition_value):
+		if FlagQuery.passes(entry.condition_flag, entry.condition_test, entry.condition_value):
 			return entry
 	return null
-
-
-func _passes(flag: StringName, test: GameEnums.FlagTest, value: int) -> bool:
-	if test == GameEnums.FlagTest.ALWAYS or flag == &"":
-		return true
-	match test:
-		GameEnums.FlagTest.IS_TRUE:
-			return Flags.get_bool(flag, false)
-		GameEnums.FlagTest.IS_FALSE:
-			return not Flags.get_bool(flag, false)
-		GameEnums.FlagTest.EQUALS:
-			return Flags.get_int(flag, 0) == value
-		GameEnums.FlagTest.AT_LEAST:
-			return Flags.get_int(flag, 0) >= value
-		GameEnums.FlagTest.AT_MOST:
-			return Flags.get_int(flag, 0) <= value
-	return true
 
 
 ## A CONVERSATION IS NOT SAVED, and that is a decision rather than an omission.

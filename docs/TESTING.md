@@ -10,7 +10,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 ```
 
 Exit 0 if every assertion passes, 1 otherwise. The last line reads
-`=== 1013 passed, 0 failed, 0 skipped ===`.
+`=== 1149 passed, 0 failed, 0 skipped ===`.
 
 ---
 
@@ -148,9 +148,9 @@ HANDED content, on disk when a system LOOKS IT UP BY ID.**
 | Your system | Fixture |
 |---|---|
 | receives an `ItemDefinition` / `PathAction` (a `Pickup`, a `PathActionPoint`) | build it in memory with `FixtureContent` and set it on the node. No files, no global state |
-| looks content up by id (`Inventory.add(id)`, `DialogueRunner.begin(id)`, an `NpcBrain` reading a schedule) | `Fixtures.activate()` — it writes `.tres` files to `user://test_fixtures/` and points the three registries' `content_dir` there |
+| looks content up by id (`Inventory.add(id)`, `DialogueRunner.begin(id)`, an `NpcBrain` reading a schedule, `QuestTracker` reading a quest) | `Fixtures.activate()` — it writes `.tres` files to `user://test_fixtures/` and points all four registries' `content_dir` there |
 
-The three registries scan a directory (ADR-0006) and cache statically, so an in-memory
+The four registries scan a directory (ADR-0006) and cache statically, so an in-memory
 `ItemDefinition` is **invisible** to `Inventory.add(id)`. A test-only injection method on each
 registry was rejected: a backdoor in engine code that exists for the suite and nothing else is
 worse than a temp folder, and going out through `ResourceSaver` and back through the real scan

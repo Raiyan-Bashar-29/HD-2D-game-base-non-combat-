@@ -3,9 +3,14 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-27 · T2.2 (consumer documentation) complete — **Phase T2 is closed, and
+**Last updated:** 2026-08-27 · **WP-08 (quests) complete — Phase T3 is open.** A quest is authored
+data, every step names a FLAG CONDITION rather than a callback, and the placeholder quest is driven
+entirely by flags the demo was already writing: a conversation starts it, the lever advances it, the
+dais trigger completes it, and none of those three files was touched.
+
+*(Previously: T2.2, consumer documentation — **Phase T2 is closed, and
 its last criterion was PERFORMED: an area, an NPC and a conversation authored from the docs alone,
-six doc defects found that way, and the content then deleted**
+six doc defects found that way, and the content then deleted**.)*
 
 > **This is a TEMPLATE, not a game.** Read [`TEMPLATE.md`](TEMPLATE.md) — it is short, and the
 > roadmap, the board and parts of this file were written before that reframing. The courtyard and
@@ -19,10 +24,11 @@ Every package — WP-01 through WP-07, plus WP-12 and WP-13 — is on **`claude/
 **`claude/t1-3-fixtures`**, branched from T1.2; T1.4 is on **`claude/t1-4-ci`**, branched from
 T1.3; T2.0 is on **`claude/t2-0-export-proof`**, branched from T1.4; T2.1 is on
 **`claude/t2-1-art-contract`**, branched from T2.0; T2.2 is on **`claude/t2-2-consumer-docs`**,
-branched from T2.1. The nine earlier PRs are superseded.
+branched from T2.1; WP-08 is on **`claude/wp-08-quests`**, branched from T2.2. The nine earlier
+PRs are superseded.
 
-**Branch new work from `claude/t2-2-consumer-docs`**, or from `main` once #10, #11, T1.2-T1.4,
-T2.0, T2.1 and T2.2 have landed. The older
+**Branch new work from `claude/wp-08-quests`**, or from `main` once #10, #11, T1.2-T1.4,
+T2.0, T2.1, T2.2 and WP-08 have landed. The older
 per-package branches (`claude/wp-04-second-area`, `claude/wp-05-dialogue`, `claude/wp-06-npcs`,
 `claude/wp-07-path-actions`, `claude/wp-12-menus`, `claude/wp-13-presentation`) are history and
 should not be built on.
@@ -41,9 +47,10 @@ game built on this will need, so a new game is content and data rather than new 
 
 ## Where it stands
 
-Phase 0 complete, Phase 1 COMPLETE, Phase 2 well under way, **Phase T1 COMPLETE, and Phase T2
-COMPLETE as of T2.2** — all four of its exit criteria ticked. 103 files, 8,635 code lines,
-18 scenes, 2 areas, 3 items, 1 conversation, 1 schedule, 2 path actions, 2 sprite sheet layouts.
+Phase 0 complete, Phase 1 COMPLETE, Phase 2 well under way, **Phase T1 COMPLETE, Phase T2
+COMPLETE as of T2.2, and Phase T3 OPEN with WP-08 done.** 111 files, 9,291 code lines,
+16 scenes, 2 areas, 3 items, 1 conversation, 1 schedule, 1 quest, 2 path actions, 2 sprite sheet
+layouts.
 Boots headless with **0 warnings, 0 errors**.
 
 **Works, and verified by running it:** logging with rotation · signal registry (`events.gd`) ·
@@ -51,7 +58,7 @@ input actions · settings · save/load with atomic writes and versioning · plot
 director with a re-entrancy guard and threaded loading · world clock · weather state · audio
 buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 8-way character ·
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
-placeholder art generator · line-budget checker · a headless test suite (1,081 assertions) that
+placeholder art generator · line-budget checker · a headless test suite (1,149 assertions) that
 builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
 returns early, asserts nothing, or is not listed in the runner ·
 an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
@@ -84,14 +91,23 @@ screen and the HUD at once. Both demonstrated by windowed captures that were LOO
 **documentation a consumer can actually start from**: `AUTHORING.md`, `ART_CONTRACT.md`,
 `TESTING.md` and an extension surface, routed to from `CLAUDE.md` and this file, and proved by
 authoring a new area, NPC and conversation from them alone — plus a gate that fails on a
-documented path or worked-example field the engine no longer has.
+documented path or worked-example field the engine no longer has ·
+**quests as authored data**: `Quest` / `QuestStep` .tres found by the fourth directory-scan
+registry, every step naming a FLAG CONDITION rather than a callback, a `QuestTracker` that derives
+progress from `Flags` and latches only the two things that cannot be derived, and a journal screen
+on `J` — the placeholder quest is started by the keeper's conversation, advanced by the courtyard
+lever and completed by the dais trigger volume, and **none of those three files was touched**.
+Two windowed captures LOOKED AT, and the `J` key proved by a temporary probe that was removed.
 
-**Not built:** quests · hard-coded-string audit · item instances (durability) · equipment ·
+**Not built:** hard-coded-string audit · item instances (durability) · equipment ·
 item tooltips, sorting and drag-and-drop · branch protection, so CI reports but nothing stops a
 red branch merging · no CI export rung (a GPU-less runner has no platform template) · export
 presets for platforms other than Windows · a release-build content readout, since the debug gate
-means a release export prints nothing. The theme does not yet set the `Button` styleboxes, so a light palette leaves every menu row
-drawing Godot's default dark panel — the seam is right and in the same file, simply unpopulated.
+means a release export prints nothing · a quest step cannot read an ITEM COUNT, because
+`Inventory` keeps counts and not flags, so "bring me three petals" is not authorable and needs a
+`Pickup` that writes a flag. The theme does not yet set the `Button` styleboxes, so a light
+palette leaves every menu row drawing Godot's default dark panel — the seam is right and in the
+same file, simply unpopulated.
 Five of T2.1's nine roadmap items are also left: shared materials, the environment post-stack as
 `@export`s, per-area camera exports, the texture import defaults and the Git LFS lines.
 
@@ -453,6 +469,49 @@ three compiled cleanly and passed every static gate:**
   exists on the class that block declares. It cannot check that a documented *sentence* is true —
   only a walkthrough does that. `DEVLOG.md` is exempt from the path scan, because a history
   necessarily names files it correctly removed.
+- **A QUEST STEP NAMES A FLAG CONDITION, NEVER A CALLBACK.** The same closed set of six comparisons
+  `GameEnums.FlagTest` gives a dialogue condition, evaluated by the same `FlagQuery.passes` both
+  call. That is what makes a quest authored data (adding the fiftieth touches no code, ADR-0006's
+  test) and it is what lets the rest of the game feed a quest without knowing quests exist — the
+  placeholder quest is started by a conversation effect, advanced by the courtyard lever and
+  completed by the dais trigger volume, and none of those three files was touched. The cost is
+  stated rather than hidden: **a step cannot read an item count**, because `Inventory` keeps counts
+  and not flags, so "bring me three petals" is not authorable and the seam is a `Pickup` that writes
+  a flag.
+- **QUEST PROGRESS IS DERIVED; EXACTLY TWO THINGS ARE LATCHED.** `flags.gd` says derive what can be
+  derived, and the current objective is the first step whose test fails, asked live on every flag
+  change. Two things cannot be derived: that a quest STARTED (clearing its start flag must not
+  un-give a quest carried for three hours) and that it COMPLETED (a step testing `AT_LEAST 3` on a
+  counter must not reopen when something decrements it). Those two are the whole save section, held
+  as **two lists of quest ids** — never an enum ordinal. An ACTIVE quest's objective is deliberately
+  NOT latched, so clearing the flag behind objective two brings objective two back; a per-step latch
+  would double the saved state to remove a behaviour nobody has asked for. Both halves are asserted,
+  because a latch nothing tests is indistinguishable from a cache.
+- **A COMPLETED QUEST GRANTS NOTHING.** It emits `Events.quest_completed` and stops. A `reward_item`
+  field would put `Inventory` and a player — both `gameplay` — inside a `systems` tracker, and
+  `src/` points downward only. Anything that wants to hand over an item listens; anything that wants
+  to gate a conversation tests the flag the last step tested, with no code at all. Same reasoning
+  that keeps `Weather` from drawing rain.
+- **THE FLAG-TEST TABLE LIVES IN EXACTLY ONE FILE**, `src/core/state/flag_query.gd`, extracted from
+  `DialogueRunner` when a quest step began asking the identical question. Two copies of a rule
+  eventually disagree, and the disagreement would surface as a quest that will not complete for a
+  flag a conversation is perfectly happy with. A test fails if the table grows back in either file —
+  the gate `art_contract_test.gd` established for sheet dimensions. Only the READ half is shared:
+  `FlagWrite` still has one caller, and a shared file serving one consumer is not a seam.
+- **THE FOURTH REGISTRY WAS RECONSIDERED AND THE COPY WAS KEPT.** `schedule_db.gd` said "three is a
+  pattern, four is a problem — if a fourth registry appears, that is the moment to reconsider."
+  Reconsidered in WP-08; GDScript has no generics, so a shared base could only cache `Resource` and
+  hand it back untyped, making all four accessors a cast at the call site — and static typing is
+  non-negotiable #2, not a preference. What is genuinely shared already is: `QuestDb` calls
+  `ItemDb.resource_paths()` rather than copying the `.remap` handling. The refactor that pays is a
+  base plus a thin typed façade each, and it is **T3.1 on the board** rather than a shrug.
+- **A CONTENT CHECK PRINTS WHAT IT CANNOT VALIDATE.** `check_content` prints every flag a quest and
+  its steps name and validates none of them. A flag can be written from a scene, a conversation, a
+  path action or another quest, and the writer that matters most is a runtime one —
+  `PersistentState` builds `obj/<area>/<object>/<field>` at load — so a checker that failed on any
+  flag with no findable writer would be wrong most times it fired. A partial check that looks
+  complete is the failure mode this project exists to prevent, so the flags go in the build log
+  where a reviewer reads them.
 - Six ADRs in `docs/decisions/` cover the layered `src/`, warnings-as-errors, the input map,
   and save-via-callables.
 
@@ -468,14 +527,14 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 120               # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,081 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,149 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Thirty-one gotchas that each cost an hour
+## Thirty-two gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -678,6 +737,16 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     NAME, not an `object_id`, and a propless new area at 18:40 renders near-black, which looks
     exactly like a lighting bug — capture a new area at midday first.
 
+32. **STAGING THAT RUNS BEFORE `--new-game` HAS ITS STATE THROWN AWAY.** `--new-game` CLEARS EVERY
+    FLAG, so `--flag=met/x:true` applied during argument parsing is gone by the time the area
+    lands — and the run still reports `0 warnings, 0 errors`, because nothing failed. The first
+    WP-08 capture was a journal with no quest in it for exactly that reason, and the only trace is
+    the ORDER of the log lines: `--flag` before `Quest tracker ready`, and no `started` line after
+    it. `--flag` now waits for the area the way `--open-menu` already did. This is gotcha 31 one
+    step further in: not a rung blind to an error, and not a rung reporting clean about work it
+    never did, but staging that ran before the thing it was staging for. Any future `--` flag that
+    poses state a new game resets needs the same wait, and `dev_stage.gd`'s header says so.
+
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the
@@ -686,14 +755,16 @@ names the exact files that chat should read, so a session loads a few hundred li
 (`core -> content -> systems -> gameplay -> ui`, downward only) is what makes that possible: a
 package never has to read upward.
 
-**Next package: WP-08 — quests, as the first package of Phase T3.** Phase T2 closed with T2.2, and
-T3 is *"finish the system catalogue"* — its packages ARE the original WP-08 to WP-15, re-framed,
-so the phase and the package are not alternatives. The board's ordering predates the template
-reframing and survives it: quests are a system with no proof at all, and the replacement rule is
-breadth of systems, one shallow proof each. Quests need a conversation that can set a flag and an
-NPC to talk to; both exist. The five T2.1 leftovers — shared materials, the environment post-stack
-and camera framing as `@export`s, the texture import defaults, the LFS lines — want a T3 row of
-their own rather than reopening T2, whose criteria are all met.
+**Next package: WP-09 — character depth, the second package of Phase T3.** WP-08 closed the widest
+hole in the catalogue; WP-09 is the next system with no proof, and it now has one it did not have
+before: a quest's start condition and a step are both flag tests, so "equipment can gate traversal"
+has a way to be *asked for* by authored content rather than hard-wired. Read the WP-09 row on the
+board. Two alternatives to it, both real and both narrower: **WP-11** (world map and fast travel),
+whose markers are now a listener on `quest_advanced` — which finally has an emitter — and **T3.1**,
+the generic content registry, which WP-08 scoped by producing the fourth copy of the same thirty
+lines. **T3.2** holds the five T2.1 leftovers (shared materials, the environment post-stack and
+camera framing as `@export`s, the texture import defaults, the LFS lines) so they stop being
+mentioned in five places and reopening T2 stays unnecessary.
 
 *(This line names ONE package. Earlier revisions accumulated a stale line per package and two were
 left stranded here; if you ever find two, the lower one is history — delete it.)*
@@ -709,19 +780,20 @@ volume that fires once, rest on a bench and watch the light change, climb a trel
 and back down, press I at any point to see what you are carrying in a window that stops the
 world — then walk north through a door into a lantern-lit hall that has never heard of the sun,
 and come back, and ask the garden-keeper who they are and what lies behind the north gate, in a
-box that leaves the world running behind it. Every one of those changes survives a save and a
+box that leaves the world running behind it — and that conversation now hands you an errand, which
+the lever you already threw and the dais you already crossed advance and settle, readable on `J` at
+any point. Every one of those changes survives a save and a
 reload, including from the far side of an area that is no longer loaded. All of it is covered
-by 460 headless assertions.
+by 1,149 headless assertions.
 
 **Next, in this order.** The order matters and is not arbitrary:
 
-1. **Quests** (WP-08), which need a conversation that can set a flag and an NPC to talk to.
-   Both exist. This is the first package of Phase T3.
-2. **The rest of the system catalogue**, WP-09 to WP-15 re-framed — see the board — plus a row
-   for the five art-contract seams T2.1 left open.
+1. **The rest of the system catalogue**, WP-09 to WP-15 re-framed — see the board. WP-09 next.
+2. **T3.1**, a generic content registry with a typed façade per catalogue, now that there are four
+   copies of the same thirty lines, and **T3.2**, the five art-contract seams T2.1 left open.
 
-*(Path actions, NPC schedules, navigation baking and weather visuals are all DONE — WP-06,
-WP-07 and WP-13.)*
+*(Path actions, NPC schedules, navigation baking, weather visuals and quests are all DONE — WP-06,
+WP-07, WP-08 and WP-13.)*
 
 **Still open, and expensive later:**
 - **The export path is PROVEN as of T2.0** — an exported `.exe` reports the same catalogue counts
@@ -733,7 +805,7 @@ WP-07 and WP-13.)*
 ## Read next
 
 `CLAUDE.md` (rules, and the doc router table) · `docs/TEMPLATE.md` (why this is not a game) ·
-**`docs/AUTHORING.md`** (add an area, an NPC, a conversation, an item, an object) ·
+**`docs/AUTHORING.md`** (add an area, an NPC, a conversation, an item, an object, a quest) ·
 **`docs/ART_CONTRACT.md`** (what art must satisfy) · **`docs/TESTING.md`** (adding assertions) ·
 `docs/ARCHITECTURE.md` (§ The extension surface — what may be subclassed) ·
 `docs/NEW_GAME.md` · `docs/SYSTEMS_INVENTORY.md` · `docs/ROADMAP.md` · `docs/DEVLOG.md` ·

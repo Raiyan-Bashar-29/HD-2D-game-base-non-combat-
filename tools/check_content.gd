@@ -28,7 +28,6 @@ extends SceneTree
 ## MUST NOT: import a gameplay or ui class, or reference an autoload.
 
 const CSV: String = "res://localization/strings.csv"
-const SCENE_DIRS: Array[String] = ["res://scenes"]
 const AREA_ROOT: String = "res://scenes/areas"
 
 var _violations: int = 0
@@ -44,6 +43,7 @@ func _initialize() -> void:
 	_check_items()
 	_check_dialogue()
 	_check_schedules()
+	_check_quests()
 	_check_path_actions()
 	_check_scenes()
 	print("=".repeat(78))
@@ -123,71 +123,6 @@ func _check_stray_definitions(root: String) -> void:
 			if resource is ItemDefinition:
 				_fail("%s/%s is an ItemDefinition outside %s" % [path, file_name, ItemDb.content_dir])
 
-
-func _check_scenes() -> void:
-	var scenes: Array[String] = []
-	for directory: String in SCENE_DIRS:
-		_collect_files(directory, ".tscn", scenes)
-	print("  scenes scanned: %d" % scenes.size())
-	for path: String in scenes:
-		_check_scene(path)
-		_check_editable_instances(path)
-
-
-func _collect_files(directory: String, extension: String, into: Array[String]) -> void:
-	for sub: String in DirAccess.get_directories_at(directory):
-		_collect_files("%s/%s" % [directory, sub], extension, into)
-	for file_name: String in DirAccess.get_files_at(directory):
-		if file_name.ends_with(extension):
-			into.append("%s/%s" % [directory, file_name])
-
-
-## Text-scanned rather than instantiated: it needs no scene tree, it is fast, and it still
-## works when a scene is broken for an unrelated reason.
-##
-## KNOWN LIMIT: duplicates are detected per FILE. Two objects in different scenes that end up
-## under one AreaRoot at runtime are not caught, and neither is the same sub-scene instanced
-## twice without overriding object_id - though that second case shows up as a missing override,
-## which is why an instance line with no object_id is also reported.
-func _check_scene(path: String) -> void:
-	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
-	if file == null:
-		_fail("cannot open %s" % path)
-		return
-	var seen: Dictionary[String, bool] = {}
-	var line_number: int = 0
-	while not file.eof_reached():
-		var line: String = file.get_line()
-		line_number += 1
-		var object_id: String = _quoted_after(line, "object_id = &\"")
-		if object_id != "":
-			if seen.has(object_id):
-				_fail("%s:%d duplicate object_id '%s' in one scene" % [path, line_number, object_id])
-			seen[object_id] = true
-		_check_key_literal(path, line_number, line)
-	file.close()
-
-
-## Every property whose name ends in _key must name a real CSV row. tr() on a missing key
-## silently returns the key itself, so this is the only thing that catches a typo before a
-## player sees "object.chest.courtyard.label" printed on screen.
-func _check_key_literal(path: String, line_number: int, line: String) -> void:
-	var trimmed: String = line.strip_edges()
-	if not trimmed.contains("_key = \""):
-		return
-	var value: String = _quoted_after(trimmed, "_key = \"")
-	if value == "" or _keys.has(value):
-		return
-	_fail("%s:%d localization key '%s' is not in the CSV" % [path, line_number, value])
-
-
-func _quoted_after(line: String, marker: String) -> String:
-	var at: int = line.find(marker)
-	if at < 0:
-		return ""
-	var rest: String = line.substr(at + marker.length())
-	var end: int = rest.find("\"")
-	return rest.substr(0, end) if end > 0 else ""
 
 
 ## Conversations get exactly the treatment items get, because ADR-0006's reasoning was never
@@ -294,77 +229,64 @@ func _check_path_actions() -> void:
 
 
 
-## THE EDITABLE-INSTANCE TRAP, and it is a SILENT EXPORT failure — found by T2.0 running an
-## exported build, not by any gate. courtyard.tscn overrode object_id, label_key and
-## conversation_id on two nodes INSIDE its instanced npc.tscn without the `[editable path=...]`
-## marker that makes those internals addressable. From source that works: the text loader applies
-## the overrides and every rung, both CI jobs and 911 assertions were green. An export converts
-## .tscn to BINARY .scn, and the conversion drops overrides on a non-editable instance — so the
-## exported build booted with a keeper who had no object_id, no prompt and no conversation, and
-## said so in three log lines nobody would have seen for months.
+
+
+## Quests get the same treatment as items, conversations and schedules, plus the two checks no
+## text scan can do: every summary_key a quest or a step names must exist in the CSV, and every
+## FLAG a step or a start condition tests is printed - because a step whose flag nothing in the
+## game ever writes is a quest that can be started and can never be finished, and that is
+## invisible until a player has walked the whole area looking for the thing to do.
 ##
-## This project hand-authors its .tscn files, so the marker the editor would have written is
-## exactly the thing a hand-authored scene forgets. Hence a gate rather than a note.
-##
-## THE RULE: a [node] block whose parent path descends into an instanced node requires an
-## [editable path="<that instance>"] for that instance. Deliberately STRICTER than the failure
-## needs — an ADDED node inside an instance was observed to survive the conversion, and it is
-## still required to be declared editable, because "which of the two kinds is this" is a
-## distinction the export makes and the author should not have to remember.
-func _check_editable_instances(path: String) -> void:
-	var instances: PackedStringArray = PackedStringArray()
-	var editable: PackedStringArray = PackedStringArray()
-	var inside: Dictionary[String, int] = {}
-	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
-	if file == null:
-		return
-	var line_number: int = 0
-	while not file.eof_reached():
-		var line: String = file.get_line()
-		line_number += 1
-		if line.begins_with("[editable path=\""):
-			editable.append(_quoted_after(line, "[editable path=\""))
-		elif line.begins_with("[node "):
-			_note_node(line, line_number, instances, inside)
-	file.close()
-	_report_uneditable(path, instances, editable, inside)
+## THE FLAGS ARE PRINTED, NOT VALIDATED, and the line is drawn there deliberately. A flag can be
+## written from a scene, a conversation .tres, a path action or another quest, and the writers
+## that matter most are runtime ones - `PersistentState` builds obj/<area>/<object>/<field> at
+## load time. A checker that failed on any flag it could not find a writer for would be wrong
+## most times it fired, and this project's rule is that a partial check which looks complete is
+## worse than none. So the flags go in the build log where a reviewer can read them.
+func _check_quests() -> void:
+	QuestDb.rescan()
+	for problem: String in QuestDb.problems():
+		_fail(problem)
+	print("  quests: %d" % QuestDb.count())
+	for quest_id: StringName in QuestDb.all():
+		var found: Quest = QuestDb.quest(quest_id)
+		print("     %-22s %d steps, starts on %s" % [
+			quest_id, found.steps.size(), _condition_text(found.condition_flag, found.condition_test),
+		])
+		_require_key(String(quest_id), "name_key", found.name_key)
+		_require_key(String(quest_id), "summary_key", found.summary_key)
+		_check_quest_steps(found)
 
 
-## One [node] header: remember it if it is an instance, and remember where it sits if its parent
-## is not the scene root. The full path of a node is its parent path plus its name, and a parent
-## of "." is the root.
-func _note_node(
-	line: String,
-	line_number: int,
-	instances: PackedStringArray,
-	inside: Dictionary[String, int],
-) -> void:
-	var node_name: String = _quoted_after(line, "name=\"")
-	var parent: String = _quoted_after(line, "parent=\"")
-	if node_name == "" or parent == "":
-		return
-	var full: String = node_name if parent == "." else "%s/%s" % [parent, node_name]
-	if line.contains(" instance="):
-		instances.append(full)
-	if parent != ".":
-		inside[full] = line_number
+func _check_quest_steps(found: Quest) -> void:
+	for step: QuestStep in found.steps:
+		if step == null:
+			continue
+		var context: String = "%s/%s" % [found.id, step.step_id]
+		print("        %-19s done when %s" % [
+			step.step_id, _condition_text(step.condition_flag, step.condition_test),
+		])
+		_require_key(context, "summary_key", step.summary_key)
 
 
-## For every node sitting under an instance, the instance must be declared editable. Godot needs
-## the marker at EVERY level, so a nested instance reports one violation per level that lacks
-## one rather than only the outermost.
-func _report_uneditable(
-	path: String,
-	instances: PackedStringArray,
-	editable: PackedStringArray,
-	inside: Dictionary[String, int],
-) -> void:
-	for full: String in inside:
-		for instance: String in instances:
-			if full == instance or not full.begins_with("%s/" % instance):
-				continue
-			if editable.has(instance):
-				continue
-			_fail("%s:%d overrides '%s' inside the instance '%s' with no [editable path=\"%s\"] — the override is DROPPED in an exported build" % [
-				path, inside[full], full, instance, instance,
-			])
+## A condition as one readable phrase for the build log. `.keys()` yields a Variant, so the enum
+## name goes through a typed local before use - this project compiles with unsafe access as an
+## error.
+func _condition_text(flag: StringName, test: GameEnums.FlagTest) -> String:
+	var names: Array = GameEnums.FlagTest.keys()
+	var test_name: String = names[test]
+	if test == GameEnums.FlagTest.ALWAYS:
+		return test_name.to_lower()
+	return "%s %s" % [flag, test_name.to_lower()]
+
+
+## The scene text scans, which live in tools/content_scenes.gd. Split out in WP-08 when this file
+## stood at 237 of its 250 lines and the quest checks did not fit; the seam was already in the
+## reasoning - see that file's header. Still ONE command and ONE CI rung, because a second
+## SceneTree tool would be a second thing to forget to run.
+func _check_scenes() -> void:
+	var scenes := ContentSceneChecks.new()
+	scenes.run(_keys)
+	print("  scenes scanned: %d" % scenes.scanned)
+	for problem: String in scenes.failures:
+		_fail(problem)

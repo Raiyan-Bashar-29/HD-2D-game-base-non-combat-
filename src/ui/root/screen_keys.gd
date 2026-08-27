@@ -45,6 +45,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed(Actions.INVENTORY) and toggle_inventory(stack):
 		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed(Actions.JOURNAL) and toggle_journal(stack):
+		get_viewport().set_input_as_handled()
 
 
 ## Same shape as toggle_inventory, and for the same reason: the key that raised a screen closes
@@ -73,6 +76,11 @@ static func menu_for(menu_id: StringName) -> UiScreen:
 		return SaveScreen.new()
 	if menu_id == RebindScreen.SCREEN_ID:
 		return RebindScreen.new()
+	# The journal is here and the inventory is not, and the difference is the argument: an
+	# inventory screen must be handed a carrier, so `--open-menu=inventory` would have to invent
+	# one. The journal finds the single tracker itself, so naming it is enough.
+	if menu_id == JournalScreen.SCREEN_ID:
+		return JournalScreen.new()
 	Log.error(CATEGORY, "No menu is named '%s'" % menu_id)
 	return null
 
@@ -118,6 +126,17 @@ func toggle_inventory(stack: UiRoot) -> bool:
 	if not stack.is_gameplay_input_allowed():
 		return false
 	return stack.open(InventoryScreen.for_carrier(Director.player))
+
+
+## Same shape as toggle_inventory, and WP-08's journal is the binding this node's header
+## predicted would arrive here rather than in a file of its own.
+func toggle_journal(stack: UiRoot) -> bool:
+	var top: UiScreen = stack.top()
+	if top != null and top.screen_id == JournalScreen.SCREEN_ID:
+		return stack.close_top()
+	if not stack.is_gameplay_input_allowed():
+		return false
+	return stack.open(JournalScreen.new())
 
 
 ## Open the dialogue box and start the conversation in it. The runner is a component of the

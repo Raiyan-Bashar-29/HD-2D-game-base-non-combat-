@@ -18,6 +18,7 @@ extends Node
 ##        |- NotificationToast
 ##        |- UiRoot            the screen stack. Screens land here, over the HUD.
 ##        |- ScreenFade        last, so the curtain covers the screens too
+##     |- QuestTracker         session-lived, so quest state outlives every area and screen
 ##
 ## WHY THE PLAYER IS HERE AND NOT IN THE AREA
 ## The player outlives any single area. Instantiating them per-area would mean rebuilding

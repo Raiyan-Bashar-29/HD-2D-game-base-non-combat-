@@ -2621,3 +2621,245 @@ exactly the doc-named paths under the content roots, which a stripped checkout h
 deleted. `check_budgets`, `check_content` and `check_boundary` PASS in both. That the same
 documents pass in a template with no game in it is a better proof of the skip design than the
 assertion for it would have been.
+
+---
+
+## 2026-08-27 — WP-08 · Quests
+
+**Did.** Built the quest system: two content `Resource`s, the fourth directory-scan registry, a
+tracker that turns flag changes into progress, a journal screen on `J`, one placeholder quest, and
+49 new assertions. Extracted the `FlagTest` evaluator into `FlagQuery` so a dialogue condition and a
+quest step share one implementation. Split `tools/check_content.gd`, which had 13 lines of budget
+left. Phase T3's first package.
+
+**Why.** Quests were the one system in the catalogue with **no proof at all**, and Phase T2's
+replacement for the retracted "depth before breadth" is breadth of systems, one shallow proof each.
+Everything a quest needs already existed and nothing joined it up.
+
+**The decision the package turns on: a step names a FLAG CONDITION, never a callback.** Same closed
+set of six comparisons a dialogue condition uses. Two consequences, and both are the point:
+
+1. **A quest is authored data.** Adding the fiftieth touches no code, which is ADR-0006's test.
+2. **Nothing has to know quests exist.** The placeholder quest is built entirely out of flags the
+   demo was already writing: a conversation effect (`met/gardener`) starts it, the courtyard lever
+   (`area/courtyard/gate_unlocked`) advances it, the dais trigger volume
+   (`area/courtyard/dais_entered`) completes it. **None of those three files was touched.** That is
+   the trigger-volume rule — a trigger never names its consequence — applied to narrative state.
+
+**Derived, except for two latches.** `flags.gd`'s own header says derive what can be derived, and
+almost all of this is: the current objective is the first step whose test fails, asked live every
+time a flag moves. Two things genuinely cannot be derived. That a quest **started** — its start
+condition is a flag, and clearing that flag must not un-give a quest carried for three hours. That
+a quest **completed** — a step may test `AT_LEAST 3` on a counter, and a later decrement must not
+reopen a finished quest. Those two are the whole save section, held as **two lists of quest ids**;
+never an enum ordinal, which is the ADR-0005 rule this project has already been bitten by. The
+current objective is deliberately NOT latched, so clearing the flag behind objective two on an
+active quest brings objective two back. Both halves are asserted — a latch nothing tests is
+indistinguishable from a cache.
+
+**A completed quest grants nothing.** It emits `Events.quest_completed` and stops. A `reward_item`
+field would put `Inventory` and a player — both `gameplay` — inside a `systems` tracker, and `src/`
+points downward only. Anything that wants to hand over an item listens to the signal; anything that
+wants to gate a conversation tests the flag the last step tested, with no code at all.
+
+**FlagQuery was extracted rather than copied.** `DialogueRunner._passes` was the only evaluator of
+`FlagTest`; a quest step asks the identical question with the identical meaning, and a second copy
+of a rule eventually disagrees with the first — the failure would surface as a quest that will not
+complete for a flag a conversation is perfectly happy with. Same reasoning that makes a weather
+emitter be TOLD its weight rather than read `Weather`, and a theme colour live once rather than per
+variation. `quests_test.gd` fails if the table grows back in either file, which is the gate
+`art_contract_test.gd` established for sheet dimensions.
+
+**The fourth registry came due on a note `schedule_db.gd` left, and it was reconsidered rather than
+ignored.** That header said "three is a pattern, four is a problem — if a fourth registry appears,
+that is the moment to reconsider." Reconsidered; verdict: keep the copy. GDScript has no generics,
+so a shared base could only cache `Resource` and hand it back untyped, making `definition()`,
+`conversation()`, `schedule()` and `quest()` a cast at every call site — and static typing is
+non-negotiable #2, not a preference. What IS genuinely shared already is shared: `QuestDb` calls
+`ItemDb.resource_paths()` rather than copying the `.remap` handling. The refactor that would pay is
+a base holding the cache plus a thin typed façade each, which touches four registries and four
+areas of the suite. It is **T3.1 on the board** with the reasoning, not a shrug.
+
+**`check_content.gd` split, and the seam was already in the reasoning.** 237 of 250, and the quest
+checks did not fit. `tools/content_scenes.gd` takes the scene *text* scans (duplicate `object_id`,
+`_key` literals, the `[editable]` marker) — they need no class registered and keep working on a
+scene that is broken for an unrelated reason; what stayed asks the *registries* what they loaded.
+Still one command and one CI rung: it is a `RefCounted` the entry point instantiates, not a second
+`SceneTree` tool. 237 → 178 + 102. Fifth split the budget checker has exposed.
+
+**The quest checks print the flags rather than validating them.** A flag can be written from a
+scene, a conversation, a path action or another quest, and the writer that matters most is a runtime
+one — `PersistentState` builds `obj/<area>/<object>/<field>` at load. A checker that failed on any
+flag with no findable writer would be wrong most times it fired, and a partial check that looks
+complete is exactly what this project exists to prevent. So they go where a reviewer reads them:
+
+```
+  quests: 1
+     quest/keepers_errand   2 steps, starts on met/gardener is_true
+        unlock              done when area/courtyard/gate_unlocked is_true
+        dais                done when area/courtyard/dais_entered is_true
+```
+
+**Connects.** `Events.quest_started` / `quest_advanced` / `quest_completed` were declared in Phase 0
+and had no emitter and no listener until now; the tracker emits all three and the journal listens to
+all three. `Flags` gains its first derived consumer. `SaveSystem` gains a fifth participant.
+`ScreenKeys` gains the journal binding its own header predicted would land there rather than in a
+file of its own. `CatalogueReport` gains the fourth row it said a fourth registry would cost.
+`Fixtures` gains the fourth redirect. `Actions.JOURNAL` had existed unbound since Phase 0.
+
+### Verified
+
+**Ladder, all green.** `--headless --import` exit 0, **zero** `SCRIPT ERROR` / `Parse Error` lines
+(gotcha 22 — the boot rung cannot see those). Boot `--quit-after 120`: `0 warnings, 0 errors`, with
+`quests: 1 found in res://data/quests -> ["res://data/quests/keepers_errand.tres"]` and
+`Quest tracker ready over 1 quest(s)`. Suite: **1149 passed, 0 failed, 0 skipped**, exit 0 (1081 →
+1149: 49 in `quests_test.gd`, 2 in `export_test.gd` for the fourth catalogue line, and 17 more that
+`docs_test.gd` COMPUTED from the new worked quest example in `AUTHORING.md` — the docs gate
+covering its own new content, which is what a computed plan is for). `check_budgets`,
+`check_content` and `check_boundary` all exit 0.
+
+`check_boundary` now derives `quest/keepers_errand` and `keepers_errand` among its 14 demo names and
+finds neither in any of the 104 engine scripts it scans:
+
+```
+  demo names derived: 14 — ["courtyard", "lantern_hall", "talk/gardener", "gardener",
+  "item/rose_key", "rose_key", "item/rose_petal", "rose_petal", "item/stone_chip", "stone_chip",
+  "quest/keepers_errand", "keepers_errand", "schedule/keeper", "keeper"]
+  engine scripts scanned: 104 ... PASS
+```
+
+**GATE ONE PROVED RED, THEN GREEN (gotcha 23).** The real authoring mistake, not a convenient one:
+one letter added to a step's `summary_key` in the authored quest.
+
+```
+  quests: 1
+     quest/keepers_errand   2 steps, starts on met/gardener is_true
+        dais                done when area/courtyard/dais_entered is_true
+  !! quest/keepers_errand/dais summary_key 'quest.keepers_errand.step.daiss' is not in the CSV
+FAIL — 1 content violation(s)
+PLANTED exit=1
+```
+
+Reverted:
+
+```
+PASS
+REVERTED exit=0
+```
+
+**GATE TWO PROVED RED, THEN GREEN.** The failure `FlagQuery` exists to prevent: a second copy of the
+comparison table appended to `dialogue_runner.gd`.
+
+```
+FAIL and it no longer carries its own copy of the comparison table — expected false, got true
+=== 1148 passed, 1 failed, 0 skipped ===
+PLANTED exit=1
+```
+
+Reverted:
+
+```
+=== 1149 passed, 0 failed, 0 skipped ===
+REVERTED exit=0
+```
+
+**ONE DEFECT, FOUND BY THE CAPTURE AND BY NO GATE.** `--flag=` set its flag during argument parsing,
+and `--new-game` **clears every flag** — so the first capture photographed a journal with no quest
+in it, and the run reported `0 warnings, 0 errors` throughout. The log is what shows it: the
+`--flag` line lands *before* `Quest tracker ready`, and no `quest/keepers_errand: started` line
+follows.
+
+```
+21:47:01 [INFO ] [test  ] --flag met/gardener = true by command line
+21:47:01 [INFO ] [quest ] Quest tracker ready over 1 quest(s)
+21:47:01 [INFO ] [test  ] --new-game requested 'courtyard'
+21:47:02 [INFO ] [test  ] --open-menu journal pushed: true
+```
+
+`_force_flag` now waits for the area the way `_open_menu` does, and the same run reads:
+
+```
+21:47:50 [INFO ] [quest ] quest/keepers_errand: started [&"quest/keepers_errand"]
+21:47:50 [INFO ] [quest ] quest/keepers_errand: advanced [&"quest/keepers_errand", &"unlock"]
+21:47:50 [INFO ] [test  ] --flag met/gardener = true by command line
+21:47:50 [INFO ] [test  ] --open-menu journal pushed: true
+```
+
+This is gotcha 31's family: not a rung blind to an error, but staging that ran before the thing it
+was staging for. Worth knowing for any future `--` flag that poses state a `--new-game` resets.
+
+**THE INPUT PATH, PROVED BY A TEMPORARY PROBE, THEN REMOVED** (gotcha 15 — `TestCase.run()` is
+synchronous, so no assertion can press a key). Added to `dev_stage.gd`, run windowed with real
+`InputEventAction`s, and deleted; `git diff src/systems/debug/` shows only the `--flag` addition.
+The probe, verbatim:
+
+```gdscript
+## TEMPORARY WP-08 PROBE. Removed before the package closed; quoted verbatim in DEVLOG.md.
+func _probe_journal_key() -> void:
+	await _wait_for_area()
+	for _i: int in 40:
+		await get_tree().physics_frame
+	var stack: UiRoot = UiRoot.find(self)
+	Log.info("test", "PROBE before: depth=%d top=%s" % [
+		stack.depth(), stack.top().screen_id if stack.top() != null else &"NONE"])
+	for pressed: bool in [true, false]:
+		var event := InputEventAction.new()
+		event.action = Actions.JOURNAL
+		event.pressed = pressed
+		Input.parse_input_event(event)
+		await get_tree().physics_frame
+	Log.info("test", "PROBE after press: depth=%d top=%s" % [
+		stack.depth(), stack.top().screen_id if stack.top() != null else &"NONE"])
+```
+
+Its output, from `--resolution 960x540 --quit-after 200 -- --new-game --flag=met/gardener:true
+--probe-journal-key --time=12:00 --freeze-time`:
+
+```
+PROBE before: depth=0 top=NONE
+PROBE after press: depth=1 top=journal
+PROBE after second press: depth=0 top=NONE
+0 warnings, 0 errors
+```
+
+So `J` opens the journal and `J` closes it, through `_unhandled_input` and the real action, and the
+toggle only fires while the journal is itself on top.
+
+**TWO WINDOWED CAPTURES, LOOKED AT.** Both at midday, `--new-game --shot-frame=70 --quit-after 90`,
+because no ordinary run enters an area (gotcha 31) and a new capture at 18:40 renders near-black.
+
+1. `--flag=met/gardener:true --open-menu=journal` — the journal over a live courtyard: **Journal /
+   Underway / The Keeper's Errand / — Unlock the north gate.** with the **New errand: The Keeper's
+   Errand** toast at the top and *Escape to close* at the foot. The world, the player and the keeper
+   are visible through the translucent dim, which is how the capture shows the screen stopped the
+   world rather than replaced it.
+2. All three flags — the same screen reading **Settled / The Keeper's Errand / — Nothing left to
+   do.** A third run at `--shot-frame=300 --quit-after 340` catches the second toast in the queue,
+   **The Keeper's Errand is settled**, since the *New errand* toast holds the first three seconds.
+
+**The `Button` styleboxes were left unpopulated, deliberately, and the captures are why the claim is
+checkable.** The journal's rows draw Godot's default dark panel — visible in both PNGs as the wide
+bordered bars. Legible against the shipped dark palette, so the journal did not force the decision,
+and T2.2's reasoning for not shipping a guessed stylebox holds. Stated, not silently skipped.
+
+### Unblocks
+
+WP-11's map markers (a marker is a listener on `quest_advanced`, which now has an emitter), WP-09's
+plot gating (a chapter is a quest start condition), and any consuming game's main narrative spine.
+T3.1, the registry refactor, is now scoped by an actual fourth copy rather than by anticipation.
+
+### Gaps
+
+- **A QUEST STEP CANNOT READ AN ITEM COUNT, and the original exit criterion "completed by an item
+  handover" is therefore NOT met.** `Inventory` keeps counts, not flags. This is the honest cost of
+  "a step is a flag condition", and the seam is a `Pickup` or `ItemContainer` that writes a flag —
+  a template change, recorded in `ARCHITECTURE.md`'s limitations and in `AUTHORING.md` § Add a
+  quest so an author hits the note before the wall, rather than routing around it under `src/`.
+- No branching, no failure state, no timed quests, no rewards beyond a flag, and no sorting,
+  filtering or detail pane in the journal. One shallow proof; `TEMPLATE.md` is explicit that the
+  demo does not get deepened.
+- `quest_advanced` fires on the frame a quest starts as well, because the first objective becoming
+  current IS an advance and a marker needs to hear it. Only the TOAST is suppressed there. Correct,
+  and worth knowing before writing a listener that assumes the two are exclusive.
+- The tracker is a node in the boot scene, so a game that replaces `game_root.tscn` loses quests
+  silently. `CatalogueReport` sits there on the same terms and neither is asserted to be present.

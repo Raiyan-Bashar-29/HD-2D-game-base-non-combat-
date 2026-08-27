@@ -530,6 +530,125 @@ every `.tres` in `data/actions/`.
 
 ---
 
+## Add a quest
+
+A quest is a `.tres` in `data/quests/`, found by scan like an item. **You never write code and you
+never wire anything to it.** A quest names the flag conditions it cares about, and `QuestTracker`
+watches `Flags` and does the rest.
+
+### The one idea to get first: a quest observes, it is never told
+
+There is no "give quest" call, no `start_quest()` and nothing for an NPC to point at. A quest
+declares:
+
+- a **start condition** — one flag test. When it passes, the quest is active.
+- **steps in order** — one flag test each. The current objective is the *first* step whose test
+  does not pass. When none is left, the quest is complete.
+
+So a conversation that already writes `met/warden` starts any quest that tests `met/warden`, and
+the conversation has never heard of quests. Same for a lever, a trigger volume, a gate, or a path
+action — anything that writes a flag can advance a quest, and none of them needs changing.
+
+Which means the practical question when authoring a quest is **"what flag does the thing I want
+already write?"** The five writers, and where each is documented:
+
+| To finish a step on | The flag comes from | Set it in |
+|---|---|---|
+| talking to someone | a `DialogueNode` effect | § Add a conversation — `effect_flag` / `effect_write` |
+| throwing a lever | `Lever.world_flag` | § Add an interactable object |
+| walking somewhere | `TriggerVolume.world_flag` | § Add an interactable object |
+| opening a gate, emptying a chest | `PersistentState` — `obj/<area_id>/<object_id>/<field>` | ADR-0005 |
+| a path action succeeding | `PathAction.success_flag` | § Add an NPC, step 3 |
+
+**AN ITEM COUNT IS NOT A FLAG, and this is the one thing the design does not give you.**
+`Inventory` keeps counts, not flags, so "bring me three petals" cannot be written as a step today.
+The nearest thing that works is a `Pickup` or an `ItemContainer` beside a `TriggerVolume`, or a
+path action gated on the item. A step that reads an item count is a *template* change and is
+recorded as open work in `docs/WORK_PACKAGES.md` — do not work around it by putting a script under
+`src/`.
+
+### The two resources
+
+- **`Quest`** — `id` (equal to `quest/` plus the file name), `name_key`, `summary_key`, `steps` in
+  authored order, and one start condition (`condition_flag`, `condition_test`, `condition_value`).
+- **`QuestStep`** — `step_id` (unique within the quest), `summary_key`, and one completion
+  condition with the same three field names.
+
+`condition_test` is a `GameEnums.FlagTest` ordinal, the same closed set a dialogue condition uses —
+`0` ALWAYS, `1` IS_TRUE, `2` IS_FALSE, `3` EQUALS, `4` AT_LEAST, `5` AT_MOST. `ALWAYS` as a start
+condition means the quest is active from the first frame of a new game, which is right for a
+tutorial objective and wrong for everything else.
+
+### A worked quest
+
+Sub-resources are declared before `[resource]` and referenced by `SubResource("id")`:
+
+```
+[gd_resource type="Resource" script_class="Quest" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/content/quest/quest.gd" id="1_quest"]
+[ext_resource type="Script" path="res://src/content/quest/quest_step.gd" id="2_step"]
+
+[sub_resource type="Resource" id="step_lantern"]
+script = ExtResource("2_step")
+step_id = &"lantern"
+summary_key = "quest.warden_lamps.step.lantern"
+condition_flag = &"count/lanterns_lit"
+condition_test = 4
+condition_value = 3
+
+[sub_resource type="Resource" id="step_report"]
+script = ExtResource("2_step")
+step_id = &"report"
+summary_key = "quest.warden_lamps.step.report"
+condition_flag = &"story/warden_thanked"
+condition_test = 1
+
+[resource]
+script = ExtResource("1_quest")
+id = &"quest/warden_lamps"
+name_key = "quest.warden_lamps.name"
+summary_key = "quest.warden_lamps.summary"
+steps = Array[QuestStep]([SubResource("step_lantern"), SubResource("step_report")])
+condition_flag = &"met/warden"
+condition_test = 1
+```
+
+Save it in **`data/quests/`**. `name_key`, `summary_key` and every step's `summary_key` need a CSV
+row, and `check_content` fails on any that does not have one — plus it prints every flag the quest
+and its steps name, which is the line to read when a quest starts and can never finish.
+
+### Four behaviours worth knowing before you write
+
+- **Step order is authored, not chronological.** Satisfying step two before step one leaves step
+  one as the current objective. That is what makes a journal read like instructions.
+- **Completion is permanent; a step is not.** Once every step has passed, the quest is complete and
+  *stays* complete even if the flags move back — a counter that gets decremented must not reopen a
+  finished quest. An **active** quest's objective, by contrast, is re-derived every time a flag
+  changes, so clearing the flag behind objective two brings objective two back. Both are
+  deliberate; the reasoning is in `src/systems/quest/quest_tracker.gd`.
+- **A completed quest gives you nothing by itself.** It emits `Events.quest_completed(quest_id)`
+  and stops. To hand over an item, open a gate or start the next chapter, listen to that signal —
+  or, with no code at all, have a conversation node condition on the flag the last step tested.
+- **A quest is saved by id.** Started and completed are written to the save; the current objective
+  is re-derived on load, so renaming a `step_id` does not break an old save. Renaming a **quest
+  id** does: it is a public identifier, exactly like an `object_id`.
+
+### Seeing it
+
+The journal is the `J` key, or `--open-menu=journal` for a capture. Because a step is a flag
+condition, `--flag=` poses quest progress without playing to it:
+
+```bash
+G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe
+"$G" --resolution 960x540 --quit-after 90 -- --new-game --flag=met/warden:true \
+     --open-menu=journal --shot=journal.png --shot-frame=70 --time=12:00 --freeze-time
+```
+
+`--flag` applies **after** the area lands, because `--new-game` clears every flag first.
+
+---
+
 ## The editable trap
 
 **A `[node]` block whose `parent=` descends into an instanced node requires
@@ -593,8 +712,8 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 |---|---|
 | `--import` | a `.tscn` that does not load, a script that does not parse |
 | boot run | that the game boots clean to its main menu. **It does not enter an area** — see below |
-| test suite | a missing required child, an area with no spawn, an interior that follows the sun, a schedule waypoint no area has |
-| `check_content` | a duplicate `object_id`, a `_key` with no CSV row, an unquoted comma, a dangling dialogue link, an id that disagrees with its file name, a stray `ItemDefinition`, **a missing `[editable]` marker** |
+| test suite | a missing required child, an area with no spawn, an interior that follows the sun, a schedule waypoint no area has, a quest with no steps |
+| `check_content` | a duplicate `object_id`, a `_key` with no CSV row, an unquoted comma, a dangling dialogue link, an id that disagrees with its file name, a stray `ItemDefinition`, a quest step whose objective has no CSV row, **a missing `[editable]` marker** |
 | `check_boundary` | your content id appearing in `src/` — which is a bug in the *engine*, not in your content |
 | `check_budgets` | 250 code lines per file, 40 per function. Markdown is not counted |
 | windowed capture | everything the other six cannot see |
@@ -616,6 +735,7 @@ harness answers. They are behind `OS.is_debug_build()`, so they do not exist in 
 | `--shot=<abs path>` and `--shot-frame=<n>` | capture a PNG, at that frame. The area load is threaded and needs frames — 70 with `--quit-after 90` is a safe pair |
 | `--time=HH:MM` and `--freeze-time` | a reproducible hour. Without the freeze, weather and the clock keep rolling and no two captures match |
 | `--stand-by=<node name>` | put the player beside a node, by its **node name** — not its `object_id`. Asking for `warden_talk` fails; ask for `Warden` |
+| `--flag=<key>:<value>` | forge a plot flag **after** the area lands, so quest progress can be posed: `--flag=met/warden:true`, `--flag=count/lit:3`. `--new-game` clears flags first, which is why it cannot be earlier |
 | `--interact=<frame>`, `--cycle=<n>`, `--talk-advance=<frame>` | press the interact key, Tab between overlapping targets, advance a conversation |
 | `--give=<item id>[:count]`, `--standing=<who>:<n>`, `--weather=<kind>` | pose the world before the shutter |
 

@@ -1,10 +1,11 @@
 class_name CatalogueReport
 extends Node
-## The export proof, made permanent: what the three content registries actually found, reported
+## The export proof, made permanent: what the content registries actually found, reported
 ## at boot of every debug build — including an EXPORTED one.
 ##
 ## WHY THIS FILE EXISTS
-## ItemDb, DialogueDb and ScheduleDb find content by SCANNING a directory (ADR-0006). Nothing in
+## ItemDb, DialogueDb, ScheduleDb and QuestDb find content by SCANNING a directory (ADR-0006).
+## Nothing in
 ## any scene references most of the content roots, so those resources are not DEPENDENCIES of
 ## anything, and Godot's exporter walks dependencies. If it omitted them, every catalogue would
 ## ship empty in an exported build — no items, no conversations, no NPC timetables — and NOTHING
@@ -32,11 +33,13 @@ extends Node
 ## registries the game asks; a reporter that did its own scan would be reporting on itself.
 ## Deleting this file must not change what the game does.
 
-## The three content roots, in the order they are reported. A label, and the registry it names.
-## A fourth registry is one row here and no other change.
+## The content roots, in the order they are reported. A label, and the registry it names.
+## A FIFTH registry is one row here, one row in report_lines and one in empty_labels, and no
+## other change. WP-08 added the fourth and that is exactly what it cost.
 const LABEL_ITEMS: String = "items"
 const LABEL_DIALOGUE: String = "dialogue"
 const LABEL_SCHEDULES: String = "schedules"
+const LABEL_QUESTS: String = "quests"
 
 
 ## The report as text: one line saying where res:// is coming from, one line per registry, and one
@@ -52,6 +55,9 @@ static func report_lines() -> PackedStringArray:
 	)
 	_append_registry(
 		out, LABEL_SCHEDULES, ScheduleDb.content_dir, ScheduleDb.count(), ScheduleDb.problems()
+	)
+	_append_registry(
+		out, LABEL_QUESTS, QuestDb.content_dir, QuestDb.count(), QuestDb.problems()
 	)
 	return out
 
@@ -70,7 +76,7 @@ static func _append_registry(
 		out.append("  !! %s: %s" % [label, problem])
 
 
-## Which of the three catalogues came back empty. Empty is a legal state in the editor — a base
+## Which catalogues came back empty. Empty is a legal state in the editor — a base
 ## template with no game in it yet — so this exists to be reported, never to refuse a boot.
 static func empty_labels() -> PackedStringArray:
 	var out: PackedStringArray = PackedStringArray()
@@ -80,6 +86,8 @@ static func empty_labels() -> PackedStringArray:
 		out.append(LABEL_DIALOGUE)
 	if ScheduleDb.count() == 0:
 		out.append(LABEL_SCHEDULES)
+	if QuestDb.count() == 0:
+		out.append(LABEL_QUESTS)
 	return out
 
 

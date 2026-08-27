@@ -57,6 +57,12 @@ enum FlagTest { ALWAYS, IS_TRUE, IS_FALSE, EQUALS, AT_LEAST, AT_MOST }
 ## default, so a line with no consequence declares nothing.
 enum FlagWrite { NONE, SET_TRUE, SET_FALSE, SET_INT, ADD }
 
+## Where a quest stands. Three values, and there is deliberately no FAILED: a failable quest
+## needs a failure policy, a way to retry and a UI for both, and this template ships one shallow
+## proof of the mechanism instead. NEVER PERSISTED AS AN ORDINAL — `QuestTracker` saves two
+## lists of quest ids, because appending a value here must not repoint every existing save.
+enum QuestState { UNSTARTED, ACTIVE, COMPLETE }
+
 ## What the UI is doing to the world right now. UiRoot owns the transitions; the player's
 ## input readers and the prompt only listen. OVERLAY and MODAL differ in exactly one way and
 ## it is not cosmetic: an OVERLAY suspends the player's input while the world keeps ticking

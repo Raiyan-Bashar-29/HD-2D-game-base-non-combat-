@@ -46,7 +46,7 @@ Headless shades nothing. This project has already shipped two bugs that every ot
 | 05 | Dialogue | **DONE** — see below |
 | 06 | NPCs and navigation | **DONE** — see below |
 | 07 | Path actions | **DONE** — see below |
-| 08 | Quests | **TODO — next**, as the first package of Phase T3 |
+| 08 | Quests | **DONE** — the first package of Phase T3; see below |
 | 09 | Character depth | TODO |
 | 10 | Crafting and gathering | **OPTIONAL** — a genre choice, not a requirement of every game (TEMPLATE.md). Does not block v1.0 |
 | 11 | World map and fast travel | TODO |
@@ -69,6 +69,8 @@ original board rather than continuing it.
 | T2.0 | **The export proof** | **DONE** — the assumption HELD; see T2.0 below |
 | T2.1 | Art contract seams | **DONE** — see T2.1 below |
 | T2.2 | Consumer documentation | **DONE** — `36b5abd`, PR #15. Phase T2 closes; see T2.2 below |
+| T3.1 | **A generic content registry** — a base holding the scan and cache, with a thin typed façade per registry | TODO — WP-08 made it the fourth copy of the same thirty lines and reconsidered the note in `schedule_db.gd`; the verdict and the reasoning are in the WP-08 section |
+| T3.2 | The five art-contract seams T2.1 left | TODO — shared materials, the environment post-stack and camera framing as `@export`s, the texture import defaults, the Git LFS lines |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
 T3 by subject and is sequenced FIRST by risk. The three content registries find items,
@@ -345,12 +347,138 @@ before it has finished thinking. It now requires thirty consecutive frames.
 
 ---
 
-## WP-08 · Quests
+## WP-08 · Quests — **DONE**
 
-**Read:** `src/core/state/flags.gd`, `src/core/save/save_system.gd`, WP-05 output.
-**Write:** a quest state machine with steps, a journal, plot/chapter gating, map markers.
-**Exit criteria:** a quest started from dialogue, advanced by a trigger, completed by an item
-handover, surviving a reload at every step.
+**Goal.** Phase T3's first package, and the widest remaining hole: quests were the one system in
+the catalogue with **no proof at all**. The flag store, a conversation that writes a flag, an NPC
+to talk to and a screen stack all existed, and nothing tied them into an objective the player can
+be told about and can see completed.
+
+**The one decision everything else follows from: A STEP NAMES A FLAG CONDITION, NEVER A CALLBACK.**
+The same closed set of six comparisons `FlagTest` already gave a dialogue condition. That is what
+makes a quest authored data rather than a code change, and it is what makes the rest of the game
+able to feed a quest without knowing quests exist — a conversation writing `met/gardener` starts
+one, a lever writing `area/courtyard/gate_unlocked` advances it, a trigger volume writing
+`area/courtyard/dais_entered` finishes it, and **none of those three files was touched.** The
+placeholder quest is built entirely out of flags the demo was already writing.
+
+**Wrote**
+- `src/content/quest/quest.gd`, `quest_step.gd` — typed `Resource`s, id equals file name with a
+  `quest/` prefix, `problems()` returning `PackedStringArray`, no autoload touched so the
+  `--script` build gate can load them.
+- `src/content/quest/quest_db.gd` — the fourth registry. `content_dir` a `static var`, `rescan()`
+  and not `reload()` (gotcha 17), an empty folder not an error.
+- `src/systems/quest/quest_tracker.gd` — watches `Events.flag_changed`, re-derives every quest,
+  emits `Events.quest_started` / `quest_advanced` / `quest_completed` (all three declared in
+  Phase 0 and unlistened-to until now) and asks for a toast. A node under `GameRoot`, found by
+  group the way `UiRoot` is; no ADR, because no autoload.
+- `src/ui/screens/journal_screen.gd` — a `UiScreen` declaring its flags in `_init`, bound to `J`
+  through `ScreenKeys.toggle_journal` and to `--open-menu=journal` through `menu_for`, which is
+  the binding `screen_keys.gd`'s own header predicted would land there.
+- `src/core/state/flag_query.gd` — **extracted, not copied.** `DialogueRunner._passes` was the
+  only evaluator of `FlagTest`; a quest step asks the identical question, so the `match` moved to
+  one file both call. A test fails if a second copy grows back in either.
+- `data/quests/keepers_errand.tres` — ONE quest, two steps, plus 15 CSV rows.
+- `tests/unit/quests_test.gd` — 49 outcomes, plan computed so authoring a second quest edits no
+  number. 1081 → **1149** (49 here, 2 in `export_test.gd` for the fourth catalogue line, and 17 that
+  `docs_test.gd` computed from the new worked quest example in `AUTHORING.md`).
+- `tools/content_scenes.gd` — the tool split, below.
+- Fourth redirect in `tests/framework/fixtures.gd` and a fixture quest in `fixture_content.gd`;
+  `GameEnums.QuestState`; the fourth row in `CatalogueReport`; `--flag=` in `dev_stage.gd`;
+  `docs/AUTHORING.md` § Add a quest.
+
+**DERIVED, EXCEPT FOR TWO LATCHES, and the asymmetry is the design.** `flags.gd` says: if it can
+be derived, derive it — and almost all of this is. Two things cannot be. That a quest **started**:
+its start condition is a flag, and resetting that flag must not un-give a quest the player has
+carried for three hours. That a quest **completed**: a step may test `AT_LEAST 3` on a counter, and
+something decrementing it later must not reopen a finished quest. Those two, and only those two,
+are what the save section holds — as **two lists of ids**, never an enum ordinal. The **current
+objective is not latched**: it is a live question, so clearing the flag behind objective two brings
+objective two back. Both halves are asserted, because a latch nothing tests is indistinguishable
+from a cache.
+
+**A COMPLETED QUEST GRANTS NOTHING, and that is a layer rule rather than a shortcut.** A
+`reward_item` field would need `Inventory` and a player — both `gameplay` — inside a `systems`
+tracker, and `src/` points downward only. It emits `quest_completed` and stops, which is the
+reasoning that already keeps `Weather` from drawing rain and a `TriggerVolume` from naming its
+consequence. Anything that wants to hand over an item listens; anything that wants to gate a
+conversation tests the flag the last step tested, with no code at all.
+
+**THE FOURTH REGISTRY CAME DUE ON A NOTE `schedule_db.gd` LEFT.** Its header said "three is a
+pattern, four is a problem — if a fourth registry appears, that is the moment to reconsider." It
+was reconsidered rather than ignored, and the verdict is to keep the copy: GDScript has no
+generics, so a shared base could only cache `Resource` and hand it back untyped, making all four
+accessors a cast at the call site — and static typing is non-negotiable #2, not a preference. What
+is genuinely shared already is: `QuestDb` calls `ItemDb.resource_paths()` rather than copying the
+`.remap` handling. The refactor that would pay is a base holding the cache plus a thin typed façade
+each; that touches four registries and the four areas of the suite covering them, so it is **T3.1
+on the board** rather than a paragraph here.
+
+**`check_content.gd` was SPLIT, and the seam was already in the reasoning.** It stood at 237 of 250
+and the quest checks did not fit. `tools/content_scenes.gd` now holds the scene *text* scans —
+duplicate `object_id`, `_key` literals, the `[editable]` marker — which need no class registered
+and keep working on a scene broken for an unrelated reason; what stayed asks the *registries* what
+they loaded. Still ONE command and ONE CI rung, because it is a `RefCounted` the entry point
+instantiates rather than a second `SceneTree` tool. 237 → 178 + 102. Fifth time the budget checker
+has exposed a split that was already there.
+
+**The quest checks print the flags rather than validating them,** and the line is drawn there
+deliberately. A flag can be written from a scene, a conversation, a path action or another quest,
+and the writer that matters most is a runtime one — `PersistentState` builds
+`obj/<area>/<object>/<field>` at load. A checker that failed on any flag with no findable writer
+would be wrong most times it fired, and a partial check that looks complete is the failure mode
+this project exists to prevent. So they go in the build log where a reviewer reads them:
+
+```
+  quests: 1
+     quest/keepers_errand   2 steps, starts on met/gardener is_true
+        unlock              done when area/courtyard/gate_unlocked is_true
+        dais                done when area/courtyard/dais_entered is_true
+```
+
+**PROVED RED, THEN GREEN — both gates, both the real failure shape (gotcha 23).** The exact output
+is in `DEVLOG.md`. (1) A step's `summary_key` misspelled by one letter in the authored quest:
+`check_content` exits 1 naming the quest, the step and the key; reverted, exit 0. (2) A second copy
+of the comparison table planted back in `dialogue_runner.gd`: the suite exits 1 on *"and it no
+longer carries its own copy of the comparison table"*, `1148 passed, 1 failed`; reverted,
+`1149 passed, 0 failed`, exit 0.
+
+**One defect, found by the capture and not by any gate.** `--flag=` was applied during argument
+parsing, and `--new-game` **clears every flag** — so the first WP-08 capture photographed a journal
+with no quest in it and every rung stayed green. `--flag` now waits for the area the way
+`--open-menu` does. This is gotcha 31's family: not a rung blind to an error, but staging that ran
+before the thing it was staging for.
+
+**The input path was proved by a temporary probe and the probe was removed** (gotcha 15 —
+`TestCase.run()` is synchronous and no assertion can press a key). Run windowed, quoted verbatim in
+`DEVLOG.md`: `depth=0 top=NONE` → press `J` → `depth=1 top=journal` → press again → `depth=0
+top=NONE`. `git diff src/systems/debug/` is empty.
+
+**Two windowed captures, LOOKED AT, both at midday with `--new-game --shot-frame=70`.** The journal
+over a live courtyard showing *Underway · The Keeper's Errand · — Unlock the north gate* with the
+*New errand* toast up; and the same screen after all three flags with *Settled · The Keeper's
+Errand · — Nothing left to do* and *The Keeper's Errand is settled*. **The `Button` styleboxes were
+left unpopulated**: the journal did not force the decision — its rows are legible against the
+shipped dark palette — and T2.2's reasoning for leaving them holds, so the gap stays stated rather
+than guessed at.
+
+**Deferred, with reasons, not silently.** A quest step **cannot read an item count**: `Inventory`
+keeps counts, not flags, so "bring me three petals" is not authorable, and the original exit
+criterion "completed by an item handover" is **not met** for that reason. The seam is a `Pickup` or
+`ItemContainer` that writes a flag, which is a template change — recorded in
+`ARCHITECTURE.md`'s limitations and in `AUTHORING.md` where an author would hit it, so nobody works
+around it under `src/`. Also deferred: branching and failable quests, timed quests, rewards beyond
+a flag, sorting and filtering in the journal, and map markers (WP-11).
+
+**Ladder, all green.** `--headless --import` exit 0 with **zero** `SCRIPT ERROR` / `Parse Error`
+lines; boot `0 warnings, 0 errors`; suite **1149 passed, 0 failed, 0 skipped**, exit 0;
+`check_budgets`, `check_content`, `check_boundary` all exit 0 — and `check_boundary` now derives
+`quest/keepers_errand` and `keepers_errand` as demo names and finds neither anywhere in `src/` or
+`tests/`.
+
+**CI green, job logs read rather than the tick.** Recorded below with the run id.
+
+**Commit:** recorded below.
 
 ---
 

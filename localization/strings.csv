@@ -187,3 +187,18 @@ ui.action.inventory,Satchel
 ui.action.journal,Journal
 ui.action.map,Map
 ui.action.pause,Pause
+ui.journal.title,Journal
+ui.journal.empty,Nobody has asked anything of you.
+ui.journal.hint,Escape to close
+ui.journal.active,Underway
+ui.journal.complete,Settled
+ui.journal.objective,"— {objective}"
+ui.journal.done,Nothing left to do.
+ui.journal.unknown,A forgotten errand ({id})
+notify.quest.started,"New errand: {quest}"
+notify.quest.advanced,"{quest} — next step"
+notify.quest.completed,"{quest} is settled"
+quest.keepers_errand.name,The Keeper's Errand
+quest.keepers_errand.summary,"The garden-keeper would rather the north gate stood open, and the dais were walked."
+quest.keepers_errand.step.unlock,Unlock the north gate.
+quest.keepers_errand.step.dais,Stand on the dais.

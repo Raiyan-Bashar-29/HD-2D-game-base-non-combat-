@@ -27,6 +27,9 @@ extends Node
 ##   --talk-advance=<n>   press through n lines, to capture a branch rather than the opening.
 ##   --goto=<area>        travel somewhere else once the boot load has settled.
 ##   --stand-by=<name>    put the player beside a named node and let the sensor settle on it.
+##   --flag=<key>:<value> forge a plot flag AFTER the area lands: --flag=met/someone:true,
+##                        --flag=count/lit:3. --new-game clears flags, so it cannot be earlier.
+##                        A quest step is a flag condition, so this poses quest progress.
 ##   --standing=<who>:<n> set someone's standing, to photograph an action refused, failing and
 ##                        succeeding without playing the twenty minutes it takes to earn it.
 ##   --cycle=<n>          press the cycle key n times, to select past the first of several
@@ -77,6 +80,8 @@ func _parse_arguments() -> void:
 			_goto(StringName(argument.trim_prefix("--goto=")))
 		elif argument.begins_with("--stand-by="):
 			_stand_by(argument.trim_prefix("--stand-by="))
+		elif argument.begins_with("--flag="):
+			_force_flag(argument.trim_prefix("--flag="))
 		elif argument.begins_with("--standing="):
 			_force_standing(argument.trim_prefix("--standing="))
 		elif argument.begins_with("--cycle="):
@@ -221,6 +226,34 @@ func _stand_by(node_name: String) -> void:
 
 ## Force a standing before a capture, so the same action can be photographed refused, failing
 ## and succeeding without playing the twenty minutes it would take to earn it.
+## Set a flag from the command line, so a capture can pose narrative state the way --give poses
+## the bag. WP-08 needed it: a quest step is a flag condition, and photographing an objective
+## completing otherwise means walking the player to a lever and a trigger volume in one run.
+##
+## `true` and `false` are spelled; anything else is read as an integer, which covers the counter
+## flags AT_LEAST and AT_MOST test. Deliberately the raw store and not a system: this is the
+## development harness, and a flag is exactly what the harness should be able to forge.
+## AFTER THE TRANSITION, and finding that out cost a capture. `--new-game` CLEARS every flag, so
+## a flag forged during argument parsing is gone by the time the area lands — the first WP-08
+## capture photographed a journal with no quest in it for exactly that reason. Same wait, and the
+## same reason, as --open-menu.
+func _force_flag(value: String) -> void:
+	await get_tree().process_frame
+	if _fresh_game:
+		await _wait_for_area()
+	var at: int = value.rfind(":")
+	if at <= 0:
+		Log.warn("test", "--flag expects <key>:<value>, got '%s'" % value)
+		return
+	var flag: StringName = StringName(value.substr(0, at))
+	var raw: String = value.substr(at + 1)
+	var parsed: Variant = raw.to_int()
+	if raw == "true" or raw == "false":
+		parsed = raw == "true"
+	Flags.set_flag(flag, parsed)
+	Log.info("test", "--flag %s = %s by command line" % [flag, str(parsed)])
+
+
 func _force_standing(value: String) -> void:
 	var parts: PackedStringArray = value.split(":")
 	if parts.size() != 2:

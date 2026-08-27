@@ -245,8 +245,19 @@ The remaining packages, re-framed — see the board. **The export proof moved OU
 into T2.0**, at the front of Phase T2: it was always described here as "the one genuinely blocking
 item", and a blocking item scheduled last is a contradiction. Sequenced by risk, not by theme.
 
+- **WP-08 Quests — DONE, 2026-08-27.** The phase's first package, and the widest remaining hole:
+  quests were the one system with no proof at all. A quest is now authored data in `data/quests/`,
+  found by the fourth directory-scan registry, and **every step names a FLAG CONDITION rather than
+  a callback** — so a conversation that writes a flag starts a quest, a lever advances it and a
+  trigger volume finishes it, with none of the three knowing the quest system exists. `QuestTracker`
+  derives progress from `Flags` and latches only the two things that cannot be derived (that a quest
+  started, and that it completed). A `JournalScreen` on `J`, one placeholder quest, and 49 new
+  assertions. See the board.
+
 Exit criteria:
 - [ ] Every system has one proof, and no system has a second area's worth of content
+      — quests: **done**, WP-08, 2026-08-27. One quest, two steps, two windowed captures LOOKED AT:
+      the journal with the objective open, and the same quest under "Settled" with its toast up
 
 ## Phase T4 — Template v1.0
 

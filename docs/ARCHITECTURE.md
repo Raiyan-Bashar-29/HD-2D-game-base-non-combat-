@@ -142,7 +142,7 @@ Anything that needs a new `src/` file is a change to the *template*, and belongs
 
 ### Tier 1 — authored data. No code at all, and this is where nearly everything goes.
 
-Items, conversations, schedules, path actions, areas, sprite sheet layouts, the UI theme,
+Items, conversations, schedules, quests, path actions, areas, sprite sheet layouts, the UI theme,
 instances of the object and character prefabs. Adding the fiftieth of any of them touches no
 script. [`AUTHORING.md`](AUTHORING.md) is the whole of this tier;
 [`ART_CONTRACT.md`](ART_CONTRACT.md) is the two resources that carry the look.
@@ -162,9 +162,9 @@ script. [`AUTHORING.md`](AUTHORING.md) is the whole of this tier;
 
 The ten autoloads (`Log`, `Events`, `Actions`, `Settings`, `SaveSystem`, `Flags`, `Clock`,
 `Weather`, `Audio`, `Director`), `Director`'s transition sequence, `InteractionSensor`, `UiRoot`,
-`PlayerController`, `PersistentState`, `EnvironmentDriver`, `WeatherVisuals`, and the content
-registries. Each owns exactly one concern, and the seams above exist so none of them has to be
-touched.
+`PlayerController`, `PersistentState`, `EnvironmentDriver`, `WeatherVisuals`, `QuestTracker`, and
+the content registries. Each owns exactly one concern, and the seams above exist so none of them
+has to be touched.
 
 Three that look editable and are not:
 
@@ -275,3 +275,12 @@ never resolve.
   An area declares its own materials and takes the camera rig's defaults. Open work, not design.
 - **`Director` does not cancel its threaded load on shutdown**, which is why the boot rung needs
   `--quit-after 120` rather than 30. Deferred to WP-14.
+- **A quest step cannot read an item count.** A step is a flag condition, and `Inventory` keeps
+  counts rather than flags, so "bring me three petals" is not authorable today. The fix is a
+  `Pickup` or an `ItemContainer` that writes a flag, which is a template change with a board row —
+  not something a game should work around under `src/`.
+- **The four content registries are four copies of the same thirty lines.** `ScheduleDb`'s header
+  said "three is a pattern, four is a problem"; WP-08 made it four, reconsidered it, and kept the
+  copy because GDScript has no generics and a shared base could only hand back untyped
+  `Resource`s. The refactor that pays — a base holding the cache plus a thin typed façade each —
+  has a board row.

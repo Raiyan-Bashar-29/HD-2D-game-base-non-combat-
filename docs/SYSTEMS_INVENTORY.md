@@ -114,9 +114,11 @@ previous project started as a system that was allowed to know one thing too many
 | Dialogue content format | Conversation/DialogueNode/DialogueChoice as .tres, found by directory scan like items | — | running itself, or reading a flag | PART — one condition and one effect per node |
 | Barks | Short unprompted lines with cooldowns | Dialogue UI | — | LATER |
 | Cutscenes | Scripted camera, movement and timing | Director, Player controller | — | TODO |
-| Quests and objectives | State machine per quest, with steps | Flags, Events, Save | dialogue content | TODO |
-| Journal and codex | What the player has learned | Quests, Flags | — | TODO |
-| Plot gating | Chapter progression and content locks | Flags | — | TODO |
+| Quests and objectives | A quest is authored data; each step names a FLAG CONDITION and `QuestTracker` derives progress from `Flags`. Started and completed are latched and saved by id; the current objective is re-derived | Flags, Events, SaveSystem, QuestDb, FlagQuery | what any objective MEANS, how it is drawn, or how to grant a reward — it emits `quest_completed` and stops | DONE — WP-08 |
+| Quest content format | `Quest` / `QuestStep` as .tres in `data/quests`, found by directory scan like an item (ADR-0006) | — | reading a flag, tracking progress, or granting anything | PART — one condition per step, no branching, no failure state, no item-count step |
+| Journal | A `UiScreen` listing active and settled quests with the current objective of each, bound to `J` through `ScreenKeys` | QuestTracker, QuestDb, the project Theme | starting, advancing or completing anything; it draws what the tracker holds | PART — no detail pane, no sorting or filtering, no codex |
+| Flag conditions | The one evaluator of `GameEnums.FlagTest`, shared by a dialogue condition and a quest step | Flags | what any flag means, and writing one | DONE — WP-08 |
+| Plot gating | Chapter progression and content locks | Flags | — | PART — a quest's start condition and a dialogue node's condition are both flag tests, so chapter gating is authorable today; no chapter concept of its own |
 | Map markers | Objective and discovery markers | Quests, Area root | — | TODO |
 
 ## 5. Interface

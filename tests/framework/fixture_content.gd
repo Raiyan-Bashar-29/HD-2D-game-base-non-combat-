@@ -1,6 +1,7 @@
 class_name FixtureContent
 extends RefCounted
-## The content a test needs, built in code: items, a conversation, a schedule, a path action.
+## The content a test needs, built in code: items, a conversation, a schedule, a quest, a path
+## action.
 ##
 ## WHY THIS EXISTS
 ## A test asserting `item/rose_key` is testing the demo, not the item system. Before T1.3 about
@@ -40,6 +41,13 @@ const MORNING_WAYPOINT: StringName = &"fixture_post_a"
 const EVENING_WAYPOINT: StringName = &"fixture_post_b"
 const MORNING_HOUR: int = 6
 const EVENING_HOUR: int = 18
+
+const QUEST: StringName = &"quest/fixture_errand"
+const QUEST_START_FLAG: StringName = &"fixture/asked"
+const QUEST_FIRST_FLAG: StringName = &"fixture/first_done"
+const QUEST_SECOND_FLAG: StringName = &"fixture/second_done"
+const QUEST_FIRST_STEP: StringName = &"first"
+const QUEST_SECOND_STEP: StringName = &"second"
 
 const STANDING_ID: StringName = &"fixture_person"
 const SUCCESS_FLAG: StringName = &"fixture/bartered"
@@ -162,3 +170,33 @@ static func path_action() -> PathAction:
 	action.failure_key = "fixture.action.failure"
 	action.refusal_key = "fixture.action.refusal"
 	return action
+
+
+## A quest whose SHAPE makes every tracker rule observable, and nothing more: a start condition
+## that is not ALWAYS (so "not started" is a real state to be in), and TWO steps in order (so
+## advancing is distinguishable from completing, which one step cannot show).
+##
+## The three flags are abstract on purpose. A quest step is a flag condition and nothing else, so
+## a fixture quest needs no lever, no trigger volume and no area - which is what makes the quest
+## system provable in a checkout with no game in it.
+static func quest() -> Quest:
+	var made := Quest.new()
+	made.id = QUEST
+	made.name_key = "fixture.quest.name"
+	made.summary_key = "fixture.quest.summary"
+	made.condition_flag = QUEST_START_FLAG
+	made.condition_test = GameEnums.FlagTest.IS_TRUE
+	var steps: Array[QuestStep] = []
+	steps.append(quest_step(QUEST_FIRST_STEP, QUEST_FIRST_FLAG))
+	steps.append(quest_step(QUEST_SECOND_STEP, QUEST_SECOND_FLAG))
+	made.steps = steps
+	return made
+
+
+static func quest_step(step_id: StringName, flag: StringName) -> QuestStep:
+	var step := QuestStep.new()
+	step.step_id = step_id
+	step.summary_key = "fixture.quest.step.%s" % step_id
+	step.condition_flag = flag
+	step.condition_test = GameEnums.FlagTest.IS_TRUE
+	return step

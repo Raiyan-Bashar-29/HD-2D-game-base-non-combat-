@@ -10,7 +10,8 @@ extends RefCounted
 ##   Nothing scans anything, so the fixture is built in memory by `FixtureContent` and set on
 ##   the node. No file, no temp directory, no global state to restore.
 ## - LOOKED UP. `Inventory.add(id)` asks `ItemDb`, `DialogueRunner.begin(id)` asks `DialogueDb`,
-##   `NpcBrain` asks `ScheduleDb`. Those three registries find content BY DIRECTORY SCAN
+##   `NpcBrain` asks `ScheduleDb`, `QuestTracker` asks `QuestDb`. Those four registries find
+##   content BY DIRECTORY SCAN
 ##   (ADR-0006) and cache it statically, so an in-memory resource is invisible to them. The
 ##   options were a test-only injection method on each registry - engine code carrying a
 ##   backdoor that exists for the suite and for nothing else - or a real directory the real
@@ -27,7 +28,7 @@ extends RefCounted
 ## worst a crashed run leaves behind is a stale temp directory that the next `activate()`
 ## overwrites.
 ##
-## OWNS: the temp content root, redirecting the three registries onto it and back, and telling
+## OWNS: the temp content root, redirecting the four registries onto it and back, and telling
 ## a case whether demo content exists at all.
 ## MUST NOT: build content (that is `FixtureContent`), or assert anything.
 
@@ -35,6 +36,7 @@ const ROOT: String = "user://test_fixtures"
 const ITEM_DIR: String = "user://test_fixtures/items"
 const DIALOGUE_DIR: String = "user://test_fixtures/dialogue"
 const SCHEDULE_DIR: String = "user://test_fixtures/schedules"
+const QUEST_DIR: String = "user://test_fixtures/quests"
 
 const AREA_ROOT: String = "res://scenes/areas"
 
@@ -45,13 +47,14 @@ static func is_active() -> bool:
 	return _active
 
 
-## Point all three registries at fixture content. Idempotent, and it REWRITES the files every
+## Point all four registries at fixture content. Idempotent, and it REWRITES the files every
 ## time: a case that edited a cached resource in place must not leave that edit for the next.
 static func activate() -> bool:
 	var written: bool = _write_all()
 	ItemDb.content_dir = ITEM_DIR
 	DialogueDb.content_dir = DIALOGUE_DIR
 	ScheduleDb.content_dir = SCHEDULE_DIR
+	QuestDb.content_dir = QUEST_DIR
 	_reload_all()
 	_active = true
 	return written
@@ -67,6 +70,7 @@ static func deactivate() -> void:
 	ItemDb.content_dir = ItemDb.ITEM_DIR
 	DialogueDb.content_dir = DialogueDb.DIALOGUE_DIR
 	ScheduleDb.content_dir = ScheduleDb.SCHEDULE_DIR
+	QuestDb.content_dir = QuestDb.QUEST_DIR
 	_reload_all()
 
 
@@ -77,7 +81,8 @@ static func has_demo_content() -> bool:
 	return not (area_ids().is_empty()
 		and ItemDb.resource_paths(ItemDb.ITEM_DIR).is_empty()
 		and ItemDb.resource_paths(DialogueDb.DIALOGUE_DIR).is_empty()
-		and ItemDb.resource_paths(ScheduleDb.SCHEDULE_DIR).is_empty())
+		and ItemDb.resource_paths(ScheduleDb.SCHEDULE_DIR).is_empty()
+		and ItemDb.resource_paths(QuestDb.QUEST_DIR).is_empty())
 
 
 ## Every area a game has authored, DISCOVERED rather than listed. The structural contract in
@@ -97,11 +102,12 @@ static func _reload_all() -> void:
 	ItemDb.rescan()
 	DialogueDb.rescan()
 	ScheduleDb.rescan()
+	QuestDb.rescan()
 
 
 static func _write_all() -> bool:
 	var ok: bool = true
-	for directory: String in [ITEM_DIR, DIALOGUE_DIR, SCHEDULE_DIR]:
+	for directory: String in [ITEM_DIR, DIALOGUE_DIR, SCHEDULE_DIR, QUEST_DIR]:
 		if DirAccess.make_dir_recursive_absolute(directory) != OK:
 			ok = false
 	for definition: ItemDefinition in FixtureContent.items():
@@ -110,6 +116,8 @@ static func _write_all() -> bool:
 	ok = _save(talk, DIALOGUE_DIR, talk.id) and ok
 	var timetable: NpcSchedule = FixtureContent.schedule()
 	ok = _save(timetable, SCHEDULE_DIR, timetable.id) and ok
+	var errand: Quest = FixtureContent.quest()
+	ok = _save(errand, QUEST_DIR, errand.id) and ok
 	return ok
 
 

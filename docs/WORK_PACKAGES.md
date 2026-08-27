@@ -68,7 +68,7 @@ original board rather than continuing it.
 | T1.4 | CI — automate the ladder | **DONE** — see T1.4 below |
 | T2.0 | **The export proof** | **DONE** — the assumption HELD; see T2.0 below |
 | T2.1 | Art contract seams | **DONE** — see T2.1 below |
-| T2.2 | Consumer documentation | **DONE** — Phase T2 closes; see T2.2 below |
+| T2.2 | Consumer documentation | **DONE** — `36b5abd`, PR #15. Phase T2 closes; see T2.2 below |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
 T3 by subject and is sequenced FIRST by risk. The three content registries find items,
@@ -995,3 +995,10 @@ are a system with **no** proof at all, and the replacement rule is breadth of sy
 proof each. The five T2.1 leftovers (shared materials, the environment post-stack and camera
 framing as `@export`s, the texture import defaults, the LFS lines) are engine work whose two exit
 criteria are already met; they belong in a T3 row of their own rather than reopening T2.
+
+**CI green, run 33086307621, job logs read rather than the tick.** Full checkout
+`1081 passed, 0 failed, 0 skipped`; stripped template `1027 passed, 0 failed, 16 skipped`, the
+four new skips being exactly the doc-named paths under the content roots that a stripped checkout
+has deleted. All three checkers PASS in both jobs.
+
+**Commit:** `36b5abd` on `claude/t2-2-consumer-docs`, PR #15.

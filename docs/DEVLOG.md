@@ -2614,3 +2614,10 @@ describes how a game already forked from this base receives a later fix to it; t
 And the five T2.1 leftovers are still open — shared materials, the environment post-stack and
 camera framing as `@export`s, the texture import defaults, the LFS lines — now documented as open
 seams rather than silently absent.
+
+**CI, both jobs, run 33086307621.** Full checkout: `1081 passed, 0 failed, 0 skipped`. Stripped
+template: `1027 passed, 0 failed, 16 skipped` — up from T1.3's twelve, and the four new skips are
+exactly the doc-named paths under the content roots, which a stripped checkout has correctly
+deleted. `check_budgets`, `check_content` and `check_boundary` PASS in both. That the same
+documents pass in a template with no game in it is a better proof of the skip design than the
+assertion for it would have been.

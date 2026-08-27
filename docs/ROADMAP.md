@@ -189,12 +189,20 @@ Exit criteria:
   and 930 assertions were blind to — a missing `[editable]` marker dropped an instance's property
   overrides in the binary conversion only, so the demo's NPC shipped with no id, no prompt and no
   conversation. Fixed, and now a `check_content` gate. See the board.
-- **T2.1 The art contract.** A `SpriteSheetLayout` resource replacing `FACING_COUNT`/`FRAME_COUNT`;
-  the sector maths derived from it rather than from a separate literal `TAU / 8.0`; an
-  `animation_row` offset so idle-vs-walk is not structurally impossible; a project `Theme` so the
-  UI look stops living as constants inside five screen files; shared materials; the environment
+- **T2.1 The art contract — DONE, 2026-08-27.** The first four items of the list below, which are
+  the two exit criteria and their supports; the last five were left, in the order they are
+  written, because the package hit its file budget and half-doing five seams is worse than
+  finishing two. A `SpriteSheetLayout` resource replacing `FACING_COUNT`/`FRAME_COUNT`, with the
+  sector width DERIVED from the facing count instead of a separate literal `TAU / 8.0`, and
+  animation blocks with idle/walk row offsets so idle-vs-walk is no longer structurally
+  impossible; a project `Theme` at `assets/theme/ui_theme.tres` so the UI look stops living as
+  constants inside five screen files. **Left for later:** shared materials; the environment
   post-stack as `@export`s rather than code constants; camera exports set per area; the texture
-  import defaults flipped before real art lands; the Git LFS lines enabled.
+  import defaults (an undocumented editor-managed `[importer_defaults]` section, so it cannot be
+  checked against the API dump the way this project requires); the Git LFS lines, which the
+  `.gitattributes` comment is right to keep commented until real art exists — LFS pointers for a
+  2 KB placeholder are pure overhead and would put the CI checkout on a dependency it does not
+  have. See the board.
 - **T2.2 Consumer documentation.** `NEW_GAME.md`, `AUTHORING.md`, `ART_CONTRACT.md`, `TESTING.md`,
   and a stated extension surface versus internals.
 
@@ -204,8 +212,16 @@ Exit criteria:
       editor: `items: 3, dialogue: 1, schedules: 1`, resolved paths identical to a source run.
       Moved here from Phase T3, where it was listed while `SYSTEMS_INVENTORY.md` simultaneously
       marked export presets LATER; that contradiction was settled 2026-08-26 in favour of blocking
-- [ ] Swap in a sprite sheet with a different cell and frame count, changing **no code**
-- [ ] One `Theme` change restyles every screen at once
+- [x] Swap in a sprite sheet with a different cell and frame count, changing **no code** — T2.1,
+      **2026-08-27**. `character_alt.png`, 4 facings x 3 frames x 2 animation blocks on a 24x40
+      cell against the default 8 x 4 on 32x48. Two `ExtResource` paths in `player.tscn` changed
+      and nothing else. Windowed capture LOOKED AT: the probe logged `frame=19/24`, and the
+      picture showed the walk block's tint, four column pips and two frame pips — block 1,
+      frame 1, column 3, which is exactly index 19
+- [x] One `Theme` change restyles every screen at once — T2.1, **2026-08-27**. Six lines of
+      `assets/theme/ui_theme.tres` and no other file: the main menu and the inventory screen both
+      went from dark-on-translucent-black to dark-on-parchment with a deep-red accent and a wider
+      inset, and the HUD clock followed. Captures before and after, both looked at
 - [ ] Someone who has not read `src/` can author an area, an NPC and a conversation from the docs
 
 ## Phase T3 — Finish the system catalogue

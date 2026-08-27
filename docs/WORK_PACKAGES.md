@@ -67,8 +67,8 @@ original board rather than continuing it.
 | T1.3 | Test fixtures + framework hardening | **DONE** — see T1.3 below |
 | T1.4 | CI — automate the ladder | **DONE** — see T1.4 below |
 | T2.0 | **The export proof** | **DONE** — the assumption HELD; see T2.0 below |
-| T2.1 | Art contract seams | **TODO — next** |
-| T2.2 | Consumer documentation | TODO |
+| T2.1 | Art contract seams | **DONE** — see T2.1 below |
+| T2.2 | Consumer documentation | **TODO — next** |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
 T3 by subject and is sequenced FIRST by risk. The three content registries find items,
@@ -727,3 +727,147 @@ per gotcha 26.
 
 **Closed 2026-08-26**, commit `835fb79`. New gotcha 27.
 
+
+---
+
+## T2.1 · Art contract seams — **DONE**
+
+**Goal.** Make the art contract authorable data instead of code constants, and prove it by
+swapping something. Phase T2's goal is *"a second, visually different game starts from this
+without editing `src/`"*, and two things made that false.
+
+**The two seams, and what was actually wrong with each.**
+
+1. **`CharacterVisual` hard-coded the sheet.** `FACING_COUNT = 8` and `FRAME_COUNT = 4` were
+   constants, and the eight-way sector maths was a **separate literal `TAU / 8.0`** that had to
+   agree with the first by hand. Two places holding one number, waiting for the first game whose
+   sheet has four facings. There was also no animation-row offset, so idle-versus-walk was not
+   merely unimplemented, it was structurally impossible — the sheet had exactly one cycle and
+   nowhere to put a second.
+2. **The UI look lived as constants inside five screen files.** `menu_screen.gd`,
+   `dialogue_screen.gd`, `inventory_screen.gd`, `hud_clock.gd`, `loading_indicator.gd`. The
+   accent colour was written out three times in slightly different values (`0.86, 0.74, 0.52`
+   twice, `0.90, 0.78, 0.55` once); `40` appeared twice, `24` three times, `18` twice. So a
+   restyle was five edits that would drift, and a consuming game had nowhere to put its own look
+   but a fork of the screens.
+
+**A FACING IS NOT A COLUMN, and getting that wrong would have re-created the bug.** The obvious
+implementation maps `GameEnums.Facing` down onto `layout.facings` — `int(facing) * facings / 8` —
+and that puts the number 8 back in the code, in a second place, exactly where it was. So the two
+are quantised *separately from the same angle*: `_facing` from `GameEnums.Facing.size()`, because
+eight is how many directions the **game** reasons about, and `_column` from `layout.facings`,
+because that is how many the **art** distinguishes. Neither reads a literal. When `facings == 8`
+they agree by construction, which is why nothing about the existing sheet changed.
+
+**Wrote**
+- `src/content/art/sprite_sheet_layout.gd` — 34 code lines. `facings`, `frames`, `animations`,
+  `cell_size`, `idle_row`, `walk_row`, plus `sheet_rows()`, `sheet_size()`, `sector_radians()`,
+  `column_for_angle()`, `animation_for()`, `frame_index()` and `problems()`. In `src/content/`
+  because it is a data shape, so anything may read it, and it touches no autoload — the same
+  constraint `item_definition.gd` carries, and for the same reason: `tools/` loads content classes
+  under `--script`, where autoload identifiers do not resolve.
+- `assets/placeholder/character_layout.tres` — the old constants, moved out of code unchanged:
+  8 facings, 4 frames, 1 block, 32x48.
+- `assets/placeholder/character_alt_layout.tres` + `character_alt.png` — the swap subject, and it
+  disagrees with the default on **every** number: 4 facings, 3 frames in **2** blocks, 24x40.
+- `assets/theme/ui_theme.tres`, wired as `gui/theme/custom` in `project.godot`. Nine type
+  variations carrying font sizes, a `UiPalette` of four colours, a `UiMetrics` of six insets.
+- `tools/gen_placeholders.gd` — `_build_alt_sheet()`, and see below for why every cell is labelled.
+- `tests/unit/art_contract_test.gd` — 83 assertions. 930 → **1013**.
+
+**THE PALETTE IS NOT COPIED INTO THE VARIATIONS, and that is the whole design.** A `Theme`
+resource has no variables, so a colour repeated into nine variations is nine places to change and
+"one Theme edit restyles every screen" would simply be false. So the variations carry **only**
+`font_size` — the one thing that genuinely differs by role — and the screens read the four colours
+and six insets by name from `UiPalette` / `UiMetrics`. It costs each screen a `get_theme_color`
+call and buys the criterion outright.
+
+**Three values were deliberately UNIFIED rather than carried across.** The dialogue box's dim was
+`0.03, 0.02, 0.05, 0.72` against the inventory's `0.04, 0.03, 0.06, 0.78`; its speaker tint was
+`0.90, 0.78, 0.55` against the others' `0.86, 0.74, 0.52`; its hint was 16pt against the others'
+18. Those differences were duplication, not design — nobody chose them — and keeping them would
+have meant three palette entries that exist only to preserve a typo. Two column separations moved
+by 2px and 4px for the same reason. This is a visual change, and it is the only one in the
+package; the captures show it as an improvement in consistency.
+
+**EVERY CELL OF THE ALT SHEET IS SELF-LABELLING, because gotcha 2 has a sharper form here than
+usual.** A day/night system that lights nothing is at least obviously wrong on screen. **A
+character drawn from the wrong cell still looks like a character** — it is a person, upright, lit,
+facing *some* direction. So a capture cannot be *judged*, it has to be *read*. Each cell of
+`character_alt.png` therefore carries `column + 1` bright pips down its left edge and `frame + 1`
+along its foot, and the two animation blocks wear different tints. Four left pips and two foot
+pips on an orange body is block 1, frame 1, column 3 — index `(1*3 + 1) * 4 + 3 = 19` — and no
+amount of plausible-looking pixel art can fake that number.
+
+**Verified. Both criteria are VISUAL claims and both were demonstrated by a capture that was
+looked at, not by an assertion.**
+
+*Criterion 1 — swap in a sheet with a different cell and frame count, changing no code.* Two
+`ExtResource` paths in `scenes/characters/player.tscn` repointed at the alt pair; nothing else
+touched, and the file was reverted afterwards. Standing still, the probe logged
+`sprite visible=true frame=0/24 size_px=(96.0, 240.0)` and the zoomed capture showed the green
+idle-block body, one left pip, one foot pip and eyes — column 0, frame 0, idle. Walking, the probe
+logged `frame=19/24` and the capture showed the orange walk-block body, **four** left pips, **two**
+foot pips, no eyes and offset legs — block 1, frame 1, column 3, which is index 19 exactly. The
+default sheet reports `frame=0/32 size_px=(256.0, 192.0)`, so `hframes`/`vframes` follow the
+layout and not a constant. The NPC beside the player kept the 8x4 sheet throughout, which is the
+incidental proof that a layout is per-node rather than global.
+
+*Criterion 2 — one `Theme` change restyles every screen at once.* Six lines of
+`assets/theme/ui_theme.tres` and no other file: `text` white → near-black, `accent` gold → deep
+red, `dim` and `solid` near-black → parchment, `margin` 64 → 120, `TitleText` 40 → 56. Captures
+before and after of the main menu and of the inventory screen over a frozen world. Both screens
+restyled completely, and the HUD clock followed without being mentioned. Reverted.
+
+*Ladder, all green.* `--headless --import` exit 0 with **zero** `SCRIPT ERROR` / `Parse Error`
+lines; boot `0 warnings, 0 errors`; suite **1013 passed, 0 failed, 0 skipped**, exit 0;
+`check_budgets`, `check_content`, `check_boundary` all exit 0; windowed capture at 18:40 looked at
+and unchanged from before the refactor.
+
+*Both new gates proved RED before green (gotcha 23).* Adding
+`add_theme_font_size_override(&"font_size", 22)` back to `hud_clock.gd` — the exact regression the
+gate exists to catch — printed `FAILED: hud_clock.gd writes down no font size — expected 0, got 1`
+and exited 1. Changing `frames = 3` to `4` in the alt layout printed `FAILED: the alt layout is 3
+frames in 2 blocks — expected [3, 2], got [4, 2]` and `FAILED: the two layouts disagree on the
+frame count`, and exited 1. Both reverted, both green again.
+
+**A temporary probe, added and removed as gotcha 15 prescribes.** `CharacterVisual.describe()`
+existed with no caller, so no run had ever printed which cell was being drawn. A
+`_temporary_t21_probe()` in `dev_capture.gd` logged it at the shutter, and a `_temporary_t21_walk()`
+pressed `move_left` twelve frames before the shot — an assertion cannot press a key and
+`TestCase.run()` never reaches a frame. Both are quoted above and both are gone;
+`git diff src/systems/debug/dev_capture.gd` is empty.
+
+**What the assertions deliberately do NOT claim.** `art_contract_test.gd` says so in its header
+and means it: it cannot say what a sprite looks like. What it does cover is the part that is a
+pure function of the facing count — the sector maths, the frame indexing, the layout's own
+validation — plus a **compatibility assertion** that an 8x4 layout produces the same index the old
+`_frame * FACING_COUNT + facing` produced, which is what says this refactor moved the numbers
+without moving the picture. It also pins the theme resolving *through the project setting on a
+live Control*, because a theme item that exists in a file and does not resolve from a node is not
+wired — the same failure shape as an unwired `@export`.
+
+**A regression gate, not just a refactor.** The look reached five files one reasonable line at a
+time, and nothing but a check stops it going back. `_no_screen_holds_a_size_or_a_colour_of_its_own`
+fails if any of the five names a `Color(` or calls `add_theme_font_size_override` in a code line,
+and fails if `character_visual.gd` regains a `TAU / 8` or a `FACING_COUNT`. Comments are exempt,
+on `check_boundary`'s reasoning: a `##` line naming what the theme replaced teaches by example and
+changes nothing.
+
+**Left for later, in the roadmap's own order, because the package hit its file budget and
+half-doing five seams is worse than finishing two.** Shared materials. The environment post-stack
+as `@export`s rather than code constants. Per-area camera exports. The texture import defaults —
+and this one has a reason beyond budget: `[importer_defaults]` is an undocumented
+editor-managed section, absent from `--doctool`, so it cannot be checked against the API dump the
+way this project requires, and the per-file values already committed are correct for pixel art.
+The Git LFS lines stay commented, and the `.gitattributes` comment is right: LFS pointers for a
+2 KB placeholder are pure overhead, and enabling them would put the CI checkout on a dependency
+it does not currently have.
+
+**One gap the restyle capture exposed, and it belongs to the theme rather than to a screen.** The
+theme governs sizes, colours and insets; it does **not** yet set the `Button` styleboxes, so
+`MenuRow` and `ChoiceRow` still draw Godot's default dark panel. Against the parchment palette
+that left every row dark-on-light — legible, but plainly not restyled with the rest. The seam
+exists and is the right one (`MenuRow/styles/normal` and friends in the same file, no code); it is
+simply unpopulated. A consuming game with a light palette will hit this immediately, which makes
+it T2.2's business to say so, or a one-line theme addition whenever a real look is chosen.

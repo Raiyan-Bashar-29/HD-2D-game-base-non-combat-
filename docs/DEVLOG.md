@@ -2336,3 +2336,157 @@ that makes a content regression visible in the one place it was previously invis
   content-registry checks.
 
 **CI green**, run [32995130430](https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-/actions/runs/32995130430), both jobs: `930 passed, 0 failed, 0 skipped` full and `880 passed, 0 failed, 12 skipped` stripped — the hand-run numbers exactly.
+
+---
+
+## 2026-08-27 — T2.1 · Art contract seams
+
+**Did.** Moved the two things that made "a second, visually different game starts from this
+without editing `src/`" false: the sprite sheet's dimensions, and the UI's look. Both are now
+authored data, and both were proved by swapping something and looking at the result.
+
+- `src/content/art/sprite_sheet_layout.gd` — new, 34 code lines. `facings`, `frames`,
+  `animations`, `cell_size`, `idle_row`, `walk_row`, plus `sheet_rows()`, `sheet_size()`,
+  `sector_radians()`, `column_for_angle()`, `animation_for()`, `frame_index()`, `problems()`.
+- `src/gameplay/character/character_visual.gd` — `FACING_COUNT`, `FRAME_COUNT`, the literal
+  `TAU / 8.0` and `_cell_height()` all gone; a `layout` `@export` in their place, and every
+  dependent number read from it. 95 → 107 code lines.
+- `assets/placeholder/character_layout.tres` — the old constants, moved out unchanged: 8x4, 32x48.
+- `assets/placeholder/character_alt_layout.tres` + `character_alt.png` — 4 facings, 3 frames in
+  2 blocks, 24x40. Disagrees with the default on every number, which is the point.
+- `assets/theme/ui_theme.tres` — new, wired as `gui/theme/custom`. Nine type variations carrying
+  font sizes, a `UiPalette` of four colours, a `UiMetrics` of six insets.
+- The five styled files — `menu_screen.gd`, `dialogue_screen.gd`, `inventory_screen.gd`,
+  `hud_clock.gd`, `loading_indicator.gd` — now hold no colour and no font size of their own.
+- `tools/gen_placeholders.gd` — `_build_alt_sheet()`, 95 → 129 code lines.
+- `tests/unit/art_contract_test.gd` — 83 assertions. Suite 930 → **1013**.
+- `scenes/characters/player.tscn`, `npc.tscn` — the layout wired; inventory, roadmap, board.
+
+**Why.** `FACING_COUNT = 8` and `FRAME_COUNT = 4` were constants in `CharacterVisual`, and the
+sector maths was a **separate literal `TAU / 8.0`** that had to agree with them by hand. Two
+places holding one number, and a game with a four-facing sheet would have needed a code edit —
+the one thing a template must never ask for. There was no animation-row offset either, so
+idle-versus-walk was not unimplemented but *structurally impossible*: one cycle, nowhere to put a
+second. Meanwhile the UI look was constants in five screen files with the accent colour written
+out three times in two slightly different values, so a restyle was five edits that would drift and
+a consuming game had nowhere to put its own look but a fork of the screens.
+
+**Connects.** The layout lives in `src/content/` because it is a data shape, so anything may read
+it, and like `item_definition.gd` it touches no autoload — `tools/` loads content classes under
+`--script`, where autoload identifiers do not resolve, so one `Log` call there would break a build
+gate. `SpriteSheetLayout` was checked against the API dump first (`AudioBusLayout` is the only
+near-miss; `Resource` declares none of the six field names) — the fifth time this project has
+gone looking after `Area3D.priority`, `class_name Container`, `DictRead.get_name` and
+`ItemDb.reload()`. The theme goes through `gui/theme/custom` rather than being handed to
+`UiRoot`, so it reaches the HUD too — which is drawn *under* `UiRoot` and would otherwise have
+been missed. Assertions for the pure functions, a capture for the picture: the same division
+`export_test.gd` drew in T2.0 when it asserted its own blindness rather than implying it.
+
+**A FACING IS NOT A COLUMN, and the obvious implementation re-creates the bug.** Mapping
+`GameEnums.Facing` down onto `layout.facings` — `int(facing) * facings / 8` — puts the number 8
+back in the code in a second place, exactly where it was. So the two are quantised *separately
+from the same angle*: `_facing` from `GameEnums.Facing.size()`, because eight is how many
+directions the **game** reasons about, and `_column` from `layout.facings`, because that is how
+many the **art** distinguishes. Neither reads a literal, and when `facings == 8` they agree by
+construction — which is why nothing about the existing sheet moved.
+
+**THE PALETTE IS NOT COPIED INTO THE VARIATIONS, and that is the whole design.** A `Theme` has no
+variables, so a colour repeated into nine variations is nine places to change and "one Theme edit
+restyles every screen" would be false. The variations carry only `font_size`, the one thing that
+genuinely differs by role; the screens read the four colours and six insets by name. It costs a
+`get_theme_color` call per screen and buys the criterion outright.
+
+**Three values were deliberately UNIFIED, and this is the package's only visual change.** The
+dialogue box's dim was `0.03, 0.02, 0.05, 0.72` against the inventory's `0.04, 0.03, 0.06, 0.78`;
+its speaker tint `0.90, 0.78, 0.55` against the others' `0.86, 0.74, 0.52`; its hint 16pt against
+18. Nobody chose those differences — they are duplication, and preserving them would have meant
+palette entries that exist to keep a typo. Two column separations moved 2px and 4px likewise.
+
+**Verified.** Both criteria are visual claims and neither is an assertion.
+
+```
+--headless --import                       exit 0, ZERO SCRIPT ERROR / Parse Error lines
+--headless --quit-after 120               Session ended after 1.3s — 0 warnings, 0 errors
+tests/test_runner.tscn --quit-after 400   1013 passed, 0 failed, 0 skipped   exit 0
+tools/check_budgets.gd                    exit 0
+tools/check_content.gd                    exit 0   (still 237/250; nothing added to it)
+tools/check_boundary.gd                   exit 0
+--resolution 960x540 ... --time=18:40     looked at; unchanged from before the refactor
+```
+
+*Criterion 1 — a sheet with a different cell and frame count, no code changed.* Two `ExtResource`
+paths in `player.tscn` repointed at the alt pair, nothing else, reverted after. The probe and the
+picture agree exactly:
+
+```
+default, standing   frame=0/32   size_px=(256.0, 192.0)
+alt,     standing   frame=0/24   size_px=(96.0, 240.0)
+alt,     walking    frame=19/24  size_px=(96.0, 240.0)
+```
+
+`frame=19` decodes to row 4, i.e. block 1 (walk), frame 1, column 3. The zoomed capture shows the
+orange walk-block body, **four** pips down the left edge, **two** along the foot, no eyes, and
+legs offset — block 1, frame 1, column 3. `(1*3 + 1) * 4 + 3 = 19`. Standing, the same crop showed
+the green idle body with one pip each way and eyes. The NPC beside the player kept the 8x4 sheet
+throughout, which is the incidental proof that a layout is per-node and not global.
+
+*Criterion 2 — one `Theme` change restyles every screen.* Six lines of `ui_theme.tres` and no
+other file: `text` white → near-black, `accent` gold → deep red, `dim`/`solid` near-black →
+parchment, `margin` 64 → 120, `TitleText` 40 → 56. Captures before and after of the main menu and
+of the inventory screen over a frozen world. Both restyled completely; the HUD clock followed
+without being mentioned. Reverted.
+
+*Both new gates proved RED before green (gotcha 23).* Putting
+`add_theme_font_size_override(&"font_size", 22)` back in `hud_clock.gd` — the exact regression the
+gate exists for — gave `FAILED: hud_clock.gd writes down no font size — expected 0, got 1`, exit 1.
+Changing `frames = 3` to `4` in the alt layout gave `FAILED: the alt layout is 3 frames in 2
+blocks — expected [3, 2], got [4, 2]` plus `FAILED: the two layouts disagree on the frame count`,
+exit 1. Both reverted, both green.
+
+**A temporary probe, added and removed as gotcha 15 prescribes.** `CharacterVisual.describe()`
+had existed with no caller since Phase 0, so no run had ever printed which cell was drawn. A
+`_temporary_t21_probe()` in `dev_capture.gd` logged it at the shutter and a `_temporary_t21_walk()`
+pressed `move_left` twelve frames before the shot — an assertion cannot press a key and
+`TestCase.run()` never reaches a frame. Both quoted above, both removed;
+`git diff src/systems/debug/dev_capture.gd` is empty.
+
+**EVERY CELL OF THE ALT SHEET IS SELF-LABELLING, because gotcha 2 has a sharper form here.** A
+day/night system that lights nothing is at least obviously wrong on screen. A character drawn from
+the *wrong cell* still looks like a character — upright, lit, facing *some* direction. So the
+capture cannot be judged, it has to be read, and each cell carries `column + 1` pips down its left
+edge and `frame + 1` along its foot with a different tint per animation block. That is what made
+`frame=19` a checkable prediction rather than a number to take on trust.
+
+**Unblocks.** T2.2 can now document an art contract that exists rather than describing intent —
+`ART_CONTRACT.md` is `SpriteSheetLayout`'s header plus the theme's, and both were written to be
+read by a consuming game. A game with four-direction art, or a six-frame cycle, or a separate idle
+needs no engine change. And the environment post-stack, the shared materials and the per-area
+camera exports left below all now have a worked precedent for the shape they should take.
+
+**Gaps.**
+- **The theme does not set the `Button` styleboxes**, so `MenuRow` and `ChoiceRow` still draw
+  Godot's default dark panel. The parchment capture showed it plainly: every row stayed
+  dark-on-light while the rest of the screen restyled. The seam is right and in the same file
+  (`MenuRow/styles/normal`), it is simply unpopulated — and a consuming game with a light palette
+  hits it immediately, which makes it T2.2's business to say so at minimum.
+- **Five of the roadmap's nine T2.1 items are left**, in its own order, because the package hit
+  its file budget: shared materials, the environment post-stack as `@export`s, per-area camera
+  exports, the texture import defaults and the Git LFS lines. Half-doing five seams is worse than
+  finishing two.
+- **The texture import defaults have a reason beyond budget.** `[importer_defaults]` is an
+  undocumented editor-managed section — absent from `--headless --doctool` — so it cannot be
+  checked against the API dump the way this project requires, and hand-authoring an undocumented
+  format is exactly the kind of change that looks applied and does nothing. The per-file values
+  already committed are correct for pixel art. One latent hazard worth naming for whoever picks it
+  up: every `.import` carries `detect_3d/compress_to=1`, and these sheets *are* used in 3D, so a
+  re-import could switch them to VRAM compression and put block artefacts through pixel art.
+- **The Git LFS lines stay commented, deliberately.** The `.gitattributes` comment is right: LFS
+  pointers for a 2 KB placeholder are pure overhead, and enabling them would put the CI checkout
+  on a dependency it does not currently have. Enable when real art arrives, which is what it says.
+- **`animations` is authored, not inferred.** A layout claiming more blocks than the sheet has is
+  caught by `problems()` only when a texture is supplied, which `CharacterVisual` does and a bare
+  `.tres` review does not.
+
+**CI green**, run [32998836688](https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-/actions/runs/32998836688), both jobs: `1013 passed, 0 failed, 0 skipped` full and
+`963 passed, 0 failed, 12 skipped` stripped — 880 + 83, reproducing T2.0's stripped number exactly.
+All 83 new assertions run in a stripped template, because the case names `assets/` and never `data/`.

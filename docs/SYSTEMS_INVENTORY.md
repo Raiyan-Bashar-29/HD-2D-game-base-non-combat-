@@ -44,7 +44,8 @@ previous project started as a system that was allowed to know one thing too many
 | Area root | The uniform contract every area scene satisfies | Weather, Audio, Log | gameplay logic | DONE — the eight required children are now asserted, not just documented |
 | Area doors | The one object that asks to travel. Names an id and a spawn, nothing else | Interactable, Director | loading, fading, or moving the player | DONE |
 | HD-2D camera rig | Long-lens diorama framing, tilt-shift depth of field | Events, Director | input; what it follows beyond a Node3D | DONE |
-| Character visual | Billboarded, lit, correctly-sorted sprite with 8-way facing | Events | input, movement, game rules | DONE |
+| Character visual | Billboarded, lit, correctly-sorted sprite, facing quantised from the sheet layout | Events, SpriteSheetLayout | input, movement, game rules, or any sheet dimension of its own | DONE — T2.1 moved every dimension out to a resource |
+| Sprite sheet layout | The art CONTRACT: facings, frames, cell size, animation blocks and idle/walk rows, as authored data. The sector width is derived from the facing count, so the two cannot disagree | nothing — it is a data shape | a texture, a node, or what animation is playing | DONE — T2.1, and a sheet with a different cell and frame count was swapped in with no code change, demonstrated by capture |
 | Player controller | Movement, gait, movement state, authored climb, token input lock | Actions, Settings, Events, Layers | dialogue, inventory, interaction rules, the camera | DONE |
 | World clock | Day, hour, minute, time-of-day phase | Log, Events, Save | what time *means* to anything | DONE |
 | Weather state | Current kind, blend, intensity, scheduling | Log, Events, Save | particles, lights, sounds | DONE |
@@ -138,12 +139,13 @@ previous project started as a system that was allowed to know one thing too many
 | World map | Region map, discovery, fast travel | Director, Flags | — | TODO |
 | Controller navigation | Every screen fully usable on a gamepad | Actions | — | DONE — a VBoxContainer of Buttons answers ui_up/ui_down and ui_accept, so no screen owns a cursor; proved windowed with real events |
 | Loading screen | Covers threaded area loads | Director | — | DONE — fade plus a progress readout drawn above it; the one node after ScreenFade |
+| Project UI theme | `assets/theme/ui_theme.tres`, wired as `gui/theme/custom`: every font size, colour and inset the UI draws with. Type variations carry sizes; a `UiPalette` and a `UiMetrics` carry the colours and insets once each, NOT copied into the variations | nothing | a localization key, or a size only one screen could want | DONE — T2.1. One edit to that file restyled the menu, the inventory screen and the HUD at once, demonstrated by captures before and after; a test case fails if a screen writes a colour or a font size down again |
 
 ## 6. Content pipeline and production
 
 | System | Purpose | Status |
 |---|---|---|
-| Placeholder art generation | Procedural stand-ins so code can be finished before art | DONE |
+| Placeholder art generation | Procedural stand-ins so code can be finished before art. Two character sheets since T2.1: the 8x4 default, and a 4-facing/3-frame/2-block sheet whose every cell carries a column tally and a frame tally so a capture of it can be READ rather than judged | DONE |
 | Content validator | tools/check_content.gd — ids, duplicate object_ids, CSV keys, stray defs | DONE |
 | Engine/demo boundary gate | tools/check_boundary.gd — FAILS if any file under src/, tests/framework/ or tests/unit/ names demo content, and fails if the exempt debug surface loses its release guard. Demo ids derived from scenes/areas/ and data/, never listed | DONE — T1.2 |
 | Line-budget checker | Mechanical enforcement of file and function size limits | DONE |

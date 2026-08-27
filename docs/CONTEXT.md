@@ -3,7 +3,8 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-26 · T2.0 (the export proof) complete — **an exported build has been run, and it finds its content**
+**Last updated:** 2026-08-27 · T2.1 (the art contract seams) complete — **the sheet layout and the
+UI look are authorable data, and both were proved by swapping something and looking at it**
 
 > **This is a TEMPLATE, not a game.** Read [`TEMPLATE.md`](TEMPLATE.md) — it is short, and the
 > roadmap, the board and parts of this file were written before that reframing. The courtyard and
@@ -15,10 +16,11 @@ Every package — WP-01 through WP-07, plus WP-12 and WP-13 — is on **`claude/
 #10 into `main`); the reframing docs are on **`claude/template-reframing`** (PR #11); T1.2 is on
 **`claude/t1-2-boundary`**, branched from the reframing tip; T1.3 is on
 **`claude/t1-3-fixtures`**, branched from T1.2; T1.4 is on **`claude/t1-4-ci`**, branched from
-T1.3; T2.0 is on **`claude/t2-0-export-proof`**, branched from T1.4. The nine earlier PRs are superseded.
+T1.3; T2.0 is on **`claude/t2-0-export-proof`**, branched from T1.4; T2.1 is on
+**`claude/t2-1-art-contract`**, branched from T2.0. The nine earlier PRs are superseded.
 
-**Branch new work from `claude/t2-0-export-proof`**, or from `main` once #10, #11, T1.2-T1.4 and T2.0 have
-landed. The older
+**Branch new work from `claude/t2-1-art-contract`**, or from `main` once #10, #11, T1.2-T1.4, T2.0
+and T2.1 have landed. The older
 per-package branches (`claude/wp-04-second-area`, `claude/wp-05-dialogue`, `claude/wp-06-npcs`,
 `claude/wp-07-path-actions`, `claude/wp-12-menus`, `claude/wp-13-presentation`) are history and
 should not be built on.
@@ -37,9 +39,9 @@ game built on this will need, so a new game is content and data rather than new 
 
 ## Where it stands
 
-Phase 0 complete, Phase 1 COMPLETE, Phase 2 well under way, **Phase T1 COMPLETE, T2.0 done**. 100
-files, 8,273 code lines,
-18 scenes, 2 areas, 3 items, 1 conversation, 1 schedule, 2 path actions.
+Phase 0 complete, Phase 1 COMPLETE, Phase 2 well under way, **Phase T1 COMPLETE, T2.0 and T2.1
+done**. 102 files, 8,519 code lines,
+18 scenes, 2 areas, 3 items, 1 conversation, 1 schedule, 2 path actions, 2 sprite sheet layouts.
 Boots headless with **0 warnings, 0 errors**.
 
 **Works, and verified by running it:** logging with rotation · signal registry (`events.gd`) ·
@@ -47,7 +49,7 @@ input actions · settings · save/load with atomic writes and versioning · plot
 director with a re-entrancy guard and threaded loading · world clock · weather state · audio
 buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 8-way character ·
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
-placeholder art generator · line-budget checker · a headless test suite (930 assertions) that
+placeholder art generator · line-budget checker · a headless test suite (1,013 assertions) that
 builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
 returns early, asserts nothing, or is not listed in the runner ·
 an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
@@ -70,13 +72,22 @@ that they move Â· **weather you can see**: generated rain, snow and wind emitt
 `Weather.intensity()`, surfaces that darken and gain a wet clearcoat and then dry out over
 twenty-six seconds, and a layered ambience bed on procedurally generated noise ·
 **an exported build that finds its content**: a committed Windows preset, and a boot-time readout
-of every catalogue's count and resolved paths that WARNS on an empty one in an export.
+of every catalogue's count and resolved paths that WARNS on an empty one in an export ·
+**an art CONTRACT rather than art**: a `SpriteSheetLayout` resource carrying facings, frames,
+cell size and animation blocks, with the direction sectors DERIVED from the facing count, so a
+sheet with a different cell and frame count was swapped in with no code change at all · a project
+`Theme` at `assets/theme/ui_theme.tres` wired as `gui/theme/custom`, holding every font size,
+colour and inset the UI draws with, so one edit to that one file restyled the menu, the inventory
+screen and the HUD at once. Both demonstrated by windowed captures that were LOOKED AT.
 
 **Not built:** quests · hard-coded-string audit · item instances (durability) · equipment ·
 item tooltips, sorting and drag-and-drop · branch protection, so CI reports but nothing stops a
 red branch merging · no CI export rung (a GPU-less runner has no platform template) · export
 presets for platforms other than Windows · a release-build content readout, since the debug gate
-means a release export prints nothing · the art contract seams (T2.1).
+means a release export prints nothing. The theme does not yet set the `Button` styleboxes, so a light palette leaves every menu row
+drawing Godot's default dark panel — the seam is right and in the same file, simply unpopulated.
+Five of T2.1's nine roadmap items are also left: shared materials, the environment post-stack as
+`@export`s, per-area camera exports, the texture import defaults and the Git LFS lines.
 
 ## Known defects
 
@@ -395,6 +406,31 @@ three compiled cleanly and passed every static gate:**
   exported executable with both sides' numbers quoted in `DEVLOG.md`. There is deliberately no CI
   export rung: a GPU-less runner has no platform template, the same honesty T1.4 applied to the
   windowed capture.
+- **A FACING IS NOT A COLUMN, and the sector width lives in exactly one place.** `GameEnums.Facing`
+  has eight values because eight is how many directions the GAME reasons about; `layout.facings` is
+  how many the ART distinguishes. The two are quantised SEPARATELY from the same angle — the enum
+  from `GameEnums.Facing.size()`, the column from `SpriteSheetLayout.column_for_angle()` — because
+  the obvious alternative, mapping the enum down with `int(facing) * facings / 8`, puts the number 8
+  back in the code in a second place, which is the exact bug T2.1 existed to remove. When
+  `facings == 8` they agree by construction, so the existing sheet did not move.
+- **NO SHEET DIMENSION LIVES IN CODE.** `SpriteSheetLayout` is the art CONTRACT: facings, frames,
+  animation blocks, cell size and the idle/walk row offsets. `CharacterVisual` reads all of it and
+  holds none of it, and `tests/unit/art_contract_test.gd` FAILS if `character_visual.gd` regains a
+  `TAU / 8` or a `FACING_COUNT`. The cell size is DECLARED and validated against the texture rather
+  than divided out of it, so a sheet of the wrong size is a named problem instead of every
+  character in the game silently misplaced.
+- **AN UNWIRED `layout` IS LEGAL AND LOUD.** `CharacterVisual` falls back to 8x4/32x48 and WARNS,
+  naming the node. Gotcha 2's whole lesson is that a silent default looks exactly like success, so
+  the fallback exists to keep a node recognisable while the log says it is unwired — it is not a
+  fallback anything should rely on.
+- **THE UI LOOK IS ONE FILE, AND THE PALETTE IS NOT COPIED INTO THE VARIATIONS.**
+  `assets/theme/ui_theme.tres`, wired as `gui/theme/custom` so it reaches the HUD too — which is
+  drawn UNDER `UiRoot` and would have been missed by handing the theme to the stack. Type variations
+  carry ONLY `font_size`, the one thing that genuinely differs by role; the four colours and six
+  insets live once each in `UiPalette` and `UiMetrics` and the screens read them by name. A `Theme`
+  resource has no variables, so a colour repeated into nine variations would be nine places to
+  change and "one Theme edit restyles every screen" would simply be false. A test case fails if any
+  of the five styled files writes a `Color(` or an `add_theme_font_size_override` down again.
 - Six ADRs in `docs/decisions/` cover the layered `src/`, warnings-as-errors, the input map,
   and save-via-callables.
 
@@ -410,14 +446,14 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 120               # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 930 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,013 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content
 "$G" --resolution 960x540 --quit-after 55 -- --shot=<path> --time=18:40 --freeze-time
 ```
 
-## Twenty-seven gotchas that each cost an hour
+## Thirty gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -576,6 +612,38 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     content at all**, because the readout is behind `OS.is_debug_build()`. An export template must
     be installed first, and it comes only in a 1.28 GB `.tpz`.
 
+
+28. **A SPRITE DRAWN FROM THE WRONG CELL STILL LOOKS LIKE A CHARACTER.** This is gotcha 2 in its
+    sharpest form: a day/night system that lights nothing is at least obviously wrong on screen,
+    but a person drawn from the wrong row is still a person — upright, lit, facing *some*
+    direction — so a capture of it cannot be JUDGED, it has to be READ. T2.1's second placeholder
+    sheet therefore labels every cell: `column + 1` bright pips down the left edge, `frame + 1`
+    along the foot, and a different body tint per animation block. That is what turned
+    `frame=19/24` from a number to be taken on trust into a checkable prediction — four left pips,
+    two foot pips, orange body, `(1*3 + 1) * 4 + 3 = 19`. Any future visual seam whose failure mode
+    is "plausible but wrong" needs the same treatment; a screenshot of something that merely looks
+    fine is not evidence.
+
+29. **A `Theme` HAS NO VARIABLES, so a colour put in a type variation is a colour duplicated.**
+    Godot's `Theme` stores each item per type, and there is no reference between them — so the
+    natural-looking design, where `TitleText` carries both its `font_size` and its `font_color`,
+    means the accent colour is written into as many variations as use it and "one Theme edit
+    restyles every screen" is false the moment there are two. The split T2.1 settled on: variations
+    carry ONLY sizes, and the colours and insets live once each under `UiPalette` / `UiMetrics`
+    which the screens read by name. Related, and it is what makes this work at all: the project
+    theme set as `gui/theme/custom` resolves from ANY Control in the tree, so a screen never has to
+    be handed it — but a theme item that exists in the file and does not resolve from a node is not
+    wired, which is the same failure shape as an unwired `@export`, and it is worth one assertion.
+
+30. **`[importer_defaults]` IS UNDOCUMENTED AND ABSENT FROM `--doctool`.** Godot's per-importer
+    project defaults are an editor-managed `project.godot` section with no `ProjectSettings` entry,
+    so the rule this project runs on — check every name against the API dump before using it —
+    cannot be satisfied for it, and hand-authoring an undocumented format is exactly the change
+    that looks applied and does nothing. T2.1 stopped rather than guess. One latent hazard for
+    whoever picks it up: every committed `.import` carries `detect_3d/compress_to=1`, and these
+    sheets ARE used in 3D via `Sprite3D`, so a re-import can switch them to VRAM compression and
+    put block artefacts through pixel art.
+
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the
@@ -584,10 +652,12 @@ names the exact files that chat should read, so a session loads a few hundred li
 (`core -> content -> systems -> gameplay -> ui`, downward only) is what makes that possible: a
 package never has to read upward.
 
-**Next package: T2.1 — art contract seams.** See the board and [`ROADMAP.md`](ROADMAP.md)'s
-Phase T2. `CharacterVisual` hard-codes `FACING_COUNT = 8` and `FRAME_COUNT = 4`, so a different
-sprite sheet needs a code edit; the UI look lives as constants inside five screen files. Unlike
-T2.0 this one fails locally, inside `CharacterVisual` and a `Theme`, which is why it went second.
+**Next package: T2.2 — consumer documentation.** See the board and [`ROADMAP.md`](ROADMAP.md)'s
+Phase T2. `AUTHORING.md`, `ART_CONTRACT.md`, `TESTING.md`, and a stated extension surface versus
+internals. The last Phase T2 criterion is the one nobody can self-assess — *someone who has not
+read `src/` can author an area, an NPC and a conversation from the docs* — and T2.1 left it two
+headers written to be read by a consuming game (`sprite_sheet_layout.gd` and `ui_theme.tres`)
+plus one gap worth stating out loud: the theme sets no `Button` styleboxes.
 
 *(This line names ONE package. Earlier revisions accumulated a stale line per package and two were
 left stranded here; if you ever find two, the lower one is history — delete it.)*

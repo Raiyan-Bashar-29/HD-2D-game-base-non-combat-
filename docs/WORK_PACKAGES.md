@@ -46,7 +46,7 @@ Headless shades nothing. This project has already shipped two bugs that every ot
 | 05 | Dialogue | **DONE** — see below |
 | 06 | NPCs and navigation | **DONE** — see below |
 | 07 | Path actions | **DONE** — see below |
-| 08 | Quests | **TODO — next** |
+| 08 | Quests | **TODO — next**, as the first package of Phase T3 |
 | 09 | Character depth | TODO |
 | 10 | Crafting and gathering | **OPTIONAL** — a genre choice, not a requirement of every game (TEMPLATE.md). Does not block v1.0 |
 | 11 | World map and fast travel | TODO |
@@ -68,7 +68,7 @@ original board rather than continuing it.
 | T1.4 | CI — automate the ladder | **DONE** — see T1.4 below |
 | T2.0 | **The export proof** | **DONE** — the assumption HELD; see T2.0 below |
 | T2.1 | Art contract seams | **DONE** — see T2.1 below |
-| T2.2 | Consumer documentation | **TODO — next** |
+| T2.2 | Consumer documentation | **DONE** — Phase T2 closes; see T2.2 below |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
 T3 by subject and is sequenced FIRST by risk. The three content registries find items,
@@ -871,3 +871,127 @@ that left every row dark-on-light — legible, but plainly not restyled with the
 exists and is the right one (`MenuRow/styles/normal` and friends in the same file, no code); it is
 simply unpopulated. A consuming game with a light palette will hit this immediately, which makes
 it T2.2's business to say so, or a one-line theme addition whenever a real look is chosen.
+
+---
+
+## T2.2 · Consumer documentation — **DONE**
+
+**Goal.** Phase T2's last exit criterion, and the only one in the project that cannot be checked
+by running a command: *someone who has not read `src/` can author an area, an NPC and a
+conversation from the docs.* Everything the template can do was documented in **file headers**,
+which are excellent and are the wrong place for a consumer — they are found by already knowing
+which file to open. There was no document that starts at "I want to add an area" and ends at a
+working area.
+
+**Wrote**
+- `docs/AUTHORING.md` — the main deliverable. Task-first: add an area, an interactable object, an
+  item, a conversation, an NPC. Each task names the files, the required fields, and the gate that
+  catches getting it wrong. Includes the ten required children of an area root, a complete
+  minimal area written out in full, the `[editable path=...]` trap, and the debug flags that
+  actually drive the game.
+- `docs/ART_CONTRACT.md` — the consumer-facing form of the two headers T2.1 wrote to be read by a
+  consuming game. The sheet grid, the declared cell size, the theme's three-way split, and the
+  `Button` stylebox gap stated plainly.
+- `docs/TESTING.md` — the five non-obvious rules of this suite, each of which has cost this
+  project an hour: the suite is a scene, `run()` is synchronous, every case declares a plan, the
+  plan is not enough on its own, and an unlisted case never runs.
+- `docs/ARCHITECTURE.md` § **The extension surface** — three tiers: authored data, the points that
+  are open to subclass or replace, and the internals. **Put in `ARCHITECTURE.md` and not in
+  `AUTHORING.md` deliberately:** `AUTHORING.md` is about content files that need no code at all,
+  and the moment it also described subclassing, the "you never edit `src/`" line at its head would
+  have been contradicted by its own contents.
+- `tests/unit/docs_test.gd` — 68 outcomes, computed rather than declared. 1013 → **1081**.
+- Both routers: a doc-router table in `CLAUDE.md` replacing a flat list, and `CONTEXT.md`'s
+  "Read next". A document nobody is routed to is a document nobody reads.
+
+**THE CRITERION WAS PERFORMED, NOT ASSERTED, and the deliverable of that exercise is the list of
+things that were wrong.** A new area, a new NPC with a schedule and a new four-node conversation
+were authored from `AUTHORING.md` alone — nothing copied from an existing area, no `src/`
+consulted while writing them. The full ladder ran green with the new content in
+(`1101 passed`), `check_content` passed including the `[editable]` gate, and a windowed capture at
+midday shows the new NPC in the new area delivering its first-meeting line over a dialogue box.
+Then **the content was deleted** — it was a test of the documents, not new demo content, and
+`TEMPLATE.md` is explicit that the demo does not get deepened.
+
+**Six defects the walkthrough found, in the order they hurt:**
+
+1. **The documented capture command never leaves the main menu.** A `--shot` on its own
+   photographs the title screen; the area is never entered. An author following the document
+   would see their brand-new area render as somebody else's menu. `--new-game` is required, and
+   nothing anywhere documented the debug harness flags at all — now a table of eight in
+   `AUTHORING.md`.
+2. **The gate table claimed the boot rung catches "an unresolvable first area".** It does not.
+   `--headless --quit-after 120` stops at the main menu and reports `0 warnings, 0 errors`
+   without loading any area, so it cannot see a wrong `area_id`, an empty navmesh bake or a
+   broken NPC. Gotcha 22's family: a rung reporting clean about work it never did.
+3. **`--stand-by=` takes a NODE NAME, not an `object_id`** — and the id is what the same document
+   had just told the author to set. It fails with `found no node called ...`.
+4. **The NPC placement example omitted its own `[ext_resource]` line** for the NPC prefab, so the
+   block could not be used as written. Every worked example is now self-contained.
+5. **The navmesh example implied a healthy bake is a big number.** A flat floor bakes **2**
+   polygons, which looks like the empty-bake failure and is not. Now: any non-zero count.
+6. **The suggested capture hour makes a new area look broken.** A minimal area has no props and
+   no lanterns, and at 18:40 it renders very nearly black. Now: capture at midday first.
+
+Two things the walkthrough confirmed rather than corrected, both worth recording because they are
+the parts most likely to be got wrong from a document: an override block on a node inside an
+instance needs **no `index=`** — the name resolves it, and the stale indices in the demo's
+courtyard really are the red herring T2.0 said they were — and one `[editable path=...]` at the
+foot of the file is sufficient for both overridden children of one instance.
+
+**`docs_test.gd`, and why prose got a gate at all.** Most of this package is prose and prose is
+not assertable. But two things in a consumer document are facts about the repository and both rot
+in silence: a `res://` path that no longer resolves, and a field name in a worked example that was
+renamed. Both are found by a reader, once, following the document into a dead end and concluding
+the template is broken. So the case scans every `.md` in `docs/` plus `CLAUDE.md`, asserts every
+`res://` path resolves, and — by reading each fenced block's own script `ext_resource` lines —
+asserts that every property named in a worked `.tres`/`.tscn` example exists on the class that
+block says the resource is scripted by. The class mapping comes out of the documents, so there is
+no second list here to go stale in turn.
+
+**Paths under the content roots are skipped when absent, not failed**, because `docs/` teaches by
+example and a stripped template has deleted exactly those files.
+
+**`DEVLOG.md` is exempt, and finding that out was the case's first red.** Its very first run failed
+on a path the DEVLOG names under `tests/unit/`: a temporary probe created to prove the runner
+fails on a crash, quoted by name, and then correctly deleted. That is a true entry about a path
+that should not exist. A log of what was done necessarily names removed files, so the history is
+scanned for nothing; everything a reader is meant to *follow* still is. It is also why the two
+planted violations below are quoted verbatim in `DEVLOG.md` and only described here.
+
+**Proved red, then green (gotcha 23).** Two planted violations, both the real failure shape rather
+than a convenient one: renaming `walk_row` to a name the class does not have, in `ART_CONTRACT.md`'s
+worked layout, and repointing one script path in `AUTHORING.md` at a file that does not exist.
+Together they produced **6 failures** and exit 1 — one for the dead path, one for the renamed
+field, and four for the properties that could no longer be resolved against a missing class. Both
+reverted: `1081 passed, 0 failed, 0 skipped`, exit 0. The output is in `DEVLOG.md`.
+
+**Two documents were corrected in passing, because a consumer reads them.** `ARCHITECTURE.md`'s
+area diagram listed **eight** children and was missing `Navigation/` and `Waypoints/` — as did
+`SYSTEMS_INVENTORY.md`'s row, which said "the eight required children are now asserted" while
+`transitions_test.gd` has asserted **ten** since it was written. And two of `ARCHITECTURE.md`'s
+"known limitations" had been false since T2.0 and WP-13 — the export path is proven and weather
+does render — so they are replaced by the two that are true: the `Button` styleboxes, and the
+missing material and camera exports.
+
+**The `Button` stylebox gap was left unfixed, deliberately.** It is one addition to
+`ui_theme.tres` with no code, and it was tempting. But a stylebox has to be *designed*, and the
+only palette available to design against is the placeholder one — so the result would be a
+decision shipped as a default, in a package whose whole job is to describe the template honestly
+rather than to change it. It is now stated in three places a consumer actually reaches:
+`ART_CONTRACT.md`, `ARCHITECTURE.md`'s limitations, and `CONTEXT.md`. The main-menu capture taken
+during the walkthrough shows it plainly.
+
+**Ladder, all green.** `--headless --import` exit 0 with **zero** `SCRIPT ERROR` / `Parse Error`
+lines; boot `0 warnings, 0 errors`; suite **1081 passed, 0 failed, 0 skipped**, exit 0;
+`check_budgets`, `check_content`, `check_boundary` all exit 0; windowed capture at 18:40 taken and
+looked at, and the courtyard is unchanged.
+
+**Why the next package is WP-08 and not a new T-phase row.** Phase T2 closes here: all four exit
+criteria are ticked. Phase T3 is *"finish the system catalogue"*, and its packages are the
+original WP-08 to WP-15, re-framed — so T3 is the phase and WP-08 is its first package, not an
+alternative to it. The board's ordering predates the template reframing and survives it: quests
+are a system with **no** proof at all, and the replacement rule is breadth of systems, one shallow
+proof each. The five T2.1 leftovers (shared materials, the environment post-stack and camera
+framing as `@export`s, the texture import defaults, the LFS lines) are engine work whose two exit
+criteria are already met; they belong in a T3 row of their own rather than reopening T2.

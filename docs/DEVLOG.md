@@ -2490,3 +2490,127 @@ camera exports left below all now have a worked precedent for the shape they sho
 **CI green**, run [32998836688](https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-/actions/runs/32998836688), both jobs: `1013 passed, 0 failed, 0 skipped` full and
 `963 passed, 0 failed, 12 skipped` stripped — 880 + 83, reproducing T2.0's stripped number exactly.
 All 83 new assertions run in a stripped template, because the case names `assets/` and never `data/`.
+
+## 2026-08-27 — T2.2 · Consumer documentation
+
+**Did.** Wrote the four documents a consuming game needs, and then closed Phase T2's last exit
+criterion by *performing* it rather than claiming it.
+
+- `docs/AUTHORING.md` — new. Task-first: add an area, an interactable object, an item, a
+  conversation, an NPC. The ten required children of an area root, a complete minimal area
+  written out in full, the navmesh settings that will otherwise strand an NPC, the
+  `[editable path=...]` trap, the localization rules, the debug flags that drive the game, and a
+  table of what each gate catches.
+- `docs/ART_CONTRACT.md` — new. The sheet grid (facings across, frames down, grouped into
+  animation blocks), the declared-not-derived cell size, the `Sprite3D` settings and what they
+  demand of the art, the import settings and the `detect_3d/compress_to` hazard, the theme's
+  three-way split, and the `Button` stylebox gap stated plainly.
+- `docs/TESTING.md` — new. The five rules of this suite that each cost an hour: it is a scene,
+  `run()` is synchronous, every case declares a plan, the plan is provably not enough on its own,
+  and an unlisted case never runs. Plus the fixture rule and how to prove a gate.
+- `docs/ARCHITECTURE.md` — a new § **The extension surface**, three tiers. Also corrected: the
+  area diagram listed eight children and was missing `Navigation/` and `Waypoints/`; two "known
+  limitations" had been false since T2.0 and WP-13.
+- `tests/unit/docs_test.gd` — new, 68 outcomes, computed. Suite 1013 → **1081**.
+- `CLAUDE.md` — the flat "Read next" list becomes a doc-router table. `docs/CONTEXT.md` — same.
+- `docs/SYSTEMS_INVENTORY.md` — two new rows, and the area-root row corrected to ten children.
+
+**Why.** Everything this template can do was documented in **file headers**. They are excellent,
+and they are the wrong shape for a consumer: a header is found by already knowing which file to
+open. Nothing started from "I want to add an area" and ended at a working area, and the extension
+surface — which classes a game may subclass and which are the engine's own business — did not
+exist anywhere at all, which is the thing most likely to be got wrong by someone moving fast.
+
+**Connects.** T1.2 wrote `NEW_GAME.md` (what to delete); this is what to write afterwards. T2.1
+wrote two headers deliberately aimed at a consuming game, `sprite_sheet_layout.gd` and
+`ui_theme.tres`; `ART_CONTRACT.md` is their consumer-facing form and carries the one gap T2.1
+left. `TESTING.md` is T1.3's two crash mechanisms and the fixture rule, written for someone who
+was not there.
+
+**Verified.** The criterion was PERFORMED. A new area, a new NPC with a schedule and a new
+four-node conversation were authored from `AUTHORING.md` alone — nothing copied from an existing
+area, and `src/` not consulted while writing them. Full ladder green with the new content in:
+import exit 0 with zero `SCRIPT ERROR` / `Parse Error`, boot `0 warnings, 0 errors`,
+`1101 passed, 0 failed, 0 skipped`, all three checkers exit 0 — `check_content` including the
+`[editable]` gate. The capture was looked at: the NPC stands in the new area with the dialogue box
+open on its first-meeting line, speaker name resolved. Then the content was **deleted** — it was a
+test of the documents, not new demo content, and `TEMPLATE.md` is explicit that the demo does not
+get deepened. Final ladder after deletion: `1081 passed, 0 failed, 0 skipped`, everything else
+green, and the demo courtyard capture at 18:40 unchanged.
+
+**Six defects the walkthrough found**, each fixed:
+
+1. The documented capture command never leaves the main menu. `--shot` alone photographs the
+   title screen — the first PNG produced in this package is the menu. `--new-game` is required,
+   and no document mentioned the debug harness flags at all. Now a table of eight.
+2. The gate table claimed the boot rung catches "an unresolvable first area". It does not:
+   `--headless --quit-after 120` stops at the menu, loads no area, and still reports
+   `0 warnings, 0 errors`. Gotcha 22's family — a rung reporting clean about work it never did.
+3. `--stand-by=` takes a NODE NAME, not an `object_id`, and the id is what the document had just
+   told the author to set. `--stand-by found no node called 'ferryman_talk'`.
+4. The NPC placement example omitted its own `[ext_resource]` line, so it could not be used as
+   written.
+5. The navmesh example implied a healthy bake is a big number. A flat floor bakes **2** polygons.
+6. The suggested capture hour, 18:40, renders a propless new area very nearly black — which looks
+   exactly like a lighting bug.
+
+Two things it confirmed rather than corrected: an override on a node inside an instance needs no
+`index=` (the name resolves it — the stale indices in the courtyard really were the red herring
+T2.0 called them), and one `[editable path=...]` covers both overridden children of one instance.
+
+**The gate was proved red twice, once by accident and once on purpose (gotcha 23).**
+
+Accidentally, on its first run — and this is why `DEVLOG.md` is now exempt from the path scan:
+
+```
+FAILED: DEVLOG.md names res://tests/unit/zz_probe_test.gd, which exists — expected true, got false
+```
+
+That path is a temporary probe T1.3 created to prove the runner fails on a crash, quoted by name
+and then correctly deleted. A history necessarily names files it removed on purpose. Everything a
+reader is meant to *follow* is still scanned.
+
+Deliberately, with two planted violations — renaming `walk_row` in `ART_CONTRACT.md`'s worked
+layout, and repointing one script path in `AUTHORING.md` at a file that does not exist:
+
+```
+=== 1074 passed, 6 failed, 0 skipped ===
+FAILED: AUTHORING.md names res://src/content/items/item_definition_moved.gd, which exists — expected true, got false
+FAILED: ART_CONTRACT.md documents sprite_sheet_layout.gd.walk_row_renamed — expected true, got false
+FAILED: AUTHORING.md documents item_definition_moved.gd.id — expected true, got false
+FAILED: AUTHORING.md documents item_definition_moved.gd.name_key — expected true, got false
+FAILED: AUTHORING.md documents item_definition_moved.gd.category — expected true, got false
+```
+
+Exit 1. Both reverted: `1081 passed, 0 failed, 0 skipped`, exit 0.
+
+**Why a test for prose at all, and what it deliberately does not do.** Most of this package is not
+assertable and a test that restated the prose would be worse than none. But two things in a
+consumer document are facts about this repository and both rot in silence: a `res://` path that no
+longer resolves, and a field name in a worked example that was renamed. Both are found by a
+reader, once, following the document into a dead end and concluding the template is broken. The
+class-to-property mapping is read out of each fenced block's own script `ext_resource` lines
+rather than from a list in the test, so there is no second list to go stale. Paths under the
+content roots are skipped when absent, because a stripped template has deleted exactly the files
+`docs/` teaches by example with.
+
+**The `Button` stylebox gap was left unfixed, on purpose.** One addition to `ui_theme.tres`, no
+code, and tempting. But a stylebox has to be *designed*, and the only palette to design against is
+the placeholder one — so it would be a decision shipped as a default, from the package whose job
+is to describe the template honestly rather than change it. Stated instead in the three places a
+consumer reaches: `ART_CONTRACT.md`, `ARCHITECTURE.md`'s limitations, `CONTEXT.md`. The menu
+capture taken during the walkthrough shows it: every row drawing Godot's default dark panel.
+
+**Unblocks.** Phase T2 is complete — all four exit criteria ticked. A consuming game can now strip
+the template (`NEW_GAME.md`), author content (`AUTHORING.md`), bring art (`ART_CONTRACT.md`), keep
+the suite honest (`TESTING.md`) and know what it may extend (`ARCHITECTURE.md`).
+
+**Gaps.** The documents cover authoring, art and testing; they do **not** cover saving, settings,
+audio or the flag namespace, because a consuming game does not author those. Whether that stays
+true is a question for the first real game. `docs_test.gd` checks that documented paths and fields
+*exist*; it cannot check that a documented *sentence* is true — the walkthrough is the only thing
+that does, and it has to be redone by hand whenever the authoring surface changes. Nothing yet
+describes how a game already forked from this base receives a later fix to it; that is Phase T4.
+And the five T2.1 leftovers are still open — shared materials, the environment post-stack and
+camera framing as `@export`s, the texture import defaults, the LFS lines — now documented as open
+seams rather than silently absent.

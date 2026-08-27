@@ -80,11 +80,11 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate; filter "Identifier not found: <Autoload>"
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 120               # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,013 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,081 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd
 "$G" --headless --script tools/check_content.gd    # ids, duplicate object_ids, CSV keys
 "$G" --headless --script tools/check_boundary.gd   # no file under src/ or tests/ names demo content
-"$G" --resolution 960x540 --quit-after 55 -- --shot=<path> --time=18:40 --freeze-time
+"$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
 **Gotchas that will cost you an hour each:**
@@ -125,7 +125,19 @@ so the handoff is automatic. The full checklist is in the board.
 No package exceeds about 8 files or 500 new code lines. Over that, split it and add a row -
 same reasoning as the file budgets: a package that outgrows one chat gets half-finished.
 
-## Read next
+## Read next — which document answers which question
 
-`docs/WORK_PACKAGES.md` (the board) · `docs/CONTEXT.md` (state) · `docs/ARCHITECTURE.md` · `docs/SYSTEMS_INVENTORY.md` ·
-`docs/ROADMAP.md` · `docs/DEVLOG.md` · `docs/CONVENTIONS.md` · `docs/decisions/`
+| You want to | Read |
+|---|---|
+| know what to work on now | [`docs/WORK_PACKAGES.md`](docs/WORK_PACKAGES.md) — the board |
+| know where things stand | [`docs/CONTEXT.md`](docs/CONTEXT.md) — state, settled decisions, thirty gotchas |
+| understand why this is a template and not a game | [`docs/TEMPLATE.md`](docs/TEMPLATE.md) |
+| **add an area, an NPC, a conversation, an item, an object** | **[`docs/AUTHORING.md`](docs/AUTHORING.md)** |
+| **make art that drops into this** | **[`docs/ART_CONTRACT.md`](docs/ART_CONTRACT.md)** |
+| **add assertions to the suite** | **[`docs/TESTING.md`](docs/TESTING.md)** |
+| know what may be subclassed and what is internal | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — § The extension surface |
+| start a new game on this base | [`docs/NEW_GAME.md`](docs/NEW_GAME.md) |
+| know how a system is built | the file header. `src/core/events/events.gd` is the connection map |
+
+Also: `docs/SYSTEMS_INVENTORY.md` · `docs/ROADMAP.md` · `docs/DEVLOG.md` · `docs/CONVENTIONS.md` ·
+`docs/decisions/`

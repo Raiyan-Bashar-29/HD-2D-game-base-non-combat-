@@ -3,8 +3,9 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-27 · T2.1 (the art contract seams) complete — **the sheet layout and the
-UI look are authorable data, and both were proved by swapping something and looking at it**
+**Last updated:** 2026-08-27 · T2.2 (consumer documentation) complete — **Phase T2 is closed, and
+its last criterion was PERFORMED: an area, an NPC and a conversation authored from the docs alone,
+six doc defects found that way, and the content then deleted**
 
 > **This is a TEMPLATE, not a game.** Read [`TEMPLATE.md`](TEMPLATE.md) — it is short, and the
 > roadmap, the board and parts of this file were written before that reframing. The courtyard and
@@ -17,10 +18,11 @@ Every package — WP-01 through WP-07, plus WP-12 and WP-13 — is on **`claude/
 **`claude/t1-2-boundary`**, branched from the reframing tip; T1.3 is on
 **`claude/t1-3-fixtures`**, branched from T1.2; T1.4 is on **`claude/t1-4-ci`**, branched from
 T1.3; T2.0 is on **`claude/t2-0-export-proof`**, branched from T1.4; T2.1 is on
-**`claude/t2-1-art-contract`**, branched from T2.0. The nine earlier PRs are superseded.
+**`claude/t2-1-art-contract`**, branched from T2.0; T2.2 is on **`claude/t2-2-consumer-docs`**,
+branched from T2.1. The nine earlier PRs are superseded.
 
-**Branch new work from `claude/t2-1-art-contract`**, or from `main` once #10, #11, T1.2-T1.4, T2.0
-and T2.1 have landed. The older
+**Branch new work from `claude/t2-2-consumer-docs`**, or from `main` once #10, #11, T1.2-T1.4,
+T2.0, T2.1 and T2.2 have landed. The older
 per-package branches (`claude/wp-04-second-area`, `claude/wp-05-dialogue`, `claude/wp-06-npcs`,
 `claude/wp-07-path-actions`, `claude/wp-12-menus`, `claude/wp-13-presentation`) are history and
 should not be built on.
@@ -39,8 +41,8 @@ game built on this will need, so a new game is content and data rather than new 
 
 ## Where it stands
 
-Phase 0 complete, Phase 1 COMPLETE, Phase 2 well under way, **Phase T1 COMPLETE, T2.0 and T2.1
-done**. 102 files, 8,519 code lines,
+Phase 0 complete, Phase 1 COMPLETE, Phase 2 well under way, **Phase T1 COMPLETE, and Phase T2
+COMPLETE as of T2.2** — all four of its exit criteria ticked. 103 files, 8,635 code lines,
 18 scenes, 2 areas, 3 items, 1 conversation, 1 schedule, 2 path actions, 2 sprite sheet layouts.
 Boots headless with **0 warnings, 0 errors**.
 
@@ -49,7 +51,7 @@ input actions · settings · save/load with atomic writes and versioning · plot
 director with a re-entrancy guard and threaded loading · world clock · weather state · audio
 buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 8-way character ·
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
-placeholder art generator · line-budget checker · a headless test suite (1,013 assertions) that
+placeholder art generator · line-budget checker · a headless test suite (1,081 assertions) that
 builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
 returns early, asserts nothing, or is not listed in the runner ·
 an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
@@ -78,7 +80,11 @@ cell size and animation blocks, with the direction sectors DERIVED from the faci
 sheet with a different cell and frame count was swapped in with no code change at all · a project
 `Theme` at `assets/theme/ui_theme.tres` wired as `gui/theme/custom`, holding every font size,
 colour and inset the UI draws with, so one edit to that one file restyled the menu, the inventory
-screen and the HUD at once. Both demonstrated by windowed captures that were LOOKED AT.
+screen and the HUD at once. Both demonstrated by windowed captures that were LOOKED AT ·
+**documentation a consumer can actually start from**: `AUTHORING.md`, `ART_CONTRACT.md`,
+`TESTING.md` and an extension surface, routed to from `CLAUDE.md` and this file, and proved by
+authoring a new area, NPC and conversation from them alone — plus a gate that fails on a
+documented path or worked-example field the engine no longer has.
 
 **Not built:** quests · hard-coded-string audit · item instances (durability) · equipment ·
 item tooltips, sorting and drag-and-drop · branch protection, so CI reports but nothing stops a
@@ -431,6 +437,22 @@ three compiled cleanly and passed every static gate:**
   resource has no variables, so a colour repeated into nine variations would be nine places to
   change and "one Theme edit restyles every screen" would simply be false. A test case fails if any
   of the five styled files writes a `Color(` or an `add_theme_font_size_override` down again.
+- **A DOCUMENT IS TASK-FIRST OR IT IS A FILE HEADER.** The headers in this project are good and
+  are found only by already knowing which file to open. `AUTHORING.md` therefore starts from
+  "I want to add an area", not from `AreaRoot`, and the four consumer documents are routed to from
+  both `CLAUDE.md`'s table and `CONTEXT.md` — a document nobody is routed to is a document nobody
+  reads. The extension surface went into `ARCHITECTURE.md` rather than `AUTHORING.md` because
+  `AUTHORING.md` opens with "you never edit `src/`" and a section on subclassing underneath that
+  would contradict it.
+- **A DOCUMENTATION CRITERION IS PERFORMED, NEVER ASSERTED.** T2.2's exit criterion was closed by
+  authoring a real area, NPC and conversation from the documents alone and running them; the
+  deliverable of that exercise is the list of six things the documents got wrong. A walkthrough
+  that works first time means the author was still reading from memory.
+- **THE DOCS ARE GATED FOR EXISTENCE, NOT FOR TRUTH.** `tests/unit/docs_test.gd` asserts that every
+  `res://` path the documents name resolves and that every property in a worked `.tres` example
+  exists on the class that block declares. It cannot check that a documented *sentence* is true —
+  only a walkthrough does that. `DEVLOG.md` is exempt from the path scan, because a history
+  necessarily names files it correctly removed.
 - Six ADRs in `docs/decisions/` cover the layered `src/`, warnings-as-errors, the input map,
   and save-via-callables.
 
@@ -446,14 +468,14 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 120               # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,013 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,081 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content
-"$G" --resolution 960x540 --quit-after 55 -- --shot=<path> --time=18:40 --freeze-time
+"$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Thirty gotchas that each cost an hour
+## Thirty-one gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -644,6 +666,18 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     sheets ARE used in 3D via `Sprite3D`, so a re-import can switch them to VRAM compression and
     put block artefacts through pixel art.
 
+31. **NO ORDINARY RUN EVER ENTERS AN AREA, so most of the ladder is blind to area content.**
+    `--headless --quit-after 120` boots to the MAIN MENU and reports `0 warnings, 0 errors`
+    without loading anything — it cannot see a wrong `area_id`, an empty navmesh bake, an NPC with
+    no schedule or an unlit interior. Neither can a bare `--shot`: the PNG is the title screen,
+    which is what the first capture in T2.2 turned out to be. **`--new-game` is what starts a
+    game**, `--goto=<area>` travels to a different one, and the area load is threaded so the
+    shutter needs `--shot-frame=70` with `--quit-after 90` rather than the old bare 55. This is
+    gotcha 22's family, one level up: not a rung that cannot see an error, but a rung reporting
+    clean about work it never did. Related and cheap to trip over: `--stand-by=` takes a NODE
+    NAME, not an `object_id`, and a propless new area at 18:40 renders near-black, which looks
+    exactly like a lighting bug — capture a new area at midday first.
+
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the
@@ -652,12 +686,14 @@ names the exact files that chat should read, so a session loads a few hundred li
 (`core -> content -> systems -> gameplay -> ui`, downward only) is what makes that possible: a
 package never has to read upward.
 
-**Next package: T2.2 — consumer documentation.** See the board and [`ROADMAP.md`](ROADMAP.md)'s
-Phase T2. `AUTHORING.md`, `ART_CONTRACT.md`, `TESTING.md`, and a stated extension surface versus
-internals. The last Phase T2 criterion is the one nobody can self-assess — *someone who has not
-read `src/` can author an area, an NPC and a conversation from the docs* — and T2.1 left it two
-headers written to be read by a consuming game (`sprite_sheet_layout.gd` and `ui_theme.tres`)
-plus one gap worth stating out loud: the theme sets no `Button` styleboxes.
+**Next package: WP-08 — quests, as the first package of Phase T3.** Phase T2 closed with T2.2, and
+T3 is *"finish the system catalogue"* — its packages ARE the original WP-08 to WP-15, re-framed,
+so the phase and the package are not alternatives. The board's ordering predates the template
+reframing and survives it: quests are a system with no proof at all, and the replacement rule is
+breadth of systems, one shallow proof each. Quests need a conversation that can set a flag and an
+NPC to talk to; both exist. The five T2.1 leftovers — shared materials, the environment post-stack
+and camera framing as `@export`s, the texture import defaults, the LFS lines — want a T3 row of
+their own rather than reopening T2, whose criteria are all met.
 
 *(This line names ONE package. Earlier revisions accumulated a stale line per package and two were
 left stranded here; if you ever find two, the lower one is history — delete it.)*
@@ -679,16 +715,15 @@ by 460 headless assertions.
 
 **Next, in this order.** The order matters and is not arbitrary:
 
-1. **Path actions** (WP-07), the non-combat NPC verbs in the spirit of Octopath's Scrutinise
-   and Inquire. There is now an NPC to use them on.
-2. **Quests** (WP-08), which need a conversation that can set a flag and an NPC to talk to.
-   Both exist.
+1. **Quests** (WP-08), which need a conversation that can set a flag and an NPC to talk to.
+   Both exist. This is the first package of Phase T3.
+2. **The rest of the system catalogue**, WP-09 to WP-15 re-framed — see the board — plus a row
+   for the five art-contract seams T2.1 left open.
 
-**Then the rest of Phase 2:** NPC schedules, navigation baking, weather visuals.
+*(Path actions, NPC schedules, navigation baking and weather visuals are all DONE — WP-06,
+WP-07 and WP-13.)*
 
 **Still open, and expensive later:**
-- **Sprite sheet layout is hardcoded.** `CharacterVisual` has `FACING_COUNT = 8` and
-  `FRAME_COUNT = 4` as constants; a different sheet needs a code edit. Should be a resource.
 - **The export path is PROVEN as of T2.0** — an exported `.exe` reports the same catalogue counts
   and resolved paths the editor does. What remains unproven is a RELEASE export's content, because
   the readout is behind `OS.is_debug_build()`, and every platform other than Windows.
@@ -697,5 +732,9 @@ by 460 headless assertions.
 
 ## Read next
 
-`CLAUDE.md` (rules) · `docs/ARCHITECTURE.md` · `docs/SYSTEMS_INVENTORY.md` ·
-`docs/ROADMAP.md` · `docs/DEVLOG.md` · `src/core/events/events.gd` (the connection map)
+`CLAUDE.md` (rules, and the doc router table) · `docs/TEMPLATE.md` (why this is not a game) ·
+**`docs/AUTHORING.md`** (add an area, an NPC, a conversation, an item, an object) ·
+**`docs/ART_CONTRACT.md`** (what art must satisfy) · **`docs/TESTING.md`** (adding assertions) ·
+`docs/ARCHITECTURE.md` (§ The extension surface — what may be subclassed) ·
+`docs/NEW_GAME.md` · `docs/SYSTEMS_INVENTORY.md` · `docs/ROADMAP.md` · `docs/DEVLOG.md` ·
+`src/core/events/events.gd` (the connection map)

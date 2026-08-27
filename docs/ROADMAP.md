@@ -203,8 +203,14 @@ Exit criteria:
   `.gitattributes` comment is right to keep commented until real art exists — LFS pointers for a
   2 KB placeholder are pure overhead and would put the CI checkout on a dependency it does not
   have. See the board.
-- **T2.2 Consumer documentation.** `NEW_GAME.md`, `AUTHORING.md`, `ART_CONTRACT.md`, `TESTING.md`,
-  and a stated extension surface versus internals.
+- **T2.2 Consumer documentation — DONE, 2026-08-27.** `AUTHORING.md`, `ART_CONTRACT.md`,
+  `TESTING.md`, the extension surface as a section of `ARCHITECTURE.md`, and both routers
+  updated so the new documents are reachable. (`NEW_GAME.md` was already done in T1.2.) The last
+  criterion below was **performed rather than asserted**: a new area, a new NPC and a new
+  conversation were authored from the documents alone, run, captured and looked at, six doc
+  defects were found and fixed, and the content was then deleted — it was a test of the docs,
+  not new demo content. `tests/unit/docs_test.gd` now fails on a documented `res://` path or
+  worked-example field that no longer exists. See the board.
 
 Exit criteria:
 - [x] An exported build reports **non-zero** catalogue counts for items, conversations and
@@ -222,7 +228,16 @@ Exit criteria:
       `assets/theme/ui_theme.tres` and no other file: the main menu and the inventory screen both
       went from dark-on-translucent-black to dark-on-parchment with a deep-red accent and a wider
       inset, and the HUD clock followed. Captures before and after, both looked at
-- [ ] Someone who has not read `src/` can author an area, an NPC and a conversation from the docs
+- [x] Someone who has not read `src/` can author an area, an NPC and a conversation from the docs
+      — T2.2, **2026-08-27**. Performed, not claimed: an area, an NPC with a schedule and a
+      four-node conversation were written from `AUTHORING.md` alone, with no reference to `src/`
+      and nothing copied from an existing area. All seven ladder rungs green with the new content
+      in (`1101 passed`), `check_content` clean including the `[editable]` marker, and the capture
+      shows the NPC in the new area saying its first-meeting line. **The evidence is the six
+      places the docs were wrong**, all fixed and listed in `DEVLOG.md` — the largest being that
+      the documented capture command never leaves the main menu, so an author following it
+      photographs the title screen and concludes their area is broken. A walkthrough that worked
+      first time would have meant the author was still reading from memory
 
 ## Phase T3 — Finish the system catalogue
 

@@ -116,15 +116,75 @@ a per-area special case, and area fifty needs no code at all:
 
 ```
 AreaRoot (Node3D)                 area_root.gd
-|- Environment/                   WorldEnvironment, Sun, Moon, EnvironmentDriver
-|- Terrain/                       geometry and static collision
+|- Environment/                   WorldEnvironment, Sun, EnvironmentDriver, WeatherVisuals
+|- Terrain/                       geometry and static collision, in group navmesh_source
 |- Props/                         scenery, lights
 |- Interactables/                 anything the player can act on
 |- Actors/                        NPCs
 |- Spawns/                        one Marker3D per entry point
 |- Triggers/                      Area3D volumes
-|- Camera/                        the area's HD2DCameraRig
+|- Camera/                        the area's camera rig
+|- Navigation/                    Region, a NavigationRegion3D baked at load
+|- Waypoints/                     one Marker3D per named place an NPC can be sent to
 ```
+
+All ten are required and are asserted for every authored area by
+`tests/unit/transitions_test.gd`. [`AUTHORING.md`](AUTHORING.md) has the authoring form.
+
+## The extension surface
+
+**Which classes a consuming game is expected to subclass, call or replace — and which are the
+engine's own business.** This is the distinction most likely to be got wrong by someone moving
+fast, because nothing in the tree marks it.
+
+The one-line version: **a game adds content and resources; it does not add code under `src/`.**
+Anything that needs a new `src/` file is a change to the *template*, and belongs upstream.
+
+### Tier 1 — authored data. No code at all, and this is where nearly everything goes.
+
+Items, conversations, schedules, path actions, areas, sprite sheet layouts, the UI theme,
+instances of the object and character prefabs. Adding the fiftieth of any of them touches no
+script. [`AUTHORING.md`](AUTHORING.md) is the whole of this tier;
+[`ART_CONTRACT.md`](ART_CONTRACT.md) is the two resources that carry the look.
+
+### Tier 2 — the extension points. Subclass or replace these, deliberately.
+
+| Point | How | Why it is open |
+|---|---|---|
+| `Interactable` | `extends Interactable`, override `perform(who)` and optionally `refusal(who)` | The documented way to add a kind of object. Detection, ranking, the prompt, refusal messaging, one-shot and hold-to-confirm are all already handled. Subclasses stay thin: behaviour and state go into children |
+| `UiScreen` | `extends UiScreen`, declare `pauses_world` / `closes_on_cancel` **in `_init`, never in `_build`** | A new screen is a game's business. `_build` runs from `_ready`, after a caller could have overridden a flag, so setting one there silently discards the caller's request |
+| `SpriteSheetLayout`, `ui_theme.tres` | **replace the resource, not the class** | The art contract. See `ART_CONTRACT.md` |
+| Inventory capacity | override `can_accept()` | Capacity is unlimited behind that one method. Slots or weight go there and nowhere else |
+| A bespoke area behaviour | a child node with its own script, under the area | **Do not subclass `AreaRoot`.** Areas differ in content, not in shape; the root stays generic so `Director` never grows a per-area case |
+| `Events` signals | connect to anything in `src/core/events/events.gd` | It is the connection map and it is meant to be read and listened to |
+
+### Tier 3 — internals. Read them; do not edit or subclass them.
+
+The ten autoloads (`Log`, `Events`, `Actions`, `Settings`, `SaveSystem`, `Flags`, `Clock`,
+`Weather`, `Audio`, `Director`), `Director`'s transition sequence, `InteractionSensor`, `UiRoot`,
+`PlayerController`, `PersistentState`, `EnvironmentDriver`, `WeatherVisuals`, and the content
+registries. Each owns exactly one concern, and the seams above exist so none of them has to be
+touched.
+
+Three that look editable and are not:
+
+- **`GameEnums` is append-only.** `InteractVerb`, `RefusalReason`, `ItemCategory` and the rest are
+  stored in authored scenes as **ordinals**, so reordering one silently repoints every `.tscn` in
+  the project at a different value. Appending is a template change, not a game change.
+- **Adding an autoload requires an ADR.** There is no `GameManager` and there will not be one.
+- **There is no combat, at the template level.** No battles, enemies, damage or encounters. If a
+  design seems to need one, that effort redirects into traversal, interaction or world state.
+
+### When you genuinely need `src/` to change
+
+Say so rather than forking a screen. The seam is either missing or in the wrong place, and both
+are template bugs. `tools/check_boundary.gd` exists to make the *other* direction impossible — no
+file under `src/` may name your content — and a game editing `src/` is the failure this whole
+boundary was written to prevent.
+
+**How a game already forked from the template receives a later fix to the base is not yet
+described.** That is Phase T4's job and it is open work, stated here so nobody assumes an answer
+exists.
 
 ## Data, not code
 
@@ -208,8 +268,10 @@ never resolve.
   caught only by review.
 - **Audio has no assets,** so every audio path is written but unexercised. It accepts `null`
   everywhere by design, which means it is untested rather than broken.
-- **`Weather` publishes state but nothing renders it yet.** No rain exists.
-- **The export path is unproven.** Items, conversations and schedules are all found by scanning
-  a directory, which is verified in the editor and headless only. See ADR-0006.
+- **The UI theme sets no `Button` styleboxes,** so a menu row draws Godot's default dark panel.
+  Invisible against the shipped dark palette and immediately wrong against a light one. The seam
+  is right and unpopulated — see [`ART_CONTRACT.md`](ART_CONTRACT.md).
+- **No shared material library, and no environment post-stack or camera framing as `@export`s.**
+  An area declares its own materials and takes the camera rig's defaults. Open work, not design.
 - **`Director` does not cancel its threaded load on shutdown**, which is why the boot rung needs
   `--quit-after 120` rather than 30. Deferred to WP-14.

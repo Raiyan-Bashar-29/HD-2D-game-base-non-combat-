@@ -41,7 +41,7 @@ previous project started as a system that was allowed to know one thing too many
 | System | Purpose | Depends on | Boundary — must NOT know | Status |
 |---|---|---|---|---|
 | Scene director | Area load, unload, transition, player placement, shader warm-up | Log, Events, Save | what is inside an area; no per-area special cases | DONE — two areas really swap, 20 round trips flat |
-| Area root | The uniform contract every area scene satisfies | Weather, Audio, Log | gameplay logic | DONE — the eight required children are now asserted, not just documented |
+| Area root | The uniform contract every area scene satisfies | Weather, Audio, Log | gameplay logic | DONE — the ten required children are asserted, not just documented, and authored in `docs/AUTHORING.md` |
 | Area doors | The one object that asks to travel. Names an id and a spawn, nothing else | Interactable, Director | loading, fading, or moving the player | DONE |
 | HD-2D camera rig | Long-lens diorama framing, tilt-shift depth of field | Events, Director | input; what it follows beyond a Node3D | DONE |
 | Character visual | Billboarded, lit, correctly-sorted sprite, facing quantised from the sheet layout | Events, SpriteSheetLayout | input, movement, game rules, or any sheet dimension of its own | DONE — T2.1 moved every dimension out to a resource |
@@ -158,6 +158,8 @@ previous project started as a system that was allowed to know one thing too many
 | Hard-coded string audit | Catches player-facing text that is not a localization key | TODO |
 | Localization | String IDs from the first string; CSV translation | PART — CSV wired, 188 keys, all UI text localized. Unquoted commas are now a gate; no full audit tool yet. docs/NEW_GAME.md names the engine and demo halves |
 | New-game checklist | docs/NEW_GAME.md — what to delete, what to keep, the full rename surface | DONE — T1.2, and its claims were run against a stripped copy |
+| Consumer documentation | docs/AUTHORING.md (task-first: an area, an object, an item, a conversation, an NPC), docs/ART_CONTRACT.md (the sheet grid, the theme split, and the Button stylebox gap), docs/TESTING.md (the five non-obvious rules of the suite), and ARCHITECTURE.md § The extension surface (what may be subclassed, what is internal) | **DONE — T2.2, 2026-08-27.** The criterion was PERFORMED: an area, an NPC and a conversation authored from the docs alone, run and captured, six doc defects found and fixed, then deleted |
+| Documentation rot gate | tests/unit/docs_test.gd — every res:// path the docs name resolves, and every property named in a worked .tres example exists on the class that block declares. DEVLOG.md exempt: a history necessarily names files it correctly removed | DONE — T2.2 |
 | Smoke test | Boots, loads an area, saves, reloads, asserts zero errors | TODO |
 | Export presets and the export proof | Windows preset committed in `export_presets.cfg`; `export_filter="all_resources"` measured as the one setting that ships directory-scanned content, and asserted by `tests/unit/export_test.gd`; `src/systems/debug/catalogue_report.gd` reports every catalogue's count and resolved paths at boot of a debug build, and WARNS on an empty one in an export | **DONE — T2.0, 2026-08-26.** The exported `.exe`, run outside the editor, reports 3 items, 1 conversation, 1 schedule — identical to the editor. A second export-only defect was found on the way: a missing `[editable]` marker silently dropped instance overrides, now a `check_content` gate |
 | Performance overlay | Frame time, draw calls, node counts | TODO |

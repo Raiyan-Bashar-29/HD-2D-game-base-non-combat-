@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://src/core/boot/game_root.gd" id="1_root"]
 [ext_resource type="Script" path="res://src/ui/hud/screen_fade.gd" id="2_fade"]
@@ -13,6 +13,7 @@
 [ext_resource type="Script" path="res://src/systems/debug/dev_stage.gd" id="11_stage"]
 [ext_resource type="Script" path="res://src/systems/debug/catalogue_report.gd" id="12_catalogue"]
 [ext_resource type="Script" path="res://src/systems/quest/quest_tracker.gd" id="13_quests"]
+[ext_resource type="Script" path="res://src/systems/world_map/world_map.gd" id="14_map"]
 
 [node name="GameRoot" type="Node"]
 script = ExtResource("1_root")
@@ -70,3 +71,6 @@ script = ExtResource("12_catalogue")
 
 [node name="QuestTracker" type="Node" parent="."]
 script = ExtResource("13_quests")
+
+[node name="WorldMap" type="Node" parent="."]
+script = ExtResource("14_map")

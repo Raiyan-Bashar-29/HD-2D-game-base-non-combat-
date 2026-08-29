@@ -3,15 +3,22 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-27 · **WP-09 (equipment) complete — `1b3d799`, PR #17. Second package
-of Phase T3.** An `ItemDefinition` gained one field and `Equipment` is a component that **owns no
-dictionary**: a slot is the flag `equip/<wearer>/<item>`, so a `Gate`, a `QuestStep` and a
-`DialogueChoice` all gate on what is in hand with no code and no new field in any of them. `Gate`
-was not touched to make the demo's equip-gated arch work. The row's other two thirds — attributes
-and surface-aware footsteps — were SPLIT onto the board as `09b`, because three systems in one row
-is over the size limit.
+**Last updated:** 2026-08-29 · **WP-11 (world map and fast travel) complete — `WP11_COMMIT`, PR
+WP11_PR. Third package of Phase T3, and the LAST SYSTEM IN THE CATALOGUE WITH NO PROOF AT ALL.**
+An `AreaDef` .tres per area in `data/areas/`, found by the fifth directory-scan registry, and
+**discovery is the flag `map/<area id>` with no store behind it** — the fourth use of the
+namespace-over-`Flags` shape after `PersistentState`, `Standing` and `Equipment`. So it is already
+saved, already cleared by a new game, already announced, and writable by a conversation effect or
+a lever with **no code in any of them**. `WorldMap` under `GameRoot` turns arrival into discovery
+and emits the same `area_change_requested` an `AreaDoor` emits; `MapScreen` on `M` draws one dot
+per def at its authored normalised position and names no area.
 
-*(Previously: WP-08, quests — a quest is authored data, every step names a FLAG CONDITION rather
+*(Previously: WP-09, equipment — `1b3d799`, PR #17. An `ItemDefinition` gained one field and
+`Equipment` is a component that owns no
+dictionary: a slot is the flag `equip/<wearer>/<item>`, so a `Gate`, a `QuestStep` and a
+`DialogueChoice` all gate on what is in hand with no code and no new field in any of them. `Gate`
+was not touched to make the demo's equip-gated arch work; its other two thirds are `09b`.
+Before that: WP-08, quests — a quest is authored data, every step names a FLAG CONDITION rather
 than a callback, and the placeholder quest is driven entirely by flags the demo was already
 writing. Before that: T2.2, consumer documentation — **Phase T2 is closed, and its last criterion
 was PERFORMED**, six doc defects found by authoring from the docs alone.)*
@@ -29,11 +36,11 @@ Every package — WP-01 through WP-07, plus WP-12 and WP-13 — is on **`claude/
 T1.3; T2.0 is on **`claude/t2-0-export-proof`**, branched from T1.4; T2.1 is on
 **`claude/t2-1-art-contract`**, branched from T2.0; T2.2 is on **`claude/t2-2-consumer-docs`**,
 branched from T2.1; WP-08 is on **`claude/wp-08-quests`**, branched from T2.2; WP-09 is on
-**`claude/wp-09-character`**, branched from WP-08. The nine earlier
-PRs are superseded.
+**`claude/wp-09-character`**, branched from WP-08; WP-11 is on **`claude/wp-11-worldmap`**,
+branched from WP-09. The nine earlier PRs are superseded.
 
-**Branch new work from `claude/wp-09-character`**, or from `main` once #10, #11, T1.2-T1.4,
-T2.0, T2.1, T2.2, WP-08 and WP-09 have landed. The older
+**Branch new work from `claude/wp-11-worldmap`**, or from `main` once #10, #11, T1.2-T1.4,
+T2.0, T2.1, T2.2, WP-08, WP-09 and WP-11 have landed. The older
 per-package branches (`claude/wp-04-second-area`, `claude/wp-05-dialogue`, `claude/wp-06-npcs`,
 `claude/wp-07-path-actions`, `claude/wp-12-menus`, `claude/wp-13-presentation`) are history and
 should not be built on.
@@ -53,9 +60,9 @@ game built on this will need, so a new game is content and data rather than new 
 ## Where it stands
 
 Phase 0 complete, Phase 1 COMPLETE, Phase 2 well under way, **Phase T1 COMPLETE, Phase T2
-COMPLETE as of T2.2, and Phase T3 OPEN with WP-08 and WP-09 done.** 113 files, 9,576 code lines,
-16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest, 2 path actions, 2 sprite sheet
-layouts.
+COMPLETE as of T2.2, and Phase T3 OPEN with WP-08, WP-09 and WP-11 done.** 118 files, 10,115 code
+lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest, 2 mapped areas,
+2 path actions, 2 sprite sheet layouts.
 Boots headless with **0 warnings, 0 errors**.
 
 **Works, and verified by running it:** logging with rotation · signal registry (`events.gd`) ·
@@ -63,7 +70,7 @@ input actions · settings · save/load with atomic writes and versioning · plot
 director with a re-entrancy guard and threaded loading · world clock · weather state · audio
 buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 8-way character ·
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
-placeholder art generator · line-budget checker · a headless test suite (1,224 assertions) that
+placeholder art generator · line-budget checker · a headless test suite (1,298 assertions) that
 builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
 returns early, asserts nothing, or is not listed in the runner ·
 an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
@@ -108,14 +115,24 @@ no dictionary — a slot is `equip/<wearer>/<item id>`, so it is already saved, 
 `flag_changed`, and a `Gate`, a `QuestStep`, a `DialogueChoice` and a `ClimbPoint` gate on what is
 in hand **with no code and no new field in any of them**; the demo's equip-gated arch works with
 `Gate` untouched. Enter on a satchel row holds or stows, proved by a temporary probe that was
-removed. Three windowed captures LOOKED AT and READ · **a refusal can carry an AUTHORED line**:
+removed. Three windowed captures LOOKED AT and READ · **a WORLD MAP whose discovery is a flag**: `AreaDef` .tres per area in `data/areas/`, found by the
+fifth directory-scan registry, carrying the map position, the arrival spawn and
+`known_from_start`; `WorldMap` under `GameRoot` turns `area_entered` into the flag `map/<area id>`
+and emits the same `area_change_requested` an `AreaDoor` emits, so `Director` still owns every
+transition; `MapScreen` on `M` draws one dot per def at its authored NORMALISED position in three
+states, and names no area anywhere. Discovery needs no save section, no migration and no code in
+anything that reveals a place — `--flag=map/<id>:true` is the second capture and a conversation
+effect writes the identical key. Three windowed captures LOOKED AT and READ ·
+**a refusal can carry an AUTHORED line**:
 `Gate.locked_key` and `PathAction.refusal_key` had both been declared, validated by `check_content`
 and read by nothing, and the player got a generic message about a different door.
 
 **Not built:** hard-coded-string audit · item instances (durability) · character ATTRIBUTES and
 surface-aware footsteps, the other two thirds of WP-09, split onto the board as `09b` ·
 an equipment SCREEN, and nothing reads a stat, because nothing has a stat ·
-item tooltips, sorting and drag-and-drop · branch protection, so CI reports but nothing stops a
+item tooltips, sorting and drag-and-drop · fog of war, map zoom and pan, map art, travel costs and
+objective markers on the map — `quest_advanced` has an emitter, so markers are a listener and one
+more marker state · a DEPARTURE-side travel point, which is a game policy rather than a mechanism · branch protection, so CI reports but nothing stops a
 red branch merging · no CI export rung (a GPU-less runner has no platform template) · export
 presets for platforms other than Windows · a release-build content readout, since the debug gate
 means a release export prints nothing · a quest step cannot read an ITEM COUNT — WP-09
@@ -587,6 +604,41 @@ three compiled cleanly and passed every static gate:**
   the first WP-09 capture photographed a held lantern drawn as merely carried. A press is never the
   only writer: staging equips from the command line, and `_revalidate` stows on its own. That is
   why `equipment_changed` exists at all, and it is a general rule rather than one screen's bug.
+- **DISCOVERY IS A FLAG, AND THE NAMESPACE CONVENTION IS NOW A PATTERN.** `map/<area id>` in
+  `Flags`, with no store, no save section, no migration and no register — the FOURTH use of
+  namespace-over-`Flags` after `PersistentState`'s `obj/<area>/<object>/<field>`, `Standing`'s
+  `standing/<who>` and `Equipment`'s `equip/<wearer>/<item>`. Three independent systems on one
+  convention is evidence it generalises rather than a coincidence, and the next thing that needs
+  saved per-thing state should reach for it before reaching for a save section. Two things fall
+  out and they are the whole design: anything that writes the key reveals a place (a
+  `DialogueChoice` effect, a `TriggerVolume`, a `Lever`, a quest consequence — none of which was
+  touched), and a `Gate` with `requires_flag = &"map/<id>"` is a road that opens once you know
+  where it goes. The cost is stated: renaming an area's folder makes an old save forget it was
+  found, the same price `Equipment` pays for an item id.
+- **A MAP DOT'S POSITION IS AUTHORED DATA, IN NORMALISED 0..1 SPACE.** `AreaDef.map_position`, and
+  `MapScreen` has never heard of any area. A map that knew where the courtyard goes would be
+  engine code naming demo content, which `check_boundary` fails the build over — proved by
+  planting it. Normalised rather than pixels so one authored number is right at every window size
+  and every UI scale.
+- **AN AREA ID HAS NO REGISTRY PREFIX**, unlike `item/` and `quest/`. Those prefixes make a save
+  file self-describing about a thing that lives only in a save file; an area id is already a
+  public identifier, because it is a folder name. `data/areas/orchard.tres` declares
+  `id = &"orchard"`, which is what `Director` travels to, so there is no translation table
+  between `AreaDb` and `Director` — and a translation table is a second place the truth lives.
+- **FAST TRAVEL ASKS; IT DOES NOT TRAVEL.** `WorldMap.travel_to` emits
+  `Events.area_change_requested` and stops, exactly as `AreaDoor` does. Four refusals, each
+  logged: not on the map, not found, already there, already moving. Nothing but `Director` calls
+  `change_area()`, which is what keeps two things firing at once from leaving two areas in the
+  tree — and a fast-travel path that ran its own transition would have been the second one.
+- **AN AREA WITH NO `AreaDef` IS NOT AN ERROR**, it is a cupboard a game chose not to draw. It is
+  said at INFO level once per arrival rather than warned, because the boot rung counts warnings
+  and a template with no map at all is a legal state — but it is said, because "the .tres is
+  authored and the dot never appeared" must not be silent. Same shape as an empty content root.
+- **STAGING THAT PUTS SOMETHING ON SCREEN WAITS FOR THE WORLD TO STAY STILL, NOT MERELY TO ARRIVE.**
+  `dev_stage._settle_stable(20)` demands twenty CONSECUTIVE settled frames and resets on any
+  transition, which is gotcha 21's persistence shape applied to staging. `--goto` and
+  `--open-menu` both leave `_wait_for_area` on the same frame, so a fixed extra delay only moves
+  the race; a counter that a starting transition resets cannot be satisfied early.
 - Six ADRs in `docs/decisions/` cover the layered `src/`, warnings-as-errors, the input map,
   and save-via-callables.
 
@@ -602,14 +654,14 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 120               # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,224 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,298 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Thirty-four gotchas that each cost an hour
+## Thirty-five gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -839,6 +891,18 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     the command line, `_revalidate` stows on its own, and a save restores. Subscribe to the fact,
     not to the gesture. This is gotcha 2's family in the UI layer, and only a capture sees it.
 
+35. **TWO STAGING FLAGS THAT BOTH WAIT FOR "THE AREA" LEAVE THAT WAIT ON THE SAME FRAME, AND
+    RACE.** `--goto` and `--open-menu` each begin with `_wait_for_area()`, so they resume
+    together: if the menu opened first, the travel `--goto` was about to request unwound it —
+    `ScreenKeys` unwinds the stack on every `area_change_requested` — and the capture came back
+    showing nothing, with `0 warnings, 0 errors` and every rung green. This is gotcha 32's family
+    one step further out: not staging that ran before the thing it staged for, but two pieces of
+    staging that were both correct and were ordered by chance. A LONGER FIXED WAIT ONLY MOVES THE
+    RACE. The fix is gotcha 21's shape — `dev_stage._settle_stable(20)` requires twenty
+    CONSECUTIVE settled frames and resets its count the moment a transition begins, so it cannot
+    be satisfied early no matter which flag resumed first. Any future staging flag that puts
+    something on screen uses it, and `dev_stage.gd`'s header says so.
+
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the
@@ -847,23 +911,27 @@ names the exact files that chat should read, so a session loads a few hundred li
 (`core -> content -> systems -> gameplay -> ui`, downward only) is what makes that possible: a
 package never has to read upward.
 
-**Next package: WP-11 — world map and fast travel, the third package of Phase T3.** It is the last
-system in the catalogue with NO PROOF AT ALL, which is the same reason WP-08 went first, and it now
-has two emitters it did not have when the row was written: `quest_advanced` for objective markers,
-and area discovery is the same derive-from-`Flags` shape `QuestTracker` and `Equipment` both use, so
-"discovery persists" needs no new save section. Read the WP-11 row on the board.
+**Next package: WP-09b, T3.3 or T3.1 — the catalogue has no holes left, so what remains is depth
+in existing systems and one refactor.** WP-11 closed the last row with no proof at all. The three
+open ones, all real and all narrower than a system:
 
-Three alternatives, all real and all narrower. **T3.1**, the generic content registry — WP-08 scoped
-it by producing the fourth copy of the same thirty lines and recorded the verdict. **T3.3**, a quest
-step that can read an ITEM COUNT — WP-09 narrowed the gap and costed both candidate designs, so
-whoever takes it is choosing between two stated options rather than starting from a complaint.
-**WP-09b**, the attributes and surfaces half of the split WP-09 row, whose first task is deciding
-what actually READS an attribute; 17 of the 23 settings have no consumer and a second
-declared-and-unread system is the failure this project keeps catching. **T3.2** still holds the five
-T2.1 leftovers so they stop being mentioned in five places.
+- **T3.3**, a quest step that can read an ITEM COUNT. "Bring me three petals" is still not
+  authorable. WP-09 costed both candidate designs rather than closing it, and its section names
+  what each costs; whoever takes it chooses between two stated options.
+- **WP-09b**, attributes and surface-aware footsteps — the split half of WP-09. Its first task is
+  deciding what actually READS an attribute: 17 of the 23 settings have no consumer, and a second
+  declared-and-unread system is the failure this project keeps catching.
+- **T3.1**, the generic content registry. WP-08 made it the fourth copy of the same thirty lines
+  and reconsidered; WP-11 made it the FIFTH and did not re-argue it. Five places to fix one scan
+  bug is the changed number.
 
-*(This line names ONE package. Earlier revisions accumulated a stale line per package and two were
-left stranded here; if you ever find two, the lower one is history — delete it.)*
+**T3.2** still holds the five T2.1 leftovers so they stop being mentioned in five places, and
+**objective markers on the map** is now a listener rather than new state — `quest_advanced` has
+an emitter and `MapScreen` already redraws on facts.
+
+*(This line names ONE package or one honest choice between a few. Earlier revisions accumulated a
+stale line per package and two were left stranded here; if you ever find two, the lower one is
+history — delete it.)*
 
 The original WP-08 through WP-15 continue after the T1 and T2 phases, several of them re-framed.
 
@@ -879,21 +947,24 @@ and come back, and ask the garden-keeper who they are and what lies behind the n
 box that leaves the world running behind it — and that conversation now hands you an errand, which
 the lever you already threw and the dais you already crossed advance and settle, readable on `J` at
 any point — and pick a lantern up, hold it from the satchel with Enter, and pass under an arch
-that turned you away a moment earlier with a line its author wrote. Every one of those changes
+that turned you away a moment earlier with a line its author wrote — and press `M` to see the two
+places you know drawn on one map, the hall a grey `???` until you have walked to it and a gold dot
+you can press to travel back to once you have. Every one of those changes
 survives a save and a
 reload, including from the far side of an area that is no longer loaded. All of it is covered
-by 1,224 headless assertions.
+by 1,298 headless assertions.
 
 **Next, in this order.** The order matters and is not arbitrary:
 
-1. **The rest of the system catalogue**, WP-11 to WP-15 re-framed — see the board. WP-11 next,
-   because it is the last system with no proof at all.
-2. **T3.1**, a generic content registry with a typed façade per catalogue, now that there are four
-   copies of the same thirty lines; **T3.2**, the five art-contract seams T2.1 left open; and
-   **T3.3**, a quest step that can read an item count, which WP-09 costed rather than closed.
+1. **The rest of the system catalogue**, WP-14 and WP-15 re-framed — see the board. WP-11 closed
+   the last row that had no proof at all, and WP-10 is OPTIONAL.
+2. **T3.3**, a quest step that can read an item count, which WP-09 costed rather than closed;
+   **WP-09b**, attributes and surface-aware footsteps; **T3.1**, a generic content registry with
+   a typed façade per catalogue, now that there are FIVE
+   copies of the same thirty lines; **T3.2**, the five art-contract seams T2.1 left open.
 
-*(Path actions, NPC schedules, navigation baking, weather visuals, quests and equipment are all
-DONE — WP-06, WP-07, WP-08, WP-09 and WP-13.)*
+*(Path actions, NPC schedules, navigation baking, weather visuals, quests, equipment and the world
+map are all DONE — WP-06, WP-07, WP-08, WP-09, WP-11 and WP-13.)*
 
 **Still open, and expensive later:**
 - **The export path is PROVEN as of T2.0** — an exported `.exe` reports the same catalogue counts
@@ -906,7 +977,7 @@ DONE — WP-06, WP-07, WP-08, WP-09 and WP-13.)*
 
 `CLAUDE.md` (rules, and the doc router table) · `docs/TEMPLATE.md` (why this is not a game) ·
 **`docs/AUTHORING.md`** (add an area, an NPC, a conversation, an item, an object, a quest,
-equipment) ·
+equipment, a place on the world map) ·
 **`docs/ART_CONTRACT.md`** (what art must satisfy) · **`docs/TESTING.md`** (adding assertions) ·
 `docs/ARCHITECTURE.md` (§ The extension surface — what may be subclassed) ·
 `docs/NEW_GAME.md` · `docs/SYSTEMS_INVENTORY.md` · `docs/ROADMAP.md` · `docs/DEVLOG.md` ·

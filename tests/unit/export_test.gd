@@ -34,7 +34,7 @@ var _saved_item_dir: String = ""
 
 
 func run() -> void:
-	plan(21)
+	plan(23)
 	_saved_item_dir = ItemDb.content_dir
 	_the_report_agrees_with_the_registries()
 	_every_resolved_path_loads()
@@ -47,7 +47,7 @@ func run() -> void:
 ## from. This is the shape the exported run is read in, so its shape is asserted.
 func _the_report_agrees_with_the_registries() -> void:
 	var lines: PackedStringArray = CatalogueReport.report_lines()
-	equal("report is origin plus one line per registry", lines.size(), 5)
+	equal("report is origin plus one line per registry", lines.size(), 6)
 	equal("first line is the origin", lines[0].begins_with("origin: "), true)
 	_line_reports(lines[1], CatalogueReport.LABEL_ITEMS, ItemDb.count(), ItemDb.content_dir)
 	_line_reports(
@@ -58,6 +58,9 @@ func _the_report_agrees_with_the_registries() -> void:
 	)
 	_line_reports(
 		lines[4], CatalogueReport.LABEL_QUESTS, QuestDb.count(), QuestDb.content_dir
+	)
+	_line_reports(
+		lines[5], CatalogueReport.LABEL_AREAS, AreaDb.count(), AreaDb.content_dir
 	)
 
 
@@ -71,6 +74,7 @@ func _line_reports(line: String, label: String, found: int, directory: String) -
 func _every_resolved_path_loads() -> void:
 	var roots: PackedStringArray = PackedStringArray([
 		ItemDb.content_dir, DialogueDb.content_dir, ScheduleDb.content_dir, QuestDb.content_dir,
+		AreaDb.content_dir,
 	])
 	var resolved: int = 0
 	var unloadable: int = 0
@@ -81,7 +85,8 @@ func _every_resolved_path_loads() -> void:
 				unloadable += 1
 	equal("every resolved path exists as a resource", unloadable, 0)
 	equal("one resolved path per catalogued id", resolved,
-		ItemDb.count() + DialogueDb.count() + ScheduleDb.count() + QuestDb.count())
+		ItemDb.count() + DialogueDb.count() + ScheduleDb.count() + QuestDb.count()
+		+ AreaDb.count())
 
 
 ## THE BLIND SPOT, ASSERTED RATHER THAN ASSUMED. If this ever fails, the suite is running inside

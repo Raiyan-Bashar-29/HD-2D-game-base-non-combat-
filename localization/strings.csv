@@ -207,3 +207,9 @@ item.brass_lantern.name,Brass Lantern
 object.gate.arch.label,Shadowed Arch
 object.gate.arch.locked,"It is pitch dark beyond the arch, and you have no light in hand."
 object.gate.arch.opened,"Lantern raised, the dark under the arch gives way."
+ui.map.title,World Map
+ui.map.hint,Enter to travel  ·  Escape to close
+ui.map.empty,No map has been drawn of this world.
+ui.map.unknown,???
+ui.map.here,"{area}  ·  you are here"
+notify.map.discovered,"{area} is added to your map"

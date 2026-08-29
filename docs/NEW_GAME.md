@@ -19,15 +19,19 @@ green on an empty game, and `tools/check_boundary.gd` still exits 0.
 | `data/dialogue/*.tres` | the gardener conversation |
 | `data/schedules/*.tres` | the keeper's timetable |
 | `data/actions/*.tres` | barter and scrutinise |
+| `data/quests/*.tres` | the keeper's errand |
+| `data/areas/*.tres` | where the two demo areas sit on the world map |
 | `scenes/areas/courtyard/`, `scenes/areas/lantern_hall/` | the two demo areas, and everything placed in them |
 
 **Keep the folders themselves.** `data/items/`, `data/dialogue/`, `data/schedules/`,
-`data/actions/` and `scenes/areas/` are the **content roots the registries scan**. `ItemDb`,
-`DialogueDb` and `ScheduleDb` find content by directory scan (ADR-0006) — no registration list,
+`data/actions/`, `data/quests/`, `data/areas/` and `scenes/areas/` are the **content roots the
+registries scan**. `ItemDb`, `DialogueDb`, `ScheduleDb`, `QuestDb` and `AreaDb` find content by
+directory scan (ADR-0006) — no registration list,
 no code per item — so an empty folder is the correct empty state and a missing one is not.
 
 ```bash
 rm -f data/items/*.tres data/dialogue/*.tres data/schedules/*.tres data/actions/*.tres
+rm -f data/quests/*.tres data/areas/*.tres
 rm -rf scenes/areas/courtyard scenes/areas/lantern_hall
 ```
 

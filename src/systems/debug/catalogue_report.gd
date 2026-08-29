@@ -4,7 +4,8 @@ extends Node
 ## at boot of every debug build — including an EXPORTED one.
 ##
 ## WHY THIS FILE EXISTS
-## ItemDb, DialogueDb, ScheduleDb and QuestDb find content by SCANNING a directory (ADR-0006).
+## ItemDb, DialogueDb, ScheduleDb, QuestDb and AreaDb find content by SCANNING a directory
+## (ADR-0006).
 ## Nothing in
 ## any scene references most of the content roots, so those resources are not DEPENDENCIES of
 ## anything, and Godot's exporter walks dependencies. If it omitted them, every catalogue would
@@ -34,12 +35,13 @@ extends Node
 ## Deleting this file must not change what the game does.
 
 ## The content roots, in the order they are reported. A label, and the registry it names.
-## A FIFTH registry is one row here, one row in report_lines and one in empty_labels, and no
-## other change. WP-08 added the fourth and that is exactly what it cost.
+## A NEW registry is one row here, one row in report_lines and one in empty_labels, and no other
+## change. WP-08 added the fourth and WP-11 the fifth, and that is exactly what each cost.
 const LABEL_ITEMS: String = "items"
 const LABEL_DIALOGUE: String = "dialogue"
 const LABEL_SCHEDULES: String = "schedules"
 const LABEL_QUESTS: String = "quests"
+const LABEL_AREAS: String = "areas"
 
 
 ## The report as text: one line saying where res:// is coming from, one line per registry, and one
@@ -58,6 +60,9 @@ static func report_lines() -> PackedStringArray:
 	)
 	_append_registry(
 		out, LABEL_QUESTS, QuestDb.content_dir, QuestDb.count(), QuestDb.problems()
+	)
+	_append_registry(
+		out, LABEL_AREAS, AreaDb.content_dir, AreaDb.count(), AreaDb.problems()
 	)
 	return out
 
@@ -88,6 +93,8 @@ static func empty_labels() -> PackedStringArray:
 		out.append(LABEL_SCHEDULES)
 	if QuestDb.count() == 0:
 		out.append(LABEL_QUESTS)
+	if AreaDb.count() == 0:
+		out.append(LABEL_AREAS)
 	return out
 
 

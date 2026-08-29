@@ -44,6 +44,7 @@ func _initialize() -> void:
 	_check_dialogue()
 	_check_schedules()
 	_check_quests()
+	_check_areas()
 	_check_path_actions()
 	_check_scenes()
 	print("=".repeat(78))
@@ -267,6 +268,30 @@ func _check_quest_steps(found: Quest) -> void:
 			step.step_id, _condition_text(step.condition_flag, step.condition_test),
 		])
 		_require_key(context, "summary_key", step.summary_key)
+
+
+## Areas on the world map get the same treatment as every other catalogue, plus the check no text
+## scan can do: every name_key must exist in the CSV, or a dot on the map is labelled with its own
+## key. The MAP POSITION is printed rather than judged -- whether two places overlap is a design
+## question about a map this tool has never seen the size of, and a checker that guessed would be
+## the partial check that looks complete.
+##
+## THAT THE AREA HAS A SCENE IS NOT CHECKED HERE, and the omission is the same one `area_def.gd`
+## states: the id becomes a path through `Director.AREA_PATH_TEMPLATE`, the one place that knows
+## the shape, and `Director` is an autoload this tool cannot reach under `--script`.
+## `tests/unit/world_map_test.gd` asserts it, where the autoload resolves.
+func _check_areas() -> void:
+	AreaDb.rescan()
+	for problem: String in AreaDb.problems():
+		_fail(problem)
+	print("  mapped areas: %d" % AreaDb.count())
+	for area_id: StringName in AreaDb.ids():
+		var def: AreaDef = AreaDb.area(area_id)
+		print("     %-22s at %s, arrive at '%s'%s" % [
+			area_id, def.map_position, def.arrival_spawn,
+			", known from the start" if def.known_from_start else "",
+		])
+		_require_key(String(area_id), "name_key", def.name_key)
 
 
 ## A condition as one readable phrase for the build log. `.keys()` yields a Variant, so the enum

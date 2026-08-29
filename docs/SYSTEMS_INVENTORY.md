@@ -120,7 +120,9 @@ previous project started as a system that was allowed to know one thing too many
 | Journal | A `UiScreen` listing active and settled quests with the current objective of each, bound to `J` through `ScreenKeys` | QuestTracker, QuestDb, the project Theme | starting, advancing or completing anything; it draws what the tracker holds | PART — no detail pane, no sorting or filtering, no codex |
 | Flag conditions | The one evaluator of `GameEnums.FlagTest`, shared by a dialogue condition and a quest step | Flags | what any flag means, and writing one | DONE — WP-08 |
 | Plot gating | Chapter progression and content locks | Flags | — | PART — a quest's start condition and a dialogue node's condition are both flag tests, so chapter gating is authorable today; no chapter concept of its own |
-| Map markers | Objective and discovery markers | Quests, Area root | — | TODO |
+| Map content format | `AreaDef` as .tres in `data/areas`, found by the fifth directory-scan registry (ADR-0006). Carries the map position, the arrival spawn and `known_from_start` | — | reading a flag, loading a scene, or deciding what is discovered | DONE — WP-11 |
+| Map screen | A `UiScreen` drawing one dot per `AreaDef` at its authored normalised position, in three states, bound to `M` through `ScreenKeys`. Pressing a found place travels | WorldMap, AreaDb, Director, the project Theme | discovering, loading or placing anything | PART — no fog of war, no zoom or pan, no map art, and no objective markers |
+| Objective markers | A quest objective drawn on the map | QuestTracker, WorldMap | — | TODO — `Events.quest_advanced` has an emitter now, so this is a listener and no new state |
 
 ## 5. Interface
 
@@ -139,7 +141,7 @@ previous project started as a system that was allowed to know one thing too many
 | Save and load screen | Slot list with headers and playtime, in either direction | Save | the save format, or what a section holds | DONE |
 | Settings screen | Every entry in the Settings defaults table, generated from it | Settings | applying a setting; it writes and Settings announces | DONE |
 | Key rebinding | Rebind a key or a pad button per action; overrides persist in user://input.cfg | Actions, KeyBindings | naming an action or deciding a default | PART — no glyph swapping per device, and no duplicate-binding warning |
-| World map | Region map, discovery, fast travel | Director, Flags | — | TODO |
+| World map | `WorldMap` under `GameRoot`, found by group. Discovery is the flag `map/<area id>` and there is NO store, so it is already saved, already announced and writable by anything. `travel_to` emits `area_change_requested` and stops | Director, Flags, Events, AreaDb | loading an area, fading, placing the player, or keeping a copy of what is discovered | DONE — WP-11 |
 | Controller navigation | Every screen fully usable on a gamepad | Actions | — | DONE — a VBoxContainer of Buttons answers ui_up/ui_down and ui_accept, so no screen owns a cursor; proved windowed with real events |
 | Loading screen | Covers threaded area loads | Director | — | DONE — fade plus a progress readout drawn above it; the one node after ScreenFade |
 | Project UI theme | `assets/theme/ui_theme.tres`, wired as `gui/theme/custom`: every font size, colour and inset the UI draws with. Type variations carry sizes; a `UiPalette` and a `UiMetrics` carry the colours and insets once each, NOT copied into the variations | nothing | a localization key, or a size only one screen could want | DONE — T2.1. One edit to that file restyled the menu, the inventory screen and the HUD at once, demonstrated by captures before and after; a test case fails if a screen writes a colour or a font size down again |

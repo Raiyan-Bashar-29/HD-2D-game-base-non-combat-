@@ -263,6 +263,18 @@ item", and a blocking item scheduled last is a contradiction. Sequenced by risk,
   hand with **no code and no new field in any of them**. Enter on a satchel row holds or stows.
   The other two thirds are **WP-09b** on the board, with the reason each was deferred.
 
+- **WP-11 World map and fast travel — DONE, 2026-08-29.** The phase's third package, and the last
+  system in the catalogue with no proof at all. An `AreaDef` .tres per area in `data/areas/`,
+  found by the fifth directory-scan registry, carries the map position, the arrival spawn and
+  `known_from_start` — and **discovery is the flag `map/<area id>` with no store behind it**, the
+  fourth use of the namespace-over-`Flags` shape after `PersistentState`, `Standing` and
+  `Equipment`. So discovery is already saved, already cleared by a new game, already announced on
+  `flag_changed`, and writable by a conversation effect, a lever or a trigger volume with **no
+  code in any of them**. `WorldMap` under `GameRoot` turns arrival into discovery and emits the
+  same `area_change_requested` an `AreaDoor` emits; `MapScreen` on `M` draws one dot per def at
+  its authored normalised position and names no area. Three windowed captures LOOKED AT and READ,
+  and 65 new assertions. See the board.
+
 Exit criteria:
 - [ ] Every system has one proof, and no system has a second area's worth of content
       — quests: **done**, WP-08, 2026-08-27. One quest, two steps, two windowed captures LOOKED AT:
@@ -272,6 +284,11 @@ Exit criteria:
       `Brass Lantern x1 [in hand]` beside an unmarked `Rose Petal x2`, the arch refusing with its
       own authored line, and the same arch with the blocker gone one flag later
       — attributes and surface-aware footsteps: **not done**, WP-09b
+      — world map and fast travel: **done**, WP-11, 2026-08-29. Two areas on one map, three windowed
+      captures LOOKED AT and READ: a map with the second area drawn as an unknown grey `???`, the
+      same map one flag later with it drawn as a gold selectable `Lantern Hall`, and the same map
+      again after actually travelling there -- the two states swapped, with the courtyard still on
+      the map from the far side of an area no longer loaded
 
 ## Phase T4 — Template v1.0
 

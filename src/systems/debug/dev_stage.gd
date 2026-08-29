@@ -44,14 +44,20 @@ extends Node
 ##   --new-game           start a game. Since WP-12 the boot goes to the main menu, not to an
 ##                        area, so without this there is no world to photograph.
 ##   --open-menu=<list>   push menus by name, innermost last: main_menu, pause, settings,
-##                        saves, controls. `--open-menu=pause,settings` puts settings over the
-##                        pause menu.
+##                        saves, controls, journal, map. `--open-menu=pause,settings` puts
+##                        settings over the pause menu, and `--goto=X --open-menu=map` shows the
+##                        map from X.
 ##   --npc-settle=<n>     let NPCs walk for n physics frames, so a screenshot shows them AT
 ##                        their posts rather than halfway there.
 ##
 ## OWNS: putting the world into a named state for a capture.
 ## MUST NOT: be depended upon by gameplay, measure anything, or reach past the game to pose it.
 ## Deleting this file must not break the game.
+
+## How long the world must stay settled before a staging flag that puts something on SCREEN acts.
+## Generous on purpose: it costs a capture a fraction of a second and it removes a race that
+## costs an hour to diagnose.
+const SETTLE_FRAMES: int = 20
 
 var _talk_advance: int = 0
 ## Set by --new-game, read by --open-menu: a menu pushed before the transition lands is closed
@@ -116,6 +122,24 @@ func _wait_for_area() -> void:
 	while Director.current_area_id == &"":
 		await get_tree().process_frame
 	await _settled()
+
+
+## Wait until the world has been settled for `frames` CONSECUTIVE frames, and start counting
+## again the moment it is not. Gotcha 21's persistence shape, applied to staging.
+##
+## WHY A COUNTER AND NOT A LONGER WAIT. `--goto` and `--open-menu` both begin by waiting for the
+## first area, so they come out of that wait on the same frame and race: if the menu opens first,
+## the travel `--goto` is about to request unwinds it, and the capture is of an empty screen with
+## every rung green. A fixed number of extra frames only moves the race. This one cannot be won
+## early, because a transition starting resets the count.
+func _settle_stable(frames: int) -> void:
+	var stable: int = 0
+	while stable < frames:
+		if Director.current_area_id == &"" or Director.is_transitioning():
+			stable = 0
+		else:
+			stable += 1
+		await get_tree().process_frame
 
 
 func _give(list: String) -> void:
@@ -392,11 +416,16 @@ func _new_game() -> void:
 ##
 ## Waits for the transition when --new-game is on the same line, because `ScreenKeys` unwinds
 ## the stack on every travel — a menu pushed before the area lands is closed again by it.
+##
+## AND THEN FOR THE WORLD TO STAY STILL, which is what makes `--goto=X --open-menu=map` a usable
+## pair: `_wait_for_area` alone returns on the same frame `--goto` asks to travel, and the travel
+## unwinds the menu that was pushed a moment earlier. See `_settle_stable`.
 func _open_menu(list: String) -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	if _fresh_game:
 		await _wait_for_area()
+		await _settle_stable(SETTLE_FRAMES)
 	var stack: UiRoot = UiRoot.find(self)
 	for menu_id: String in list.split(",", false):
 		var screen: UiScreen = ScreenKeys.menu_for(StringName(menu_id))

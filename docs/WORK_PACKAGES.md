@@ -50,7 +50,7 @@ Headless shades nothing. This project has already shipped two bugs that every ot
 | 09 | Character depth — equipment | **DONE (split)** — `1b3d799`, PR #17. The equipment third; see below. The row asked for three systems, which is over the size limit |
 | 09b | Character depth — attributes and surfaces | TODO — the other two thirds of the original row, with the reasons; see below |
 | 10 | Crafting and gathering | **OPTIONAL** — a genre choice, not a requirement of every game (TEMPLATE.md). Does not block v1.0 |
-| 11 | World map and fast travel | TODO |
+| 11 | World map and fast travel | **DONE** — `WP11_COMMIT`, PR WP11_PR. The third package of Phase T3, and the last system with no proof at all; see below |
 | 12 | Menus | **DONE** — taken out of order; it needed only WP-02 |
 | 13 | Presentation | **DONE** — taken out of order; see below |
 | 14 | Dev tools and hardening | TODO |
@@ -70,7 +70,7 @@ original board rather than continuing it.
 | T2.0 | **The export proof** | **DONE** — the assumption HELD; see T2.0 below |
 | T2.1 | Art contract seams | **DONE** — see T2.1 below |
 | T2.2 | Consumer documentation | **DONE** — `36b5abd`, PR #15. Phase T2 closes; see T2.2 below |
-| T3.1 | **A generic content registry** — a base holding the scan and cache, with a thin typed façade per registry | TODO — WP-08 made it the fourth copy of the same thirty lines and reconsidered the note in `schedule_db.gd`; the verdict and the reasoning are in the WP-08 section |
+| T3.1 | **A generic content registry** — a base holding the scan and cache, with a thin typed façade per registry | TODO — WP-08 made it the FOURTH copy of the same thirty lines and reconsidered the note in `schedule_db.gd`; WP-11 made it the FIFTH and did not re-argue it. The verdict is in the WP-08 section and the changed arithmetic is in `area_db.gd`'s header |
 | T3.2 | The five art-contract seams T2.1 left | TODO — shared materials, the environment post-stack and camera framing as `@export`s, the texture import defaults, the Git LFS lines |
 | T3.3 | **A quest step that can read an ITEM COUNT** | TODO — "bring me three petals" is still not authorable. Scoped by WP-09, which proved the flag seam is enough for "hold ONE of this" and not for a count; the two candidate designs and what each costs are in the WP-09 section |
 
@@ -666,11 +666,167 @@ correctly; all persisted.
 
 ---
 
-## WP-11 · World map and fast travel
+## WP-11 · World map and fast travel — **DONE**
 
 **Read:** `src/systems/scene_director/director.gd`, `src/gameplay/world/area_root.gd`, WP-02/03.
 **Write:** an `AreaDef` content resource, a region map with discovery, travel points.
 **Exit criteria:** discover an area, travel to it, discovery persists.
+
+**IT WAS TAKEN OVER T3.1, T3.3 AND WP-09b DELIBERATELY**, and the reason is the one that put
+WP-08 first: this was the last system in the catalogue with NO PROOF AT ALL, and `TEMPLATE.md`'s
+replacement rule is breadth of systems with one shallow proof each. The three alternatives are
+all real and all narrower — a refactor, a gap in an existing system, and half of a split row —
+and each of them improves something that already works. This built the last thing that did not.
+
+**DISCOVERY IS A FLAG, AND IT OWNS NO STORE.** A known area is:
+
+```
+map/<area id>                        map/lantern_hall
+```
+
+which is `PersistentState`'s `obj/<area>/<object>/<field>`, `Standing`'s `standing/<who>` and
+`Equipment`'s `equip/<wearer>/<item>` applied to a FOURTH case. **WP-09's section said to copy
+this shape and it copied cleanly**, which is now three independent systems on one namespace
+convention rather than two and a coincidence. The same three consequences, and they are the whole
+argument against a discovery store with a save section:
+
+1. **It is already saved.** No `SaveSystem.register`, no version, no migration, and a new game
+   clears it for free. That is what makes "discovery persists across a save and a reload,
+   including from the far side of an area that is no longer loaded" true with no code at all: the
+   flag never lived in the area.
+2. **Anything can reveal a place with no code.** `--flag=map/lantern_hall:true` is the second
+   capture, and a `DialogueChoice` effect, a `TriggerVolume` or a `Lever` writes exactly the same
+   key. Nothing was touched to make that work. The key runs the other way too: a `Gate` with
+   `requires_flag = &"map/<id>"` is a road that opens once you know where it goes.
+3. **It is announced already.** `flag_changed` fires, so a quest step testing "have you found the
+   orchard" works today.
+
+The cost is stated: the key contains an area id, so renaming an area's folder makes an old save
+forget it was found. Same price `Equipment` pays for an item id, and smaller than the
+alternative, which writes the same id into a save section of its own anyway.
+
+**THE MAP SCREEN NAMES NO AREA AND NO POSITION, WHICH IS WHAT THE BOUNDARY GATE WOULD HAVE
+CAUGHT.** Every dot is drawn at the `map_position` its own `.tres` declares, in normalised 0..1
+space so the same authored number is right at every window size. Proved by planting
+`const HOME := &"courtyard"` in `map_screen.gd`: `check_boundary` exits 1 naming the file, the
+line and `res://data/areas/courtyard.tres` as the source — the gate derives area ids from the new
+registry as well as from `scenes/areas/`.
+
+**TRAVEL ASKS AND DOES NOTHING ELSE.** `WorldMap.travel_to` emits `Events.area_change_requested`
+and stops, exactly as `AreaDoor` does, so `Director` still owns every transition and its guard.
+Four refusals, each logged rather than silent: not on the map, not found, already there, already
+moving. The headline assertion is the one `transitions_test` makes about a door — one request,
+naming the area and the AUTHORED arrival spawn, with the player unmoved and nothing loaded.
+
+**A FIFTH REGISTRY, AND IT IS EVIDENCE FOR T3.1 RATHER THAN AGAINST IT.** `AreaDb` is the fifth
+copy of the same thirty lines of scan-and-validate. WP-08 reconsidered and kept the fourth copy
+with reasons that have not changed — GDScript has no generics, so a shared base could only cache
+`Resource` and hand it back untyped. What changed is the arithmetic: five copies is five places
+to fix a scan bug, and `area_db.gd`'s header says so and points at the board row.
+
+**THE ID HAS NO PREFIX**, unlike `item/` and `quest/`. Those prefixes make a save file
+self-describing about things that live only in a save file; an area id is already a public
+identifier, because it is a folder name. A `map/orchard` id would have put a translation table
+between `AreaDb` and `Director`, and a translation table is a second place the truth lives.
+
+**WHAT A "TRAVEL POINT" TURNED OUT TO BE.** The row asked for one. The arrival point is authored —
+`AreaDef.arrival_spawn`, and the suite fails if it names a marker no area has. A DEPARTURE point,
+a kiosk you must stand at to fast travel, is a game's policy rather than the template's: it is a
+restriction on a mechanism, it needs content the demo does not have, and it would be one
+interactable emitting a request the map screen already emits. Not built, and said rather than
+quietly dropped.
+
+**TWO GAPS FOUND IN OTHER PEOPLE'S WORK, both one line.** `journal_screen.gd` was never added to
+`art_contract_test.gd`'s `STYLED_SCREENS`, whose own comment says "a sixth screen belongs on this
+list" — so the regression gate that stops a colour being written down again could not see the
+journal at all. Both it and the map are on the list now. And `docs/NEW_GAME.md` never listed
+`data/quests/`; it now lists that and `data/areas/`.
+
+**ONE NEW PALETTE ENTRY, AND IT IS THE FIRST SINCE T2.1 WROTE THE FILE.** An undiscovered marker
+has to be VISIBLE and clearly lesser, and `dim` is a translucent black that would have drawn
+nothing against the plate. `UiPalette/colors/muted`, one line in `ui_theme.tres`, and the screen
+reads it by name — the seam working exactly as T2.1 said it would. **The `Button` styleboxes were
+left unpopulated for the fourth time**: the map's markers are Buttons over an opaque plate and are
+legible against the shipped dark palette, so this screen did not force the decision either.
+
+**A STAGING RACE, FOUND BY THE THIRD CAPTURE AND FIXED WITH GOTCHA 21's SHAPE.** `--goto` and
+`--open-menu` both begin by waiting for the first area, so they come out of that wait on the same
+frame: if the menu opens first, the travel `--goto` is about to request unwinds it, and the
+capture is of nothing with every rung green. A fixed number of extra frames only moves the race.
+`dev_stage._settle_stable(20)` requires twenty CONSECUTIVE settled frames and resets its count
+the moment a transition starts, which cannot be won early. Fourth staging flag to need a wait,
+and the first to need a persistent one.
+
+**Files.** `src/content/world/area_def.gd` (16 code lines) · `src/content/world/area_db.gd` (61) ·
+`src/systems/world_map/world_map.gd` (67) · `src/ui/screens/map_screen.gd` (153) ·
+`Events.area_discovered` · `ScreenKeys.toggle_map` and `MapScreen` in `menu_for` ·
+`AreaDb` in `CatalogueReport` and in `Fixtures` · `_check_areas` in `check_content` ·
+`_settle_stable` in `dev_stage.gd` · `UiPalette/colors/muted` · a `WorldMap` node in
+`game_root.tscn` · `data/areas/courtyard.tres` and `data/areas/lantern_hall.tres` plus 6 CSV rows ·
+`tests/unit/world_map_test.gd` (59 outcomes) · two fixture `AreaDef`s ·
+`docs/AUTHORING.md` § Put an area on the world map.
+1224 → **1298** (59 here, 2 in `export_test` for the fifth catalogue line, 4 in
+`art_contract_test` for the two screens added to `STYLED_SCREENS`, and 9 that `docs_test.gd`
+COMPUTED from the new worked example in `AUTHORING.md`).
+
+**PROVED RED, THEN GREEN — three times, each with the real failure shape (gotcha 23).**
+(1) An `AreaDef`'s `name_key` misspelled by one letter: `check_content` exits 1 with
+`lantern_hall name_key 'area.lantern_hall.nam' is not in the CSV`; reverted, exit 0.
+(2) The load-bearing invariant broken the way it would really break — `discover()` made to keep a
+`Dictionary` instead of writing the flag: the suite exits 1 with `1288 passed, 10 failed`, first
+failure *"and the whole of that is one flag — expected true, got false"*, plus the ErrorWatch
+catching an out-of-bounds read in a block that never got its signal and the plan reporting
+`planned 59 outcomes and produced 57`. All three mechanisms fired on one break; reverted,
+`1298 passed, 0 failed`, exit 0.
+(3) `const HOME := &"courtyard"` in `map_screen.gd`: `check_boundary` exits 1 with
+`res://src/ui/screens/map_screen.gd:33 names demo content 'courtyard' (from
+res://data/areas/courtyard.tres)`; reverted, exit 0.
+
+**The input path was proved by a temporary probe and the probe was removed** (gotcha 15). Run
+windowed: `PROBE after M: top=map depth=1` → `PROBE focus='@Button@27' text='Lantern Hall'` →
+`PROBE after M again: top=NOTHING depth=0` → M, then Enter →
+`[map] Travelling to 'lantern_hall' (spawn 'from_courtyard')` →
+`PROBE after Enter: area=lantern_hall depth=0`. The stack unwound itself on the travel, which is
+why `MapScreen` does not close itself. `git diff src/systems/debug/dev_capture.gd` is empty.
+
+**Three windowed captures at midday, LOOKED AT and READ rather than glanced at** (gotcha 28 — a
+map with the wrong area marked still looks like a map). All three at 960x540, `--new-game`,
+`--shot-frame=100`, `--time=12:00 --freeze-time`.
+
+1. `--open-menu=map`: a large WHITE dot low on the plate reading *"Rose Courtyard · you are
+   here"*, and a small GREY dot above it reading *"???"*. The DISCRIMINATING pair — an
+   undiscovered place drawn differently from a discovered one in the same shot, which a map whose
+   dots all looked alike could not show.
+2. `--flag=map/lantern_hall:true --open-menu=map`: same camera, same hour, ONE FLAG different.
+   The grey `???` is now a GOLD dot reading *"Lantern Hall"* with the focus ring on it, and the
+   courtyard marker has not moved or changed. That is the seam photographed: a flag written from
+   outside put a place on the map.
+3. `--goto=lantern_hall --open-menu=map`: the two states have SWAPPED. Lantern Hall is the white
+   *"you are here"* marker, Rose Courtyard is the gold selectable one — **from the far side of an
+   area that is no longer loaded**, over the hall's warm interior rather than the courtyard's
+   daylight, which is how the shot also proves the travel really happened.
+
+**Ladder, all green.** `--headless --import` with **zero** `SCRIPT ERROR` / `Parse Error` lines;
+boot `0 warnings, 0 errors` with `areas: 2 found in res://data/areas` and `World map ready over 2
+mapped area(s)`; suite **1298 passed, 0 failed, 0 skipped**, exit 0; `check_budgets`,
+`check_content` and `check_boundary` all exit 0. A stripped template, built by hand the way the CI
+job builds it, ran **1230 passed, 0 failed, 19 skipped**, exit 0, with all three checkers passing
+and `mapped areas: 0` — the map case skips exactly one assertion there and says which.
+
+**Deferred, with reasons, not silently.**
+- **A departure-side travel point**, for the reason above: it is a restriction on a mechanism,
+  and it is a game's policy rather than the template's.
+- **Objective markers on the map.** `Events.quest_advanced` has an emitter as of WP-08 and
+  `MapScreen` already redraws on facts, so this is a listener and one more marker state — but it
+  is a second system's proof on this package's screen, and the board has a row for it.
+- Fog of war, zoom and pan, custom map art, travel costs, travel time, mounts. Art is deferred
+  indefinitely, so a map drawn from a `ColorRect` per place is the map this template ships.
+- **A second region or a third area.** `TEMPLATE.md` is explicit: two areas is what the demo has
+  and two areas is enough. A third would be the retracted rule winning an argument.
+- Combat is still not a thing.
+
+**Commit:** `WP11_COMMIT` on `claude/wp-11-worldmap`, PR WP11_PR — stacked onto
+`claude/wp-09-character` (#17) rather than `main`, matching the rest of the chain.
 
 ---
 

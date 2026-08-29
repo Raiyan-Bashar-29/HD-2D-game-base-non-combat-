@@ -55,7 +55,7 @@ MenuRow/font_sizes/font_size = 24
 ChoiceRow/base_type = &"Button"
 ChoiceRow/font_sizes/font_size = 22
 
-; --- The palette. Four entries, and every screen reads these and no others. ---
+; --- The palette. Five entries, and every screen reads these and no others. ---
 UiPalette/colors/text = Color(1, 1, 1, 1)
 UiPalette/colors/accent = Color(0.86, 0.74, 0.52, 1)
 ; Translucent, for a panel over a live or frozen world that should stay visible behind it.
@@ -63,6 +63,11 @@ UiPalette/colors/dim = Color(0.04, 0.03, 0.06, 0.78)
 ; Opaque, for a panel with no world behind it. It also has to cover the HUD, which is drawn
 ; UNDER UiRoot and would otherwise show a clock through the main menu of a game not started.
 UiPalette/colors/solid = Color(0.04, 0.03, 0.06, 1)
+; Present but lesser: something the player can see and has not yet earned. Added for the world
+; map's undiscovered markers, which have to be VISIBLE against `solid` and clearly not `accent`
+; -- `dim` is a translucent black and would have drawn nothing at all. First entry added to this
+; palette since T2.1 wrote it, which is the seam working: one file, one line, every screen.
+UiPalette/colors/muted = Color(0.42, 0.4, 0.38, 1)
 
 ; --- Metrics. The design resolution is 1920 wide and `canvas_items` stretch keeps the logical
 ; size there whatever the window does, so these are stable numbers rather than guesses. ---

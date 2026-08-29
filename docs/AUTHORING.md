@@ -255,12 +255,84 @@ Then **look at the PNG.** See § Nothing above ever enters your area.
 
 ### Reaching it
 
-An area nothing travels to is dead content. Two ways in:
+An area nothing travels to is dead content. Three ways in:
 
 - **Make it the start:** `[game] world/first_area="my_area"` in `project.godot`.
 - **Put a door in another area:** an `area_door.tscn` instance whose `target_area` is your id and
   whose `target_spawn` names a `Marker3D` under your `Spawns`. Doors are one-directional; author
   the return door too, and give each area a spawn named for where it is arrived from.
+- **Put it on the world map**, below, so a player who has been there once can travel back.
+
+---
+
+## Put an area on the world map
+
+The map is one `.tres` per area in `data/areas/`, found by directory scan the way items and
+quests are. **You write no code**, and nothing on the map screen knows any area exists.
+
+An area with no `.tres` here is simply not on the map — legitimate for a cupboard, and the reason
+`data/areas/` may be empty in a game that wants no map at all.
+
+### The file
+
+The id is the **file name and the area id**, with no prefix — `data/areas/orchard.tres` is
+`id = &"orchard"`, the same id `scenes/areas/orchard/orchard.tscn` declares. There is no prefix
+because an area id is already a public identifier: it is a folder name.
+
+```
+[gd_resource type="Resource" script_class="AreaDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/content/world/area_def.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+id = &"orchard"
+name_key = "area.orchard.name"
+map_position = Vector2(0.61, 0.24)
+arrival_spawn = &"from_courtyard"
+known_from_start = false
+```
+
+| Field | What it is |
+|---|---|
+| `id` | the area id, equal to the file name and to the folder under `scenes/areas/` |
+| `name_key` | the CSV key for the name drawn beside the dot. Use the same key the area scene's `display_name_key` uses — the suite fails if the two disagree |
+| `map_position` | where the dot goes, **normalised**: `(0,0)` is the top-left of the map plate and `(1,1)` the bottom-right. Normalised so the same number is right at every window size |
+| `arrival_spawn` | which `Marker3D` under the area's `Spawns` a fast traveller lands on. Empty means the first one. The suite fails if it names a marker that is not there |
+| `known_from_start` | on the map before the player has been anywhere. True for where the game begins, and for anywhere known by reputation |
+
+### Being found
+
+**Discovery is a flag, `map/<area id>`, and nothing else.** Two consequences you can use today
+without touching `src/`:
+
+- **Arriving discovers a place.** `WorldMap` listens to `Events.area_entered`, so walking through
+  a door is enough. Nothing to author.
+- **Anything that writes the flag reveals a place.** A `DialogueNode` effect with
+  `effect_flag = &"map/orchard"` and `effect_write = 1` (SET_TRUE) means an NPC telling you about
+  the orchard puts it on your map. So does a `TriggerVolume`, a `Lever`, or a quest step's
+  consequence — and none of them has heard of the map.
+
+The same key runs the other way: a `Gate` with `requires_flag = &"map/orchard"` is a road that
+opens once you know where it goes, with no code at all.
+
+Because it is a flag, it is already saved, already cleared by a new game, and already announced
+on `flag_changed`. There is no map save section.
+
+### Seeing it
+
+`M` opens the map. A place you are standing in is drawn in white and says so; a place you have
+found is a gold dot you can select and press Enter on to travel; a place you have not is a grey
+dot marked with the `ui.map.unknown` row. Travel goes through the same
+`Events.area_change_requested` a door uses, so `Director` still owns every transition.
+
+```bash
+"$G" --resolution 960x540 --quit-after 120 -- --new-game --open-menu=map \
+     --shot="$(pwd)/build/shots/map.png" --shot-frame=100 --time=12:00 --freeze-time
+```
+
+Add `--goto=my_area` before `--open-menu=map` to photograph the map from somewhere else, or
+`--flag=map/my_area:true` to pose a place as found without walking there.
 
 ---
 
@@ -810,8 +882,8 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 |---|---|
 | `--import` | a `.tscn` that does not load, a script that does not parse |
 | boot run | that the game boots clean to its main menu. **It does not enter an area** — see below |
-| test suite | a missing required child, an area with no spawn, an interior that follows the sun, a schedule waypoint no area has, a quest with no steps |
-| `check_content` | a duplicate `object_id`, a `_key` with no CSV row, an unquoted comma, a dangling dialogue link, an id that disagrees with its file name, a stray `ItemDefinition`, a quest step whose objective has no CSV row, a gate whose `locked_key` has no row, **a missing `[editable]` marker** |
+| test suite | a missing required child, an area with no spawn, an interior that follows the sun, a schedule waypoint no area has, a quest with no steps, an area on the map with no scene, a map dot whose `arrival_spawn` no area has |
+| `check_content` | a duplicate `object_id`, a `_key` with no CSV row, an unquoted comma, a dangling dialogue link, an id that disagrees with its file name, a stray `ItemDefinition`, a quest step whose objective has no CSV row, a gate whose `locked_key` has no row, an `AreaDef` whose `name_key` has no row, **a missing `[editable]` marker** |
 | `check_boundary` | your content id appearing in `src/` — which is a bug in the *engine*, not in your content |
 | `check_budgets` | 250 code lines per file, 40 per function. Markdown is not counted |
 | windowed capture | everything the other six cannot see |

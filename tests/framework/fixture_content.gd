@@ -56,6 +56,14 @@ const QUEST_SECOND_FLAG: StringName = &"fixture/second_done"
 const QUEST_FIRST_STEP: StringName = &"first"
 const QUEST_SECOND_STEP: StringName = &"second"
 
+## Two mapped places, and each exists to make a different rule observable: one KNOWN FROM START
+## (so a new game with no travel in it still has a map with something on it) and one that is not
+## (so discovery is distinguishable from being drawn at all). Neither has a scene behind it,
+## which is the point: the map is provable in a checkout with no game in it.
+const PLACE_A: StringName = &"fixture_place_a"
+const PLACE_B: StringName = &"fixture_place_b"
+const PLACE_A_SPAWN: StringName = &"fixture_arrival"
+
 const STANDING_ID: StringName = &"fixture_person"
 const SUCCESS_FLAG: StringName = &"fixture/bartered"
 
@@ -214,3 +222,25 @@ static func quest_step(step_id: StringName, flag: StringName) -> QuestStep:
 	step.condition_flag = flag
 	step.condition_test = GameEnums.FlagTest.IS_TRUE
 	return step
+
+
+## The two mapped places, in the order `AreaDb.ids()` will sort them, so a case can assert an
+## order without restating one here.
+static func area_defs() -> Array[AreaDef]:
+	var out: Array[AreaDef] = []
+	out.append(area_def(PLACE_A, Vector2(0.25, 0.5), true, PLACE_A_SPAWN))
+	out.append(area_def(PLACE_B, Vector2(0.75, 0.5), false, &""))
+	return out
+
+
+static func area_def(id: StringName, at: Vector2, known_from_start: bool,
+		arrival_spawn: StringName) -> AreaDef:
+	var made := AreaDef.new()
+	made.id = id
+	# Deliberately NOT in strings.csv, for the reason `item()` gives: tr() returns the key
+	# unchanged, so a fixture cannot pass by translation.
+	made.name_key = "fixture.area.%s" % id
+	made.map_position = at
+	made.known_from_start = known_from_start
+	made.arrival_spawn = arrival_spawn
+	return made

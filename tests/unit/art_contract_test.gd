@@ -31,18 +31,23 @@ const ALT_SHEET_PATH: String = "res://assets/placeholder/character_alt.png"
 const THEME_SETTING: String = "gui/theme/custom"
 const VISUAL_SCRIPT: String = "res://src/gameplay/character/character_visual.gd"
 
-## The five files whose look moved into the theme. A sixth screen belongs on this list.
+## The files whose look moved into the theme. A NEW SCREEN BELONGS ON THIS LIST, and WP-11 found
+## the journal missing from it — added when the map was, because a screen nobody listed is a
+## screen the regression gate cannot see, which is the same failure shape as a case nobody added
+## to CASES.
 const STYLED_SCREENS: Array[String] = [
 	"res://src/ui/screens/menu_screen.gd",
 	"res://src/ui/screens/dialogue_screen.gd",
 	"res://src/ui/screens/inventory_screen.gd",
+	"res://src/ui/screens/journal_screen.gd",
+	"res://src/ui/screens/map_screen.gd",
 	"res://src/ui/hud/hud_clock.gd",
 	"res://src/ui/hud/loading_indicator.gd",
 ]
 
 
 func run() -> void:
-	plan(83)
+	plan(87)
 	_the_sheet_geometry_is_derived_from_the_facing_count()
 	_the_frame_index_matches_the_constants_it_replaced()
 	_a_layout_reports_its_own_problems()

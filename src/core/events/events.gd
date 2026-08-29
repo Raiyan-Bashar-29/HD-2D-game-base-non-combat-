@@ -51,6 +51,14 @@ signal area_load_progress(area_id: StringName, ratio: float)
 ## The new area is in the tree and the player is placed. Safe to query world contents.
 signal area_entered(area_id: StringName)
 
+## A place went onto the world map. Emitted by `WorldMap` and nothing else.
+##
+## NOTHING NEEDS THIS TO GATE ANYTHING, and that is the same note `equipment_changed` carries.
+## Discovery lives in `Flags` under `map/<area id>`, so a gate, a quest step or a dialogue
+## condition reacts through `flag_changed` with no code at all. This exists for a UI that wants
+## to redraw a dot, which is presentation and not a rule.
+signal area_discovered(area_id: StringName)
+
 # ---------------------------------------------------------------------------------------
 # The player character. Emitted by the player's own components.
 # ---------------------------------------------------------------------------------------

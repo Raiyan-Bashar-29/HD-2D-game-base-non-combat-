@@ -48,6 +48,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed(Actions.JOURNAL) and toggle_journal(stack):
 		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed(Actions.MAP) and toggle_map(stack):
+		get_viewport().set_input_as_handled()
 
 
 ## Same shape as toggle_inventory, and for the same reason: the key that raised a screen closes
@@ -81,6 +84,10 @@ static func menu_for(menu_id: StringName) -> UiScreen:
 	# one. The journal finds the single tracker itself, so naming it is enough.
 	if menu_id == JournalScreen.SCREEN_ID:
 		return JournalScreen.new()
+	# The map is here on the journal's reasoning, not the inventory's: it finds the single
+	# `WorldMap` itself, so naming it is enough.
+	if menu_id == MapScreen.SCREEN_ID:
+		return MapScreen.new()
 	Log.error(CATEGORY, "No menu is named '%s'" % menu_id)
 	return null
 
@@ -137,6 +144,17 @@ func toggle_journal(stack: UiRoot) -> bool:
 	if not stack.is_gameplay_input_allowed():
 		return false
 	return stack.open(JournalScreen.new())
+
+
+## Same shape as toggle_journal, and the binding this node's header has predicted since WP-02:
+## "the journal key, the map key and the pause key" belong in one table, not one file each.
+func toggle_map(stack: UiRoot) -> bool:
+	var top: UiScreen = stack.top()
+	if top != null and top.screen_id == MapScreen.SCREEN_ID:
+		return stack.close_top()
+	if not stack.is_gameplay_input_allowed():
+		return false
+	return stack.open(MapScreen.new())
 
 
 ## Open the dialogue box and start the conversation in it. The runner is a component of the

@@ -3,8 +3,8 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-29 · **WP-11 (world map and fast travel) complete — `WP11_COMMIT`, PR
-WP11_PR. Third package of Phase T3, and the LAST SYSTEM IN THE CATALOGUE WITH NO PROOF AT ALL.**
+**Last updated:** 2026-08-29 · **WP-11 (world map and fast travel) complete — `cf3f3a1`, PR
+#18. Third package of Phase T3, and the LAST SYSTEM IN THE CATALOGUE WITH NO PROOF AT ALL.**
 An `AreaDef` .tres per area in `data/areas/`, found by the fifth directory-scan registry, and
 **discovery is the flag `map/<area id>` with no store behind it** — the fourth use of the
 namespace-over-`Flags` shape after `PersistentState`, `Standing` and `Equipment`. So it is already

@@ -177,6 +177,10 @@ working as advertised: one file, one line. The `Button` styleboxes were left unp
 fourth package running — the map's markers are legible against the shipped dark palette, so this
 screen did not force the decision either.
 
+**CI green**, run 33262997072, read from the job logs rather than the tick: full checkout
+`=== 1298 passed, 0 failed, 0 skipped ===` with `mapped areas: 2`, stripped template
+`=== 1230 passed, 0 failed, 19 skipped ===` with `mapped areas: 0`. Both match the local runs.
+
 **Unblocks.** Objective markers on the map: `Events.quest_advanced` has had an emitter since
 WP-08 and `MapScreen` already redraws on facts, so that is a listener and one more marker state
 rather than new state. A `Gate` or a `QuestStep` gating on having FOUND somewhere works today with

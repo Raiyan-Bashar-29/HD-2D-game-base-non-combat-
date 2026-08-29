@@ -50,7 +50,7 @@ Headless shades nothing. This project has already shipped two bugs that every ot
 | 09 | Character depth — equipment | **DONE (split)** — `1b3d799`, PR #17. The equipment third; see below. The row asked for three systems, which is over the size limit |
 | 09b | Character depth — attributes and surfaces | TODO — the other two thirds of the original row, with the reasons; see below |
 | 10 | Crafting and gathering | **OPTIONAL** — a genre choice, not a requirement of every game (TEMPLATE.md). Does not block v1.0 |
-| 11 | World map and fast travel | **DONE** — `WP11_COMMIT`, PR WP11_PR. The third package of Phase T3, and the last system with no proof at all; see below |
+| 11 | World map and fast travel | **DONE** — `cf3f3a1`, PR #18. The third package of Phase T3, and the last system with no proof at all; see below |
 | 12 | Menus | **DONE** — taken out of order; it needed only WP-02 |
 | 13 | Presentation | **DONE** — taken out of order; see below |
 | 14 | Dev tools and hardening | TODO |
@@ -825,7 +825,12 @@ and `mapped areas: 0` — the map case skips exactly one assertion there and say
   and two areas is enough. A third would be the retracted rule winning an argument.
 - Combat is still not a thing.
 
-**Commit:** `WP11_COMMIT` on `claude/wp-11-worldmap`, PR WP11_PR — stacked onto
+**CI green, run 33262997072, job logs read rather than the tick.** Full checkout **1298 passed, 0
+failed, 0 skipped** with `quests: 1` and `mapped areas: 2` in `check_content`; stripped template
+**1230 passed, 0 failed, 19 skipped** with `quests: 0` and `mapped areas: 0`. Every rung green in
+both jobs, and both numbers match the local runs exactly.
+
+**Commit:** `cf3f3a1` on `claude/wp-11-worldmap`, PR #18 — stacked onto
 `claude/wp-09-character` (#17) rather than `main`, matching the rest of the chain.
 
 ---

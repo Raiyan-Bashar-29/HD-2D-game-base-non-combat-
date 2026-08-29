@@ -47,7 +47,7 @@ Headless shades nothing. This project has already shipped two bugs that every ot
 | 06 | NPCs and navigation | **DONE** — see below |
 | 07 | Path actions | **DONE** — see below |
 | 08 | Quests | **DONE** — `a00ddda`, PR #16. The first package of Phase T3; see below |
-| 09 | Character depth — equipment | **DONE (split)** — the equipment third; see below. The row asked for three systems, which is over the size limit |
+| 09 | Character depth — equipment | **DONE (split)** — `1b3d799`, PR #17. The equipment third; see below. The row asked for three systems, which is over the size limit |
 | 09b | Character depth — attributes and surfaces | TODO — the other two thirds of the original row, with the reasons; see below |
 | 10 | Crafting and gathering | **OPTIONAL** — a genre choice, not a requirement of every game (TEMPLATE.md). Does not block v1.0 |
 | 11 | World map and fast travel | TODO |
@@ -613,6 +613,15 @@ the shipped dark palette, so it did not force the decision either.
 boot `0 warnings, 0 errors`; suite **1224 passed, 0 failed, 0 skipped**, exit 0; `check_budgets`,
 `check_content` and `check_boundary` all exit 0 — and `check_boundary` derives
 `item/brass_lantern` and `brass_lantern` as demo names and finds neither in `src/` or `tests/`.
+
+**CI green, run 33095187525, job logs read rather than the tick.** Full checkout **1224 passed, 0
+failed, 0 skipped** with `quests: 1` in `check_content`; stripped template **1169 passed, 0 failed,
+16 skipped** with `quests: 0` — the equipment case runs in BOTH, because it is fixtures all the way
+down and skips nothing. All three checkers PASS in both jobs. The push run (33095176524) and the
+pull-request run (33095253385) are green too.
+
+**Commit:** `1b3d799` on `claude/wp-09-character`, PR #17 — stacked onto `claude/wp-08-quests`
+(#16) rather than `main`, matching the rest of the chain.
 
 ---
 

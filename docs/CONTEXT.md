@@ -3,7 +3,7 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-27 · **WP-09 (equipment) complete — `<COMMIT>`, PR #17. Second package
+**Last updated:** 2026-08-27 · **WP-09 (equipment) complete — `1b3d799`, PR #17. Second package
 of Phase T3.** An `ItemDefinition` gained one field and `Equipment` is a component that **owns no
 dictionary**: a slot is the flag `equip/<wearer>/<item>`, so a `Gate`, a `QuestStep` and a
 `DialogueChoice` all gate on what is in hand with no code and no new field in any of them. `Gate`

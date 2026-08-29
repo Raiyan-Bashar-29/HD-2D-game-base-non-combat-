@@ -211,6 +211,17 @@ announced has a third precedent rather than a second.
   once the lantern is stowed. Correct for "you needed a light to get in"; a gate that re-checks
   every time is a different object, and nothing has asked for one.
 
+**CI green, run 33095187525, and the JOB LOGS were read rather than the tick.** Full checkout
+**1224 passed, 0 failed, 0 skipped** with `quests: 1` in `check_content`; stripped template
+**1169 passed, 0 failed, 16 skipped** — the equipment case runs in BOTH jobs, because it is
+fixtures all the way down and skips nothing, which is the point of `tests/framework`. All three
+checkers PASS in both. The push run (33095176524) and the pull-request run (33095253385) are green
+as well.
+
+**Commit `1b3d799` on `claude/wp-09-character`, PR #17**, stacked onto `claude/wp-08-quests` (#16)
+rather than `main`, matching the rest of the chain.
+
+
 ## 2026-08-26 — Resequencing: the export proof jumps the queue, and one contradiction is settled
 
 **Did:** no code. Three planning corrections, all found by reading the docs against each other

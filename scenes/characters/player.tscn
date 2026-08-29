@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://src/systems/interaction/interaction_sensor.gd" id="4_sensor"]
 [ext_resource type="Script" path="res://src/gameplay/character/inventory.gd" id="5_inv"]
 [ext_resource type="Script" path="res://src/gameplay/character/equipment.gd" id="7_equip"]
+[ext_resource type="Script" path="res://src/gameplay/character/footsteps.gd" id="8_steps"]
 
 [sub_resource type="CapsuleShape3D" id="1_body"]
 radius = 0.28
@@ -44,3 +45,7 @@ script = ExtResource("5_inv")
 
 [node name="Equipment" type="Node" parent="."]
 script = ExtResource("7_equip")
+
+[node name="Footsteps" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+script = ExtResource("8_steps")

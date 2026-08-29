@@ -81,6 +81,7 @@ script = ExtResource("10_weather")
 announce_changes = false
 
 [node name="Terrain" type="Node3D" parent="." groups=["navmesh_source"]]
+metadata/surface = &"wood"
 
 [node name="Floor" type="StaticBody3D" parent="Terrain"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)

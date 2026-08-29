@@ -95,8 +95,8 @@ previous project started as a system that was allowed to know one thing too many
 
 | System | Purpose | Depends on | Boundary | Status |
 |---|---|---|---|---|
-| Character attributes | Stamina, carry capacity, skills that gate interactions | Save | what gates what | TODO |
-| Footsteps and surfaces | Surface-aware step audio and particles | Audio, Player controller | — | TODO |
+| Character attributes | What a character is LIKE: `attr/<who>/<name>` in Flags, integer steps clamped to ±4, no resource and no save section — the FIFTH namespace-over-Flags after PersistentState, Standing, Equipment and the world map | Flags | an attribute's NAME, what any attribute means, or what reads one. A name is a const on its CONSUMER, so an attribute nobody reads has nowhere to be written down | **DONE — WP-09b, 2026-08-29.** One consumer, deliberately: `PlayerController.current_speed()` scales every gait by `pace`, measured windowed at 2.861 m against 4.687 m over the same 60 frames |
+| Footsteps and surfaces | `metadata/surface` on area geometry, inherited from the nearest tagged ancestor; a `Footsteps` component under a body takes a step per 1.7 m and generates its sound from the surface's NAME | Log, Layers, AmbienceBed | any surface name, or what a surface costs to cross. A table of names in src/ would be engine code naming demo content | **DONE — WP-09b, 2026-08-29.** Three surfaces reported correctly in a windowed run, two tagged directly and one inherited. No audio files: art is deferred, so the step is generated the way the rain is. Particles NOT built — `current_surface()` is the hook |
 | NPC brain | Schedule-driven: travel to a named waypoint, then stand, wander or sleep | Navigation, Clock, ScheduleDb | what a waypoint means, routes, dialogue content | DONE |
 | NPC schedules | Hour blocks as authored .tres, found by directory scan like items | — | moving anything, or resolving its own waypoint | DONE |
 | NPC level of detail | Cheap offscreen behaviour so a town scales | NPC brain | — | LATER — 30 NPCs cost +0.077 ms/frame, so nothing forces it yet |

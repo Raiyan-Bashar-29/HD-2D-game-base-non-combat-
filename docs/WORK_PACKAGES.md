@@ -48,7 +48,7 @@ Headless shades nothing. This project has already shipped two bugs that every ot
 | 07 | Path actions | **DONE** — see below |
 | 08 | Quests | **DONE** — `a00ddda`, PR #16. The first package of Phase T3; see below |
 | 09 | Character depth — equipment | **DONE (split)** — `1b3d799`, PR #17. The equipment third; see below. The row asked for three systems, which is over the size limit |
-| 09b | Character depth — attributes and surfaces | TODO — the other two thirds of the original row, with the reasons; see below |
+| 09b | Character depth — attributes and surfaces | **DONE** — `PENDING`, PR #19. The fourth package of Phase T3; see below |
 | 10 | Crafting and gathering | **OPTIONAL** — a genre choice, not a requirement of every game (TEMPLATE.md). Does not block v1.0 |
 | 11 | World map and fast travel | **DONE** — `cf3f3a1`, PR #18. The third package of Phase T3, and the last system with no proof at all; see below |
 | 12 | Menus | **DONE** — taken out of order; it needed only WP-02 |
@@ -625,7 +625,7 @@ pull-request run (33095253385) are green too.
 
 ---
 
-## WP-09b · Character depth — attributes and surfaces
+## WP-09b · Character depth — attributes and surfaces — **DONE**
 
 The two thirds of the original WP-09 row that were split out. Both are real; neither had a consumer
 the way equipment did, and that is the whole reason they went second.
@@ -634,25 +634,132 @@ the way equipment did, and that is the whole reason they went second.
 namespace-over-Flags shape), `src/gameplay/character/equipment.gd` (the same shape, applied),
 `src/systems/audio/audio_director.gd`, `src/gameplay/world/surface_wetness.gd` (something already
 walks every material in an area), `src/core/util/layers.gd`.
-
-**Write**
-- An attribute container where adding an attribute is DATA, not code. **Decide first what reads
-  one**, because 17 of the 23 settings have no consumer and a second declared-and-unread system is
-  the failure this project keeps catching. The cheapest honest consumer is `PlayerController`'s
-  walk speed, which would make the proof a capture of two measurably different traversal times.
-- Surface tagging on area geometry, and footsteps that change with it.
-
+**Write:** an attribute container where adding an attribute is DATA, not code, and a decision
+FIRST about what reads one; surface tagging on area geometry, and footsteps that change with it.
 **Exit criteria:** an attribute changes something observable and persists; the surface under the
 player is reported correctly on at least two materials, and the step sound follows it.
 
-**Two things to know before starting.**
-- **A footstep is the one claim this ladder cannot see AT ALL.** Not visual, so no capture reads
-  it; not synchronous, so no assertion reaches it; and under `--headless` the audio driver is
-  `Dummy` and every `play()` LEAKS (gotcha 20). So the assertable part is the SURFACE QUERY — "what
-  am I standing on" as a pure function — and the sound is a windowed run with the log quoted, the
-  same split `SurfaceWetness` made for drying.
-- **Art, audio included, is deferred.** A footstep sample is a dependency this project will not
-  take. `AmbienceBed` generates its noise procedurally; a step does the same or it does not ship.
+**IT WAS TAKEN OVER T3.1 AND T3.3, AND THE REASON IS `TEMPLATE.md`'s REPLACEMENT RULE.** T3.1 is a
+refactor of five copies of one scan — genuinely worth doing, and it changes nothing a consuming
+game can observe. T3.3 is depth in a system that already has a proof. This row was the last one
+in the catalogue holding TWO systems with no implementation at all, so it is the only one of the
+three that is breadth rather than polish. T3.1 remains the strongest of the two that are left, and
+its arithmetic is unchanged: still five copies, still five places to fix one scan bug.
+
+**THE FIRST QUESTION WAS "WHAT READS ONE", AND IT WAS ANSWERED BEFORE ANYTHING WAS WRITTEN.** The
+row said so and it was the right instruction: 17 of the 23 settings have no consumer, and WP-09
+found `Gate.locked_key` and `PathAction.refusal_key` declared, validated by a content gate and read
+by nothing for six packages. So `Attributes` ships with EXACTLY ONE consumer,
+`PlayerController.current_speed()`, and two structural decisions exist to stop that number growing
+silently:
+
+1. **There is no registry, no `AttributeDef` and no enum of names.** Any StringName is an attribute
+   the moment something writes it, so declaring the fiftieth costs no code — ADR-0006's test met
+   with no sixth directory scan, which `area_db.gd`'s header explicitly warns against.
+2. **An attribute's NAME is a const on its consumer, never on the container.**
+   `PlayerController.PACE` sits beside the line that reads it. So an attribute nobody reads has
+   *nowhere to be written down*, and `attributes.gd` cannot accumulate a table of good intentions.
+   That is the whole of the design: a rule about where a name lives, not a mechanism.
+
+**A FIFTH NAMESPACE OVER `Flags`, AND IT WAS REACHED FOR FIRST, AS WP-11 SAID TO.** `attr/<who>/<name>`
+after `obj/<area>/<object>/<field>`, `standing/<who>`, `equip/<wearer>/<item>` and `map/<area>`.
+Same three consequences, asserted rather than assumed: already saved with no register, version or
+migration; already cleared by a new game; already announced on `flag_changed`, so a quest step can
+test an attribute today. Same stated cost, too: the key contains a character id, so renaming a
+carrier resets its attributes on an old save.
+
+**A VALUE IS A STEP, NOT THE NUMBER.** Clamped to ±4, worth 0.125 of the base each, so the tuned
+`walk_speed = 3.2` in `player_controller.gd` stays the truth and a save file never contains a
+walk speed. `Standing`'s clamp for `Standing`'s reason — the ceiling is the design.
+
+**A SURFACE IS ONE METADATA KEY, INHERITED FROM THE NEAREST TAGGED ANCESTOR.** `metadata/surface`
+on a body, or on anything above it. The alternatives were a component per floor tile (a node per
+tile), a group (one flat namespace shared with `navmesh_source`, where a typo becomes a second
+surface silently) and an enum (**a list of surface names in `src/`, which `check_boundary` fails
+the build over**). Inheritance is what makes it cheap: the courtyard tags `Terrain` once and
+overrides the two floors that differ, and the third surface the probe reported was the inherited
+one.
+
+**A STEP'S SOUND IS DERIVED FROM THE SURFACE'S NAME.** Not looked up in a table, because a table
+mapping a name to a timbre is the same boundary violation as the enum, and it would mean a game
+that authors `sand` gets silence until someone edits `src/`. Two axes, brightness and decay,
+derived from two salted hashes of the name. Art is deferred and audio is art, so the burst is
+generated exactly the way `AmbienceBed` generates its rain, and `stream_for()` is the one function
+a game with real recordings replaces.
+
+**THE PROBE FOUND A DEFECT THAT NOTHING ELSE COULD HAVE, AND IT IS GOTCHA 2 WITH A SPEAKER ON IT.**
+The first windowed run reported `playing=true` on all three surfaces with every rung green — and
+grass came out at brightness 0.452 against stone's 0.446, which is *the same sound*. The cause is
+that **`String.hash()` mixes its low bits weakly**: `"grass"` hashes to 260508453 and `"stone"` to
+274826446, wildly different numbers whose last three digits are 453 and 446, so `hash() % 1000`
+clusters short names of similar length. A step that plays is not a step that *follows*. Fixed with
+an avalanche in `_spread` — one multiply and two shifts — which moves the same pair to 796 and 572,
+and the regression assertion demands a MARGIN rather than mere inequality, because inequality is
+exactly what the broken version passed. New gotcha 36.
+
+**WHAT IS ASSERTED AND WHAT IS QUOTED, SAID OUT LOUD RATHER THAN IMPLIED.** A footstep is the one
+claim this ladder cannot see at all: not visual, so no capture reads it; not synchronous, so no
+assertion reaches it; and headless the audio driver is `Dummy`, where every `play()` leaks
+(gotcha 20). So the file is split the way `SurfaceWetness` split for drying. Assertable and
+asserted: `travel()` (the stride accumulator, remainder CARRIED), `GroundSurface.of_node()` (the
+walk up the tree) and `brightness_for()` / `decay_for()` (pure functions of a name). Quoted from a
+windowed run: the raycast, the frame loop and the `play()`.
+
+**THE ATTRIBUTE NEEDED NO NEW STAGING FLAG**, which is the namespace paying for itself a fifth
+time. `--flag=attr/player/pace:4` already works, already waits for the area (gotcha 32's fix), and
+already goes through `_settle_stable` (gotcha 35). `dev_stage.gd` stayed at 247 of its 250 lines
+and did not have to split.
+
+**Files.** `src/gameplay/character/attributes.gd` (21 code lines) ·
+`src/gameplay/world/ground_surface.gd` (26) · `src/gameplay/character/footsteps.gd` (115) ·
+`PlayerController.character_id`, `PlayerController.PACE` and `current_speed()` made public ·
+a `Footsteps` node in `player.tscn` · three `metadata/surface` tags in `courtyard.tscn` and one in
+`lantern_hall.tscn` · `tests/unit/character_depth_test.gd` (56 outcomes) ·
+`docs/AUTHORING.md` § Tag the ground you walk on. No new signal, no new autoload, no new registry,
+no new CSV row — there is no player-facing text in either system.
+1298 → **1355**.
+
+**PROVED RED, THEN GREEN — three times, each with the real failure shape (gotcha 23).**
+(1) `const HOME_GROUND := &"courtyard"` in `footsteps.gd`: `check_boundary` exits 1 with
+`res://src/gameplay/character/footsteps.gd:54 names demo content 'courtyard' (from
+res://data/areas/courtyard.tres)`; reverted, exit 0.
+(2) The consumer broken the way it would really break — `current_speed()` made to return the gait
+speed and ignore the attribute, which is precisely the declared-and-unread failure this package
+exists to avoid: the suite exits 1 with `1352 passed, 3 failed`, naming *"a raised pace is
+measurably faster — expected true, got false"*; reverted, `1355 passed, 0 failed`, exit 0.
+(3) The inheritance walk stopped after one node — the break that would silently lose the demo's
+third surface: exits 1 with *"an untagged body inherits from the root — expected fixture_hard,
+got "*; reverted, exit 0.
+
+**The probe was temporary and was removed** (gotcha 15). Run windowed, `git diff
+src/systems/debug/` empty afterwards:
+```
+PROBE audible=true driver=WASAPI
+PROBE at (4.0, 0.2, 4.0)    grounded=true surface='grass' brightness=0.733 decay=2.13 playing=true steps=1
+PROBE at (0.0, 0.6, -2.0)   grounded=true surface='wood'  brightness=0.841 decay=4.68 playing=true steps=2
+PROBE at (-8.5, 3.4, -2.5)  grounded=true surface='stone' brightness=0.550 decay=3.02 playing=true steps=3
+PROBE pace=0 speed=3.200 moved=2.861 m in 60 frames, steps=4
+PROBE pace=4 speed=4.800 moved=4.687 m in 60 frames, steps=7
+```
+The first three are the surface criterion: grass and wood from their own tags, stone INHERITED from
+`Terrain`. The last two are the attribute criterion, driven by real `MOVE_UP` input over the same
+60 physics frames — 2.861 m against 4.687 m, and 4 steps against 7, because a faster walk covers a
+stride sooner.
+
+**One windowed capture, LOOKED AT** — the courtyard at 12:00 after the metadata edits, confirming
+the three tagged materials are the three the player actually walks on and that nothing about the
+scene moved: grass underfoot, the wood dais with the keeper beside it, stone pillars and the back
+wall. `build/shots/wp09b_courtyard.png`.
+
+**WHAT WAS NOT BUILT, AND SAID RATHER THAN DROPPED.** No footstep PARTICLES — the inventory row
+asked for "step audio and particles", and `Footsteps.current_surface()` is the hook a puff would
+listen to, which is why it is a query and not a signal (nothing needs a signal yet). No second
+attribute, and no consumer for one: that is the rule, not an omission. No character sheet screen,
+no attribute that gates an interaction, and no surface that costs anything to cross — a slow
+surface is a `PlayerController` change and belongs with whoever wants one.
+
+**Commit:** `PENDING` on `claude/wp-09b-attributes`, PR #19 — stacked onto `claude/wp-11-worldmap`
+(#18) rather than `main`, matching the rest of the chain.
 
 ---
 

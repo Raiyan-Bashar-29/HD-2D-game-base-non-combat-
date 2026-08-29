@@ -3,17 +3,25 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-29 · **WP-11 (world map and fast travel) complete — `cf3f3a1`, PR
-#18. Third package of Phase T3, and the LAST SYSTEM IN THE CATALOGUE WITH NO PROOF AT ALL.**
-An `AreaDef` .tres per area in `data/areas/`, found by the fifth directory-scan registry, and
-**discovery is the flag `map/<area id>` with no store behind it** — the fourth use of the
-namespace-over-`Flags` shape after `PersistentState`, `Standing` and `Equipment`. So it is already
-saved, already cleared by a new game, already announced, and writable by a conversation effect or
-a lever with **no code in any of them**. `WorldMap` under `GameRoot` turns arrival into discovery
+**Last updated:** 2026-08-29 · **WP-09b (attributes and surface-aware footsteps) complete —
+`PENDING`, PR #19. Fourth package of Phase T3, and the last row holding TWO systems with no
+implementation at all.** An attribute is the flag `attr/<who>/<name>`, an integer number of steps
+clamped to ±4 — the **fifth** use of namespace-over-`Flags` — and it ships with EXACTLY ONE
+consumer, `PlayerController.current_speed()`, with the attribute's name declared as a const on that
+consumer so **an attribute nobody reads has nowhere to be written down**. A surface is
+`metadata/surface` on area geometry, inherited from the nearest tagged ancestor, and a step's sound
+is DERIVED FROM THE SURFACE'S NAME rather than looked up in a table — so a game that authors `sand`
+hears it without editing `src/`, and no table of names ever appears under `src/` for
+`check_boundary` to fail on. A footstep is the one claim the ladder cannot see at all, so the split
+is stated: `travel()`, `GroundSurface.of_node()` and `brightness_for()`/`decay_for()` are asserted;
+the raycast, the frame loop and the `play()` are a quoted windowed probe.
+
+*(Previously: WP-11, the world map — `cf3f3a1`, PR #18. An `AreaDef` .tres per area in
+`data/areas/`, found by the fifth directory-scan registry, and **discovery is the flag
+`map/<area id>` with no store behind it**. `WorldMap` under `GameRoot` turns arrival into discovery
 and emits the same `area_change_requested` an `AreaDoor` emits; `MapScreen` on `M` draws one dot
 per def at its authored normalised position and names no area.
-
-*(Previously: WP-09, equipment — `1b3d799`, PR #17. An `ItemDefinition` gained one field and
+Before that: WP-09, equipment — `1b3d799`, PR #17. An `ItemDefinition` gained one field and
 `Equipment` is a component that owns no
 dictionary: a slot is the flag `equip/<wearer>/<item>`, so a `Gate`, a `QuestStep` and a
 `DialogueChoice` all gate on what is in hand with no code and no new field in any of them. `Gate`
@@ -37,10 +45,10 @@ T1.3; T2.0 is on **`claude/t2-0-export-proof`**, branched from T1.4; T2.1 is on
 **`claude/t2-1-art-contract`**, branched from T2.0; T2.2 is on **`claude/t2-2-consumer-docs`**,
 branched from T2.1; WP-08 is on **`claude/wp-08-quests`**, branched from T2.2; WP-09 is on
 **`claude/wp-09-character`**, branched from WP-08; WP-11 is on **`claude/wp-11-worldmap`**,
-branched from WP-09. The nine earlier PRs are superseded.
+branched from WP-09; WP-09b is on **`claude/wp-09b-attributes`**, branched from WP-11. The nine earlier PRs are superseded.
 
-**Branch new work from `claude/wp-11-worldmap`**, or from `main` once #10, #11, T1.2-T1.4,
-T2.0, T2.1, T2.2, WP-08, WP-09 and WP-11 have landed. The older
+**Branch new work from `claude/wp-09b-attributes`**, or from `main` once #10, #11, T1.2-T1.4,
+T2.0, T2.1, T2.2, WP-08, WP-09, WP-11 and WP-09b have landed. The older
 per-package branches (`claude/wp-04-second-area`, `claude/wp-05-dialogue`, `claude/wp-06-npcs`,
 `claude/wp-07-path-actions`, `claude/wp-12-menus`, `claude/wp-13-presentation`) are history and
 should not be built on.
@@ -60,9 +68,9 @@ game built on this will need, so a new game is content and data rather than new 
 ## Where it stands
 
 Phase 0 complete, Phase 1 COMPLETE, Phase 2 well under way, **Phase T1 COMPLETE, Phase T2
-COMPLETE as of T2.2, and Phase T3 OPEN with WP-08, WP-09 and WP-11 done.** 118 files, 10,115 code
-lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest, 2 mapped areas,
-2 path actions, 2 sprite sheet layouts.
+COMPLETE as of T2.2, and Phase T3 OPEN with WP-08, WP-09, WP-11 and WP-09b done.** 122 files,
+10,416 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest, 2 mapped areas,
+2 path actions, 2 sprite sheet layouts, 3 tagged surfaces.
 Boots headless with **0 warnings, 0 errors**.
 
 **Works, and verified by running it:** logging with rotation · signal registry (`events.gd`) ·
@@ -70,7 +78,7 @@ input actions · settings · save/load with atomic writes and versioning · plot
 director with a re-entrancy guard and threaded loading · world clock · weather state · audio
 buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 8-way character ·
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
-placeholder art generator · line-budget checker · a headless test suite (1,298 assertions) that
+placeholder art generator · line-budget checker · a headless test suite (1,355 assertions) that
 builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
 returns early, asserts nothing, or is not listed in the runner ·
 an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
@@ -125,11 +133,22 @@ anything that reveals a place — `--flag=map/<id>:true` is the second capture a
 effect writes the identical key. Three windowed captures LOOKED AT and READ ·
 **a refusal can carry an AUTHORED line**:
 `Gate.locked_key` and `PathAction.refusal_key` had both been declared, validated by `check_content`
-and read by nothing, and the player got a generic message about a different door.
+and read by nothing, and the player got a generic message about a different door ·
+**an ATTRIBUTE with exactly one consumer, and GROUND you can hear**: `attr/<who>/<name>` is the
+FIFTH namespace over `Flags` — an integer number of steps clamped to ±4, with no resource, no
+registry and no save section — and `PlayerController.current_speed()` scales every gait by `pace`,
+measured windowed at 2.861 m against 4.687 m over the same 60 frames. The attribute's NAME is a
+const on its consumer, so an attribute nobody reads has nowhere to be written down.
+`metadata/surface` tags an area's geometry and is INHERITED from the nearest tagged ancestor, so
+the courtyard tags `Terrain` once and overrides two floors; a `Footsteps` component probes down,
+steps every 1.7 m and GENERATES the sound from the surface's name, so `sand` is audible the day a
+game writes it and no table of surface names ever exists under `src/`. Three surfaces reported
+correctly in a windowed run, one of them inherited, and the sound following each.
 
-**Not built:** hard-coded-string audit · item instances (durability) · character ATTRIBUTES and
-surface-aware footsteps, the other two thirds of WP-09, split onto the board as `09b` ·
-an equipment SCREEN, and nothing reads a stat, because nothing has a stat ·
+**Not built:** hard-coded-string audit · item instances (durability) ·
+footstep PARTICLES, and a second attribute with a consumer — naming one is free, reading one is a
+line of engine code ·
+an equipment SCREEN, a character sheet, and no attribute gates an interaction ·
 item tooltips, sorting and drag-and-drop · fog of war, map zoom and pan, map art, travel costs and
 objective markers on the map — `quest_advanced` has an emitter, so markers are a listener and one
 more marker state · a DEPARTURE-side travel point, which is a game policy rather than a mechanism · branch protection, so CI reports but nothing stops a
@@ -639,6 +658,30 @@ three compiled cleanly and passed every static gate:**
   transition, which is gotcha 21's persistence shape applied to staging. `--goto` and
   `--open-menu` both leave `_wait_for_area` on the same frame, so a fixed extra delay only moves
   the race; a counter that a starting transition resets cannot be satisfied early.
+- **AN ATTRIBUTE'S NAME LIVES ON ITS CONSUMER, NEVER ON THE CONTAINER.** `attr/<who>/<name>` is the
+  fifth namespace over `Flags`, and `Attributes` has NO registry, no `AttributeDef` and no enum of
+  names — any StringName is an attribute the moment something writes it, which is ADR-0006's
+  no-code-per-thing test met without a sixth directory scan. What stops that becoming the failure
+  this project keeps catching is a rule about where a name is written down:
+  `PlayerController.PACE` sits beside the line that reads it, so **an attribute nobody reads has
+  nowhere to be declared** and `attributes.gd` cannot grow a table of good intentions. The cost is
+  stated: naming an attribute is free, READING one is always a line of engine code, and
+  `AUTHORING.md` says so to an author's face. The value is a STEP, not the number, because a flag
+  holding `4.7` would be a walk speed authored into a save file and the tuned `walk_speed` would
+  stop being the truth.
+- **A SURFACE IS METADATA ON GEOMETRY, INHERITED FROM THE NEAREST TAGGED ANCESTOR.**
+  `metadata/surface` on a body or anything above it. A component would be a node per floor tile; a
+  group would share one flat namespace with `navmesh_source`, where a typo becomes a second surface
+  silently; an ENUM would be a list of surface names in `src/`, which `check_boundary` fails the
+  build over. Inheritance is what makes it cheap to author, and the demo's third surface comes from
+  it. A step's timbre is DERIVED from the name for the same boundary reason a table is refused: a
+  game that authors `sand` hears it without editing `src/`.
+- **A FOOTSTEP IS THE ONE CLAIM THE LADDER CANNOT SEE AT ALL, AND THE FILE IS SPLIT ALONG THAT
+  LINE.** Not visual, so no capture reads it; not synchronous, so no assertion reaches it; and
+  headless the audio driver is `Dummy`, where every `play()` leaks (gotcha 20). So the pure parts
+  — the stride accumulator, the surface query and the two timbre functions — are asserted, and the
+  raycast, the frame loop and the `play()` are a windowed run with the log quoted. The same split
+  `SurfaceWetness` made for drying, and it is said out loud rather than implied.
 - Six ADRs in `docs/decisions/` cover the layered `src/`, warnings-as-errors, the input map,
   and save-via-callables.
 
@@ -654,14 +697,14 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 120               # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,298 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,355 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Thirty-five gotchas that each cost an hour
+## Thirty-six gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -903,6 +946,19 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     be satisfied early no matter which flag resumed first. Any future staging flag that puts
     something on screen uses it, and `dev_stage.gd`'s header says so.
 
+36. **`String.hash()` MIXES ITS LOW BITS WEAKLY, so `hash() % N` CLUSTERS SHORT SIMILAR NAMES.**
+    Measured: `"grass"` hashes to 260508453 and `"stone"` to 274826446 — wildly different numbers
+    whose last three digits are 453 and 446 — and `"wood"` and `"sand"` differ by 159027 in a
+    number of 2.09 billion. WP-09b derives a footstep's timbre from the surface's name, so those
+    two surfaces produced brightnesses 0.006 apart and **sounded identical**, with every rung
+    green, a `playing=true` in the log and an inequality assertion passing. Adding a second derived
+    axis did not help — the salted hashes collided the same way. The fix is an avalanche before the
+    modulus (one multiply, two shifts), which moves the pair to 796 and 572. Two lessons, and the
+    second is the general one: anything deriving a VALUE from a Godot string hash must mix it
+    first, and **a regression assertion about a perceptible difference must demand a MARGIN**,
+    because mere inequality is exactly what the broken version passed. Gotcha 2 with a speaker on
+    it: a step that plays is not a step that follows.
+
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the
@@ -911,19 +967,19 @@ names the exact files that chat should read, so a session loads a few hundred li
 (`core -> content -> systems -> gameplay -> ui`, downward only) is what makes that possible: a
 package never has to read upward.
 
-**Next package: WP-09b, T3.3 or T3.1 — the catalogue has no holes left, so what remains is depth
-in existing systems and one refactor.** WP-11 closed the last row with no proof at all. The three
-open ones, all real and all narrower than a system:
 
+**Next package: T3.1 — the generic content registry, and it is the strongest of the two that are
+left.** WP-09b closed the last row that held systems with no implementation at all, so nothing
+remaining is breadth. Of what is open:
+
+- **T3.1**, a base holding the scan and cache with a thin typed façade per registry. WP-08 made it
+  the FOURTH copy of the same thirty lines and reconsidered, keeping the copy with stated reasons;
+  WP-11 made it the FIFTH and did not re-argue it. Five places to fix one scan bug is the changed
+  number, and `area_db.gd`'s header says so. This is the one whose cost grows with every package
+  that does not do it.
 - **T3.3**, a quest step that can read an ITEM COUNT. "Bring me three petals" is still not
   authorable. WP-09 costed both candidate designs rather than closing it, and its section names
   what each costs; whoever takes it chooses between two stated options.
-- **WP-09b**, attributes and surface-aware footsteps — the split half of WP-09. Its first task is
-  deciding what actually READS an attribute: 17 of the 23 settings have no consumer, and a second
-  declared-and-unread system is the failure this project keeps catching.
-- **T3.1**, the generic content registry. WP-08 made it the fourth copy of the same thirty lines
-  and reconsidered; WP-11 made it the FIFTH and did not re-argue it. Five places to fix one scan
-  bug is the changed number.
 
 **T3.2** still holds the five T2.1 leftovers so they stop being mentioned in five places, and
 **objective markers on the map** is now a listener rather than new state — `quest_advanced` has
@@ -949,22 +1005,22 @@ the lever you already threw and the dais you already crossed advance and settle,
 any point — and pick a lantern up, hold it from the satchel with Enter, and pass under an arch
 that turned you away a moment earlier with a line its author wrote — and press `M` to see the two
 places you know drawn on one map, the hall a grey `???` until you have walked to it and a gold dot
-you can press to travel back to once you have. Every one of those changes
+you can press to travel back to once you have — and every one of those walks now sounds different
+depending on whether you are crossing grass, the wooden dais or stone. Every one of those changes
 survives a save and a
 reload, including from the far side of an area that is no longer loaded. All of it is covered
-by 1,298 headless assertions.
+by 1,355 headless assertions.
 
 **Next, in this order.** The order matters and is not arbitrary:
 
 1. **The rest of the system catalogue**, WP-14 and WP-15 re-framed — see the board. WP-11 closed
    the last row that had no proof at all, and WP-10 is OPTIONAL.
-2. **T3.3**, a quest step that can read an item count, which WP-09 costed rather than closed;
-   **WP-09b**, attributes and surface-aware footsteps; **T3.1**, a generic content registry with
-   a typed façade per catalogue, now that there are FIVE
-   copies of the same thirty lines; **T3.2**, the five art-contract seams T2.1 left open.
+2. **T3.1**, a generic content registry with a typed façade per catalogue, now that there are FIVE
+   copies of the same thirty lines; **T3.3**, a quest step that can read an item count, which WP-09
+   costed rather than closed; **T3.2**, the five art-contract seams T2.1 left open.
 
 *(Path actions, NPC schedules, navigation baking, weather visuals, quests, equipment and the world
-map are all DONE — WP-06, WP-07, WP-08, WP-09, WP-11 and WP-13.)*
+map are all DONE — WP-06, WP-07, WP-08, WP-09, WP-09b, WP-11 and WP-13.)*
 
 **Still open, and expensive later:**
 - **The export path is PROVEN as of T2.0** — an exported `.exe` reports the same catalogue counts

@@ -16,6 +16,145 @@ Append-only. Newest entry at the top. One entry per working session.
 
 ---
 
+## 2026-08-29 — WP-09b · Attributes, and the ground under your feet
+
+**Did.** The two thirds of WP-09 that were split out for having no consumer, on
+`claude/wp-09b-attributes` branched from `claude/wp-11-worldmap`. `Attributes`
+(`src/gameplay/character/attributes.gd`, 21 code lines) is a namespace over `Flags` —
+`attr/<who>/<name>`, an integer number of steps clamped to ±4 — with no resource, no registry and
+no save section. `GroundSurface` (`src/gameplay/world/ground_surface.gd`, 26) resolves a node to
+the `metadata/surface` on it or on its nearest tagged ancestor. `Footsteps`
+(`src/gameplay/character/footsteps.gd`, 115) is a component under a body that probes downward,
+takes a step every 1.7 metres and generates the sound from the surface's NAME. `PlayerController`
+gained `character_id`, the const `PACE`, and a public `current_speed()` that scales every gait by
+the attribute. Content: three `metadata/surface` tags in `courtyard.tscn`, one in
+`lantern_hall.tscn`, a `Footsteps` node in `player.tscn`. 56 new assertions in
+`tests/unit/character_depth_test.gd` and a new `AUTHORING.md` section.
+
+**Why.** The row's own instruction was "decide FIRST what reads one", and it was the right one:
+17 of the 23 settings have no consumer, and WP-09 found `Gate.locked_key` and
+`PathAction.refusal_key` declared, validated by a content gate and read by nothing for six
+packages. So this ships with exactly ONE consumer and two structural defences against that number
+growing quietly. There is no registry and no enum of attribute names — any StringName is an
+attribute the moment something writes it, which meets ADR-0006's no-code-per-thing test without a
+sixth directory scan (`area_db.gd`'s header warns against one). And **an attribute's name is a
+const on its CONSUMER**, `PlayerController.PACE`, never on the container: an attribute nobody reads
+therefore has nowhere to be written down, and `attributes.gd` cannot accumulate a table of good
+intentions. That is the whole design — a rule about where a name lives, not a mechanism.
+
+A value is a STEP rather than the number: a flag holding `4.7` would be a walk speed authored into
+a save file and the tuned `walk_speed = 3.2` would stop being the truth. Clamped for `Standing`'s
+reason — a repeatable action must not farm a number that later gates content.
+
+A surface is metadata rather than a component (a node per floor tile), a group (one flat namespace
+shared with `navmesh_source`, where a typo becomes a second surface silently) or an enum — **a
+list of surface names in `src/` is engine code naming demo content, which `check_boundary` fails
+the build over.** Inheriting from the nearest tagged ancestor is what makes it cheap: the courtyard
+tags `Terrain` once and overrides the two floors that differ. The step's timbre is DERIVED from the
+name for the same boundary reason: a table would be the same violation, and it would mean a game
+authoring `sand` gets silence until someone edits `src/`. Art is deferred and audio is art, so the
+burst is generated the way `AmbienceBed` generates its rain, and `stream_for()` is the one function
+a game with real recordings replaces.
+
+**Connects.** `attr/<who>/<name>` is the FIFTH use of namespace-over-`Flags` after
+`PersistentState`'s `obj/<area>/<object>/<field>`, `Standing`'s `standing/<who>`, `Equipment`'s
+`equip/<wearer>/<item>` and `WorldMap`'s `map/<area>` — WP-11 said the next thing needing saved
+per-thing state should reach for it before reaching for a save section, and it did, first. The same
+three consequences follow and all three are asserted: already saved with no register, version or
+migration; already cleared by a new game; already announced on `flag_changed`, so a quest step or a
+dialogue condition can test an attribute with no code at all. It needed no new staging flag either
+— `--flag=attr/player/pace:4` already exists, already waits for the area (gotcha 32) and already
+goes through `_settle_stable` (gotcha 35), so `dev_stage.gd` stayed at 247 of its 250 lines and did
+not have to split. `Footsteps` is a component found under a body, the shape `Inventory` and
+`Equipment` already have; it plays through its own `AudioStreamPlayer3D` rather than through
+`Audio`, which is what `audio_director.gd`'s header asks for in the words "a footstep playing after
+the character is gone". No new signal, no new autoload, no new registry, no new CSV row.
+
+**Verified.**
+
+```
+"$G" --headless --import                     # grepped for SCRIPT ERROR / Parse Error: zero
+"$G" --headless --quit-after 120             # Session ended after 1.3s — 0 warnings, 0 errors
+"$G" --headless res://tests/test_runner.tscn --quit-after 400
+                                             # === 1355 passed, 0 failed, 0 skipped ===
+"$G" --headless --script tools/check_budgets.gd   # 122 files, 10416 code lines, 0 violations — PASS
+"$G" --headless --script tools/check_content.gd   # PASS
+"$G" --headless --script tools/check_boundary.gd  # PASS, 116 engine scripts scanned
+```
+
+**The windowed probe, which is the only thing that can see either criterion.** Neither claim is
+visual, so no capture reads it, and `TestCase.run()` is synchronous, so no assertion reaches it.
+Run windowed with a temporary `--footsteps` probe in `dev_probes.gd`, since removed —
+`git diff src/systems/debug/` is empty:
+
+```
+PROBE audible=true driver=WASAPI
+PROBE at (4.0, 0.2, 4.0)    grounded=true surface='grass' brightness=0.733 decay=2.13 playing=true steps=1
+PROBE at (0.0, 0.6, -2.0)   grounded=true surface='wood'  brightness=0.841 decay=4.68 playing=true steps=2
+PROBE at (-8.5, 3.4, -2.5)  grounded=true surface='stone' brightness=0.550 decay=3.02 playing=true steps=3
+PROBE pace=0 speed=3.200 moved=2.861 m in 60 frames, steps=4
+PROBE pace=4 speed=4.800 moved=4.687 m in 60 frames, steps=7
+```
+
+Three surfaces, correct: grass and wood from their own tags and **stone INHERITED from `Terrain`**,
+which is the walk up the tree working in a real area rather than in a fixture. Then the attribute
+criterion, driven by real `MOVE_UP` input over the same 60 physics frames: 2.861 m at `pace=0`
+against 4.687 m at `pace=4`, and 4 steps against 7, because a faster walk fills a stride sooner.
+
+**A DEFECT THE PROBE FOUND AND NOTHING ELSE COULD HAVE, AND IT IS GOTCHA 2 WITH A SPEAKER ON IT.**
+The first run of that probe reported `playing=true` on all three surfaces with every rung green —
+and grass came back at brightness 0.452 against stone's 0.446, which is *the same sound*. The cause
+is that **`String.hash()` mixes its low bits weakly**: `"grass"` hashes to 260508453 and `"stone"`
+to 274826446, wildly different numbers whose last three digits are 453 and 446, so `hash() % 1000`
+clusters short names of similar length — `"wood"` and `"sand"` differ by 159027 in a number of
+2.09 billion. A second axis was added first and did not save it (3.65 against 3.71, the same
+coincidence twice); the real fix is an avalanche in `_spread`, one multiply and two shifts, which
+moves the pair to 796 and 572. Both axes were kept: two independent dimensions make the remaining
+odds small. **The regression assertion demands a MARGIN, not mere inequality**, because inequality
+is exactly what the broken version passed. New gotcha 36.
+
+**A windowed capture, LOOKED AT.** `build/shots/wp09b_courtyard.png`, the courtyard at 12:00 after
+the metadata edits, confirming that the three tagged materials are the three the player actually
+walks on and that nothing in the scene moved: grass underfoot, the wood dais with the keeper beside
+it, stone pillars and back wall.
+
+**Proved red, then green — three times, each with the real failure shape (gotcha 23).**
+
+1. `const HOME_GROUND := &"courtyard"` planted in `footsteps.gd` — `check_boundary` exits 1 with
+   `res://src/gameplay/character/footsteps.gd:54 names demo content 'courtyard' (from
+   res://data/areas/courtyard.tres)`; reverted, exit 0.
+2. The consumer broken the way it would really break — `current_speed()` made to return the gait
+   speed and ignore the attribute, which is *precisely* the declared-and-unread failure this
+   package exists to avoid. The suite exits 1: `1352 passed, 3 failed`, first failure
+   `FAILED: a raised pace is measurably faster — expected true, got false`. Reverted,
+   `1355 passed, 0 failed`, exit 0.
+3. The inheritance walk stopped after one node — the break that silently loses the demo's third
+   surface. Exits 1 with `FAILED: an untagged body inherits from the root — expected fixture_hard,
+   got `; reverted, exit 0.
+
+**Unblocks.** Anything that wants to react to what is underfoot: a dust puff, a splash, a slower
+crossing, a track left in snow — `Footsteps.current_surface()` is the query, and it is a query
+rather than a signal because nothing needs one yet. Anything that wants to change a character:
+a conversation, a trigger volume, a rest point or a quest consequence can write
+`attr/<who>/<name>` today with no code, and a quest step can test one. And a second attribute
+costs nothing to name — only the line that reads it.
+
+**Known gaps.**
+- **No footstep particles**, which the inventory row asked for beside the audio. A puff is a
+  listener on the surface a step was taken on and is a package for whoever wants one.
+- **Exactly one attribute has a consumer, and that is the rule rather than an omission.**
+  `attr/player/patience` is writable today and nothing will do anything with it. Naming an
+  attribute is free; READING one is a line of engine code, and `AUTHORING.md` says so out loud.
+- No character sheet screen, no attribute that gates an interaction, no equipment that modifies
+  one, and no surface that costs anything to cross — a slow surface is a `PlayerController`
+  change and belongs with whoever wants the mechanic.
+- **`Footsteps` polls its parent's velocity rather than being told.** Cheap and correct for one
+  body; a hundred characters each raycasting every frame is not measured, and the probe pattern
+  (`--npc-storm`) is where that question belongs if it ever matters.
+- A surface name is a public identifier the way an item id is: renaming `grass` to `lawn` changes
+  the sound every step in that area makes. Stated rather than hidden, and the same price
+  `Equipment` pays for an item id.
+
 
 ## 2026-08-29 — WP-11 · World map and fast travel
 

@@ -21,6 +21,12 @@ extends CharacterBody3D
 ## to move between two markers, via begin_climb() at the bottom of this file.
 ## The gravity below is for slopes and falling, not for jumping.
 
+## Which character's attributes this body is subject to. Deliberately a SECOND export beside
+## `Equipment.wearer_id` rather than one shared between them: this file must keep working with
+## no equipment component under it at all, and a controller that read its id off a sibling
+## would break the moment a game shipped a character who carries nothing.
+@export var character_id: StringName = &"player"
+
 @export var walk_speed: float = 3.2
 @export var run_speed: float = 6.0
 @export var sneak_speed: float = 1.4
@@ -34,6 +40,14 @@ extends CharacterBody3D
 @export var run_is_toggle: bool = false
 
 @onready var visual: CharacterVisual = $Visual
+
+## THE ONE ATTRIBUTE THIS FILE READS, and its name is declared HERE rather than in `Attributes`
+## on purpose: an attribute's name belongs to whatever consumes it, so an attribute nothing
+## reads has nowhere to be written down. That is what stops the container growing a table of
+## declared-and-unread names, which is the failure this package was split out of WP-09 to
+## avoid. `attr/<character_id>/pace` scales every gait at once, so a slower character sneaks,
+## walks and runs slower rather than acquiring a fourth speed nobody tuned.
+const PACE: StringName = &"pace"
 
 var state: GameEnums.MoveState = GameEnums.MoveState.IDLE
 
@@ -86,7 +100,7 @@ func _physics_process(delta: float) -> void:
 	if not _lock.is_locked():
 		wish = _read_movement_input()
 
-	var target_speed: float = _current_speed()
+	var target_speed: float = current_speed()
 	var target_velocity: Vector3 = wish * target_speed
 
 	# Accelerate towards the wish velocity, decelerate to a stop with friction.
@@ -127,7 +141,15 @@ func _camera_yaw() -> float:
 	return active.global_rotation.y if active != null else 0.0
 
 
-func _current_speed() -> float:
+## Public because it is the one honest CONSUMER of an attribute, and a consumer nothing can
+## read is a consumer nothing can check: no assertion can drive a physics frame, so the proof
+## that PACE changes how fast this body moves is this function asked twice with a flag written
+## in between. The windowed probe measures the distance that follows from it.
+func current_speed() -> float:
+	return _gait_speed() * Attributes.multiplier(character_id, PACE)
+
+
+func _gait_speed() -> float:
 	if Input.is_action_pressed(Actions.SNEAK):
 		return sneak_speed
 	if _is_running():
@@ -136,7 +158,7 @@ func _current_speed() -> float:
 
 
 ## A pure query. It used to poll is_action_just_pressed itself, but it is called twice per
-## frame (from _current_speed and from _update_state), so the toggle flipped twice and never
+## frame (from _gait_speed and from _update_state), so the toggle flipped twice and never
 ## changed: toggle-run silently did nothing. Polling now happens once, in _poll_run_toggle.
 func _is_running() -> bool:
 	if _lock.is_locked():

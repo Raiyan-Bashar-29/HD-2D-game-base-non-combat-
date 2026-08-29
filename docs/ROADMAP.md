@@ -275,6 +275,16 @@ item", and a blocking item scheduled last is a contradiction. Sequenced by risk,
   its authored normalised position and names no area. Three windowed captures LOOKED AT and READ,
   and 65 new assertions. See the board.
 
+- **WP-09b Character depth — DONE, 2026-08-29.** The phase's fourth package, and the two thirds of
+  WP-09 that were split out for having no consumer. Both were built to have one. An attribute is
+  the flag `attr/<who>/<name>` — the FIFTH namespace-over-`Flags` — and it ships with exactly one
+  reader, `PlayerController.current_speed()`, with the attribute's NAME declared as a const on that
+  consumer so an attribute nobody reads has nowhere to be written down. A surface is
+  `metadata/surface` on area geometry, inherited from the nearest tagged ancestor, and a step's
+  sound is DERIVED FROM THE SURFACE'S NAME rather than looked up in a table, so a game that authors
+  `sand` hears it without editing `src/`. 56 new assertions cover the three pure parts; the
+  raycast, the frame loop and the `play()` are a windowed probe with the log quoted. See the board.
+
 Exit criteria:
 - [ ] Every system has one proof, and no system has a second area's worth of content
       — quests: **done**, WP-08, 2026-08-27. One quest, two steps, two windowed captures LOOKED AT:
@@ -283,7 +293,13 @@ Exit criteria:
       windowed captures LOOKED AT and READ rather than glanced at: the satchel with
       `Brass Lantern x1 [in hand]` beside an unmarked `Rose Petal x2`, the arch refusing with its
       own authored line, and the same arch with the blocker gone one flag later
-      — attributes and surface-aware footsteps: **not done**, WP-09b
+      — attributes and surface-aware footsteps: **done**, WP-09b, 2026-08-29. An attribute that
+      changes something and persists, proved windowed at 2.861 m against 4.687 m over the same 60
+      frames with `pace` 0 and +4; the surface under the player reported correctly on THREE
+      materials, two tagged directly and one inherited from the terrain root, and the step sound
+      following it — `brightness=0.733 decay=2.13`, `0.841/4.68`, `0.550/3.02`, `playing=true` on
+      a WASAPI device. Not visual and not synchronous, so the claim is a quoted log rather than a
+      capture, and the file headers say which half is which
       — world map and fast travel: **done**, WP-11, 2026-08-29. Two areas on one map, three windowed
       captures LOOKED AT and READ: a map with the second area drawn as an unknown grey `???`, the
       same map one flag later with it drawn as a gold selectable `Lantern Hall`, and the same map

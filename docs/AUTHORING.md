@@ -336,6 +336,74 @@ Add `--goto=my_area` before `--open-menu=map` to photograph the map from somewhe
 
 ---
 
+## Tag the ground you walk on, and give a character an attribute
+
+Two small systems that share a section because they share a shape: **both are one line of authored
+data over `Flags` or over node metadata, and neither has a resource, a registry or a save section.**
+
+### The ground: one metadata key per body
+
+A surface is a `metadata/surface` entry on a `StaticBody3D` in your area — or on any ancestor of
+one, which is the useful part.
+
+```
+[node name="Terrain" type="Node3D" parent="." groups=["navmesh_source"]]
+metadata/surface = &"stone"
+
+[node name="Ground" type="StaticBody3D" parent="Terrain"]
+collision_layer = 1
+collision_mask = 0
+metadata/surface = &"grass"
+
+[node name="Steps" type="StaticBody3D" parent="Terrain"]
+collision_layer = 1
+collision_mask = 0
+```
+
+That is three surfaces from two tags: `Ground` is grass because it says so, `Steps` is stone
+because the nearest tagged ancestor says so, and anything else under `Terrain` is stone too. Tag
+the root once and override only what differs — the way a stylesheet works, for the reason a
+stylesheet works that way.
+
+**The name is yours and the engine has never heard of it.** There is no list of legal surfaces and
+no enum, because a list in `src/` would be engine code naming your content, which `check_boundary`
+fails the build over. `sand`, `snow`, `boardwalk` and `wet_stone` all work the day you write them.
+
+**What follows from a tag, with no further authoring:** a character carrying the `Footsteps`
+component (the player prefab has one) takes a step every 1.7 metres walked, and the step's sound is
+**derived from the surface's name** — brightness and decay both. So two surfaces sound different
+and the same surface sounds the same everywhere. There are no audio files; art is deferred, so the
+step is generated the way the rain is.
+
+**Untagged ground is legal and silent, and it says so once** at INFO level:
+`Ground under 'Footsteps' carries no metadata/surface, so steps are silent here`. A game that wants
+no footsteps simply tags nothing.
+
+### A character: one flag, one name, one consumer
+
+An attribute is the flag `attr/<character id>/<name>`, holding an integer number of **steps** from
+0, clamped to ±4. There is no resource to author and nothing to register.
+
+```bash
+"$G" --resolution 960x540 --quit-after 120 -- --new-game --flag=attr/player/pace:4 \
+     --shot="$(pwd)/build/shots/quick.png" --shot-frame=100 --time=12:00 --freeze-time
+```
+
+`pace` is the one attribute the engine reads today: `PlayerController` scales **every** gait by
+`1.0 + steps * 0.125`, so at +4 the player walks, runs and sneaks half again as fast and at -4 at
+half speed. Anything that can write a flag can change it — a `DialogueChoice` effect, a
+`TriggerVolume`, a `Lever`, a quest consequence — and none of them has heard of attributes.
+
+Because it is a flag it is already saved, already cleared by a new game and already announced on
+`flag_changed`, so a quest step or a dialogue condition can test one with no code at all.
+
+**Naming a new attribute costs nothing; READING one costs a line of engine code**, and that is
+stated rather than hidden. `attr/player/patience` is writable today and nothing will do anything
+with it. The name of an attribute lives as a constant on whatever consumes it — `PlayerController.PACE`
+— precisely so that an attribute nobody reads has nowhere to be written down.
+
+---
+
 ## Add an interactable object
 
 Everything the player can act on is an **instance of a prefab from `scenes/objects/`**, placed

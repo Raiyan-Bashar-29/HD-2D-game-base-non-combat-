@@ -110,6 +110,7 @@ surfaces = NodePath("../../Terrain/SurfaceWetness")
 announce_changes = true
 
 [node name="Terrain" type="Node3D" parent="." groups=["navmesh_source"]]
+metadata/surface = &"stone"
 
 [node name="SurfaceWetness" type="Node3D" parent="Terrain"]
 script = ExtResource("21_wetness")
@@ -118,6 +119,7 @@ script = ExtResource("21_wetness")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
 collision_layer = 1
 collision_mask = 0
+metadata/surface = &"grass"
 
 [node name="Mesh" type="MeshInstance3D" parent="Terrain/Ground"]
 mesh = SubResource("mesh_ground")
@@ -192,6 +194,7 @@ shape = SubResource("shape_ground")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, -2)
 collision_layer = 1
 collision_mask = 0
+metadata/surface = &"wood"
 
 [node name="Mesh" type="MeshInstance3D" parent="Terrain/Dais"]
 mesh = SubResource("mesh_pillar")

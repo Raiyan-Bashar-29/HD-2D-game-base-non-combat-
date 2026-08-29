@@ -70,7 +70,7 @@ original board rather than continuing it.
 | T2.0 | **The export proof** | **DONE** — the assumption HELD; see T2.0 below |
 | T2.1 | Art contract seams | **DONE** — see T2.1 below |
 | T2.2 | Consumer documentation | **DONE** — `36b5abd`, PR #15. Phase T2 closes; see T2.2 below |
-| T3.1 | **A generic content registry** — one scan, with a thin typed façade per catalogue | **DONE** — the fifth package of Phase T3; see below. The refactor PAID, and not in the shape WP-08 costed: the duplication was in the SCAN, not the cache, so the base went on the RESOURCE |
+| T3.1 | **A generic content registry** — one scan, with a thin typed façade per catalogue | **DONE** — `767fbe3`, PR #20. The fifth package of Phase T3; see below. The refactor PAID, and not in the shape WP-08 costed: the duplication was in the SCAN, not the cache, so the base went on the RESOURCE |
 | T3.2 | The five art-contract seams T2.1 left | TODO — shared materials, the environment post-stack and camera framing as `@export`s, the texture import defaults, the Git LFS lines |
 | T3.3 | **A quest step that can read an ITEM COUNT** | TODO — "bring me three petals" is still not authorable. Scoped by WP-09, which proved the flag seam is enough for "hold ONE of this" and not for a count; the two candidate designs and what each costs are in the WP-09 section |
 
@@ -1701,5 +1701,5 @@ and any change to what a `.tres` may contain. `ContentScan` also does not recurs
 subdirectories — neither did any of the five copies, and a nested content root is a request
 nobody has made.
 
-**Commit:** `PENDING` on `claude/t3-1-registry`, PR PENDING — stacked onto
+**Commit:** `767fbe3` on `claude/t3-1-registry`, PR #20 — stacked onto
 `claude/wp-09b-attributes`, matching the rest of the chain.

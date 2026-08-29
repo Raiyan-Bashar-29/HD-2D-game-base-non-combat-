@@ -3,8 +3,8 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-30 · **T3.1 (a generic content registry) complete — `PENDING`, PR
-PENDING. Fifth package of Phase T3, and the only row on the board that was a pure REFACTOR: if a
+**Last updated:** 2026-08-30 · **T3.1 (a generic content registry) complete — `767fbe3`,
+PR #20. Fifth package of Phase T3, and the only row on the board that was a pure REFACTOR: if a
 consuming game could tell it happened, it went wrong, and it cannot.** Five catalogues carried five
 copies of the same scan-and-validate. WP-08 costed the refactor at the fourth copy and kept the
 copy for a sound reason — a base holding the CACHE could only hand back untyped `Resource`s, and

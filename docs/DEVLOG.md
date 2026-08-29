@@ -176,7 +176,17 @@ renames the compiler would have caught. New code is negative. The rule's reasoni
 that outgrows one chat gets half-finished — was never in danger, and the count is said out loud
 rather than quietly exceeded.
 
-**Commit `PENDING` on `claude/t3-1-registry`, PR PENDING**, stacked onto
+
+**CI green, run 33267916883, job logs read rather than the tick** (gotcha 26 — the run listing
+lags and the tick is not the evidence). Full checkout: **`1402 passed, 0 failed, 0 skipped`**,
+`125 files, 10506 code lines, 0 warnings, 0 violations`. **Stripped template — the load-bearing
+job for this package, because it is the only rung that proves an empty content root is still not
+an error: `1334 passed, 0 failed, 19 skipped`**, against `1287 passed, 0 failed, 19 skipped`
+before. Same nineteen skips, forty-seven more assertions, and `check_content` and
+`check_boundary` PASS on a checkout with `data/` and `scenes/areas/` deleted. All rungs green in
+both jobs, and the workflow was not touched.
+
+**Commit `767fbe3` on `claude/t3-1-registry`, PR #20**, stacked onto
 `claude/wp-09b-attributes` (#19) rather than `main`, matching the rest of the chain.
 
 ---

@@ -82,11 +82,11 @@ static func deactivate() -> void:
 ## that genuinely assert things ABOUT the demo skip themselves and say so.
 static func has_demo_content() -> bool:
 	return not (area_ids().is_empty()
-		and ItemDb.resource_paths(ItemDb.ITEM_DIR).is_empty()
-		and ItemDb.resource_paths(DialogueDb.DIALOGUE_DIR).is_empty()
-		and ItemDb.resource_paths(ScheduleDb.SCHEDULE_DIR).is_empty()
-		and ItemDb.resource_paths(QuestDb.QUEST_DIR).is_empty()
-		and ItemDb.resource_paths(AreaDb.AREA_DIR).is_empty())
+		and ContentScan.resource_paths(ItemDb.ITEM_DIR).is_empty()
+		and ContentScan.resource_paths(DialogueDb.DIALOGUE_DIR).is_empty()
+		and ContentScan.resource_paths(ScheduleDb.SCHEDULE_DIR).is_empty()
+		and ContentScan.resource_paths(QuestDb.QUEST_DIR).is_empty()
+		and ContentScan.resource_paths(AreaDb.AREA_DIR).is_empty())
 
 
 ## Every area a game has authored, DISCOVERED rather than listed. The structural contract in

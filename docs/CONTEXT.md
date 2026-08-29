@@ -3,20 +3,32 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-29 · **WP-09b (attributes and surface-aware footsteps) complete —
-`da126d9`, PR #19. Fourth package of Phase T3, and the last row holding TWO systems with no
-implementation at all.** An attribute is the flag `attr/<who>/<name>`, an integer number of steps
-clamped to ±4 — the **fifth** use of namespace-over-`Flags` — and it ships with EXACTLY ONE
-consumer, `PlayerController.current_speed()`, with the attribute's name declared as a const on that
-consumer so **an attribute nobody reads has nowhere to be written down**. A surface is
-`metadata/surface` on area geometry, inherited from the nearest tagged ancestor, and a step's sound
-is DERIVED FROM THE SURFACE'S NAME rather than looked up in a table — so a game that authors `sand`
-hears it without editing `src/`, and no table of names ever appears under `src/` for
-`check_boundary` to fail on. A footstep is the one claim the ladder cannot see at all, so the split
-is stated: `travel()`, `GroundSurface.of_node()` and `brightness_for()`/`decay_for()` are asserted;
-the raycast, the frame loop and the `play()` are a quoted windowed probe.
+**Last updated:** 2026-08-30 · **T3.1 (a generic content registry) complete — `PENDING`, PR
+PENDING. Fifth package of Phase T3, and the only row on the board that was a pure REFACTOR: if a
+consuming game could tell it happened, it went wrong, and it cannot.** Five catalogues carried five
+copies of the same scan-and-validate. WP-08 costed the refactor at the fourth copy and kept the
+copy for a sound reason — a base holding the CACHE could only hand back untyped `Resource`s, and
+every accessor would become a cast at the call site. **That verdict was right about the wrong
+half.** The duplication was in the SCAN, which needs exactly two things from a resource: its `id`
+and its `problems()`. So the base went on the **resource** (`ContentEntry`) and the shared part is
+a **function** — `ContentScan.into()` fills the CALLER'S own typed dictionary, so `ItemDb._by_id`
+is still `Dictionary[StringName, ItemDefinition]`, `ItemDb.definition()` still returns
+`ItemDefinition`, and there is no cast at any call site in the project. Five registries: 290 code
+lines to 187, plus 44 shared. `ItemDb.resource_paths()` became `ContentScan.resource_paths()` with
+no alias at nine call sites. 47 new assertions, every one of which runs in a stripped template, and
+**not one word of `AUTHORING.md` needed changing** — that was the acceptance test. New gotcha 37,
+measured with a probe: a base-class `static var` is ONE storage shared by every subclass, which is
+why a shared base CLASS would have given all five catalogues one cache and one `content_dir`.
 
-*(Previously: WP-11, the world map — `cf3f3a1`, PR #18. An `AreaDef` .tres per area in
+*(Previously: WP-09b, attributes and surface-aware footsteps — `da126d9`, PR #19. An attribute is
+the flag `attr/<who>/<name>`, an integer number of steps clamped to ±4 — the **fifth** use of
+namespace-over-`Flags` — and it ships with EXACTLY ONE consumer,
+`PlayerController.current_speed()`, with the attribute's name declared as a const on that consumer
+so **an attribute nobody reads has nowhere to be written down**. A surface is `metadata/surface` on
+area geometry, inherited from the nearest tagged ancestor, and a step's sound is DERIVED FROM THE
+SURFACE'S NAME rather than looked up in a table — so a game that authors `sand` hears it without
+editing `src/`, and no table of names ever appears under `src/` for `check_boundary` to fail on.
+Before that: WP-11, the world map — `cf3f3a1`, PR #18. An `AreaDef` .tres per area in
 `data/areas/`, found by the fifth directory-scan registry, and **discovery is the flag
 `map/<area id>` with no store behind it**. `WorldMap` under `GameRoot` turns arrival into discovery
 and emits the same `area_change_requested` an `AreaDoor` emits; `MapScreen` on `M` draws one dot
@@ -45,10 +57,11 @@ T1.3; T2.0 is on **`claude/t2-0-export-proof`**, branched from T1.4; T2.1 is on
 **`claude/t2-1-art-contract`**, branched from T2.0; T2.2 is on **`claude/t2-2-consumer-docs`**,
 branched from T2.1; WP-08 is on **`claude/wp-08-quests`**, branched from T2.2; WP-09 is on
 **`claude/wp-09-character`**, branched from WP-08; WP-11 is on **`claude/wp-11-worldmap`**,
-branched from WP-09; WP-09b is on **`claude/wp-09b-attributes`**, branched from WP-11. The nine earlier PRs are superseded.
+branched from WP-09; WP-09b is on **`claude/wp-09b-attributes`**, branched from WP-11; T3.1 is on
+**`claude/t3-1-registry`**, branched from WP-09b. The nine earlier PRs are superseded.
 
-**Branch new work from `claude/wp-09b-attributes`**, or from `main` once #10, #11, T1.2-T1.4,
-T2.0, T2.1, T2.2, WP-08, WP-09, WP-11 and WP-09b have landed. The older
+**Branch new work from `claude/t3-1-registry`**, or from `main` once #10, #11, T1.2-T1.4,
+T2.0, T2.1, T2.2, WP-08, WP-09, WP-11, WP-09b and T3.1 have landed. The older
 per-package branches (`claude/wp-04-second-area`, `claude/wp-05-dialogue`, `claude/wp-06-npcs`,
 `claude/wp-07-path-actions`, `claude/wp-12-menus`, `claude/wp-13-presentation`) are history and
 should not be built on.
@@ -68,8 +81,8 @@ game built on this will need, so a new game is content and data rather than new 
 ## Where it stands
 
 Phase 0 complete, Phase 1 COMPLETE, Phase 2 well under way, **Phase T1 COMPLETE, Phase T2
-COMPLETE as of T2.2, and Phase T3 OPEN with WP-08, WP-09, WP-11 and WP-09b done.** 122 files,
-10,416 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest, 2 mapped areas,
+COMPLETE as of T2.2, and Phase T3 OPEN with WP-08, WP-09, WP-11, WP-09b and T3.1 done.** 125 files,
+10,506 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest, 2 mapped areas,
 2 path actions, 2 sprite sheet layouts, 3 tagged surfaces.
 Boots headless with **0 warnings, 0 errors**.
 
@@ -78,7 +91,7 @@ input actions · settings · save/load with atomic writes and versioning · plot
 director with a re-entrancy guard and threaded loading · world clock · weather state · audio
 buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 8-way character ·
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
-placeholder art generator · line-budget checker · a headless test suite (1,355 assertions) that
+placeholder art generator · line-budget checker · a headless test suite (1,402 assertions) that
 builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
 returns early, asserts nothing, or is not listed in the runner ·
 an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
@@ -87,7 +100,9 @@ checkout and a stripped template), on a downloaded engine whose SHA512 and build
 verified — proved red on a broken assertion and green again ·
 interaction sensor with ranking and Tab-cycling · Interactable contract · localized prompt and
 toasts · readable signs · levers · gates gated by flag or by a carried key · per-object
-persistence (ADR-0005) · typed item definitions found by directory scan (ADR-0006) · an
+persistence (ADR-0005) · typed item definitions found by directory scan (ADR-0006), and since T3.1 **ONE scan behind all
+five catalogues** — `ContentScan.into()` fills each registry's own TYPED dictionary, so the five
+façades keep their own content root, cache and accessor and nothing anywhere is a cast · an
 inventory component with a capacity seam · pickups · take-all chests · a content validator ·
 trigger volumes that fire on entry · a rest point that skips hours · authored climb points ·
 a screen stack with real pause semantics · a token input lock · a HUD clock readout · an
@@ -338,6 +353,13 @@ three compiled cleanly and passed every static gate:**
 - **Input actions live in code** (`src/systems/input/actions.gd`), so the editor's Input Map
   panel looks empty. Intentional — ADR-0003.
 - **Ten autoloads, no `GameManager`.** Adding one requires an ADR.
+- **ONE content scan, five typed façades — and the base is on the RESOURCE, not the registry.**
+  `ContentScan.into()` is the only scan-and-validate in the project; `ContentEntry` is the base
+  every catalogued `.tres` extends. Each registry keeps its own `content_dir`, its own typed
+  cache and its own typed accessor, because a base-class `static var` is ONE storage shared by
+  every subclass (gotcha 37) and because an untyped accessor is against non-negotiable #2.
+  Settled by T3.1 after WP-08 and WP-11 costed it twice. Do not re-argue it, and do not "finish
+  the job" by moving `has()`/`count()`/`rescan()` onto a base — those name their own type.
 - **No jumping.** Vertical movement is authored: a `ClimbPoint` names two markers and asks
   `PlayerController.begin_climb()`. The climb turns its corner at the *top* end, both going
   up and coming down, so it never cuts through the ledge.
@@ -697,14 +719,14 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 120               # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,355 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,402 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Thirty-six gotchas that each cost an hour
+## Thirty-seven gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -959,6 +981,24 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     because mere inequality is exactly what the broken version passed. Gotcha 2 with a speaker on
     it: a step that plays is not a step that follows.
 
+
+37. **A BASE-CLASS `static var` IS ONE STORAGE SHARED BY EVERY SUBCLASS.** Probed under 4.7.2 with
+    two throwaway subclasses bumping a counter declared on their base: `A.shared=3 B.shared=3
+    Base.shared=3`. This is the opposite of the per-class statics most languages give you, and it
+    is what made the obvious shape of T3.1 — `ItemDb extends ContentDb`, with `_by_id`, `_loaded`
+    and `content_dir` on the base — silently catastrophic: five registries would have shared ONE
+    cache and ONE content root, so `Fixtures.activate()` would have pointed all five at a single
+    folder and four catalogues would have come back empty. Every accessor would still have been
+    typed and the class diagram would still have looked right. The shared part of five static
+    classes must therefore be a FUNCTION taking the caller's state, never inherited state. Three
+    related facts from the same probe, each of which the design depends on: a `class_name` passed
+    as a `Script` works with `is_instance_of()`; `Script.get_global_name()` returns the class name;
+    and a `Dictionary[StringName, X]` handed to an untyped `Dictionary` parameter keeps its value
+    type and is filled BY REFERENCE — which is the whole mechanism keeping every registry accessor
+    typed with one shared scan. Related and cheaper to trip over: **`ResourceLoader` caches by
+    path**, so re-saving a different resource over a path already loaded in this run hands the next
+    scan the FIRST one. A new file name, not a second write.
+
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the
@@ -968,20 +1008,20 @@ names the exact files that chat should read, so a session loads a few hundred li
 package never has to read upward.
 
 
-**Next package: T3.1 — the generic content registry, and it is the strongest of the two that are
-left.** WP-09b closed the last row that held systems with no implementation at all, so nothing
-remaining is breadth. Of what is open:
+**Next package: T3.3 — a quest step that can read an ITEM COUNT, and it is the last one that
+changes what a consuming game can express.** T3.1 has closed, so the two rows left are both narrow:
 
-- **T3.1**, a base holding the scan and cache with a thin typed façade per registry. WP-08 made it
-  the FOURTH copy of the same thirty lines and reconsidered, keeping the copy with stated reasons;
-  WP-11 made it the FIFTH and did not re-argue it. Five places to fix one scan bug is the changed
-  number, and `area_db.gd`'s header says so. This is the one whose cost grows with every package
-  that does not do it.
 - **T3.3**, a quest step that can read an ITEM COUNT. "Bring me three petals" is still not
-  authorable. WP-09 costed both candidate designs rather than closing it, and its section names
-  what each costs; whoever takes it chooses between two stated options.
+  authorable. WP-09 NARROWED rather than closed it: a flag is enough for "HOLD one of this",
+  because being held is a fact about one item and a COUNT is not. WP-09's section costs both
+  candidate designs and says what each gives up; whoever takes it chooses between two stated
+  options rather than inventing a third. This is the one that is breadth of expression rather than
+  polish, so `TEMPLATE.md`'s replacement rule puts it ahead of T3.2.
+- **T3.2** still holds the five T2.1 leftovers — shared materials, the environment post-stack and
+  camera framing as `@export`s, the texture import defaults, the Git LFS lines — so they stop
+  being mentioned in five places. Note gotcha 30 before starting it: `[importer_defaults]` is
+  undocumented and absent from `--doctool`, and T2.1 stopped rather than guess at it.
 
-**T3.2** still holds the five T2.1 leftovers so they stop being mentioned in five places, and
 **objective markers on the map** is now a listener rather than new state — `quest_advanced` has
 an emitter and `MapScreen` already redraws on facts.
 
@@ -1009,18 +1049,20 @@ you can press to travel back to once you have — and every one of those walks n
 depending on whether you are crossing grass, the wooden dais or stone. Every one of those changes
 survives a save and a
 reload, including from the far side of an area that is no longer loaded. All of it is covered
-by 1,355 headless assertions.
+by 1,402 headless assertions.
 
 **Next, in this order.** The order matters and is not arbitrary:
 
 1. **The rest of the system catalogue**, WP-14 and WP-15 re-framed — see the board. WP-11 closed
    the last row that had no proof at all, and WP-10 is OPTIONAL.
-2. **T3.1**, a generic content registry with a typed façade per catalogue, now that there are FIVE
-   copies of the same thirty lines; **T3.3**, a quest step that can read an item count, which WP-09
-   costed rather than closed; **T3.2**, the five art-contract seams T2.1 left open.
+2. **T3.3**, a quest step that can read an ITEM COUNT — "bring me three petals" is still not
+   authorable, which is a limit on what a consuming game can EXPRESS, and WP-09 costed both
+   candidate designs rather than closing it; then **T3.2**, the five art-contract seams T2.1 left
+   open. *(T3.1 is DONE — one scan behind all five catalogues, with every accessor still typed.)*
 
-*(Path actions, NPC schedules, navigation baking, weather visuals, quests, equipment and the world
-map are all DONE — WP-06, WP-07, WP-08, WP-09, WP-09b, WP-11 and WP-13.)*
+*(Path actions, NPC schedules, navigation baking, weather visuals, quests, equipment, the world
+map and the shared content scan are all DONE — WP-06, WP-07, WP-08, WP-09, WP-09b, WP-11, WP-13
+and T3.1.)*
 
 **Still open, and expensive later:**
 - **The export path is PROVEN as of T2.0** — an exported `.exe` reports the same catalogue counts

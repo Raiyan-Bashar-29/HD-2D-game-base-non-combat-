@@ -1,5 +1,5 @@
 class_name AreaDef
-extends Resource
+extends ContentEntry
 ## Where one area sits on the world map, and how a traveller arrives there.
 ##
 ## THE ID IS THE FILE NAME, AND IT IS THE AREA ID. `data/areas/orchard.tres` must declare
@@ -27,8 +27,7 @@ extends Resource
 ## autoload — `tools/check_content.gd` loads this class under `--script`, where autoload
 ## identifiers do not resolve, so one `Log` call would break a build gate.
 
-## Globally unique, and equal to this resource's file name and to the area's folder name.
-@export var id: StringName = &""
+## `id` is inherited from `ContentEntry`; for this catalogue it is this file name with NO prefix.
 ## Localization key for the name drawn on the map. Never raw text. Should match the area
 ## scene's own `display_name_key`; `tests/unit/world_map_test.gd` asserts that it does.
 @export var name_key: String = ""

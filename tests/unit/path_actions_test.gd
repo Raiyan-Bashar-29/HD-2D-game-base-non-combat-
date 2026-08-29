@@ -61,7 +61,7 @@ func _standing_is_a_clamped_namespace() -> void:
 ## amount of playing the happy path would reveal. Discovered by scanning, not listed: an action
 ## added tomorrow is covered, and a checkout with no actions at all skips and says so.
 func _the_authored_actions_are_sound() -> void:
-	var paths: PackedStringArray = ItemDb.resource_paths(ACTION_DIR)
+	var paths: PackedStringArray = ContentScan.resource_paths(ACTION_DIR)
 	if paths.is_empty():
 		skip("the authored actions are sound", "no content in %s" % ACTION_DIR, 2)
 		return

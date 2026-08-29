@@ -1,5 +1,5 @@
 class_name ItemDefinition
-extends Resource
+extends ContentEntry
 ## One item, as authored data. The project's first Resource subclass.
 ##
 ## THE ID IS THE FILE NAME. `data/items/rose_key.tres` must declare `id = &"item/rose_key"`.
@@ -25,8 +25,7 @@ extends Resource
 ## here would break the build gate. That is a real enforcement mechanism for the content
 ## layer rule, not a style preference.
 
-## Globally unique, and equal to `item/` plus this resource's file name.
-@export var id: StringName = &""
+## `id` is inherited from `ContentEntry`; for this catalogue it is `item/` plus this file name.
 ## Localization key for the player-facing name. Never raw text.
 @export var name_key: String = ""
 ## Stable, locale-independent sort and filter key. Also expresses "key item" without a bool.

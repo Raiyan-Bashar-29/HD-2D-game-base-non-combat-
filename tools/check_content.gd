@@ -93,7 +93,7 @@ func _load_keys() -> void:
 func _report_scan() -> void:
 	var raw: PackedStringArray = ResourceLoader.list_directory(ItemDb.content_dir)
 	print("  list_directory(%s) -> %s" % [ItemDb.content_dir, str(raw)])
-	print("  resolved paths        -> %s" % str(ItemDb.resource_paths(ItemDb.content_dir)))
+	print("  resolved paths        -> %s" % str(ContentScan.resource_paths(ItemDb.content_dir)))
 
 
 func _check_items() -> void:
@@ -209,7 +209,7 @@ func _all_waypoint_names() -> Dictionary[StringName, bool]:
 ## says nothing on success is a mechanic the player performs and cannot tell they performed.
 func _check_path_actions() -> void:
 	var directory: String = "res://data/actions"
-	var files: PackedStringArray = ItemDb.resource_paths(directory)
+	var files: PackedStringArray = ContentScan.resource_paths(directory)
 	print("  path actions: %d" % files.size())
 	for path: String in files:
 		var resource: Resource = ResourceLoader.load(path)

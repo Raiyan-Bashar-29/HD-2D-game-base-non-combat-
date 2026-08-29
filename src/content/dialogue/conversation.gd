@@ -1,5 +1,5 @@
 class_name Conversation
-extends Resource
+extends ContentEntry
 ## One conversation, as authored data. The narrative counterpart of `ItemDefinition`.
 ##
 ## THE ID IS THE FILE NAME, exactly as for items: `data/dialogue/gardener.tres` must declare
@@ -19,8 +19,7 @@ extends Resource
 ## autoload - tools/check_content.gd loads this class under `--headless --script`, where
 ## autoload identifiers do not resolve.
 
-## Globally unique, and equal to `talk/` plus this resource's file name.
-@export var id: StringName = &""
+## `id` is inherited from `ContentEntry`; for this catalogue it is `talk/` plus this file name.
 ## In authored order. The runner enters at the first node whose condition passes.
 @export var nodes: Array[DialogueNode] = []
 

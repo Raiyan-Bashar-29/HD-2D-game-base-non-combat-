@@ -16,6 +16,171 @@ Append-only. Newest entry at the top. One entry per working session.
 
 ---
 
+## 2026-08-30 — T3.1 · One scan, five typed façades
+
+**Did.** Collapsed five copies of the same scan-and-validate into one function, on
+`claude/t3-1-registry` branched from `claude/wp-09b-attributes`. Two new engine files:
+`src/content/content_entry.gd` (5 code lines) is the base every catalogued `.tres` now extends —
+an `@export var id` and a `problems()`, and nothing else; `src/content/content_scan.gd` (39) holds
+`into()`, which walks a content root, loads each `.tres`, checks it is the right class, checks its
+`id` against its file name, refuses a duplicate, appends the resource's own `problems()` and puts
+it in **the caller's dictionary**, plus `resource_paths()` and `_normalise()` moved verbatim from
+`ItemDb`. The five registries lost `_register()` entirely and are now typed façades: content root,
+typed cache, typed accessor, and a two-line `_ensure_loaded()`. `ItemDefinition`, `Conversation`,
+`NpcSchedule`, `Quest` and `AreaDef` each changed one line — `extends Resource` to
+`extends ContentEntry` — and dropped their own `@export var id`. `ItemDb.resource_paths()` became
+`ContentScan.resource_paths()` at nine call sites with no alias left behind. New case
+`tests/unit/content_scan_test.gd` (153 code lines, 47 assertions), listed in `CASES`.
+
+**Why.** WP-08 reconsidered this refactor at the fourth copy and **kept** the copy, on reasoning
+that has not been overturned: GDScript has no generics, so a base holding the CACHE could only
+store `Resource` and hand it back untyped, and every accessor would become a cast at the call site
+— against non-negotiable #2. WP-11 made it the fifth copy and changed only the arithmetic. Both
+were right about the wrong half. **The duplication was never in the cache.** A scan needs exactly
+two things from a resource — its `id` and its `problems()` — so the base belongs on the
+**resource**, and the shared part is a **function** that fills a dictionary the caller owns and
+types. `ItemDb._by_id` is still `Dictionary[StringName, ItemDefinition]`, `ItemDb.definition()`
+still returns `ItemDefinition`, and grep finds no new cast anywhere. Measured, in code lines as
+`check_budgets` counts them: five registries **290 → 187**, plus 44 shared, so **290 against 231**.
+The −59 is the least interesting number; what matters is that `_register()` was 17 lines
+duplicated five ways, and a bug in the id check, the duplicate check, the type check or the
+`.remap` handling is now one fix.
+
+`ContentEntry` is not tidiness. `project.godot` sets `unsafe_property_access` and
+`unsafe_method_access` to **error**, so a shared scan reading `resource.id` or calling
+`resource.problems()` through a `Resource` does not compile at all. The base is what makes the
+shared scan legal, and its `MUST NOT` says a field belongs there only when the SCAN uses it.
+
+**Connects.** Nothing above `src/content/` changed. `Inventory`, `DialogueRunner`, `NpcBrain`,
+`QuestTracker`, `WorldMap`, `Speaker` and `check_content.gd` all call the same accessors on the
+same class names and got the same answers. `tests/framework/fixtures.gd` — the seam every case
+depends on — still redirects five separate `content_dir` variables and still calls five separate
+`rescan()`s, because that is the only shape that works (see the gotcha below). The
+`.tres` format is untouched: the demo's files declare `id` exactly as before, now satisfying the
+base's export instead of the subclass's, and `check_content` loads all of them unchanged.
+
+**Verified.**
+
+```
+G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe
+"$G" --headless --import                        # zero SCRIPT ERROR / Parse Error
+"$G" --headless --quit-after 120                # Session ended after 1.2s — 0 warnings, 0 errors
+"$G" --headless res://tests/test_runner.tscn --quit-after 400
+                                                # === 1402 passed, 0 failed, 0 skipped ===
+"$G" --headless --script tools/check_budgets.gd # 125 files, 10506 code lines, 0 warnings, 0 violations — PASS
+"$G" --headless --script tools/check_content.gd # PASS
+"$G" --headless --script tools/check_boundary.gd# PASS, 119 engine scripts scanned
+```
+
+1355 → 1402, +47, none lost.
+
+**The stripped template, run locally, because it is the load-bearing rung for this package.**
+`data/` and `scenes/areas/` moved aside, `--import`, then the suite: **`1334 passed, 0 failed, 19
+skipped`** against 1287/19 before — +47, the same 19 skips, so every new assertion runs with no
+authored content on disk. `check_content` exit 0 and `check_boundary` exit 0 on the stripped
+checkout, which is the thing that proves **an empty content root is still not an error**. Both
+directories restored and the full run re-confirmed at 1402.
+
+**The gates were proved failing (gotcha 23).** Two real violations planted in `data/items/` —
+`planted_mismatch.tres`, a copy of a real definition carrying `id = &"item/mismatched"`, and
+`planted_broken.tres`, one line of prose:
+
+```
+  !! res://data/items/planted_broken.tres is not an ItemDefinition
+  !! res://data/items/planted_mismatch.tres declares id 'item/mismatched' but its file name requires 'item/planted_mismatch'
+FAIL — 2 content violation(s)
+check_content exit code = 1
+```
+
+Both removed:
+
+```
+PASS
+check_content exit code = 0
+```
+
+The suite's own exit 1 needed no planting: the first run of the new case failed for real (below),
+`=== 1401 passed, 1 failed, 0 skipped ===`, and the runner exited 1.
+
+**NEW GOTCHA 37, and it decided the whole design.** The obvious refactor is
+`ItemDb extends ContentDb` with `_by_id`, `_loaded` and `content_dir` as `static var`s on the base.
+Probed under 4.7.2 with two throwaway subclasses bumping a base counter:
+
+```
+A.shared=3 B.shared=3 Base.shared=3
+```
+
+**A base-class `static var` is ONE storage shared by every subclass.** Five registries inheriting
+it would have shared one cache and one `content_dir`, so `Fixtures.activate()` would have pointed
+all five at a single folder and four catalogues would have come back empty — with every accessor
+still typed and the class diagram still looking right. That is why the shared part is a function
+and each façade keeps its own three statics. The same probe confirmed the three other facts the
+design rests on: `is_instance_of(res, ItemDefinition)` discriminates correctly with a `class_name`
+passed as a `Script`; `Script.get_global_name()` returns `ItemDefinition`; and a
+`Dictionary[StringName, ItemDefinition]` passed through an untyped `Dictionary` parameter keeps
+its value type (`is_typed_value() == true`) and is filled by reference — which is the mechanism
+that keeps every accessor typed. The probe scripts were deleted; `git diff` shows no
+`tools/_probe/`.
+
+**The one thing the new test got wrong first, and it is a suite-wide lesson.** The case writes a
+sound `AreaDef`, scans, then writes a *different* `AreaDef` over the same path and scans again to
+prove a resource's own `problems()` reach the caller. It reported `expected 1, got 0`:
+**`ResourceLoader` caches by path**, so the second scan was handed the first resource. One failing
+assertion was the only trace. The fix is a second id rather than a second write, and anything in
+the suite that expects a re-authored file to be re-read needs a new path.
+
+**What the 47 assertions are for.** A refactor's real assertions are the existing ones staying
+green, and those did. The new ones exist for the failure mode a *shared* scan has and five copies
+did not: it can go on working for four catalogues and quietly stop reporting a bad file for the
+fifth. So `content_scan_test.gd` drives `into()` directly for every branch it has — empty root,
+absent root, sound file, id mismatch naming both values, a resource of the wrong type, a
+`.tres`/`.res` duplicate, an empty prefix (`AreaDb`'s shape, which no other registry exercises),
+and a resource whose own `problems()` must propagate — and then plants the same violation in all
+five fixture roots at once and names **each registry by hand**. It also asserts one bad file costs
+the catalogue exactly that file, and that every `content_dir` goes back to its own constant after
+`Fixtures.deactivate()`.
+
+**A windowed capture, although there should have been nothing to see.**
+`--resolution 960x540 --quit-after 90 -- --new-game --shot-frame=70 --time=12:00`: the courtyard at
+midday with the player, the keeper, the sign, the pickup, the HUD clock and the
+`Read Weathered Notice` prompt — indistinguishable from WP-09b's, which is the point. The boot
+readout still names every catalogue and its resolved paths — `items: 4`, `dialogue: 1`,
+`schedules: 1`, `quests: 1`, `areas: 2` — and the session ended `0 warnings, 0 errors`. **If a
+screen had changed, the refactor had leaked.** No temporary probe was needed: this package touches
+no input path and no audio path, and `src/systems/debug/` carries exactly one deliberate line, the
+`resource_paths` rename in `catalogue_report.gd`.
+
+**The acceptance test was `docs/AUTHORING.md`, and not one word of it changed.** It names `ItemDb`
+once, describes the scan, the folders and the id-equals-filename rule, and every sentence in it is
+still true. `docs/TESTING.md` needed one number.
+
+**Unblocks.** A sixth catalogue is now a 36-line façade rather than a sixth copy of the scan — and
+that cuts both ways, which `content_scan.gd`'s header says: WP-09b deliberately did *not* add one
+for attributes, and cheapness is not a reason to. Any improvement to the scan — recursion into
+subdirectories, a better duplicate diagnostic, a different `.remap` case — is now one edit that
+five catalogues and both content gates inherit at once.
+
+**Known gaps.** No sixth catalogue, no hot-reload or file-watcher on the content roots, no content
+editor, no async or threaded scanning, no cache outliving a session, and no change to what a
+`.tres` may contain — all deferred deliberately, because a consuming game must not be able to tell
+this package happened. `ContentScan` does not recurse into subdirectories; neither did any of the
+five copies, and nobody has asked. `ContentEntry` holds `id` and `problems()` and nothing else, on
+purpose: `name_key` is on four of the five content types but not on `NpcSchedule`, and a field the
+scan does not read has no business on the base. The five façades are still five files — the two
+`content_dir` lines and the three-line `has()`/`count()`/`problems()` are duplicated by shape, and
+they are not worth removing, because each of them names a type.
+
+**Files: 20**, which exceeds the board's "about 8". Two new files, five registries rewritten, five
+resource classes changed by one `extends` line, one new test case, and eleven single-identifier
+renames the compiler would have caught. New code is negative. The rule's reasoning — a package
+that outgrows one chat gets half-finished — was never in danger, and the count is said out loud
+rather than quietly exceeded.
+
+**Commit `PENDING` on `claude/t3-1-registry`, PR PENDING**, stacked onto
+`claude/wp-09b-attributes` (#19) rather than `main`, matching the rest of the chain.
+
+---
+
 ## 2026-08-29 — WP-09b · Attributes, and the ground under your feet
 
 **Did.** The two thirds of WP-09 that were split out for having no consumer, on

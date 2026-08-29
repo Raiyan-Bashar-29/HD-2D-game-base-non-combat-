@@ -79,7 +79,7 @@ func _every_resolved_path_loads() -> void:
 	var resolved: int = 0
 	var unloadable: int = 0
 	for root: String in roots:
-		for path: String in ItemDb.resource_paths(root):
+		for path: String in ContentScan.resource_paths(root):
 			resolved += 1
 			if not ResourceLoader.exists(path):
 				unloadable += 1

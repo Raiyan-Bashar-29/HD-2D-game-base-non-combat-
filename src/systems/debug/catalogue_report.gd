@@ -26,7 +26,7 @@ extends Node
 ## A PARTIAL ship is worse than an empty one, because it looks fine — three of four items is a
 ## plausible number. The resolved paths are what make an exported run comparable with the
 ## editor's, and they are also where the .remap indirection an exported pack uses becomes visible
-## rather than assumed: ItemDb.resource_paths() absorbs it, and this is the only place its
+## rather than assumed: ContentScan.resource_paths() absorbs it, and this is the only place its
 ## behaviour under a real pack is ever observed.
 ##
 ## OWNS: counting what the registries found and reporting it.
@@ -75,7 +75,7 @@ static func _append_registry(
 	problems: PackedStringArray,
 ) -> void:
 	out.append("%s: %d found in %s -> %s" % [
-		label, found, directory, str(ItemDb.resource_paths(directory)),
+		label, found, directory, str(ContentScan.resource_paths(directory)),
 	])
 	for problem: String in problems:
 		out.append("  !! %s: %s" % [label, problem])

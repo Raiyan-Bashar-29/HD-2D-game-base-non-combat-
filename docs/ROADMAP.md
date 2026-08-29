@@ -285,6 +285,24 @@ item", and a blocking item scheduled last is a contradiction. Sequenced by risk,
   `sand` hears it without editing `src/`. 56 new assertions cover the three pure parts; the
   raycast, the frame loop and the `play()` are a windowed probe with the log quoted. See the board.
 
+- **T3.1 A generic content registry — DONE, 2026-08-30.** The phase's fifth package, and the one
+  row that was a pure refactor: five catalogues carried five copies of the same scan-and-validate.
+  WP-08 costed the refactor at the fourth copy and kept the copy for a sound reason — a base
+  holding the CACHE could only hand back untyped `Resource`s — and WP-11 changed only the
+  arithmetic. **Both were right about the wrong half.** The duplication was in the SCAN, which
+  needs exactly two things from a resource: its `id` and its `problems()`. So the base went on the
+  **resource** (`ContentEntry`) and the shared part is a **function**, `ContentScan.into()`, that
+  fills the caller's own typed dictionary — every registry keeps its `content_dir`, its typed
+  cache and its typed accessor, and **there is no cast at any call site in the project.** Five
+  registries: 290 code lines to 187, plus 44 shared, so 290 against 231; the scan-and-validate
+  body exists once instead of five times. `ItemDb.resource_paths()` became
+  `ContentScan.resource_paths()` with no alias, since four registries and three test cases were
+  calling the item registry to scan things that are not items. 47 new assertions, all of which run
+  in a stripped template, and **not one word of `AUTHORING.md` had to change** — which was the
+  acceptance test. New gotcha 37: a base-class `static var` is ONE storage shared by every
+  subclass, measured, which is why a shared base CLASS would have given all five catalogues one
+  cache. See the board.
+
 Exit criteria:
 - [ ] Every system has one proof, and no system has a second area's worth of content
       — quests: **done**, WP-08, 2026-08-27. One quest, two steps, two windowed captures LOOKED AT:

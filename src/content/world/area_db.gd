@@ -2,25 +2,24 @@ class_name AreaDb
 extends RefCounted
 ## Every AreaDef in the project, found by scanning data/areas and cached by id.
 ##
-## THE FIFTH REGISTRY, AND IT MAKES T3.1 A STRONGER CASE RATHER THAN A WEAKER ONE.
-## `schedule_db.gd` said "three is a pattern, four is a problem"; WP-08 produced the fourth,
-## reconsidered, and kept the copy with a board row rather than a shrug — because GDScript has
-## no generics, so a shared base could only cache `Resource` and hand it back untyped, making
-## all four accessors a cast at the call site against non-negotiable #2. That reasoning has not
-## changed and is not repeated here. What HAS changed is the arithmetic: five copies of the same
-## thirty lines is thirty lines of duplication with five places to fix a scan bug, and the
-## refactor that pays — a base holding the cache plus a thin typed façade each — is now worth
-## measurably more than it was. **T3.1 on the board, and this file is the evidence for it.**
+## THE SCAN LIVES IN `ContentScan`, NOT HERE — T3.1, which this file's header was the evidence
+## for. It said five copies of the same thirty lines is five places to fix a scan bug, and
+## that the arithmetic had changed even though WP-08's reasoning had not. Both held: WP-08 was
+## right that a base holding the CACHE would cost every accessor its type, and wrong only in
+## assuming the cache was the duplicated part. It was the SCAN. What remains here is the typed
+## façade — the content root, the cache, and `area()` returning an `AreaDef` with no cast at
+## any call site.
 ##
 ## THE ID HAS NO PREFIX, unlike `item/` and `quest/`. See `area_def.gd`'s header: an area id is
 ## already a public identifier, because it is a folder name, and prefixing it here would put a
-## translation table between this registry and `Director`.
+## translation table between this registry and `Director`. `ContentScan.into()` takes the
+## prefix as an argument for exactly this reason; an empty one is a legitimate catalogue.
 ##
 ## Everything else is ADR-0006 verbatim: a scan is the only option where dropping a .tres in a
 ## folder is the entire act, a hand-maintained list rots, and a generated manifest fails
 ## SILENTLY when someone forgets to regenerate it.
 ##
-## OWNS: finding area definitions on disk, caching them by id, and reporting what is wrong.
+## OWNS: the area content root, caching area definitions by id, and reporting what is wrong.
 ## MUST NOT: know whether an area is discovered, load an area scene, or touch an autoload.
 ## Problems are RETURNED, never logged, so tools/check_content.gd can use this class under
 ## `--script`.
@@ -98,28 +97,4 @@ static func _ensure_loaded() -> void:
 	if _loaded:
 		return
 	_loaded = true
-	for path: String in ItemDb.resource_paths(content_dir):
-		_register(path)
-	# NO AREAS ON THE MAP IS NOT A PROBLEM, and the folder need not exist. Same reasoning as
-	# every other registry, and the same T1.2 finding: an empty content root is the legal
-	# starting state of a base template. A game with no world map authors none of these and
-	# `MapScreen` draws its empty state.
-
-
-static func _register(path: String) -> void:
-	var resource: Resource = ResourceLoader.load(path)
-	var found: AreaDef = resource as AreaDef
-	if found == null:
-		_problems.append("%s is not an AreaDef" % path)
-		return
-	var required: StringName = StringName(path.get_file().get_basename())
-	if found.id != required:
-		_problems.append("%s declares id '%s' but its file name requires '%s'" % [
-			path, found.id, required,
-		])
-		return
-	if _by_id.has(found.id):
-		_problems.append("duplicate area id '%s' at %s" % [found.id, path])
-		return
-	_problems.append_array(found.problems())
-	_by_id[found.id] = found
+	_problems = ContentScan.into(content_dir, "", AreaDef, "an AreaDef", "area", _by_id)

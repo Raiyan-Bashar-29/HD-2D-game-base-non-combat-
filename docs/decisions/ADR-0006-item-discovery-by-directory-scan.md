@@ -77,7 +77,9 @@ Three findings, in the order they matter:
 
 So the two consequences written down above resolve as: (1) confirmed, and now enforced by an
 assertion in `tests/unit/export_test.gd` rather than trusted to a comment; (2) not triggered, and
-`ItemDb.resource_paths()` is unchanged.
+`ItemDb.resource_paths()` is unchanged. (T3.1 moved that function to `ContentScan.resource_paths()`
+— the same implementation, under the name of the job it does, called by all five catalogues
+instead of four of them calling the item registry. Nothing about this decision changed.)
 
 `ARCHITECTURE.md`'s claim — *"adding the fiftieth item must not touch a single line of code"* — is
 verified in the editor, headless **and in an exported build**.

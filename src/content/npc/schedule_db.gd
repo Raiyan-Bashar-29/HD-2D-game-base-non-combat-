@@ -2,29 +2,26 @@ class_name ScheduleDb
 extends RefCounted
 ## Every NpcSchedule in the project, found by scanning data/schedules and cached by id.
 ##
-## THE THIRD REGISTRY, AND DELIBERATELY IDENTICAL TO THE FIRST TWO. ADR-0006 settled the
-## argument once: a scan is the only option where dropping a .tres in a folder is the entire
-## act, a hand-maintained list rots, and a generated manifest fails SILENTLY when someone
-## forgets to regenerate it. That reasoning was never about items. Schedules get the same
-## treatment, including the id-equals-filename rule and `ItemDb.resource_paths()`, which is
-## reused rather than copied so the exported-pack `.remap` handling has one implementation.
+## THE SCAN LIVES IN `ContentScan`, NOT HERE — T3.1, which is the row this file's header
+## called for. It said "three is a pattern, four is a problem — if a fourth registry appears,
+## that is the moment to reconsider", and it was reconsidered twice: WP-08 kept the fourth
+## copy on sound reasoning about the CACHE, and T3.1 found that the duplication was in the
+## SCAN. What remains here is the typed façade — the content root, the cache, and
+## `schedule()` returning an `NpcSchedule` with no cast at any call site.
 ##
-## THAT THIS IS THE THIRD COPY OF THE SAME NINETY LINES IS NOTED AND NOT YET ACTED ON. A shared
-## generic registry is the obvious refactor and it is deliberately deferred: GDScript has no
-## generics, so it would be a base class handing back untyped Resources plus a cast at every
-## call site, which trades three readable files for one clever one and a lost static type. If a
-## fourth registry appears, that is the moment to reconsider - three is a pattern, four is a
-## problem.
+## ADR-0006 settled the argument once and it was never about items: a scan is the only option
+## where dropping a .tres in a folder is the entire act, a hand-maintained list rots, and a
+## generated manifest fails SILENTLY when someone forgets to regenerate it.
 ##
-## OWNS: finding schedules on disk, caching them by id, and reporting what is wrong.
+## OWNS: the schedule content root, caching schedules by id, and reporting what is wrong.
 ## MUST NOT: run a schedule, move an NPC, or touch an autoload. Problems are RETURNED, never
 ## logged, so tools/check_content.gd can use this class under `--script`.
 
 const SCHEDULE_DIR: String = "res://data/schedules"
 
 ## The directory actually scanned. A CONTENT ROOT rather than a constant: a game may keep its
-## schedules somewhere else, and the test fixtures point it at a temp directory so this registry
-## can be proved with no authored content on disk at all. Restore it to SCHEDULE_DIR and reload().
+## schedules somewhere else, and the test fixtures point it at a temp directory so this
+## registry can be proved with no authored content on disk at all. Restore it and rescan().
 static var content_dir: String = SCHEDULE_DIR
 const ID_PREFIX: String = "schedule/"
 
@@ -62,8 +59,10 @@ static func problems() -> PackedStringArray:
 	return _problems
 
 
-## Static state survives a scene reload and a new game, which is right for immutable content and
-## wrong while authoring or testing. Tests and the validator call this.
+## Static state survives a scene reload and a new game, which is right for immutable content
+## and wrong while authoring or testing. Tests and the validator call this.
+##
+## rescan() AND NOT reload() — gotcha 17, and item_db.gd's header has the full story.
 static func rescan() -> void:
 	_by_id.clear()
 	_problems = PackedStringArray()
@@ -75,25 +74,5 @@ static func _ensure_loaded() -> void:
 	if _loaded:
 		return
 	_loaded = true
-	for path: String in ItemDb.resource_paths(content_dir):
-		_register(path)
-	# No schedules is not a problem. Same reasoning as ItemDb, and the same T1.2 finding.
-
-
-static func _register(path: String) -> void:
-	var resource: Resource = ResourceLoader.load(path)
-	var found: NpcSchedule = resource as NpcSchedule
-	if found == null:
-		_problems.append("%s is not an NpcSchedule" % path)
-		return
-	var required: StringName = StringName(ID_PREFIX + path.get_file().get_basename())
-	if found.id != required:
-		_problems.append("%s declares id '%s' but its file name requires '%s'" % [
-			path, found.id, required,
-		])
-		return
-	if _by_id.has(found.id):
-		_problems.append("duplicate schedule id '%s' at %s" % [found.id, path])
-		return
-	_problems.append_array(found.problems())
-	_by_id[found.id] = found
+	_problems = ContentScan.into(
+		content_dir, ID_PREFIX, NpcSchedule, "an NpcSchedule", "schedule", _by_id)

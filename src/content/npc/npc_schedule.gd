@@ -1,5 +1,5 @@
 class_name NpcSchedule
-extends Resource
+extends ContentEntry
 ## Where one NPC is at every hour of the day, as authored data.
 ##
 ## THE ID IS THE FILE NAME, exactly as for items and conversations: `data/schedules/keeper.tres`
@@ -16,8 +16,7 @@ extends Resource
 ## OWNS: the immutable schedule of one NPC, and validating its own shape.
 ## MUST NOT: know which NPC uses it, move anything, or touch an autoload.
 
-## Globally unique, and equal to `schedule/` plus this resource's file name.
-@export var id: StringName = &""
+## `id` is inherited from `ContentEntry`; for this catalogue it is `schedule/` plus this file name.
 ## In any order. Each runs until the next begins; the last wraps around midnight.
 @export var entries: Array[ScheduleEntry] = []
 

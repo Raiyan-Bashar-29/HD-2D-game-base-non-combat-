@@ -52,7 +52,7 @@ func _the_authored_catalogue_is_sound() -> void:
 			on_disk += 1
 	equal("registry found every definition on disk", ItemDb.count(), on_disk)
 	equal("the scan and a plain DirAccess listing agree",
-		ItemDb.resource_paths(ItemDb.content_dir).size(), on_disk)
+		ContentScan.resource_paths(ItemDb.content_dir).size(), on_disk)
 
 
 ## Every authored item must have a row in strings.csv. Fixture items deliberately do NOT, so

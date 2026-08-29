@@ -1,5 +1,5 @@
 class_name Quest
-extends Resource
+extends ContentEntry
 ## One quest, as authored data: what it is called, when it starts, and its steps in order.
 ##
 ## THE ID IS THE FILE NAME. `data/quests/roses.tres` must declare `id = &"quest/roses"`.
@@ -27,8 +27,7 @@ extends Resource
 ## MUST NOT: read a flag, track progress, grant a reward, or touch an autoload - for the reason
 ## in quest_step.gd's header, which is a build gate rather than a preference.
 
-## Globally unique, and equal to `quest/` plus this resource's file name.
-@export var id: StringName = &""
+## `id` is inherited from `ContentEntry`; for this catalogue it is `quest/` plus this file name.
 ## Localization key for the player-facing title. Never raw text.
 @export var name_key: String = ""
 ## Localization key for the one-line description the journal draws under the title.

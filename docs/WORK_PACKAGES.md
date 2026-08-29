@@ -48,7 +48,7 @@ Headless shades nothing. This project has already shipped two bugs that every ot
 | 07 | Path actions | **DONE** — see below |
 | 08 | Quests | **DONE** — `a00ddda`, PR #16. The first package of Phase T3; see below |
 | 09 | Character depth — equipment | **DONE (split)** — `1b3d799`, PR #17. The equipment third; see below. The row asked for three systems, which is over the size limit |
-| 09b | Character depth — attributes and surfaces | **DONE** — `PENDING`, PR #19. The fourth package of Phase T3; see below |
+| 09b | Character depth — attributes and surfaces | **DONE** — `da126d9`, PR #19. The fourth package of Phase T3; see below |
 | 10 | Crafting and gathering | **OPTIONAL** — a genre choice, not a requirement of every game (TEMPLATE.md). Does not block v1.0 |
 | 11 | World map and fast travel | **DONE** — `cf3f3a1`, PR #18. The third package of Phase T3, and the last system with no proof at all; see below |
 | 12 | Menus | **DONE** — taken out of order; it needed only WP-02 |
@@ -758,7 +758,7 @@ attribute, and no consumer for one: that is the rule, not an omission. No charac
 no attribute that gates an interaction, and no surface that costs anything to cross — a slow
 surface is a `PlayerController` change and belongs with whoever wants one.
 
-**Commit:** `PENDING` on `claude/wp-09b-attributes`, PR #19 — stacked onto `claude/wp-11-worldmap`
+**Commit:** `da126d9` on `claude/wp-09b-attributes`, PR #19 — stacked onto `claude/wp-11-worldmap`
 (#18) rather than `main`, matching the rest of the chain.
 
 ---

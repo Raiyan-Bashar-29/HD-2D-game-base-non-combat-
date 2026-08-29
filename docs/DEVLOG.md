@@ -155,6 +155,16 @@ costs nothing to name — only the line that reads it.
   the sound every step in that area makes. Stated rather than hidden, and the same price
   `Equipment` pays for an item id.
 
+**CI green, run 33266184919, job logs read rather than the tick** (gotcha 26 — the run listing lags
+and the tick is not the evidence). Full checkout: **1355 passed, 0 failed, 0 skipped**. Stripped
+template: **1287 passed, 0 failed, 19 skipped** — the same 19 skips as before, because
+`character_depth_test.gd` names no demo content and therefore runs in full against a stripped
+checkout, which is the point of building both surfaces out of `fixture_` names. All three checkers
+PASS in both jobs.
+
+**Commit `da126d9` on `claude/wp-09b-attributes`, PR #19**, stacked onto `claude/wp-11-worldmap`
+(#18) rather than `main`, matching the rest of the chain.
+
 
 ## 2026-08-29 — WP-11 · World map and fast travel
 

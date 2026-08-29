@@ -4,7 +4,7 @@ A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has t
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
 **Last updated:** 2026-08-29 · **WP-09b (attributes and surface-aware footsteps) complete —
-`PENDING`, PR #19. Fourth package of Phase T3, and the last row holding TWO systems with no
+`da126d9`, PR #19. Fourth package of Phase T3, and the last row holding TWO systems with no
 implementation at all.** An attribute is the flag `attr/<who>/<name>`, an integer number of steps
 clamped to ±4 — the **fifth** use of namespace-over-`Flags` — and it ships with EXACTLY ONE
 consumer, `PlayerController.current_speed()`, with the attribute's name declared as a const on that

@@ -111,16 +111,24 @@ jobs:
 
       # === RUNG 3 - BOOT.
       # Asserts the LAST `Session ended` line reports a clean session, which is what a human
-      # reads. On that line and not the whole log, on purpose: quitting mid-load aborts the
-      # threaded area loader and prints spurious `Parse Error` lines AFTER the run has already
-      # reported cleanly (gotcha 13), so a whole-log grep here would be a flake generator. The
-      # compile check is rung 2 and is not repeated.
+      # reads, AND that the log carries no `Parse Error` at all.
       #
-      # FRAME COUNT: 300, not the 120 used locally. `--quit-after` counts FRAMES, and the area
-      # load is threaded - 30 frames provably does not finish it, 120 does on a developer
-      # machine, and a shared runner has no reason to be handed a tighter margin than it needs.
-      # A headless frame costs milliseconds, so the margin is nearly free; racing a threaded
-      # load is not.
+      # THE SECOND HALF IS NEW IN WP-14, AND IT IS THE POINT OF THAT ROW. This rung used to read
+      # only the last line, and the comment here said why: quitting mid-load tore down the
+      # threaded area loader inside the text parser, which printed `Parse Error` for files that
+      # parse perfectly, so "a whole-log grep here would be a flake generator" (gotcha 13). That
+      # was true, and it meant a real defect had bought itself a permanently weakened gate -
+      # the one grep the project treats as its compile check, disabled on the boot rung because
+      # the engine lied on the way out. `Director._exit_tree()` now drains its own loader
+      # thread, so the grep is safe and is therefore switched on. Rung 2 keeps the same grep
+      # over `--import`; this is not a duplicate, because a mid-shutdown parse error is a thing
+      # only a RUN can produce.
+      #
+      # FRAME COUNT: still 300, and deliberately not reduced. The old comment justified the
+      # margin by the threaded load, which is now both fixed and beside the point - gotcha 31
+      # says a plain boot never enters an area at all, so it was never racing a load. The margin
+      # is kept for the reason that does apply: a headless frame costs milliseconds, and a rung
+      # that quits before the boot has finished would report clean about work it never did.
       - name: Rung 3 - boot, 0 warnings 0 errors
         run: |
           # Status captured via `||` for the same errexit reason as rung 2: a boot that dies must
@@ -142,6 +150,16 @@ jobs:
           esac
           if [ "${status}" -ne 0 ]; then
             echo "::error::The boot reported a clean session and then exited ${status}."
+            exit 1
+          fi
+          # The half WP-14 switched on. Counted rather than grepped for a message, so the number
+          # appears in the log even when it is zero - a gate whose output is silence on success
+          # is a gate nobody can tell is running.
+          parse_errors="$(grep -c 'Parse Error' boot.log || true)"
+          echo "Parse Error lines in boot.log: ${parse_errors}"
+          if [ "${parse_errors}" -ne 0 ]; then
+            echo "::error::The boot printed ${parse_errors} Parse Error line(s)."
+            grep -n 'Parse Error' boot.log
             exit 1
           fi
 
@@ -183,6 +201,13 @@ jobs:
 
       - name: Rung 7 - check_boundary
         run: godot --headless --script tools/check_boundary.gd
+
+      # RUNG 8, added by WP-14. Not a duplicate of rung 6: check_content validates the keys
+      # AUTHORED in .tres content, and nothing checked the ~70 `*_KEY` consts declared in code
+      # until now. A typo in one renders the raw key on screen, and that was measured to pass
+      # check_content, check_boundary AND all 1,517 assertions of the day.
+      - name: Rung 8 - check_strings
+        run: godot --headless --script tools/check_strings.gd
 
       # A failing rung prints its own tail, but the full logs are what a diagnosis needs, and
       # the interesting ones are exactly the runs that failed. Hence `always()`.
@@ -292,6 +317,13 @@ jobs:
 
       - name: Rung 7 - check_boundary
         run: godot --headless --script tools/check_boundary.gd
+
+      # Rung 8 runs here too, and it is the interesting half: the sink rule and the key rule are
+      # both about `src/` and `localization/`, neither of which the strip touches, so a stripped
+      # template must report exactly the same numbers. If it ever does not, an engine string has
+      # come to depend on a game being present.
+      - name: Rung 8 - check_strings
+        run: godot --headless --script tools/check_strings.gd
 
       - name: Keep the logs
         if: always()

@@ -208,8 +208,19 @@ Good intentions did not work last time. These are mechanical:
    category of runtime surprise.
 2. **Line budgets,** counted in CODE lines so documentation is never penalised: 250 per
    script, 150 for an autoload, 40 per function, 60 for the game root. Enforced by
-   `tools/check_budgets.gd`, which exits 1 on violation. Currently 23 files, 1,890 code
-   lines, 0 violations. It also bans `print()` outside the logger and the tools.
+   `tools/check_budgets.gd`, which exits 1 on violation. It also bans `print()` outside the
+   logger and the tools.
+
+   **A per-file override may be RAISED, and WP-14 raised one — the first time, so the reasoning
+   is recorded here rather than left in a diff.** `director.gd` went from 180 to 190 when it
+   gained the shutdown drain for its own threaded loader. The checker offers two remedies,
+   "split the file, or justify a new budget", and the split was the wrong one: the drain has to
+   sit with the code that owns the loader thread, and `Director`'s whole header is an argument
+   for *one owner, one guarded path* — carving up the project's single transition path to save
+   seven lines would trade real safety for a number. The distinction that makes this legitimate
+   rather than a slippery slope is that **190 is not above the 250 default; it is a
+   self-imposed tightening being relaxed 60 lines short of it.** Going over 250 still means
+   split.
 3. **A stated `MUST NOT` in every file header.** Every script says what it is forbidden to
    know. When a change requires violating it, that is the signal to add a new system instead.
 4. **The verification ladder,** below. Nothing is "done" until the engine has run it.
@@ -222,9 +233,13 @@ Every rung is proven working on this machine. Nothing here is aspirational.
 |---|---|---|
 | 1. Parse and type gate | `--headless --check-only --script <file>` | Type errors, unknown functions, with file and line |
 | 2. Import gate | `--headless --import` | Broken scenes, resources, asset references |
-| 3. Headless run | `--headless --quit-after 120` | Boot order, null references, real `_process` frames |
-| 4. Tests | `--headless res://tests/test_runner.tscn --quit-after 300` | Logic, save round-trips. 555 assertions, exit 1 on failure |
-| 5. Visual capture | `--quit-after 55 -- --shot=<path> --time=HH:MM` | The actual look, at any hour, on demand |
+| 3. Headless run | `--headless --quit-after 30` | Boot order, null references, real `_process` frames |
+| 4. Tests | `--headless res://tests/test_runner.tscn --quit-after 400` | Logic, save round-trips. 1,543 assertions, exit 1 on failure |
+| 5. check_budgets | `--headless --script tools/check_budgets.gd` | File and function line budgets, stray `print()` |
+| 6. check_content | `--headless --script tools/check_content.gd` | Broken items, duplicate object ids, missing CSV keys, a missing `[editable]` |
+| 7. check_boundary | `--headless --script tools/check_boundary.gd` | Any demo name in a code line under `src/` or `tests/` |
+| 8. check_strings | `--headless --script tools/check_strings.gd` | A literal reaching a text sink, a `*_KEY` const with no CSV row |
+| 9. Visual capture | `--quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=HH:MM` | The actual look, at any hour, on demand |
 
 **Rung 1 gotcha:** autoload identifiers such as `Log` do not resolve under `--check-only`,
 because a standalone script check does not create them. Filter
@@ -236,7 +251,7 @@ compile (`Compile Error: Identifier not found: Log`), so no test touching a syst
 that way. Also: anything created with `.new()` and not freed prints a wall of
 `RID allocations were leaked at exit`, which drowns real errors.
 
-**Rung 5 is the important one.** `--headless` uses a dummy rasteriser and shades nothing, so
+**Rung 9 is the important one.** `--headless` uses a dummy rasteriser and shades nothing, so
 visual work needs a real window. `DevCapture` makes that repeatable: it forces the clock and
 the weather from the command line and writes the viewport to a PNG. This is what closes the
 "multi-resolution HD-2D presentation cannot be verified" item that the previous project could
@@ -271,8 +286,11 @@ never resolve.
 - **The UI theme sets no `Button` styleboxes,** so a menu row draws Godot's default dark panel.
   Invisible against the shipped dark palette and immediately wrong against a light one. The seam
   is right and unpopulated — see [`ART_CONTRACT.md`](ART_CONTRACT.md).
-- **`Director` does not cancel its threaded load on shutdown**, which is why the boot rung needs
-  `--quit-after 120` rather than 30. Deferred to WP-14.
+- **`Director` drains its threaded load on shutdown as of WP-14**, so a run killed mid-load no
+  longer prints `Parse Error` for files that parse perfectly. There is no `load_threaded_cancel` in
+  4.7, so the fix is a blocking `load_threaded_get()` in `_exit_tree()` — measured at 118-197ms,
+  paid once. The boot rung's frame count was never really about this (gotcha 31: a plain boot loads
+  no area); the gate it was really costing was CI's rung 3, which now greps its whole log.
 - **A quest step CAN read an item count, and a completed quest still hands nothing over.** Closed
   by T3.3, and the shape is worth knowing because it is the general answer whenever a lower layer
   holds something an upper one needs to observe: rather than a `systems` tracker reading a

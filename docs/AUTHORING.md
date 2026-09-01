@@ -1006,11 +1006,12 @@ Run all of them. In this order, because a later one assumes the earlier passed.
 ```bash
 G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe
 "$G" --headless --import                                     # grep for SCRIPT ERROR / Parse Error
-"$G" --headless --quit-after 120                             # must end "0 warnings, 0 errors"
+"$G" --headless --quit-after 30                              # must end "0 warnings, 0 errors"
 "$G" --headless res://tests/test_runner.tscn --quit-after 400
 "$G" --headless --script tools/check_content.gd
 "$G" --headless --script tools/check_boundary.gd
 "$G" --headless --script tools/check_budgets.gd
+"$G" --headless --script tools/check_strings.gd
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=shot.png --shot-frame=70 \
      --time=12:00 --freeze-time
 ```
@@ -1027,7 +1028,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 
 ### Nothing above ever enters your area, and that surprises everyone once
 
-**A plain run stops at the main menu.** `--headless --quit-after 120` boots, reports
+**A plain run stops at the main menu.** `--headless --quit-after 30` boots, reports
 `0 warnings, 0 errors` and never loads an area, so it cannot tell you that your `area_id` is
 wrong, that your navmesh baked empty, or that your NPC has no schedule. Neither can a `--shot`
 on its own: the PNG is the title screen.

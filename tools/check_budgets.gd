@@ -32,7 +32,12 @@ const OVERRIDES: Dictionary = {
 	"res://src/systems/world_clock/clock.gd": 150,
 	"res://src/systems/weather/weather.gd": 150,
 	"res://src/systems/audio/audio_director.gd": 150,
-	"res://src/systems/scene_director/director.gd": 180,
+	## Raised from 180 to 190 by WP-14, deliberately and with the reasoning in
+	## docs/ARCHITECTURE.md § Line budgets: Director gained the shutdown drain for its own
+	## loader thread, which is inside its stated OWNS and cannot live anywhere else, and
+	## splitting the project's one guarded transition path to save seven lines would trade
+	## real safety for a number. Still 60 under the 250 default.
+	"res://src/systems/scene_director/director.gd": 190,
 }
 
 ## print() is the logger's job everywhere except: the tools and tests, which run before the

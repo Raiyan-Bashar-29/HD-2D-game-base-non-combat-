@@ -13,7 +13,7 @@ situation; [`docs/TEMPLATE.md`](docs/TEMPLATE.md) is the framing both assume.
 | starting any session | `docs/CONTEXT.md`, then your package on the board |
 | confused about what this project IS | `docs/TEMPLATE.md` |
 | picking the next package | `docs/WORK_PACKAGES.md` (the board) and `docs/ROADMAP.md` |
-| surprised by the engine | the gotcha list in `docs/CONTEXT.md` — forty, each cost an hour |
+| surprised by the engine | the gotcha list in `docs/CONTEXT.md` — forty-two, each cost an hour |
 | wondering why a file is shaped that way | its own `##` header first, then `docs/ARCHITECTURE.md` and `docs/decisions/` |
 | about to write a player-facing string | `localization/strings.csv`, and quote any value containing a comma |
 | starting a new game on this base | `docs/NEW_GAME.md` |
@@ -65,7 +65,8 @@ memory; 4.7 is newer than most training data. Module classes (`GridMap`, `CSGBox
 3. **No player-facing string literals.** Localization keys from the first line.
 4. **Respect the `MUST NOT` line** in every file header. When a change needs it broken, add a
    system instead of widening the boundary.
-5. **Run `tools/check_budgets.gd` before finishing.** It must exit 0.
+5. **Run all four checkers before finishing** — `tools/check_budgets.gd`, `check_content.gd`,
+   `check_boundary.gd`, `check_strings.gd`. Each must exit 0.
 6. **Append to `docs/DEVLOG.md`** every session: did, why, connects, verified, unblocks, gaps.
 7. **Indentation is tabs.** Author with spaces, then `unexpand -t 4 --first-only`.
 
@@ -79,11 +80,12 @@ fails to parse and the autoloads never load.
 G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe
 "$G" --headless --check-only --script <file>   # type gate; filter "Identifier not found: <Autoload>"
 "$G" --headless --import                       # scenes and resources
-"$G" --headless --quit-after 120               # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,517 assertions, exit 1 on fail
+"$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,543 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd
 "$G" --headless --script tools/check_content.gd    # ids, duplicate object_ids, CSV keys
 "$G" --headless --script tools/check_boundary.gd   # no file under src/ or tests/ names demo content
+"$G" --headless --script tools/check_strings.gd    # no player-facing literal; every *_KEY exists
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
@@ -130,7 +132,7 @@ same reasoning as the file budgets: a package that outgrows one chat gets half-f
 | You want to | Read |
 |---|---|
 | know what to work on now | [`docs/WORK_PACKAGES.md`](docs/WORK_PACKAGES.md) — the board |
-| know where things stand | [`docs/CONTEXT.md`](docs/CONTEXT.md) — state, settled decisions, forty gotchas |
+| know where things stand | [`docs/CONTEXT.md`](docs/CONTEXT.md) — state, settled decisions, forty-two gotchas |
 | understand why this is a template and not a game | [`docs/TEMPLATE.md`](docs/TEMPLATE.md) |
 | **add an area, an NPC, a conversation, an item, an object, a quest, equipment, a place on the world map** | **[`docs/AUTHORING.md`](docs/AUTHORING.md)** |
 | **make art that drops into this** | **[`docs/ART_CONTRACT.md`](docs/ART_CONTRACT.md)** |

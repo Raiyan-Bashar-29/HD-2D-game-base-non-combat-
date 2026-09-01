@@ -47,6 +47,9 @@ var _pending_area: StringName = &""
 var _position_override: Variant = null
 ## Same, for facing. Saved since the first commit but never applied until now.
 var _yaw_override: Variant = null
+## The path of a threaded load in flight, empty when there is none. Read only by _exit_tree(),
+## which has to know whether a loader thread is still owed a wait.
+var _in_flight: String = ""
 
 
 func _ready() -> void:
@@ -195,13 +198,23 @@ func _warm_up() -> void:
 
 
 ## Threaded load so a large area does not freeze the frame behind the fade.
+##
+## `_in_flight` is set and cleared HERE and nowhere else, so the invariant reads off one place
+## rather than one per exit path: _await_load() may return however it likes and the flag still
+## tells _exit_tree() the truth.
 func _load_area_scene(area_id: StringName) -> PackedScene:
 	var path: String = area_path(area_id)
 	var request: Error = ResourceLoader.load_threaded_request(path)
 	if request != OK:
 		Log.error("world", "Load request for %s failed: %s" % [path, error_string(request)])
 		return null
+	_in_flight = path
+	var scene: PackedScene = await _await_load(area_id, path)
+	_in_flight = ""
+	return scene
 
+
+func _await_load(area_id: StringName, path: String) -> PackedScene:
 	while true:
 		var progress: Array = []
 		var status: ResourceLoader.ThreadLoadStatus = ResourceLoader.load_threaded_get_status(path, progress)
@@ -291,3 +304,32 @@ func _apply_save(data: Dictionary, _from_version: int) -> void:
 		_position_override = DictRead.get_vector3(data, "player_position")
 		_yaw_override = DictRead.get_float(data, "player_yaw", 0.0)
 	Events.area_change_requested.emit(area_id, &"")
+
+
+## WAIT FOR A LOADER THREAD BEFORE THE PROCESS TEARS DOWN.
+##
+## Quitting while a threaded load is in flight kills the loader thread inside the text parser,
+## and the parser then prints `Parse Error` for files that parse perfectly — plus leaked RIDs
+## and leaked ObjectDB instances — AFTER the run has already reported `0 warnings, 0 errors`.
+## That is gotcha 22 with the polarity REVERSED: not an error the boot rung cannot see, but a
+## FALSE error poisoning the `Parse Error` grep over `--headless --import` that rung 2 uses as
+## the project's one real compile check. A gate that reports failures which are not there is
+## worth as little as one that misses failures which are, and this one lied about the most
+## load-bearing check on the ladder — which is why CI's rung 3 had to read only the last line
+## of its log instead of the whole thing.
+##
+## THERE IS NO CANCEL, and that is checked rather than assumed: `--doctool` gives ResourceLoader
+## load_threaded_request, load_threaded_get_status and load_threaded_get, and nothing that
+## abandons a request. So the only clean end is to WAIT. load_threaded_get() BLOCKS until the
+## loader thread finishes — undocumented in the dump, so measured: 118-197ms for the demo's
+## larger area, paid once, on the way out.
+##
+## EXIT_TREE and not a quit handler, measured the same way: on `--headless --quit-after` with a
+## load in flight this node receives NOTIFICATION_EXIT_TREE *before* the session's own closing
+## log line, NOTIFICATION_PREDELETE after it, and NOTIFICATION_WM_CLOSE_REQUEST never — headless
+## has no window whose closing could be requested.
+func _exit_tree() -> void:
+	if _in_flight == "":
+		return
+	ResourceLoader.load_threaded_get(_in_flight)
+	_in_flight = ""

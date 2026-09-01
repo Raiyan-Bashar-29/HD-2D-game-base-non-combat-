@@ -125,10 +125,11 @@ engine.
 ```bash
 G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe
 "$G" --headless --import                                   # FIRST, always — class_name cache
-"$G" --headless --quit-after 120                           # must end "0 warnings, 0 errors"
+"$G" --headless --quit-after 30                            # must end "0 warnings, 0 errors"
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
+"$G" --headless --script tools/check_strings.gd            # must exit 0
 "$G" --headless res://tests/test_runner.tscn --quit-after 400
 ```
 
@@ -177,7 +178,7 @@ Rename `export_path` and the `application/*` fields; leave `export_filter` alone
 ```bash
 G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe
 "$G" --headless --export-debug "Windows Desktop" "$(pwd -W)/build/windows/game.exe"
-cd build/windows && ./game.console.exe --headless --quit-after 120
+cd build/windows && ./game.console.exe --headless --quit-after 30
 ```
 
 **Use `--export-debug`, and read the `[content]` lines.** `src/systems/debug/catalogue_report.gd`

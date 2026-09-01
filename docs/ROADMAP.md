@@ -46,8 +46,8 @@ Done:
 - Weather state affecting sun and fog, verified under a forced storm
 - The courtyard: ground, pillars, walls, a dais, two lanterns, spawn markers
 
-Remaining:
-- Hard-coded-string audit (the budget and content checkers are DONE and passing)
+Remaining: nothing — the last item, the hard-coded-string audit, shipped as `tools/check_strings.gd`
+in WP-14 (2026-09-01).
 
 Also done, ahead of Phase 2 because every screen needs it first:
 - Screen stack, pause semantics and input contexts (WP-02) - a screen declares whether it
@@ -343,6 +343,34 @@ item", and a blocking item scheduled last is a contradiction. Sequenced by risk,
   47 new assertions, six gates each proved red with the real violation then green — one of which
   exposed a defect in the test itself — and six windowed captures LOOKED AT and READ. See the
   board.
+
+- **WP-14 Dev tools and hardening — DONE as the HARDENING half, 2026-09-01.** The phase's eighth
+  package, and the first row to be both RE-FRAMED and SPLIT in the commit that took it. The row
+  asked for "a smoke test that drives **the whole demo**", which would have welded the courtyard,
+  the keeper and the rose key into a permanent ladder gate — the coupling `check_boundary` exists to
+  prevent, arriving through the back door of a test, and the welding T1.3 spent a package undoing.
+  `smoke_test.gd` drives *a* game from `tests/framework/fixtures.gd`, names no content, and skips
+  its one game-shaped block, counted, in a stripped checkout; and because `TestCase.run()` is
+  synchronous it is the CHAIN rather than a playthrough — a run begins, a flag starts a quest, items
+  publish their counts, an objective notices, something goes in hand, time skips, and the session is
+  saved, wiped and restored. The row also named four things, over the size limit, so its own title
+  was the seam: the two gates shipped and the two UI surfaces became **WP-14b**. **`Director` now
+  drains its loader thread on shutdown**, and the interesting part is what the defect had been
+  costing: quitting mid-load printed `Parse Error` for files that parse perfectly, so CI's boot rung
+  had been written to read only its last line, with a comment saying a whole-log grep "would be a
+  flake generator" — a live defect had bought itself a hole in the project's own compile check. No
+  `load_threaded_cancel` exists in 4.7, so the fix waits, measured at 118-197ms, and **rung 3 now
+  greps the whole log**. Gotcha 13's stated reason for the boot timeout turned out to be stale
+  rather than merely incomplete (gotcha 31: a plain boot enters no area), and 30 frames was measured
+  to produce a byte-identical log to 120. **A fourth checker, `check_strings.gd`**, is the
+  hard-coded-string audit — deliberately not the literal-classifier `check_content.gd` refused in
+  writing, but a **sink** rule and a **declaration** rule, because whatever reaches `.text` is
+  player-facing by construction. Its second half closed a hole that was measurably live: with one
+  transposed character planted in a toast key, `check_content`, `check_boundary` and all **1,517
+  assertions passed**. 26 new assertions, three gates proved red with the real violation then green
+  — **and one of those plants exposed a defect in the new test rather than in the code** (gotcha 42),
+  a comment claiming an assertion covered save-participant order when the assertion stayed green
+  with the invariant deleted. See the board.
 
 Exit criteria:
 - [ ] Every system has one proof, and no system has a second area's worth of content

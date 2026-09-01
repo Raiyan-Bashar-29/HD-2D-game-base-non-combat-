@@ -3,10 +3,59 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-01 · **T3.2 (the five art-contract seams T2.1 left) complete — `d20fbc1`,
-PR #22. Seventh package of Phase T3 and the LAST of its T-numbered rows — the phase itself
-stays open on WP-14.** Four seams built, one refused in writing, and **the row's real deliverable
-was neither**: these five had spent six packages being described in `CONTEXT.md`, `ROADMAP.md`,
+**Last updated:** 2026-09-01 · **WP-14 (dev tools and hardening) complete as the HARDENING half —
+`<pending>`, PR #23. The eighth package of Phase T3, and the row was RE-FRAMED and SPLIT in the
+same commit that took it.**
+
+**The re-framing.** WP-14 asked for "a smoke test that drives **the whole demo**", which would
+have welded the courtyard, the keeper and the rose key into a permanent gate — the exact coupling
+`tools/check_boundary.gd` exists to prevent, arriving through the back door of a test, and the
+welding T1.3 had already spent a package undoing. The smoke test drives **a** game, built from
+`tests/framework/fixtures.gd`, names no content, and skips its one game-shaped block loudly in a
+stripped checkout. The board row now says so.
+
+**The split.** The row named four things — a debug console, a performance overlay, the smoke test
+and the string audit — which is over the 8-file/500-line limit, so the row's own title was the
+seam: **hardening** shipped here, **dev tools** are the new **WP-14b** row. Splitting was chosen
+over half-finishing four things, which is what the size limit exists to prevent.
+
+**`Director` no longer leaves its loader thread to be killed**, and the payoff was not the one the
+row predicted. The defect is real and was reproduced at five frame counts: quitting mid-load tore
+the loader thread down inside the text parser, which printed **`Parse Error` for files that parse
+perfectly**, plus leaked RIDs and ObjectDB instances, *after* `0 warnings, 0 errors` had already
+been reported — **gotcha 22 with the polarity reversed**, a FALSE error poisoning the one grep the
+project treats as its compile check. Its real cost was a permanently weakened gate: CI's boot rung
+read only the last line of its log, with a comment saying a whole-log grep "would be a flake
+generator". `Director._exit_tree()` now drains the load — there is no `load_threaded_cancel` in
+4.7 (checked against `--doctool`) and `load_threaded_get()` blocks (measured, 118-197ms, paid once
+on the way out) — so **CI's rung 3 now greps the whole log**, which is a stronger gate rather than
+a faster one. The row also predicted the fix would let the boot rung's timeout drop; it does, but
+**not for the stated reason, and that is said out loud**: gotcha 13 claimed 120 frames were needed
+because the boot raced a threaded load, and gotcha 31 says a plain boot never enters an area at
+all. Measured: 30 frames and 120 produce byte-identical logs. Gotcha 13 was stale, not just
+incomplete, and is rewritten.
+
+**A fourth checker, and it closes a hole every other gate was blind to.** `tools/check_strings.gd`
+is the hard-coded-string audit — deliberately *not* the general one `check_content.gd` refused in
+writing, because that refusal is correct: a literal cannot be classified by looking at it. So both
+checks are anchored at a **sink** or a **declaration** instead. One: the right-hand side of a
+`.text`/`.tooltip_text`/`.placeholder_text`/`.title` assignment either passes through `tr()` or
+holds no literal at all. Two, and this is the half with teeth: every `*_KEY` const under `src/`
+names a real CSV row. **71 of them, and nothing had ever checked one** — `check_content` validates
+keys authored in `.tres`, and `items_test.gd`'s enum loop covers the two computed families. A typo
+in one renders the raw key on screen, and that was **measured**: with `notify.item_takne` planted,
+`check_content` PASSED, `check_boundary` PASSED and all **1,517 assertions PASSED**. That is this
+project's founding failure mode, still live, found by building the gate that looks for it.
+
+**And the planting caught a defect in the new test rather than in the code** — T3.2's lesson
+arriving on schedule. The smoke test's save/load block claimed to assert the save-participant
+ORDER; deleting `Inventory`'s `game_loaded` republish, the real way that invariant would be lost,
+left the assertion GREEN, because the wipe above happens to let `_apply_save` publish for itself.
+The comment now states the weaker claim, which is the true one, and points at
+`item_count_test.gd`, which went red on that same plant.
+
+*(Previously: T3.2, the five art-contract seams T2.1 left — `d20fbc1`, PR #22. Four seams built,
+one refused in writing, and **the row's real deliverable was neither**: these five had spent six packages being described in `CONTEXT.md`, `ROADMAP.md`,
 `WORK_PACKAGES.md`, `ARCHITECTURE.md` and `ART_CONTRACT.md`, and a backlog item mentioned in five
 places is tracked zero times and described five times. **The CURRENT STATE of each — the thing a
 reader acts on — is now in exactly one document, `ART_CONTRACT.md`**, and the four stale claims are
@@ -32,8 +81,7 @@ for the first time: the template cannot verify the change it would be making. 47
 six gates each proved red with the real violation then green — **one of which exposed a defect in
 the test itself** (gotcha 40: `WeatherVisuals` also exports `height_offset`, so a whole-file scan
 passed with the framing deleted) — and six windowed captures LOOKED AT and READ.
-
-*(Previously: T3.3, a quest step that reads an ITEM COUNT — `292dd44`, PR #21. `Inventory`
+Before that: T3.3, a quest step that reads an ITEM COUNT — `292dd44`, PR #21. `Inventory`
 publishes each count as `bag/<carrier_id>/<item id>` — the SIXTH namespace over `Flags` and the
 first whose value is a number — so a step is `AT_LEAST 3` on that key, `QuestStep` gained no field
 and `QuestTracker` gained no knowledge, and **the dependency points DOWN from `gameplay` to `core`
@@ -77,10 +125,11 @@ branched from T2.1; WP-08 is on **`claude/wp-08-quests`**, branched from T2.2; W
 **`claude/wp-09-character`**, branched from WP-08; WP-11 is on **`claude/wp-11-worldmap`**,
 branched from WP-09; WP-09b is on **`claude/wp-09b-attributes`**, branched from WP-11; T3.1 is on
 **`claude/t3-1-registry`**, branched from WP-09b; T3.3 is on **`claude/t3-3-item-count`**, branched from T3.1; T3.2 is on
-**`claude/t3-2-art-seams`**, branched from T3.3. The earlier PRs are superseded.
+**`claude/t3-2-art-seams`**, branched from T3.3; WP-14 is on **`claude/wp-14-hardening`**,
+branched from T3.2. The earlier PRs are superseded.
 
-**Branch new work from `claude/t3-2-art-seams`**, or from `main` once #10, #11, T1.2-T1.4,
-T2.0, T2.1, T2.2, WP-08, WP-09, WP-11, WP-09b, T3.1, T3.3 and T3.2 have landed. The older
+**Branch new work from `claude/wp-14-hardening`**, or from `main` once #10, #11, T1.2-T1.4,
+T2.0, T2.1, T2.2, WP-08, WP-09, WP-11, WP-09b, T3.1, T3.3, T3.2 and WP-14 have landed. The older
 per-package branches (`claude/wp-04-second-area`, `claude/wp-05-dialogue`, `claude/wp-06-npcs`,
 `claude/wp-07-path-actions`, `claude/wp-12-menus`, `claude/wp-13-presentation`) are history and
 should not be built on.
@@ -100,23 +149,29 @@ game built on this will need, so a new game is content and data rather than new 
 ## Where it stands
 
 Phase 0 complete, Phase 1 COMPLETE, Phase 2 well under way, **Phase T1 COMPLETE, Phase T2
-COMPLETE as of T2.2, and Phase T3 OPEN with WP-08, WP-09, WP-11, WP-09b, T3.1, T3.3 and T3.2 done
--- every T-numbered row of T3 is closed and WP-14 is what keeps the phase open.**
-128 files, 11,119 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
+COMPLETE as of T2.2, and Phase T3 OPEN with WP-08, WP-09, WP-11, WP-09b, T3.1, T3.3, T3.2 and
+WP-14 done. Every T-numbered row of T3 is closed, WP-14's hardening half is closed, and what
+keeps the phase open is now WP-14b (dev tools) — the half WP-14 split off rather than
+half-finish.**
+130 files, 11,338 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
 three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
 3 tagged surfaces, 1 shared area material.
-Boots headless with **0 warnings, 0 errors**.
+Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 
 **Works, and verified by running it:** logging with rotation · signal registry (`events.gd`) ·
 input actions · settings · save/load with atomic writes and versioning · plot flags · area
 director with a re-entrancy guard and threaded loading · world clock · weather state · audio
 buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 8-way character ·
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
-placeholder art generator · line-budget checker · a headless test suite (1,517 assertions) that
+placeholder art generator · line-budget checker · a headless test suite (1,543 assertions) that
 builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
 returns early, asserts nothing, or is not listed in the runner ·
 an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
-**CI that runs six of the seven rungs on every push, PR and manual dispatch**, in two jobs (full
+a LOCALIZATION gate that fails on a literal reaching a text sink and on any `*_KEY` const with no
+CSV row — the second half proved to catch what nothing else could, since a planted typo passed
+`check_content`, `check_boundary` and 1,517 assertions ·
+a SMOKE TEST that drives a session end to end from fixtures and asserts it logged nothing ·
+**CI that runs seven of the eight rungs on every push, PR and manual dispatch**, in two jobs (full
 checkout and a stripped template), on a downloaded engine whose SHA512 and build string are both
 verified — proved red on a broken assertion and green again ·
 interaction sensor with ranking and Tab-cycling · Interactable contract · localized prompt and
@@ -204,7 +259,9 @@ T3.2 settled by MEASURING instead. Six windowed captures LOOKED AT and READ, eac
 one edit to one file, and six gates proved red with the real violation — one of which was the test
 itself, passing while the thing it checked was deleted.
 
-**Not built:** hard-coded-string audit · item instances (durability) ·
+**Not built:** **an in-game debug console and a performance overlay — this is WP-14b**, the half
+WP-14 split off rather than half-finish; both are UI surfaces needing a screen, an action binding,
+localization keys and a windowed capture each, and neither is a gate · item instances (durability) ·
 footstep PARTICLES, and a second attribute with a consumer — naming one is free, reading one is a
 line of engine code ·
 an equipment SCREEN, a character sheet, and no attribute gates an interaction ·
@@ -398,6 +455,21 @@ three compiled cleanly and passed every static gate:**
 - **Input actions live in code** (`src/systems/input/actions.gd`), so the editor's Input Map
   panel looks empty. Intentional — ADR-0003.
 - **Ten autoloads, no `GameManager`.** Adding one requires an ADR.
+- **THE STRING AUDIT CHECKS SINKS AND DECLARATIONS, NEVER LITERALS.** `check_content.gd` refused a
+  general hard-coded-string audit in writing, and that refusal is right: nothing in a line of text
+  says whether `"world"` is a log category, a flag namespace or a sentence for a player, and a
+  partial tool that looks complete is how 409 passing checks happened. `check_strings.gd` (WP-14)
+  therefore never inspects a literal and guesses. It asks two questions with mechanical answers —
+  does the right-hand side of a **text sink** go through `tr()`, and does every `*_KEY` **const**
+  name a real CSV row — because whatever reaches `.text` is player-facing by construction whatever
+  it contains. Do not "improve" it into a literal classifier; that is the tool `check_content.gd`
+  turned down, and its header says why.
+- **A SMOKE TEST DRIVES A GAME, NOT THE DEMO.** WP-14's row said "the whole demo" and was re-framed
+  in the commit that took it. `tests/unit/smoke_test.gd` composes the session from
+  `tests/framework/fixtures.gd`, and its one game-shaped block asserts only that
+  `GameConfig.first_area()` RESOLVES — never what it is called — and skips, counted, in a stripped
+  checkout. The rule is TESTING.md's and `check_boundary` enforces it over `tests/unit/`; a smoke
+  test is not an exception to it just because "end to end" sounds like it should name real places.
 - **ONE content scan, five typed façades — and the base is on the RESOURCE, not the registry.**
   `ContentScan.into()` is the only scan-and-validate in the project; `ContentEntry` is the base
   every catalogued `.tres` extends. Each registry keeps its own `content_dir`, its own typed
@@ -857,15 +929,16 @@ lagged by as much as 25 minutes.
 G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
-"$G" --headless --quit-after 120               # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,517 assertions, exit 1 on fail
+"$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,543 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content
+"$G" --headless --script tools/check_strings.gd            # must exit 0 — no player-facing literal, every *_KEY exists
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Forty gotchas that each cost an hour
+## Forty-two gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -904,11 +977,28 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     SCREEN or the curtain does not cover them. It was the first child until WP-02. Since WP-04
     exactly one node sits after it, `LoadingIndicator`, which has to be readable while the
     curtain is up — that is the only deliberate exception and there should not be a second.
-13. **Use `--quit-after 120` for the boot rung, not 30.** The area load is threaded, and 30
-    frames does not reliably finish it on a cold cache — quitting mid-load aborts the loader
-    thread and prints spurious `Parse Error` lines for `courtyard.tscn` plus leaked RIDs,
-    *after* the run has already reported `0 warnings, 0 errors`. Pre-existing and reproducible
-    at any commit; the real fix is for `Director` to cancel its load on shutdown (WP-14).
+13. **A RUN THAT QUITS MID-LOAD USED TO PRINT `Parse Error` FOR FILES THAT PARSE PERFECTLY, AND
+    THAT IS FIXED — but the shape is worth keeping, because it is the only case in this project
+    where the engine reported a failure that was not there.** Killing the process while a
+    threaded load is in flight tore the loader thread down inside the text parser, which then
+    printed `Parse Error` for `courtyard.tscn` and `wood.tres` plus leaked RIDs and leaked
+    ObjectDB instances, *after* the run had already reported `0 warnings, 0 errors`. **Gotcha 22
+    with the polarity reversed:** not an error a rung cannot see, but a FALSE error poisoning the
+    `Parse Error` grep that rung 2 uses as the project's compile check — and its real cost was
+    that CI's boot rung had to read only the last line of its log instead of grepping it, so a
+    live defect had bought itself a permanently weakened gate. Fixed in WP-14:
+    `Director._exit_tree()` drains its own loader thread, because `--doctool` confirms there is
+    no `load_threaded_cancel` and `load_threaded_get()` blocks (measured, 118-197ms, paid once
+    on the way out). CI's rung 3 now greps the whole log.
+
+    **THIS GOTCHA ALSO USED TO GIVE THE WRONG REASON FOR THE BOOT RUNG'S FRAME COUNT, and that
+    part was stale rather than fixed.** It said 120 rather than 30 because "the area load is
+    threaded and 30 frames does not finish it". Since WP-12 the boot stops at the MAIN MENU and
+    loads no area at all — gotcha 31 — so the boot rung was never racing a load, and 30 frames
+    was measured as producing a byte-identical log to 120 (29 lines, same content, both
+    `0 warnings, 0 errors`). **The local boot rung is `--quit-after 30`.** CI keeps 300 for the
+    reason that does apply: a shared runner is slower, a headless frame costs milliseconds, and
+    a rung that quits before the boot finishes would report clean about work it never did.
 14. **`x if c else [] as Array[StringName]` is a RUNTIME cast failure.** The empty literal is
     a plain `Array`, the ternary takes its type from it, and the assignment throws every time
     the condition is false. It compiles, the boot run is clean, and the test suite still
@@ -1060,7 +1150,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     check this the usual way" is a reason to find another check, not a reason to stop.**
 
 31. **NO ORDINARY RUN EVER ENTERS AN AREA, so most of the ladder is blind to area content.**
-    `--headless --quit-after 120` boots to the MAIN MENU and reports `0 warnings, 0 errors`
+    `--headless --quit-after 30` boots to the MAIN MENU and reports `0 warnings, 0 errors`
     without loading anything — it cannot see a wrong `area_id`, an empty navmesh bake, an NPC with
     no schedule or an unlit interior. Neither can a bare `--shot`: the PNG is the title screen,
     which is what the first capture in T2.2 turned out to be. **`--new-game` is what starts a
@@ -1187,6 +1277,29 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     `class_name Container`, `DictRead.get_name`, `ItemDb.reload`) moved out of GDScript and into
     scene text, and it is the sixth name collision this project has paid for.
 
+41. **A DEFECT CAN BUY ITSELF A WEAKENED GATE, AND THAT COSTS MORE THAN THE DEFECT.** The engine
+    printing false `Parse Error` lines on a mid-load shutdown (gotcha 13) was, on its own, cosmetic
+    noise after a run had already reported cleanly. Its real price was paid one level up: CI's boot
+    rung was written to grep only the LAST LINE of its log, with a comment explaining that a
+    whole-log grep "would be a flake generator" — so the project's single most load-bearing check,
+    the `Parse Error` grep that gotcha 22 exists to insist on, was switched off on that rung, on
+    purpose, correctly, for as long as the defect lived. **Nobody weakens a gate for no reason;
+    they weaken it because something real is making it lie.** So a gate carrying a comment that
+    explains why it checks less than it could is a defect report in disguise, and the fix is
+    upstream of the gate every time. WP-14 fixed the shutdown and switched the grep back on. When
+    you find a scope-limiting comment on a check, read it as a lead rather than as settled design.
+
+42. **AN ASSERTION THAT PASSES CAN STILL BE ASSERTING THE WRONG THING, AND ONLY PLANTING FINDS
+    OUT.** WP-14's smoke test carried a comment claiming its save/load block asserted the
+    save-participant ORDER — the invariant T3.3 established, that a derived count must be
+    republished on `game_loaded` because `Flags._apply_save` wipes the store from underneath it.
+    Deleting that subscription, which is exactly how the invariant would really be lost, left the
+    assertion GREEN: the test's own wipe happened to let `_apply_save` publish for itself, so the
+    ordering never came into play. The assertion was true, the comment above it was not, and no
+    failure could ever have shown the difference. This is T3.2's framing gate (gotcha 40) in a
+    second costume, and the same rule closes both: **plant the real violation even when the
+    assertion looks obvious — especially then, because the thing being tested is the test.**
+
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the
@@ -1196,21 +1309,33 @@ names the exact files that chat should read, so a session loads a few hundred li
 package never has to read upward.
 
 
-**Next package: WP-14 — dev tools and hardening.** T3.2 has closed, which was the last T-numbered
-row of Phase T3, and the phase is NOT over: WP-14 is still TODO, WP-15 has a remnant, and WP-10 is
-OPTIONAL and blocks nothing.
+**Next package: WP-14b — the dev tools WP-14 split off.** WP-14's hardening half has closed, and
+it took the last row that contained a *gate*. What is left of Phase T3 is one row of developer
+convenience, and then the phase is done.
 
-- **WP-14** is the last row with a real hole in it. **Read its wording critically before starting:**
-  it asks for "a smoke test that drives **the whole demo**", and that hard-wires the courtyard, the
-  keeper and the rose key into a permanent gate — which is the boundary `check_boundary` exists to
-  defend, arriving through the back door of a test. It should drive *a* game, built from
-  `tests/framework/fixtures.gd`, and skip loudly in a checkout with no game in it. Re-frame the row
-  in the same commit that takes it. The other known item in it is real and unglamorous: `Director`
-  does not cancel its threaded load on shutdown, which is why the boot rung needs `--quit-after 120`
-  rather than 30.
-- **WP-15** is mostly a consuming game's work; the export proof was split out into T2.0 and is done.
-  What is left of it is credits and an accessibility pass, both of which belong to a game.
+- **WP-14b — an in-game debug console and a performance overlay.** These are the half of WP-14 that
+  was split out rather than half-finished: two UI surfaces, each needing a screen under `src/ui/`,
+  an action binding in `actions.gd`, localization keys, and a windowed capture that is LOOKED AT.
+  The console's commands — teleport, set flag, set time, give item — already exist as the `--goto`,
+  `--flag`, `--time` and `--give` staging flags in `src/systems/debug/dev_stage.gd`, so **the row is
+  mostly a UI over parsing that is already written**, and the interesting question is whether the
+  console can live under `src/ui/` without naming demo content (it can: a command takes its
+  argument from the player). **Keep it behind `OS.is_debug_build()`** — that guard is the
+  precondition the `src/systems/debug/` boundary exemption rests on, and `check_boundary` checks
+  it. Two things to decide out loud rather than drift into: whether the console is a `UiScreen`
+  with `pauses_world` (it should be, so the existing pause table owns it and it does not invent a
+  second) and whether the overlay is a screen at all (it should not be — it has to be visible
+  *during* gameplay, so it is a `CanvasLayer` like the HUD).
+- **WP-15 should probably be CLOSED rather than built.** The export proof was split into T2.0 and
+  is done; what remains is credits and an accessibility pass, and both belong to a *consuming
+  game* rather than to the template — a template cannot credit a team it does not have, and an
+  accessibility pass on placeholder art with no final UI is a pass over something that will be
+  replaced. The honest move is to close the row with that reasoning, the way WP-10 was marked
+  OPTIONAL, rather than build two things for a game that does not exist yet.
 - **WP-10 (crafting) is OPTIONAL** and does not block v1.0 — a genre choice, per `TEMPLATE.md`.
+- **Then Phase T4: version and tag template v1.0, and write the upgrade note** for games already
+  forked from the base. Nothing currently describes how a game receives a later fix to the
+  template, which is the one question a *reusable* base has to answer and this one does not.
 
 **objective markers on the map** is now a listener rather than new state — `quest_advanced` has
 an emitter and `MapScreen` already redraws on facts.
@@ -1260,8 +1385,12 @@ WP-13, T3.1 and T3.3.)*
 - **The export path is PROVEN as of T2.0** — an exported `.exe` reports the same catalogue counts
   and resolved paths the editor does. What remains unproven is a RELEASE export's content, because
   the readout is behind `OS.is_debug_build()`, and every platform other than Windows.
-- **No hard-coded-string audit.** Computed keys (`verb.*`, `refusal.*`) are covered by an enum
-  loop in the test suite, but literal player-facing text in code is still caught only by review.
+- **The string audit exists as of WP-14 and is deliberately PARTIAL.** `tools/check_strings.gd`
+  checks a literal reaching a text SINK and every `*_KEY` const resolving. What it still cannot
+  see is written in its own header: a literal reaching a sink through a variable, a sink outside
+  `src/*.gd` (a `.tscn` authoring `text = "Play"`), a literal handed to `draw_string()`, and
+  whether the key `tr()` got was the RIGHT key. Computed keys (`verb.*`, `refusal.*`) are still
+  the enum loop in `items_test.gd`, which is better verification than a scan could be.
 
 ## Read next
 

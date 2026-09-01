@@ -4530,3 +4530,6 @@ Phase T3 is CLOSED. Every system has one proof.
 gained one `res://` path to resolve when these sections named
 `src/systems/debug/dev_commands.gd`. Every plant above was run before the documents were written
 and so quotes 1573; the two totals differ by that one computed assertion and nothing else.
+
+**Commit** `22e0046` on `claude/wp-14b-dev-tools`, stacked onto `claude/wp-14-hardening` (#23)
+rather than `main`, matching the chain.

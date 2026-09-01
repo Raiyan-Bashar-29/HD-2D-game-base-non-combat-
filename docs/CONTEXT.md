@@ -3,7 +3,7 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-02 · **WP-14b (dev tools) complete — `PENDING`, PR pending. The ninth
+**Last updated:** 2026-09-02 · **WP-14b (dev tools) complete — `22e0046`, PR pending. The ninth
 package of Phase T3, and the row that CLOSES the phase: every system now has one proof, and the
 last two with none were the two dev tools.**
 

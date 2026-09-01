@@ -4,7 +4,7 @@ A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has t
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
 **Last updated:** 2026-09-01 · **WP-14 (dev tools and hardening) complete as the HARDENING half —
-`<pending>`, PR #23. The eighth package of Phase T3, and the row was RE-FRAMED and SPLIT in the
+`975ff4b`, PR #23. The eighth package of Phase T3, and the row was RE-FRAMED and SPLIT in the
 same commit that took it.**
 
 **The re-framing.** WP-14 asked for "a smoke test that drives **the whole demo**", which would

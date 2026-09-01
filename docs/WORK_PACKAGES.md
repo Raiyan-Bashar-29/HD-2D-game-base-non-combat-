@@ -53,7 +53,7 @@ Headless shades nothing. This project has already shipped two bugs that every ot
 | 11 | World map and fast travel | **DONE** — `cf3f3a1`, PR #18. The third package of Phase T3, and the last system with no proof at all; see below |
 | 12 | Menus | **DONE** — taken out of order; it needed only WP-02 |
 | 13 | Presentation | **DONE** — taken out of order; see below |
-| 14 | Dev tools and hardening — **the hardening half** | **DONE (split)** — `<pending>`, PR #23. The eighth package of Phase T3; see below. The row named four things, which is over the size limit, so its own title was the seam. Its smoke-test wording was RE-FRAMED in the same commit, because "drives the whole demo" would have welded the demo into a permanent gate |
+| 14 | Dev tools and hardening — **the hardening half** | **DONE (split)** — `975ff4b`, PR #23. The eighth package of Phase T3; see below. The row named four things, which is over the size limit, so its own title was the seam. Its smoke-test wording was RE-FRAMED in the same commit, because "drives the whole demo" would have welded the demo into a permanent gate |
 | 14b | Dev tools — debug console and performance overlay | TODO — the half WP-14 split off rather than half-finish. Two UI surfaces, and the console's four commands already exist as staging flags in `dev_stage.gd`; see below |
 | 15 | Release engineering | **SPLIT, and the remnant should probably be CLOSED** — the export proof is template work and is now **T2.0**; credits and the accessibility pass belong to a consuming game. See below |
 
@@ -1238,7 +1238,7 @@ frame counts rather than by a probe.
 - **No CI export rung** and **no branch protection**, both unchanged from T2.0 and T1.4.
 - Combat is still not a thing.
 
-**Commit:** `<pending>` on `claude/wp-14-hardening`, PR #23 — stacked onto
+**Commit:** `975ff4b` on `claude/wp-14-hardening`, PR #23 — stacked onto
 `claude/t3-2-art-seams` (#22) rather than `main`, matching the rest of the chain.
 
 ---

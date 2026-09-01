@@ -796,14 +796,10 @@ already write?"** The six writers, and where each is documented:
 | opening a gate, emptying a chest | `PersistentState` — `obj/<area_id>/<object_id>/<field>` | ADR-0005 |
 | a path action succeeding | `PathAction.success_flag` | § Add an NPC, step 3 |
 | holding an item | `Equipment` — `equip/<wearer>/<item id>` | § Make an item equippable |
+| carrying N of an item | `Inventory` — `bag/<carrier>/<item id>` | § Count items in a quest step |
 
-**AN ITEM COUNT IS NOT A FLAG, and this is the one thing the design does not give you.**
-`Inventory` keeps counts, not flags, so "bring me three petals" cannot be written as a step
-today. **"Hold ONE of this" CAN be**, since WP-09 — see § Make an item equippable, whose
-`equip/<wearer>/<item>` flag is a legal step condition. For a real count the nearest working
-thing is a `Pickup` or an `ItemContainer` beside a `TriggerVolume`, or a path action gated on
-the item. A step that reads a count is a *template* change, recorded as T3.3 in
-`docs/WORK_PACKAGES.md` — do not work around it by putting a script under `src/`.
+**An item count IS a flag**, as of T3.3 — see the next section. That is the seventh writer, and it
+is the only one whose value is a *number* rather than a truth.
 
 ### The two resources
 
@@ -887,6 +883,79 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 
 ---
 
+## Count items in a quest step
+
+"Bring me three rose petals" is a step like any other. There is no new field, no `required_item`
+and nothing to wire — an `Inventory` publishes how much of each thing its carrier holds as a
+flag, and a step tests that flag with the closed set it already had:
+
+```
+bag/<carrier_id>/<item id>            bag/player/item/rose_petal -> 3
+```
+
+```
+[sub_resource type="Resource" id="step_petals"]
+script = ExtResource("2_step")
+step_id = &"petals"
+summary_key = "quest.keepers_errand.step.petals"
+condition_flag = &"bag/player/item/rose_petal"
+condition_test = 4
+condition_value = 3
+```
+
+`4` is `AT_LEAST`, so a fourth petal does not un-finish the step. `carrier_id` is an `@export` on
+the `Inventory` node — `player` for the player's bag, and a stash or an NPC satchel sets its own,
+which is why the carrier is in the key at all.
+
+**Six things to know, and the third and fourth are the ones that surprise people.**
+
+- **Only `AT_LEAST` (4) and `EQUALS` (3) count.** `AT_MOST` is a ceiling, not a tally, and the
+  journal deliberately draws no progress line under one: "2 / 3" beneath *keep it under three*
+  tells the player to gather the one thing they must not.
+- **`condition_value` must be at least 1.** `AT_LEAST 0` is satisfied by an empty bag, so it is an
+  unconditional step wearing an errand's clothes. `check_content` fails the build on one.
+- **The journal draws the tally by itself**, as `— Gather three rose petals.   2 / 3`, from
+  `ui.journal.progress`. Change the wording in the CSV, not in a screen.
+- **A count can go back down, and a step reopens with it.** Spend two of the three and the
+  objective returns, because a step is a live question about the world — the same rule that makes
+  clearing a lever's flag reopen the step it finished. A **completed quest** does not reopen,
+  which is exactly why that latch exists.
+- **An item id that no `.tres` in `data/items/` declares can never be satisfied**, and nothing at
+  runtime says so — the count simply reads zero forever. `check_content` fails on that too, which
+  is the only thing between a plural slip and an errand nobody can finish.
+- **The count is not in your save file twice.** The flag is a projection of the bag, published by
+  `Inventory` and re-published on load; the counts themselves are saved once, by the bag.
+
+**What this does NOT give you** is a step that *takes* the items. Nothing hands anything over: a
+completed quest emits `Events.quest_completed` and stops (see the fourth behaviour above). A
+consuming game that wants the petals collected on delivery listens to that signal, or puts an
+`ItemContainer` in front of the keeper.
+
+### Seeing a count, and posing one
+
+The journal is the `J` key, or `--open-menu=journal` for a capture, and `--give=` poses a count
+the way `--flag=` poses everything else - because a count is a flag:
+
+```bash
+G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe
+"$G" --resolution 960x540 --quit-after 130 -- --new-game --give=item/rose_petal:2 \
+     --flag=met/gardener:true --open-menu=journal --shot=journal.png --shot-frame=110 \
+     --time=12:00 --freeze-time
+```
+
+Both flags apply **after** the area lands, because `--new-game` clears every flag *and empties the
+bag* first.
+
+```bash
+G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe
+"$G" --resolution 960x540 --quit-after 90 -- --new-game --flag=met/warden:true \
+     --open-menu=journal --shot=journal.png --shot-frame=70 --time=12:00 --freeze-time
+```
+
+`--flag` applies **after** the area lands, because `--new-game` clears every flag first.
+
+---
+
 ## The editable trap
 
 **A `[node]` block whose `parent=` descends into an instanced node requires
@@ -951,7 +1020,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 | `--import` | a `.tscn` that does not load, a script that does not parse |
 | boot run | that the game boots clean to its main menu. **It does not enter an area** — see below |
 | test suite | a missing required child, an area with no spawn, an interior that follows the sun, a schedule waypoint no area has, a quest with no steps, an area on the map with no scene, a map dot whose `arrival_spawn` no area has |
-| `check_content` | a duplicate `object_id`, a `_key` with no CSV row, an unquoted comma, a dangling dialogue link, an id that disagrees with its file name, a stray `ItemDefinition`, a quest step whose objective has no CSV row, a gate whose `locked_key` has no row, an `AreaDef` whose `name_key` has no row, **a missing `[editable]` marker** |
+| `check_content` | a duplicate `object_id`, a `_key` with no CSV row, an unquoted comma, a dangling dialogue link, an id that disagrees with its file name, a stray `ItemDefinition`, a quest step whose objective has no CSV row, a gate whose `locked_key` has no row, an `AreaDef` whose `name_key` has no row, **a quest step counting an item no `.tres` declares, or counting zero of one**, **a missing `[editable]` marker** |
 | `check_boundary` | your content id appearing in `src/` — which is a bug in the *engine*, not in your content |
 | `check_budgets` | 250 code lines per file, 40 per function. Markdown is not counted |
 | windowed capture | everything the other six cannot see |
@@ -976,7 +1045,8 @@ harness answers. They are behind `OS.is_debug_build()`, so they do not exist in 
 | `--equip=<item id>[,<id>]` | put carried items **in hand**, after the area lands. `--give` first, on the same line — an item nobody carries is refused |
 | `--flag=<key>:<value>` | forge a plot flag **after** the area lands, so quest progress can be posed: `--flag=met/warden:true`, `--flag=count/lit:3`. `--new-game` clears flags first, which is why it cannot be earlier |
 | `--interact=<frame>`, `--cycle=<n>`, `--talk-advance=<frame>` | press the interact key, Tab between overlapping targets, advance a conversation |
-| `--give=<item id>[:count]`, `--standing=<who>:<n>`, `--weather=<kind>` | pose the world before the shutter |
+| `--give=<item id>[:count]` | put items in the bag **after** the area lands, so a counted quest step can be posed: `--give=item/rose_petal:2`. `--new-game` empties the bag first, the same reason it cannot be earlier |
+| `--standing=<who>:<n>`, `--weather=<kind>` | pose the world before the shutter |
 
 **Capture your first version of an area at midday.** A new area has no props and no lanterns, and
 the shipped dusk hour renders it very nearly black — which looks exactly like a lighting bug and

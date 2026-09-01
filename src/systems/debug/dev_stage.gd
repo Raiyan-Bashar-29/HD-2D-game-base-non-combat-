@@ -20,7 +20,9 @@ extends Node
 ##
 ## EVERYTHING AFTER THE BARE `--` IS PASSED TO THE GAME:
 ##
-##   --give=<list>        put items in the player's bag: item/rose_key,item/rose_petal:3
+##   --give=<list>        put items in the player's bag: item/rose_key,item/rose_petal:3. After
+##                        the area lands, because a new game now empties the bag - gotcha 32.
+##                        This also poses a counted quest step, since a count is a flag.
 ##   --equip=<list>       put items IN HAND, after the area lands: --equip=item/lantern. The
 ##                        carrier must already hold them, so --give comes first on the line.
 ##                        Equipment is a flag, and --new-game clears flags — see gotcha 32.
@@ -142,8 +144,18 @@ func _settle_stable(frames: int) -> void:
 		await get_tree().process_frame
 
 
+## Put items in the bag for a capture.
+##
+## AFTER THE AREA LANDS WHEN --new-game IS ON THE LINE, and this became necessary in T3.3 rather
+## than being an oversight before it: `start_new_game()` now EMPTIES THE BAG, on the same
+## reasoning that has it clear the flags, so items staged during argument parsing are thrown away
+## a frame later. Fourth staging flag to need this wait after --open-menu, --flag and
+## --open-inventory, and the fourth time gotcha 32 has been the answer. Any flag that poses state
+## a new game resets needs it.
 func _give(list: String) -> void:
 	await get_tree().process_frame
+	if _fresh_game:
+		await _wait_for_area()
 	var bag: Inventory = Inventory.of(Director.player)
 	if bag == null:
 		Log.error("test", "--give found no inventory on the player")
@@ -166,6 +178,12 @@ func _equip(list: String) -> void:
 	await get_tree().process_frame
 	if _fresh_game:
 		await _wait_for_area()
+		# ONE FRAME BEHIND --give, WHICH NOW WAITS FOR THE AREA TOO. Two flags leaving the same
+		# wait resume in creation order, which is command-line order - and gotcha 35 says an
+		# ordering that rests on that is a race, not an order. A frame boundary is an order: the
+		# bag is filled before anything asks to hold what is in it, whichever way round they were
+		# typed. Verified by running both on one line; the log is in DEVLOG.md for T3.3.
+		await get_tree().process_frame
 	var worn: Equipment = Equipment.of(Director.player)
 	if worn == null:
 		Log.error("test", "--equip found no Equipment on the player")

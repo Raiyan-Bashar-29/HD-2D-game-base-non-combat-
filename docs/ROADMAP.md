@@ -303,6 +303,22 @@ item", and a blocking item scheduled last is a contradiction. Sequenced by risk,
   subclass, measured, which is why a shared base CLASS would have given all five catalogues one
   cache. See the board.
 
+- **T3.3 A quest step that can read an ITEM COUNT — DONE, 2026-08-31.** The phase's sixth package,
+  and the one row on the board that was breadth of EXPRESSION: "bring me three petals" was not
+  authorable, which is a limit on what a consuming game can say. WP-09 had costed both candidate
+  designs and closed neither, and the one taken is its first with the cost that made it look
+  expensive removed. `Inventory` PUBLISHES each count as `bag/<carrier_id>/<item id>` in `Flags` —
+  the SIXTH namespace-over-`Flags` — so **the dependency points DOWN from `gameplay` to `core`
+  instead of up from `systems` to `gameplay`**, and the quest system was not touched: no field on
+  `QuestStep`, no line in `QuestTracker` that knows what an inventory is, and a test now FAILS if
+  either learns. The mirror is a PROJECTION and not a second truth: `Flags.declare_derived` keeps
+  it out of the save file, so nothing is saved twice, `Inventory.SAVE_VERSION` did not move and
+  there is no migration. Two things fell out that were already decided and only needed asserting:
+  a count already satisfied passes the step at once, and a count going back down reopens an
+  ACTIVE objective while a COMPLETED quest stays complete — the case `quest_tracker.gd`'s own
+  header names. 66 new assertions, three new `check_content` branches each proved red then green,
+  and two windowed captures LOOKED AT and READ. See the board.
+
 Exit criteria:
 - [ ] Every system has one proof, and no system has a second area's worth of content
       — quests: **done**, WP-08, 2026-08-27. One quest, two steps, two windowed captures LOOKED AT:
@@ -323,6 +339,12 @@ Exit criteria:
       same map one flag later with it drawn as a gold selectable `Lantern Hall`, and the same map
       again after actually travelling there -- the two states swapped, with the courtyard still on
       the map from the far side of an area no longer loaded
+      — an item count in a quest step: **done**, T3.3, 2026-08-31. One counted step on the
+      existing placeholder quest, two windowed captures LOOKED AT and READ rather than glanced at
+      (gotcha 28): the journal reading `Underway - The Keeper's Errand - Gather three rose
+      petals.  2 / 3` after `--give=item/rose_petal:2`, and the same screen at the same hour with
+      one petal more reading `Settled - Nothing left to do.` The tally is a checkable prediction
+      rather than a screenshot that merely looks fine
 
 ## Phase T4 — Template v1.0
 

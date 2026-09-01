@@ -56,6 +56,18 @@ const QUEST_SECOND_FLAG: StringName = &"fixture/second_done"
 const QUEST_FIRST_STEP: StringName = &"first"
 const QUEST_SECOND_STEP: StringName = &"second"
 
+## The counting quest, and the carrier whose bag it counts. `CARRIER` is not `player`: a fixture
+## naming the carrier the demo's scene happens to use would pass for the wrong reason the day
+## something else publishes under it, and a bag is a component any node may have.
+const COUNT_QUEST: StringName = &"quest/fixture_gather"
+const COUNT_START_FLAG: StringName = &"fixture/gathering"
+const COUNT_STEP: StringName = &"gather"
+const CARRIER: StringName = &"fixture_carrier"
+const COUNT_NEEDED: int = 3
+## An item id no catalogue declares, for the step that names one. It is deliberately never
+## written to disk by `items()`, which is the whole of what makes it absent.
+const ABSENT_ITEM: StringName = &"item/fixture_absent"
+
 ## Two mapped places, and each exists to make a different rule observable: one KNOWN FROM START
 ## (so a new game with no travel in it still has a map with something on it) and one that is not
 ## (so discovery is distinguishable from being drawn at all). Neither has a scene behind it,
@@ -215,12 +227,50 @@ static func quest() -> Quest:
 	return made
 
 
-static func quest_step(step_id: StringName, flag: StringName) -> QuestStep:
+## Both fixture quests, in the order the registry will sort them. A LIST rather than one quest,
+## for the reason `items()` gives: `QuestDb.count()` is then asked for `quests().size()` instead
+## of compared against a number that would have to be edited in two files at once.
+static func quests() -> Array[Quest]:
+	var out: Array[Quest] = []
+	out.append(quest())
+	out.append(count_quest())
+	return out
+
+
+## A SECOND FIXTURE QUEST, WHOSE ONE STEP COUNTS ITEMS. Separate from `quest()` rather than a
+## third step on it, and that is not tidiness: the first quest's whole job is to make advancing
+## and completing distinguishable, and half a dozen assertions elsewhere in the suite complete it
+## by setting its two flags. A third step would have made every one of them silently wrong.
+##
+## It starts on a FLAG and not on ALWAYS, or it would be active in every case that clears the
+## flags and evaluates - and "nothing is active yet" is an assertion two other blocks make.
+##
+## ONE step, so completion is reachable and the completion LATCH is assertable against a count
+## going back down, which is the whole reason a latch exists (see quest_tracker.gd).
+static func count_quest() -> Quest:
+	var made := Quest.new()
+	made.id = COUNT_QUEST
+	made.name_key = "fixture.count_quest.name"
+	made.summary_key = "fixture.count_quest.summary"
+	made.condition_flag = COUNT_START_FLAG
+	made.condition_test = GameEnums.FlagTest.IS_TRUE
+	var steps: Array[QuestStep] = []
+	steps.append(quest_step(COUNT_STEP, BagKeys.key(CARRIER, STACK_ITEM),
+			GameEnums.FlagTest.AT_LEAST, COUNT_NEEDED))
+	made.steps = steps
+	return made
+
+
+## The test and the value default to the boolean condition every other fixture step uses, so the
+## six existing callers did not have to change and a counted step says so at its call site.
+static func quest_step(step_id: StringName, flag: StringName,
+		test: GameEnums.FlagTest = GameEnums.FlagTest.IS_TRUE, value: int = 0) -> QuestStep:
 	var step := QuestStep.new()
 	step.step_id = step_id
 	step.summary_key = "fixture.quest.step.%s" % step_id
 	step.condition_flag = flag
-	step.condition_test = GameEnums.FlagTest.IS_TRUE
+	step.condition_test = test
+	step.condition_value = value
 	return step
 
 

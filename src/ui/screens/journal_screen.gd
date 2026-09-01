@@ -31,6 +31,9 @@ const HINT_KEY: String = "ui.journal.hint"
 const ACTIVE_KEY: String = "ui.journal.active"
 const COMPLETE_KEY: String = "ui.journal.complete"
 const OBJECTIVE_KEY: String = "ui.journal.objective"
+## The same line with a tally on the end, for a step that counts something. A FORMAT and
+## therefore a key, not a "%s / %s" built here - see docs/CONVENTIONS.md.
+const PROGRESS_KEY: String = "ui.journal.progress"
 const DONE_KEY: String = "ui.journal.done"
 const UNKNOWN_KEY: String = "ui.journal.unknown"
 
@@ -147,10 +150,22 @@ func _row(quest_id: StringName, found: Quest) -> Button:
 
 ## The objective line under a quest, indented by the theme's own inset so the hierarchy is not a
 ## number invented here.
+##
+## A COUNTED STEP GETS ITS TALLY, and the screen does not know what is being counted. It asks the
+## tracker for (have, need) and draws it; that the number behind it is items in a bag is a fact
+## about the flag the step names, which nothing here reads. `need == 0` is the tracker saying
+## "this step is not a count", and the ordinary line is drawn instead - so an authored objective
+## never acquires a `0 / 0` it did not ask for.
 func _objective(found: Quest, tracker: QuestTracker) -> Label:
 	var step: QuestStep = tracker.current_step(found.id) if tracker != null and found != null else null
 	var key: String = step.summary_key if step != null else DONE_KEY
 	var label: Label = _label(key, ROW_VARIATION, ACCENT_COLOUR)
+	var tally: Vector2i = tracker.step_progress(step) if tracker != null else Vector2i.ZERO
+	if tally.y > 0:
+		label.text = tr(PROGRESS_KEY).format({
+			"objective": tr(key), "have": tally.x, "need": tally.y,
+		})
+		return label
 	label.text = tr(OBJECTIVE_KEY).format({"objective": tr(key)})
 	return label
 

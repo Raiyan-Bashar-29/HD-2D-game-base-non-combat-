@@ -72,7 +72,7 @@ original board rather than continuing it.
 | T2.2 | Consumer documentation | **DONE** — `36b5abd`, PR #15. Phase T2 closes; see T2.2 below |
 | T3.1 | **A generic content registry** — one scan, with a thin typed façade per catalogue | **DONE** — `767fbe3`, PR #20. The fifth package of Phase T3; see below. The refactor PAID, and not in the shape WP-08 costed: the duplication was in the SCAN, not the cache, so the base went on the RESOURCE |
 | T3.2 | The five art-contract seams T2.1 left | TODO — shared materials, the environment post-stack and camera framing as `@export`s, the texture import defaults, the Git LFS lines |
-| T3.3 | **A quest step that can read an ITEM COUNT** | TODO — "bring me three petals" is still not authorable. Scoped by WP-09, which proved the flag seam is enough for "hold ONE of this" and not for a count; the two candidate designs and what each costs are in the WP-09 section |
+| T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `PENDING`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
 T3 by subject and is sequenced FIRST by risk. The three content registries find items,
@@ -1703,3 +1703,264 @@ nobody has made.
 
 **Commit:** `767fbe3` on `claude/t3-1-registry`, PR #20 — stacked onto
 `claude/wp-09b-attributes`, matching the rest of the chain.
+
+---
+
+## T3.3 · A quest step that can read an ITEM COUNT — **DONE**
+
+**Read:** `src/content/quest/quest_step.gd`, `src/systems/quest/quest_tracker.gd`,
+`src/core/state/flag_query.gd`, `src/gameplay/character/inventory.gd`, plus `AUTHORING.md`'s quest
+and item sections read as a consumer would.
+**Write:** a step that can require N of an item id, without the quest system learning what an
+inventory is.
+**Exit criteria:** the journal shows the progress, the step completes at the threshold, and it
+uncompletes or does not — per a decision stated out loud and asserted.
+
+### The row was scoped once and it named two designs. This is the FIRST one, with the cost that made it look expensive removed.
+
+WP-09 declined to close this and costed both candidates rather than shrugging:
+
+> an `Inventory` that mirrored `count/<item>` into `Flags` would write every carried item into the
+> flag section as well as its own, and a `QuestStep` that read the bag directly would put
+> `gameplay/Inventory` inside a `systems` tracker against the layer rule.
+
+**The second one is not a design, it is the layer rule being broken**, and WP-08 had already
+refused exactly that once — the `reward_item` field. So the choice was the first one or nothing,
+and the whole question was whether its stated cost is real.
+
+**It is not, and one line of `flags.gd` is why.** The cost was "the same number is now in the save
+file twice, written by two participants in two formats" — which is a genuinely bad trade, and it is
+also the thing `flags.gd`'s own header forbids: *"WHAT DOES NOT BELONG HERE: anything recomputable.
+If it can be derived, derive it."* A count mirrored into `Flags` is recomputable BY DEFINITION,
+because the bag it came from is the truth and is already saved. So the mirror is declared DERIVED:
+
+```gdscript
+Flags.declare_derived(BagKeys.PREFIX)          # Inventory._ready
+```
+
+and `Flags._collect_save` skips those keys. The published count is readable, announced on
+`flag_changed`, visible to `FlagQuery` — and absent from the save file. **`Inventory.SAVE_VERSION`
+did not move, `Flags`'s format did not change, and there is no migration**, which is the answer to
+the package's "a new field on a saved resource may need a version bump": nothing new is saved.
+
+### The one decision everything else follows from: THE DEPENDENCY POINTS DOWN, so the quest system was not touched at all.
+
+```
+bag/<carrier_id>/<item id>          bag/player/item/rose_petal -> 3
+```
+
+`Inventory` (`gameplay`) writes to `Flags` (`core`). `QuestTracker` (`systems`) reads `Flags`
+through the `FlagQuery` it already used. **Neither has heard of the other**, and the inversion is
+the entire package: a tracker reading a bag points UP, a bag publishing a flag points DOWN, and
+they deliver the same capability.
+
+What that bought, and none of it is a coincidence — it is WP-08's seam used for the **third** time
+after `Equipment`:
+
+- **`QuestStep` gained no field.** Not `required_item`, not `required_count`. A counted step is
+  `condition_flag = &"bag/player/item/rose_petal"`, `condition_test = 4`, `condition_value = 3` —
+  the closed set of six comparisons, unchanged since WP-08.
+- **`QuestTracker` gained no knowledge.** Its one new function, `step_progress`, is a pass-through
+  to `FlagQuery`; it names no `Inventory`, no `ItemDb` and no `BagKeys`.
+- **Nothing that writes a count had to change.** A `Pickup`, an `ItemContainer`, `--give=` and a
+  restored save all go through `Inventory.add`, so all four advance a counted step already.
+- **Sixth namespace-over-`Flags`**, after `PersistentState`, `Standing`, `Equipment`, `WorldMap` and
+  `Attributes` — and the first whose value is a NUMBER rather than a truth.
+
+**And a test fails if that stops being true.** `item_count_test.gd`'s last block text-scans
+`quest_tracker.gd` and `quest_step.gd` for `Inventory`, `ItemDb.` and `BagKeys`, and
+`journal_screen.gd` for `Flags.`. Nothing else in the suite could fail if the tracker started
+reading a bag directly — **the behaviour would be identical and the layer rule would be gone** —
+which is the same reasoning `art_contract_test.gd` uses to keep a sheet dimension out of
+`character_visual.gd`. It also asserts that exactly ONE file under `src/` builds a bag key.
+
+**The first version of that block was WRONG in an instructive way.** A raw text scan failed on both
+files, because both HEADERS explain at length why an `Inventory` is not reachable from them — so
+the gate fired on the paragraph documenting the rule it enforces. `check_boundary` had already drawn
+this line: **comments are exempt, code is not.** The block now strips comment lines first.
+
+### `BagKeys` is its own file, and the reason is a compile error rather than tidiness.
+
+Three places need the key shape and none may rebuild it: `Inventory` WRITES it,
+`tools/check_content.gd` PARSES it back to validate the item id, and the suite asserts on it.
+`Equipment.PREFIX` lives on `Equipment` and that could not work here: `check_content` runs under
+`--headless --script`, where autoload identifiers do not resolve, so naming `Inventory.PREFIX`
+would not COMPILE — the mechanism that file's own header calls a real enforcement of the layer
+rule. `src/core/state/bag_keys.gd` touches no autoload, and its MUST NOT says it must not start.
+
+The parser earns its place on one line: **an item id contains a slash**, so the carrier is the
+FIRST segment after the prefix and the item id is everything left. Splitting on the last slash
+answers `rose_petal`, which `ItemDb` would then fail to find — a validator failing on valid content
+is worse than no validator. That round trip is an assertion.
+
+### THE UNCOMPLETE QUESTION, STATED OUT LOUD: a step reopens, a quest does not — and no new decision was needed.
+
+This is the exit criterion that asked for a decision, and the honest answer is that WP-08 had
+already made it and `quest_tracker.gd`'s header names **this exact case**:
+
+> A step may test AT_LEAST 3 on a counter; if something later decrements it, a finished quest would
+> reopen. Completion is a fact about history, not about the world right now.
+
+So: **spend a petal on an ACTIVE quest and the objective comes back**, because a step is a live
+question. **Spend one after the quest settled and nothing happens**, because completion is latched
+and saved. Both halves are asserted against the thing that finally decrements — a bag — rather than
+against a flag written by hand, which is all the suite could do before. The package's contribution
+here is not a decision; it is the first real test of one.
+
+Two adjacent behaviours, also asserted: a count **already satisfied** when the quest starts passes
+its step at once (a step is never "reached"), and a FOURTH petal does not un-finish a step needing
+three, because the test is `AT_LEAST` and not `EQUALS`.
+
+### The journal draws the tally, and it still reads no flag.
+
+`— Gather three rose petals.   2 / 3`, from `ui.journal.progress`. An objective line is a FORMAT,
+so the format is a localization key and not a `"%s / %s"` in a screen file.
+
+`journal_screen.gd`'s MUST NOT line forbids it from reading a flag, and drawing "2 / 3" needs the
+current value of one. Non-negotiable #4 says: when a change needs a MUST NOT broken, add a system
+instead of widening the boundary. So `FlagQuery.progress()` answers `(have, need)` — where the
+comparison table already lives — and `QuestTracker.step_progress()` passes it through, so the
+screen still talks to nothing but the tracker.
+
+**`need == 0` means "not a count", and two of the six tests deliberately return it.** `AT_MOST` is
+a CEILING: drawing `2 / 3` under *keep it below three* would tell the player to gather more of the
+one thing they must not. And a `condition_value` of 0 is not a count either — `AT_LEAST 0` passes
+with an empty bag, so it is an unconditional step wearing an errand's clothes.
+
+### The new content gate, and why validating THIS flag namespace is not a contradiction.
+
+`check_content` prints every quest flag and validates none of them, on a rule WP-08 wrote down: a
+flag can be written from a scene, a conversation, a path action or at runtime, so failing on one
+with no findable writer would be wrong most times it fired. **`bag/<carrier>/<item id>` is different
+in the one way that matters: it has exactly ONE writer, and half the key is an item id this tool can
+look up.** So three mistakes that are otherwise completely silent now fail the build:
+
+- an item id **no `.tres` declares** — the count reads zero forever and the objective never clears;
+- a **count of zero**, which is always satisfied;
+- a bag key under a test that is **not a count** — worse than the others, because `get_bool` on an
+  int warns and answers false, so the step can never pass at all.
+
+The carrier is deliberately NOT validated, and the omission is stated rather than papered over: a
+`carrier_id` is an `@export` on a node in a scene this tool does not open, and a game may put a bag
+on an NPC or a stash. Same line `_all_waypoint_names` draws.
+
+`_condition_text` also now prints the VALUE for the tests that use one. The first version did not,
+and `bag/player/item/rose_petal at_least` in the build log says nothing about the errand a reviewer
+is checking.
+
+### ALL THREE BRANCHES PROVED RED, THEN GREEN, WITH THE REAL FAILURE SHAPE (gotcha 23).
+
+Planted in `data/quests/keepers_errand.tres`, one at a time, each reverted:
+
+1. **A plural slip on the item id** — `item/rose_petals`. `check_content` exit **1**:
+   `quest/keepers_errand/petals counts 'item/rose_petals', which no item .tres declares`.
+2. **`condition_value = 0`.** Exit **1**:
+   `quest/keepers_errand/petals asks for 0 of 'item/rose_petal'; a count below one is always satisfied`.
+3. **`condition_test = 1`** (IS_TRUE on a count). Exit **1**:
+   `quest/keepers_errand/petals tests an item count with is_true, which is not a count`.
+
+Reverted after each: exit **0**, with `petals done when bag/player/item/rose_petal at_least 3` in
+the build log.
+
+**And the suite's own exit 1, on the invariant rather than on a broken assertion.** The load-bearing
+invariant is that every path which moves a count republishes, so `_publish()` was deleted from
+`remove()` — the way it would really be lost. Exit **1**, `1460 passed, 9 failed`, first failure
+*"spending two republishes one — expected 1, got 3"*, and `error_watch.gd` additionally caught the
+downstream crash: a quest wrongly completed, so `current_step` answered null. Restored:
+`1468 passed, 0 failed`, exit 0.
+
+### One latent defect found, because the design could not tolerate it.
+
+**A new game did not empty the bag.** `Director.start_new_game()` clears the flags, resets the
+playtime and emits `game_started`; nothing was listening on behalf of `Inventory`, so the previous
+run's items carried into a fresh game. Unreachable in practice — the boot goes to the main menu with
+an empty bag — and invisible to every gate, because nothing asserted it.
+
+It surfaced only because this design *cannot* tolerate it: the flags are cleared and `_counts` is
+not, so the mirror and the truth disagree the moment a new game starts. `Inventory` now clears on
+`game_started` and republishes on `game_loaded` — the second because `Flags._apply_save` wipes the
+store and the derived keys are deliberately not in the file it restores from, so **the answer must
+not depend on save-participant order**, and `game_loaded` fires once after every section is applied.
+Both are asserted.
+
+**And that made `--give=` need the area wait**, which is gotcha 32 for the FOURTH time after
+`--open-menu`, `--flag` and `--open-inventory`: items staged during argument parsing are now thrown
+away by the new game a frame later. Given the wait, `--give` and `--equip` would then leave
+`_wait_for_area` on the same frame and be ordered by chance — gotcha 35 — so `--equip` waits one
+frame more. That is an ordering rather than a race, and it was **verified both ways round on the
+command line**: `--equip` reports `true` whether it is typed before or after `--give`.
+
+### Two windowed captures, LOOKED AT and READ rather than glanced at (gotcha 28).
+
+Both `--new-game --open-menu=journal --shot-frame=110 --quit-after 130 --time=12:00 --freeze-time`,
+so the two differ by exactly one petal:
+
+- **`--give=item/rose_petal:2`** — `Journal / Underway / The Keeper's Errand /
+  — Gather three rose petals.   2 / 3`, with the *New errand* toast up, the HUD reading
+  `Day 1 | 12:00 | Midday`, and the courtyard visible and stopped behind the dim panel. The tally
+  is a **checkable prediction** and not a screenshot that merely looks fine: two given, three
+  required.
+- **`--give=item/rose_petal:3`** — the same screen, same camera, same hour: `Settled /
+  The Keeper's Errand / — Nothing left to do.` The log line between them is
+  `quest/keepers_errand: completed`.
+
+The staging log is the other half of the reading, because it shows the objective walking forward
+through steps the demo already had: `--give item/rose_petal x2: true`, then `started`, then
+`advanced [unlock]`, `advanced [dais]`, `advanced [petals]`.
+
+**No temporary probe was needed and none was left** (gotcha 15). This package touches no input path
+and no audio path — `J` was proved by WP-08's probe and `ScreenKeys` was not touched.
+`git diff src/systems/debug/` carries only the `--give` wait, the `--equip` frame gap and their
+header lines.
+
+### The demo gained ONE step and one petal, and no new object.
+
+A third step on `keepers_errand`, last so the two existing objectives and both WP-08 captures still
+mean what they meant, and the courtyard chest holds three petals instead of two so the errand can
+actually be finished. **One piece of placeholder content per system**: no second quest, no second
+item, no new pickup.
+
+### Files: 14, and new code is 312 lines added against 22 removed.
+
+`src/core/state/bag_keys.gd` (28 code lines, new) · `flags.gd` (+`declare_derived`, `is_derived`,
+and `_collect_save` skipping them) · `flag_query.gd` (+`progress`) · `inventory.gd`
+(+`carrier_id`, `_publish`, the two subscriptions) · `quest_tracker.gd` (+`step_progress`) ·
+`journal_screen.gd` (the tally line) · `dev_stage.gd` (the `--give` wait, the `--equip` frame gap) ·
+`tools/check_content.gd` (`_check_item_count`, `_condition_text` with its value, `_test_name`) ·
+`data/quests/keepers_errand.tres` and `courtyard.tscn` and 3 CSV rows ·
+`tests/unit/item_count_test.gd` (66 outcomes, new) · `fixture_content.gd` (a second fixture quest
+and a counted `quest_step`) · `fixtures.gd` · `content_scan_test.gd` (its hard-coded `1` became
+`FixtureContent.quests().size()`, on the same reasoning as a computed plan) ·
+`docs/AUTHORING.md` § Count items in a quest step.
+1402 → **1468**.
+
+### Ladder, all green.
+
+`--headless --import` with **zero** `SCRIPT ERROR` / `Parse Error` lines; boot
+`0 warnings, 0 errors`; suite **1468 passed, 0 failed, 0 skipped**, exit 0; `check_budgets`
+**127 files, 10,869 code lines, 0 warnings, 0 violations**; `check_content` PASS; `check_boundary`
+PASS over 121 engine scripts, deriving 16 demo names and finding none of them in `src/` or `tests/`.
+
+**Stripped template, run locally** — `1400 passed, 0 failed, **19** skipped` (was 1334/19), both
+checkers exit 0, `quests: 0` and `demo names derived: 0`. **The skip count did not move**: all 66
+new assertions are fixtures all the way down and every one runs in a checkout with no game in it.
+
+### Deferred, with reasons, not silently.
+
+- **A step that TAKES the items.** A completed quest still emits `quest_completed` and stops —
+  WP-08's layer reason holds exactly as it did, and a consuming game that wants the petals handed
+  over listens to the signal or puts an `ItemContainer` in front of the keeper.
+- **No sixth catalogue.** T3.1 made one cheap and WP-09b declined one deliberately; a count needs no
+  resource, no registry and no save section, which is `Attributes`' argument used a second time.
+- **`AT_MOST` draws no tally**, on purpose — see above. And `EQUALS` counts, though nothing authored
+  uses it.
+- **No count in the inventory screen's rows beyond `xN`**, no "quest item" marker, and no objective
+  marker on the map — `quest_advanced` has an emitter, so a marker is a listener plus one more
+  `MapScreen` state, and that is WP-11's deferred row rather than this one.
+- **The carrier is not validated by any gate**, stated above.
+- **Branching quests, a failure state, timed quests, item instances and a journal detail pane** are
+  all still deferred, unchanged.
+- Combat is still not a thing, and a count of arrows would not change that.
+
+**Commit:** `PENDING` on `claude/t3-3-item-count`, PR #21 — stacked onto `claude/t3-1-registry`
+(#20) rather than `main`, matching the rest of the chain.

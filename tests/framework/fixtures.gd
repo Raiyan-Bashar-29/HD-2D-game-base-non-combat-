@@ -121,8 +121,8 @@ static func _write_all() -> bool:
 	ok = _save(talk, DIALOGUE_DIR, talk.id) and ok
 	var timetable: NpcSchedule = FixtureContent.schedule()
 	ok = _save(timetable, SCHEDULE_DIR, timetable.id) and ok
-	var errand: Quest = FixtureContent.quest()
-	ok = _save(errand, QUEST_DIR, errand.id) and ok
+	for errand: Quest in FixtureContent.quests():
+		ok = _save(errand, QUEST_DIR, errand.id) and ok
 	for def: AreaDef in FixtureContent.area_defs():
 		ok = _save(def, AREA_DEF_DIR, def.id) and ok
 	return ok

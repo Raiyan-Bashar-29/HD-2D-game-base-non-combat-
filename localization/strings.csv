@@ -194,15 +194,17 @@ ui.journal.hint,Escape to close
 ui.journal.active,Underway
 ui.journal.complete,Settled
 ui.journal.objective,"— {objective}"
+ui.journal.progress,"— {objective}   {have} / {need}"
 ui.journal.done,Nothing left to do.
 ui.journal.unknown,A forgotten errand ({id})
 notify.quest.started,"New errand: {quest}"
 notify.quest.advanced,"{quest} — next step"
 notify.quest.completed,"{quest} is settled"
 quest.keepers_errand.name,The Keeper's Errand
-quest.keepers_errand.summary,"The garden-keeper would rather the north gate stood open, and the dais were walked."
+quest.keepers_errand.summary,"The garden-keeper would rather the north gate stood open, the dais were walked, and three rose petals were gathered."
 quest.keepers_errand.step.unlock,Unlock the north gate.
 quest.keepers_errand.step.dais,Stand on the dais.
+quest.keepers_errand.step.petals,Gather three rose petals.
 item.brass_lantern.name,Brass Lantern
 object.gate.arch.label,Shadowed Arch
 object.gate.arch.locked,"It is pitch dark beyond the arch, and you have no light in hand."

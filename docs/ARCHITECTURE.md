@@ -275,13 +275,16 @@ never resolve.
   An area declares its own materials and takes the camera rig's defaults. Open work, not design.
 - **`Director` does not cancel its threaded load on shutdown**, which is why the boot rung needs
   `--quit-after 120` rather than 30. Deferred to WP-14.
-- **A quest step cannot read an item count.** A step is a flag condition, and `Inventory`
-  keeps counts rather than flags, so "bring me three petals" is not authorable today.
-  WP-09 narrowed it rather than closing it: `Equipment` proved a flag is enough for "HOLD one
-  of this", because being held is a fact about one item — a COUNT is not, and the two ways to
-  expose one both cost something (a mirrored `count/<item>` flag per carried item, or a
-  `systems` tracker reading `gameplay/Inventory` against the layer rule). **T3.3** on the
-  board — not something a game should work around under `src/`.
+- **A quest step CAN read an item count, and a completed quest still hands nothing over.** Closed
+  by T3.3, and the shape is worth knowing because it is the general answer whenever a lower layer
+  holds something an upper one needs to observe: rather than a `systems` tracker reading a
+  `gameplay` inventory — which points the wrong way and is what WP-08 refused over `reward_item` —
+  `Inventory` PUBLISHES each count as the flag `bag/<carrier_id>/<item id>`, and a step tests it
+  with the comparison set it already had. The dependency points DOWN, `QuestStep` gained no field
+  and `QuestTracker` gained no knowledge. The mirror is declared DERIVED in `Flags`, so it is
+  readable and announced but never saved — the count is saved once, by the bag that owns it.
+  What remains deferred is a step that *takes* the items, for the layer reason that has not
+  changed: a completed quest emits `quest_completed` and stops.
 - **The four content registries are four copies of the same thirty lines.** `ScheduleDb`'s header
   said "three is a pattern, four is a problem"; WP-08 made it four, reconsidered it, and kept the
   copy because GDScript has no generics and a shared base could only hand back untyped

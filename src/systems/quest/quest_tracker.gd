@@ -90,6 +90,21 @@ func current_step(quest_id: StringName) -> QuestStep:
 	return _first_incomplete(found) if found != null else null
 
 
+## HOW FAR ALONG A COUNTED STEP IS: (have, need), and `need == 0` for a step that is not a count.
+## Asked live, exactly as `current_step` is.
+##
+## A PASS-THROUGH, AND THE ONE LINE IN IT IS THE POINT. `JournalScreen` must draw "2 / 3" and its
+## MUST NOT line forbids it from reading a flag; `FlagQuery` can answer but is not something a
+## screen should be reaching into either. So the screen asks the tracker, the tracker asks the
+## closed set, and the seam the journal was built against does not widen. This file still has no
+## idea that an item, an inventory or a count of anything exists - a counted step is a flag whose
+## value happens to be a number, which is why the whole feature needed no field on `QuestStep`.
+func step_progress(step: QuestStep) -> Vector2i:
+	if step == null:
+		return Vector2i.ZERO
+	return FlagQuery.progress(step.condition_flag, step.condition_test, step.condition_value)
+
+
 ## Sorted, so the journal draws a stable order without holding one of its own. Sorted by id and
 ## not by "when it started", because start order is not saved and inventing one would be a
 ## second kind of state to keep consistent.

@@ -252,7 +252,8 @@ func _check_quests() -> void:
 	for quest_id: StringName in QuestDb.all():
 		var found: Quest = QuestDb.quest(quest_id)
 		print("     %-22s %d steps, starts on %s" % [
-			quest_id, found.steps.size(), _condition_text(found.condition_flag, found.condition_test),
+			quest_id, found.steps.size(), _condition_text(found.condition_flag, found.condition_test,
+				found.condition_value),
 		])
 		_require_key(String(quest_id), "name_key", found.name_key)
 		_require_key(String(quest_id), "summary_key", found.summary_key)
@@ -265,9 +266,47 @@ func _check_quest_steps(found: Quest) -> void:
 			continue
 		var context: String = "%s/%s" % [found.id, step.step_id]
 		print("        %-19s done when %s" % [
-			step.step_id, _condition_text(step.condition_flag, step.condition_test),
+			step.step_id, _condition_text(step.condition_flag, step.condition_test,
+				step.condition_value),
 		])
 		_require_key(context, "summary_key", step.summary_key)
+		_check_item_count(context, step)
+
+
+## THE ONE FLAG NAMESPACE THIS TOOL DOES VALIDATE, AND WHY THAT IS NOT A CONTRADICTION.
+## Every other flag a quest names is PRINTED and not judged, for the reason above: a flag can be
+## written from a scene, a conversation, a path action or at runtime, so failing on one with no
+## findable writer would be wrong most times it fired. `bag/<carrier>/<item id>` is different in
+## the one way that matters - IT HAS EXACTLY ONE WRITER, `Inventory._publish`, and half of the
+## key is an item id that this tool can look up. So the two mistakes that produce a step nobody
+## can ever finish are catchable here, and both are silent everywhere else:
+##
+##   - AN ITEM NO CATALOGUE HAS. The flag stays absent forever, the count reads zero, and the
+##     objective sits in the journal for the rest of the game. A misspelled item id in a quest
+##     is exactly as invisible as the misspelled `locked_key` WP-09 found.
+##   - A COUNT OF ZERO, or a test that is not a count. `AT_LEAST 0` passes with an empty bag, so
+##     the step is unconditional while READING as an errand; a bag flag under IS_TRUE is worse,
+##     because `get_bool` on an int warns and answers false, so the step never passes at all.
+##
+## The carrier is NOT validated: a carrier id is an `@export` on a node in a scene this tool
+## does not open, and a game may put a bag on an NPC or a stash. That omission is stated rather
+## than papered over, which is the same line `_all_waypoint_names` draws.
+func _check_item_count(context: String, step: QuestStep) -> void:
+	if not BagKeys.is_bag_key(step.condition_flag):
+		return
+	var item_id: StringName = BagKeys.item_of(step.condition_flag)
+	if not ItemDb.has(item_id):
+		_fail("%s counts '%s', which no item .tres declares" % [context, item_id])
+	var counted: bool = (step.condition_test == GameEnums.FlagTest.AT_LEAST
+		or step.condition_test == GameEnums.FlagTest.EQUALS)
+	if not counted:
+		_fail("%s tests an item count with %s, which is not a count" % [
+			context, _test_name(step.condition_test),
+		])
+	elif step.condition_value < 1:
+		_fail("%s asks for %d of '%s'; a count below one is always satisfied" % [
+			context, step.condition_value, item_id,
+		])
 
 
 ## Areas on the world map get the same treatment as every other catalogue, plus the check no text
@@ -294,15 +333,27 @@ func _check_areas() -> void:
 		_require_key(String(area_id), "name_key", def.name_key)
 
 
-## A condition as one readable phrase for the build log. `.keys()` yields a Variant, so the enum
-## name goes through a typed local before use - this project compiles with unsafe access as an
-## error.
-func _condition_text(flag: StringName, test: GameEnums.FlagTest) -> String:
-	var names: Array = GameEnums.FlagTest.keys()
-	var test_name: String = names[test]
+## A condition as one readable phrase for the build log.
+##
+## THE VALUE IS PRINTED FOR THE TESTS THAT USE ONE, which the first version of this omitted -
+## `AT_LEAST` and `EQUALS` both compare against a number, and a log line reading
+## `bag/player/item/x at_least` says nothing about the errand a reviewer is checking. IS_TRUE and
+## IS_FALSE ignore the field, so printing a 0 beside them would invite the reader to wonder what
+## it does.
+func _condition_text(flag: StringName, test: GameEnums.FlagTest, value: int = 0) -> String:
 	if test == GameEnums.FlagTest.ALWAYS:
-		return test_name.to_lower()
-	return "%s %s" % [flag, test_name.to_lower()]
+		return _test_name(test)
+	if test == GameEnums.FlagTest.IS_TRUE or test == GameEnums.FlagTest.IS_FALSE:
+		return "%s %s" % [flag, _test_name(test)]
+	return "%s %s %d" % [flag, _test_name(test), value]
+
+
+## `.keys()` yields a Variant, so the enum name goes through a typed local before use - this
+## project compiles with unsafe access as an error.
+func _test_name(test: GameEnums.FlagTest) -> String:
+	var names: Array = GameEnums.FlagTest.keys()
+	var found: String = names[test]
+	return found.to_lower()
 
 
 ## The scene text scans, which live in tools/content_scenes.gd. Split out in WP-08 when this file

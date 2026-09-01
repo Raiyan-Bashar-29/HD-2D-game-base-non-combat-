@@ -11,9 +11,14 @@ extends Resource
 ##
 ## WHAT THAT COSTS, STATED PLAINLY: a step can only observe something that ends up in `Flags`.
 ## A lever, a trigger volume, a gate, a path action and a dialogue effect all write one, so
-## most objectives are already expressible. AN ITEM COUNT IS NOT: `Inventory` keeps counts, not
-## flags, so "bring me three petals" needs a `Pickup` or an `ItemContainer` that writes a flag,
-## and that seam is deliberately not built here - see docs/DEVLOG.md for WP-08.
+## most objectives are already expressible. AN ITEM COUNT IS ONE TOO, as of T3.3, and this file
+## did not change to make it so: an `Inventory` publishes each count as `bag/<carrier>/<item id>`,
+## so "bring me three petals" is `AT_LEAST 3` on that key. The dependency points DOWN from
+## `gameplay` to `core`, which is why there is no `required_item` field here and never will be -
+## one would put an `Inventory` and a carrier inside the content layer. See BagKeys.
+##
+## What a step still cannot do is TAKE anything, and that is the same layer rule: a completed
+## quest emits `Events.quest_completed` and stops - see quest.gd's header.
 ##
 ## THE STEP IS NOT LATCHED. `QuestTracker` asks this condition live, every time a flag moves,
 ## so a game that resets the flag behind a step sees the objective reopen. Quest COMPLETION is

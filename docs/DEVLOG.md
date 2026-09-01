@@ -16,6 +16,223 @@ Append-only. Newest entry at the top. One entry per working session.
 
 ---
 
+## 2026-08-31 — T3.3 · A count is a flag, published downward
+
+**Did:** made `condition_flag = &"bag/player/item/rose_petal"`, `condition_test = 4`,
+`condition_value = 3` an authorable quest step, and touched **no file in `src/content/quest/` or
+`src/systems/quest/` to add the capability**. `Inventory` gained a `carrier_id` and a `_publish()`
+that mirrors every count into `Flags` as `bag/<carrier_id>/<item id>`; `Flags` gained
+`declare_derived(prefix)` / `is_derived(flag)` and skips those keys in `_collect_save`;
+`src/core/state/bag_keys.gd` (new, 28 code lines) is the one place that shape is built and parsed;
+`FlagQuery.progress()` answers `(have, need)`; `QuestTracker.step_progress()` passes it through so
+`JournalScreen` can draw `— Gather three rose petals.   2 / 3` from `ui.journal.progress` without
+reading a flag; and `tools/check_content.gd` now VALIDATES bag-keyed step conditions. Demo: one
+third step on `keepers_errand`, one more petal in the courtyard chest, 3 CSV rows. Fixed a latent
+defect the design could not tolerate — a new game did not empty the bag.
+
+**Why:** WP-09 costed both candidate designs and closed neither. The second — a `systems` tracker
+reading a `gameplay` inventory — is not a design, it is the layer rule being broken, and WP-08 had
+already refused exactly that over a `reward_item` field. So the choice was the first (mirror the
+counts into `Flags`) or nothing, and the whole question was whether its stated cost — the same
+number saved twice, by two participants, in two formats — is real. **It is not, and `flags.gd`'s
+own header is why:** *"anything recomputable... if it can be derived, derive it."* A count mirrored
+from the bag is recomputable by definition. Declared derived, it is readable, announced on
+`flag_changed` and visible to `FlagQuery`, and absent from the save file — so
+`Inventory.SAVE_VERSION` did not move, `Flags`'s format did not change, and there is no migration.
+
+The inversion is the package. A tracker reading a bag points UP; a bag publishing a flag points
+DOWN. Same capability, and the quest system never learns what an inventory is — sixth
+namespace-over-`Flags` after `PersistentState`, `Standing`, `Equipment`, `WorldMap` and
+`Attributes`, and the first whose value is a NUMBER rather than a truth.
+
+`BagKeys` is its own file for a compile reason rather than a tidiness one. `Equipment.PREFIX` lives
+on `Equipment`, and that could not work here: `check_content` runs under `--headless --script` where
+autoload identifiers do not resolve, so naming `Inventory.PREFIX` would not COMPILE. The parser
+earns its keep on one line — **an item id contains a slash**, so the carrier is the first segment
+after the prefix and the item id is everything left; splitting on the last slash answers
+`rose_petal`, which `ItemDb` would then fail to find, and a validator that fails on valid content is
+worse than none.
+
+**Connects:** nothing that writes a count had to change. A `Pickup`, an `ItemContainer`, `--give=`
+and a restored save all go through `Inventory.add`, so all four advance a counted step already —
+WP-08's seam used a third time after `Equipment`. `JournalScreen` keeps its MUST NOT ("read a
+flag"): non-negotiable #4 says add a system rather than widen a boundary, so the question is asked
+where the comparison table already lives and the tracker passes the answer along.
+
+**THE UNCOMPLETE DECISION, STATED OUT LOUD — and no new decision was needed.** A step reopens when
+a count falls; a completed quest does not. That is WP-08's asymmetry, and `quest_tracker.gd`'s own
+header names *this exact case*: *"A step may test AT_LEAST 3 on a counter; if something later
+decrements it, a finished quest would reopen."* What this package contributes is the first real test
+of it — against a bag that actually decrements, rather than a flag written by hand. Two adjacent
+behaviours also asserted: a count already satisfied when the quest starts passes its step at once (a
+step is never "reached"), and a fourth petal does not un-finish a step needing three, because the
+test is `AT_LEAST` and not `EQUALS`.
+
+**Verified:**
+
+```
+$ "$G" --headless --import 2>&1 | grep -Ei 'SCRIPT ERROR|Parse Error'
+(no output)
+$ "$G" --headless --quit-after 120
+15:02:43 [INFO ] [boot     ] Session ended after 1.4s — 0 warnings, 0 errors
+$ "$G" --headless res://tests/test_runner.tscn --quit-after 400
+15:04:02 [INFO ] [test     ] === 1468 passed, 0 failed, 0 skipped ===          exit 0
+$ "$G" --headless --script tools/check_budgets.gd
+127 files, 10869 code lines, 0 warnings, 0 violations                          PASS
+$ "$G" --headless --script tools/check_content.gd
+  quests: 1
+     quest/keepers_errand   3 steps, starts on met/gardener is_true
+        unlock              done when area/courtyard/gate_unlocked is_true
+        dais                done when area/courtyard/dais_entered is_true
+        petals              done when bag/player/item/rose_petal at_least 3
+                                                                               PASS
+$ "$G" --headless --script tools/check_boundary.gd
+  demo names derived: 16 — [... "item/rose_petal", "rose_petal", "quest/keepers_errand" ...]
+  engine scripts scanned: 121                                                  PASS
+```
+
+**STRIPPED TEMPLATE, run locally** — `data/` and `scenes/areas/` moved aside, which is step one of
+`docs/NEW_GAME.md`: **`1400 passed, 0 failed, 19 skipped`**, exit 0 (was 1334/19), with
+`item definitions: 0`, `quests: 0`, `demo names derived: 0` and both checkers exit 0. **The skip
+count did not move**, which is the claim worth making: all 66 new assertions are fixtures all the
+way down and every one of them runs in a checkout with no game in it. A new skip would have had to
+be named and counted.
+
+**THE NEW GATE PROVED RED, THEN GREEN — all three branches, each the real failure shape**
+(gotcha 23). Planted in `data/quests/keepers_errand.tres`, one at a time, reverted after each:
+
+```
+$ perl -pi -e 's{item/rose_petal}{item/rose_petals}' data/quests/keepers_errand.tres
+        petals              done when bag/player/item/rose_petals at_least 3
+  !! quest/keepers_errand/petals counts 'item/rose_petals', which no item .tres declares
+FAIL — 1 content violation(s)                                                  exit 1
+$ (reverted)                                                                   exit 0
+
+$ perl -pi -e 's{^condition_value = 3$}{condition_value = 0}' ...
+  !! quest/keepers_errand/petals asks for 0 of 'item/rose_petal'; a count below one is
+     always satisfied
+FAIL — 1 content violation(s)                                                  exit 1
+
+$ perl -pi -e 's{^condition_test = 4$}{condition_test = 1}' ...
+  !! quest/keepers_errand/petals tests an item count with is_true, which is not a count
+FAIL — 1 content violation(s)                                                  exit 1
+$ (reverted)                                                                   exit 0
+```
+
+Validating THIS namespace is not a contradiction of WP-08's "print the flags, do not judge them".
+`bag/<carrier>/<item id>` differs in the one way that matters: it has exactly **one writer**, and
+half the key is an item id the tool can look up. The carrier is deliberately NOT validated — a
+`carrier_id` is an `@export` on a node in a scene this tool does not open, and a game may put a bag
+on an NPC or a stash. Same line `_all_waypoint_names` draws.
+
+**AND THE SUITE'S OWN EXIT 1, ON THE INVARIANT RATHER THAN ON A BROKEN ASSERTION.** The
+load-bearing invariant is that every path which moves a count republishes, so `_publish()` was
+deleted from `remove()` — the way it would really be lost:
+
+```
+=== 1460 passed, 9 failed, 0 skipped ===                                       exit 1
+FAILED: spending two republishes one — expected 1, got 3
+FAILED: item_count_test raised 1 engine script error(s): ["Invalid access to property or key
+  'step_id' on a base object of type 'Nil'. at res://tests/unit/item_count_test.gd:185"]
+```
+
+The second line is `error_watch.gd` catching the downstream consequence: a quest wrongly completed,
+so `current_step` answered null. Restored: `1468 passed, 0 failed`, exit 0.
+
+**ONE LATENT DEFECT, FOUND BECAUSE THE DESIGN COULD NOT TOLERATE IT.** `Director.start_new_game()`
+clears the flags, resets the playtime and emits `game_started`; nothing was listening on behalf of
+`Inventory`, so **the previous run's items carried into a fresh game.** Unreachable in practice (the
+boot goes to the main menu with an empty bag) and invisible to every gate, because nothing asserted
+it. It surfaced only here, because the flags are cleared and `_counts` is not, so the mirror and the
+truth disagree from the first frame of a new game. `Inventory` now clears on `game_started` and
+republishes on `game_loaded` — the second because `Flags._apply_save` wipes the store and the
+derived keys are deliberately not in the file it restores from, so **the answer must not depend on
+save-participant order**, and `game_loaded` fires once after every section is applied.
+
+**And that made `--give=` need the area wait — gotcha 32 for the FOURTH time** after `--open-menu`,
+`--flag` and `--open-inventory`: items staged during argument parsing are now thrown away by the new
+game a frame later. Given that wait, `--give` and `--equip` would leave `_wait_for_area` on the same
+frame and be ordered by chance (gotcha 35), so `--equip` waits one frame more — an ordering rather
+than a race, and **verified both ways round on the command line**:
+
+```
+### give BEFORE equip on the line
+[test] --give item/brass_lantern x1: true
+[test] --equip item/brass_lantern: true (flag equip/player/item/brass_lantern)
+### equip BEFORE give on the line
+[test] --give item/brass_lantern x1: true
+[test] --equip item/brass_lantern: true (flag equip/player/item/brass_lantern)
+```
+
+**TWO WINDOWED CAPTURES, LOOKED AT AND READ rather than glanced at** (gotcha 28). Both
+`--new-game --open-menu=journal --shot-frame=110 --quit-after 130 --time=12:00 --freeze-time`, so
+they differ by exactly one petal:
+
+- `--give=item/rose_petal:2` → `Journal / Underway / The Keeper's Errand / — Gather three rose
+  petals.   2 / 3`, the *New errand* toast up, `Day 1 | 12:00 | Midday` in the HUD, the courtyard
+  visible and stopped behind the dim panel. The tally is a **checkable prediction**, not a
+  screenshot that merely looks fine: two given, three required.
+- `--give=item/rose_petal:3` → same camera, same hour: `Settled / The Keeper's Errand / — Nothing
+  left to do.`
+
+The staging log is the other half of the reading, because it shows the objective walking forward
+through steps the demo already had:
+
+```
+[test ] --new-game requested 'courtyard'
+[test ] --give item/rose_petal x2: true
+[quest] quest/keepers_errand: started [&"quest/keepers_errand"]
+[quest] quest/keepers_errand: advanced [&"quest/keepers_errand", &"unlock"]
+[quest] quest/keepers_errand: advanced [&"quest/keepers_errand", &"dais"]
+[quest] quest/keepers_errand: advanced [&"quest/keepers_errand", &"petals"]
+[test ] --open-menu journal pushed: true
+[boot ] Session ended after 2.7s — 0 warnings, 0 errors
+```
+
+and with three petals the same run reads `quest/keepers_errand: completed`.
+
+**NO TEMPORARY PROBE WAS NEEDED AND NONE WAS LEFT** (gotcha 15). This package touches no input path
+and no audio path — `J` was proved by WP-08's probe and `ScreenKeys` was not touched.
+`git diff src/systems/debug/` carries only the `--give` wait, the `--equip` frame gap and their
+header lines.
+
+**A REGRESSION GATE ON THE LAYER RULE, and it is the most important block in the new case.** The
+exit criterion was that a count must work WITHOUT the quest system knowing what an inventory is, and
+nothing else in the suite could fail if that stopped being true — the behaviour would be identical
+and the layer rule would be gone. So `item_count_test.gd` text-scans `quest_tracker.gd` and
+`quest_step.gd` for `Inventory`, `ItemDb.` and `BagKeys`, `journal_screen.gd` for `Flags.`, and
+asserts that exactly ONE file under `src/` builds a bag key. **The first version of that block was
+wrong in an instructive way:** a raw scan failed on both files, because both HEADERS explain at
+length why an `Inventory` is not reachable from them — the gate fired on the paragraph documenting
+the rule it enforces. `check_boundary` had already drawn this line: **comments are exempt, code is
+not.** The block strips comment lines first.
+
+**Unblocks:** "bring me N of these" for any game built on this base, with no code — and the same
+shape whenever a lower layer holds something an upper one must observe: publish downward into a
+declared derived prefix rather than reaching upward. A gathering quest, a delivery quest, a
+"collect the five seals" chapter gate and a `DialogueChoice` conditioned on carrying enough of
+something are all authorable today, none of them touching `src/`.
+
+**Known gaps:**
+- **A step still cannot TAKE the items.** A completed quest emits `quest_completed` and stops —
+  WP-08's layer reason holds unchanged. A game listens, or puts an `ItemContainer` in front of the
+  NPC.
+- **`AT_MOST` draws no tally**, on purpose: it is a ceiling, and "2 / 3" under *keep it below three*
+  tells the player to gather more of the one thing they must not. `EQUALS` counts; nothing authored
+  uses it.
+- **The carrier is not validated by any gate**, stated in `check_content`'s own comment.
+- No sixth catalogue: a count needs no resource, no registry and no save section, which is
+  `Attributes`' argument used a second time.
+- No objective marker on the map, no quest-item marker in the satchel, no count in a tooltip.
+- Branching quests, a failure state, timed quests, item instances and a journal detail pane are all
+  still deferred, unchanged.
+- Combat is still not a thing, and a count of arrows would not change that.
+
+**Commit `PENDING` on `claude/t3-3-item-count`, PR #21**, stacked onto `claude/t3-1-registry` (#20)
+rather than `main`, matching the rest of the chain.
+
+---
+
 ## 2026-08-30 — T3.1 · One scan, five typed façades
 
 **Did.** Collapsed five copies of the same scan-and-validate into one function, on

@@ -15,6 +15,13 @@ extends Node
 ## WHAT DOES NOT BELONG HERE: anything recomputable, anything per-frame, positions,
 ## velocities, UI state, or a cache. If it can be derived, derive it.
 ##
+## AND ONE DELIBERATE EXCEPTION, WHICH IS WHAT `declare_derived` IS FOR. A recomputable fact
+## sometimes has to be READABLE here, because reading a flag is how authored content asks a
+## question: a quest step names a flag, and an item count is not one. So a system may PUBLISH a
+## derived value into a declared prefix and keep the truth where it already lives — the value is
+## visible to `FlagQuery`, announced on `flag_changed`, and left out of the save file, so the
+## rule above survives intact. Nothing here derives anything itself; the publisher owns that.
+##
 ## NAMING: lowercase, slash-separated, most general part first, so `story/`, `met/` and
 ## `area/<id>/` group naturally when sorted or dumped in the debug console.
 ##
@@ -22,6 +29,8 @@ extends Node
 ## MUST NOT: interpret any flag. It never knows what `story/chapter` means.
 
 var _values: Dictionary[StringName, Variant] = {}
+## Prefixes whose keys are DERIVED and therefore never saved. See `declare_derived`.
+var _derived: Array[String] = []
 
 
 func _ready() -> void:
@@ -104,10 +113,39 @@ func count() -> int:
 	return _values.size()
 
 
+## DECLARE A PREFIX WHOSE KEYS ARE DERIVED, so they are readable but not saved.
+##
+## The problem it solves: `Inventory` keeps item counts and a quest step can only observe a flag,
+## so the counts have to be readable HERE. Writing them into the save section as well would make
+## one number saved twice, in two formats, by two participants — and this file's header says a
+## recomputable value does not belong in the store at all. So the value is published, announced
+## and read like any other flag, and omitted from `_collect_save`: its publisher re-derives it,
+## which is the same asymmetry `QuestTracker` already runs on.
+##
+## Idempotent, so a second carrier declaring the same prefix costs nothing. There is deliberately
+## no `undeclare`: a prefix is a property of the engine's namespace rather than of one node's
+## lifetime, and a component leaving the tree must not start persisting another one's derived
+## keys behind its back.
+func declare_derived(prefix: String) -> void:
+	if prefix != "" and not _derived.has(prefix):
+		_derived.append(prefix)
+
+
+## Whether this flag sits under a declared derived prefix. Public so a test can assert that a key
+## IS derived, rather than infer it from the absence of a row in a save file.
+func is_derived(flag: StringName) -> bool:
+	for prefix: String in _derived:
+		if String(flag).begins_with(prefix):
+			return true
+	return false
+
+
 func _collect_save() -> Dictionary:
 	# StringName keys become strings in JSON, and come back as strings. _apply_save converts.
 	var out: Dictionary = {}
 	for flag: StringName in _values:
+		if is_derived(flag):
+			continue
 		out[String(flag)] = _values[flag]
 	return out
 

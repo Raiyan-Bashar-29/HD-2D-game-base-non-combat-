@@ -3,24 +3,32 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-30 · **T3.1 (a generic content registry) complete — `767fbe3`,
-PR #20. Fifth package of Phase T3, and the only row on the board that was a pure REFACTOR: if a
-consuming game could tell it happened, it went wrong, and it cannot.** Five catalogues carried five
-copies of the same scan-and-validate. WP-08 costed the refactor at the fourth copy and kept the
-copy for a sound reason — a base holding the CACHE could only hand back untyped `Resource`s, and
-every accessor would become a cast at the call site. **That verdict was right about the wrong
-half.** The duplication was in the SCAN, which needs exactly two things from a resource: its `id`
-and its `problems()`. So the base went on the **resource** (`ContentEntry`) and the shared part is
-a **function** — `ContentScan.into()` fills the CALLER'S own typed dictionary, so `ItemDb._by_id`
-is still `Dictionary[StringName, ItemDefinition]`, `ItemDb.definition()` still returns
-`ItemDefinition`, and there is no cast at any call site in the project. Five registries: 290 code
-lines to 187, plus 44 shared. `ItemDb.resource_paths()` became `ContentScan.resource_paths()` with
-no alias at nine call sites. 47 new assertions, every one of which runs in a stripped template, and
-**not one word of `AUTHORING.md` needed changing** — that was the acceptance test. New gotcha 37,
-measured with a probe: a base-class `static var` is ONE storage shared by every subclass, which is
-why a shared base CLASS would have given all five catalogues one cache and one `content_dir`.
+**Last updated:** 2026-08-31 · **T3.3 (a quest step that reads an ITEM COUNT) complete —
+`PENDING`, PR #21. Sixth package of Phase T3, and the one row on the board that was breadth of
+EXPRESSION rather than polish: "bring me three petals" was not authorable, which is a limit on what
+a consuming game can SAY.** WP-09 costed two designs and closed neither. The second — a `systems`
+tracker reading a `gameplay` inventory — is not a design, it is the layer rule being broken, and
+WP-08 had already refused exactly that over a `reward_item` field. So the choice was the first
+(mirror the counts into `Flags`) or nothing, and the whole question was whether its stated cost —
+the same number saved twice, by two participants — is real. **It is not, and `flags.gd`'s own header
+is why:** *anything recomputable does not belong in the store*, and a count mirrored from the bag is
+recomputable by definition. So `Flags.declare_derived(prefix)` keeps `bag/<carrier_id>/<item id>`
+readable, announced on `flag_changed` and visible to `FlagQuery`, and OUT of the save file —
+`Inventory.SAVE_VERSION` did not move and there is no migration. **The inversion is the whole
+package: a tracker reading a bag points UP, a bag publishing a flag points DOWN**, and the quest
+system was not touched — no field on `QuestStep`, no knowledge in `QuestTracker`, and a test now
+FAILS if either learns what an inventory is. Sixth namespace-over-`Flags`, and the first whose value
+is a NUMBER. 66 new assertions, three `check_content` branches each proved red then green, two
+windowed captures LOOKED AT, and one latent defect the design could not tolerate: **a new game did
+not empty the bag.**
 
-*(Previously: WP-09b, attributes and surface-aware footsteps — `da126d9`, PR #19. An attribute is
+*(Previously: T3.1, one scan behind five typed façades — `767fbe3`, PR #20. Five catalogues carried
+five copies of the same scan-and-validate, and both earlier costings were right about the wrong
+half: the duplication was in the SCAN, not the cache, so the base went on the **resource**
+(`ContentEntry`) and the shared part is a **function** — `ContentScan.into()` fills the CALLER'S own
+typed dictionary, so there is no cast at any call site. New gotcha 37: a base-class `static var` is
+ONE storage shared by every subclass.
+Before that: WP-09b, attributes and surface-aware footsteps — `da126d9`, PR #19. An attribute is
 the flag `attr/<who>/<name>`, an integer number of steps clamped to ±4 — the **fifth** use of
 namespace-over-`Flags` — and it ships with EXACTLY ONE consumer,
 `PlayerController.current_speed()`, with the attribute's name declared as a const on that consumer
@@ -58,10 +66,10 @@ T1.3; T2.0 is on **`claude/t2-0-export-proof`**, branched from T1.4; T2.1 is on
 branched from T2.1; WP-08 is on **`claude/wp-08-quests`**, branched from T2.2; WP-09 is on
 **`claude/wp-09-character`**, branched from WP-08; WP-11 is on **`claude/wp-11-worldmap`**,
 branched from WP-09; WP-09b is on **`claude/wp-09b-attributes`**, branched from WP-11; T3.1 is on
-**`claude/t3-1-registry`**, branched from WP-09b. The nine earlier PRs are superseded.
+**`claude/t3-1-registry`**, branched from WP-09b; T3.3 is on **`claude/t3-3-item-count`**, branched from T3.1. The nine earlier PRs are superseded.
 
-**Branch new work from `claude/t3-1-registry`**, or from `main` once #10, #11, T1.2-T1.4,
-T2.0, T2.1, T2.2, WP-08, WP-09, WP-11, WP-09b and T3.1 have landed. The older
+**Branch new work from `claude/t3-3-item-count`**, or from `main` once #10, #11, T1.2-T1.4,
+T2.0, T2.1, T2.2, WP-08, WP-09, WP-11, WP-09b, T3.1 and T3.3 have landed. The older
 per-package branches (`claude/wp-04-second-area`, `claude/wp-05-dialogue`, `claude/wp-06-npcs`,
 `claude/wp-07-path-actions`, `claude/wp-12-menus`, `claude/wp-13-presentation`) are history and
 should not be built on.
@@ -81,9 +89,10 @@ game built on this will need, so a new game is content and data rather than new 
 ## Where it stands
 
 Phase 0 complete, Phase 1 COMPLETE, Phase 2 well under way, **Phase T1 COMPLETE, Phase T2
-COMPLETE as of T2.2, and Phase T3 OPEN with WP-08, WP-09, WP-11, WP-09b and T3.1 done.** 125 files,
-10,506 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest, 2 mapped areas,
-2 path actions, 2 sprite sheet layouts, 3 tagged surfaces.
+COMPLETE as of T2.2, and Phase T3 OPEN with WP-08, WP-09, WP-11, WP-09b, T3.1 and T3.3 done.**
+127 files, 10,869 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
+three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
+3 tagged surfaces.
 Boots headless with **0 warnings, 0 errors**.
 
 **Works, and verified by running it:** logging with rotation · signal registry (`events.gd`) ·
@@ -91,7 +100,7 @@ input actions · settings · save/load with atomic writes and versioning · plot
 director with a re-entrancy guard and threaded loading · world clock · weather state · audio
 buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 8-way character ·
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
-placeholder art generator · line-budget checker · a headless test suite (1,402 assertions) that
+placeholder art generator · line-budget checker · a headless test suite (1,468 assertions) that
 builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
 returns early, asserts nothing, or is not listed in the runner ·
 an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
@@ -158,7 +167,16 @@ const on its consumer, so an attribute nobody reads has nowhere to be written do
 the courtyard tags `Terrain` once and overrides two floors; a `Footsteps` component probes down,
 steps every 1.7 m and GENERATES the sound from the surface's name, so `sand` is audible the day a
 game writes it and no table of surface names ever exists under `src/`. Three surfaces reported
-correctly in a windowed run, one of them inherited, and the sound following each.
+correctly in a windowed run, one of them inherited, and the sound following each ·
+**"BRING ME THREE PETALS", AND THE QUEST SYSTEM STILL DOES NOT KNOW WHAT AN INVENTORY IS**:
+`Inventory` publishes each count as `bag/<carrier_id>/<item id>` — the SIXTH namespace over `Flags`
+and the first whose value is a number — so a step is `AT_LEAST 3` on that key, `QuestStep` gained
+no field and `QuestTracker` gained no knowledge, and the dependency points DOWN from `gameplay` to
+`core` rather than up from `systems` to `gameplay`. The mirror is declared DERIVED, so it is
+readable and announced but never saved and no save version moved. A step reopens when a count falls
+and a completed quest does not — WP-08's asymmetry, tested at last against something that really
+decrements. The journal draws `— Gather three rose petals.   2 / 3` and still reads no flag. Two
+windowed captures LOOKED AT and READ, differing by exactly one petal.
 
 **Not built:** hard-coded-string audit · item instances (durability) ·
 footstep PARTICLES, and a second attribute with a consumer — naming one is free, reading one is a
@@ -166,13 +184,14 @@ line of engine code ·
 an equipment SCREEN, a character sheet, and no attribute gates an interaction ·
 item tooltips, sorting and drag-and-drop · fog of war, map zoom and pan, map art, travel costs and
 objective markers on the map — `quest_advanced` has an emitter, so markers are a listener and one
-more marker state · a DEPARTURE-side travel point, which is a game policy rather than a mechanism · branch protection, so CI reports but nothing stops a
+more marker state · **a quest step that TAKES the items it counted** — a step can REQUIRE N of an
+item id since T3.3, and WP-08's layer refusal is unchanged: a completed quest emits
+`quest_completed` and stops, so handing anything over is a listener's job · a DEPARTURE-side travel
+point, which is a game policy rather than a mechanism · branch protection, so CI reports but nothing stops a
 red branch merging · no CI export rung (a GPU-less runner has no platform template) · export
 presets for platforms other than Windows · a release-build content readout, since the debug gate
-means a release export prints nothing · a quest step cannot read an ITEM COUNT — WP-09
-NARROWED this rather than closing it: a flag is enough for "HOLD one of this", because being
-held is a fact about one item, and a COUNT is not; both ways to expose one cost something
-real, so it is **T3.3** on the board with both options costed. The theme does not yet set the
+means a release export prints nothing · a counted step whose CARRIER is validated by a gate — the
+item id is checked, the carrier is an `@export` in a scene `check_content` does not open. The theme does not yet set the
 `Button` styleboxes, so a light palette leaves every menu row drawing Godot's default dark
 panel — the seam is right and in the same file, simply unpopulated. Third package to leave
 them, each time for a stated reason.
@@ -704,6 +723,43 @@ three compiled cleanly and passed every static gate:**
   — the stride accumulator, the surface query and the two timbre functions — are asserted, and the
   raycast, the frame loop and the `play()` are a windowed run with the log quoted. The same split
   `SurfaceWetness` made for drying, and it is said out loud rather than implied.
+- **AN ITEM COUNT IS A FLAG THAT IS PUBLISHED DOWNWARD, NOT A BAG THAT IS READ UPWARD.**
+  `bag/<carrier_id>/<item id>` in `Flags`, written only by `Inventory._publish`, and it is the
+  general answer whenever a lower layer holds something an upper one must observe. `QuestTracker`
+  is `systems` and `Inventory` is `gameplay`, so a tracker reading a bag points the wrong way —
+  the same violation WP-08 refused over `reward_item`. Publishing inverts it, and the capability is
+  identical: `QuestStep` gained NO field, `QuestTracker` gained no knowledge, and `item_count_test`
+  FAILS if either file's code names `Inventory`, `ItemDb` or `BagKeys` — nothing else in the suite
+  could, because the behaviour would be identical with the layer rule gone. Settled by T3.3 from
+  the FIRST of WP-09's two costed designs. Do not "simplify" it by handing the tracker a bag.
+- **A DERIVED FLAG IS READABLE, ANNOUNCED, AND NOT SAVED.** `Flags.declare_derived(prefix)`, and
+  `_collect_save` skips those keys. That is what makes the count projection legal rather than a
+  second copy of the truth: `flags.gd`'s own header forbids storing anything recomputable, and a
+  count mirrored from the bag is recomputable by definition. The consequence is a duty rather than
+  a freedom — the PUBLISHER must republish whenever the store is wiped under it, which is why
+  `Inventory` subscribes to `game_started` (clear) and `game_loaded` (republish, after every
+  section, so the answer cannot depend on save-participant order). Anything else that wants to be
+  readable-but-derived pays the same price and should say so in its header.
+- **A COUNTED CONDITION IS `AT_LEAST` OR `EQUALS`, AND `AT_MOST` DRAWS NO TALLY.** `AT_MOST` is a
+  ceiling, so "2 / 3" under *keep it below three* tells the player to gather more of the one thing
+  they must not; a `condition_value` of 0 is not a count either, because `AT_LEAST 0` passes with an
+  empty bag. `FlagQuery.progress()` answers `(have, need)` with `need == 0` meaning "not a count",
+  and `check_content` fails the build on both mistakes rather than letting a journal draw `0 / 0`.
+- **THE BAG KEY SHAPE LIVES IN `src/core/state/bag_keys.gd`, AND NOT ON `Inventory`.** Three places
+  need it and none may rebuild it: the bag WRITES it, `check_content` PARSES it to validate the item
+  id, and the suite asserts on it. The reason it cannot sit beside `Equipment.PREFIX` is a compile
+  error, not taste — `check_content` runs under `--script`, where autoload identifiers do not
+  resolve, so naming `Inventory.PREFIX` would not compile. Keep that file free of autoloads.
+- **ONE FLAG NAMESPACE IS VALIDATED BY `check_content`; THE REST ARE STILL ONLY PRINTED.** WP-08's
+  rule stands — a flag can be written from anywhere, so failing on one with no findable writer would
+  be wrong most times it fired. `bag/<carrier>/<item id>` is the exception because it has exactly
+  ONE writer and half the key is an item id the tool can look up. The CARRIER is deliberately not
+  validated: it is an `@export` in a scene the tool does not open, and a game may put a bag on an
+  NPC or a stash.
+- **A NEW GAME IS A NEW BAG.** `Director.start_new_game()` clears the flags; `Inventory` now clears
+  its counts on `game_started` for the same reason. It did not before T3.3, so the previous run's
+  items carried into a fresh game — unreachable in practice and invisible to every gate, and found
+  only because the count projection cannot tolerate the two disagreeing.
 - Six ADRs in `docs/decisions/` cover the layered `src/`, warnings-as-errors, the input map,
   and save-via-callables.
 
@@ -719,14 +775,14 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 120               # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,402 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,468 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Thirty-seven gotchas that each cost an hour
+## Thirty-eight gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -999,6 +1055,17 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     path**, so re-saving a different resource over a path already loaded in this run hands the next
     scan the FIRST one. A new file name, not a second write.
 
+38. **A MISSPELLED PROPERTY NAME IN A HAND-AUTHORED `.tres` IS SILENTLY DISCARDED.** Measured under
+    4.7.2: `conditio_flag = &"bag/player/item/rose_petal"` in a quest step loaded with **no engine
+    error, no warning and no `Invalid` line anywhere** — the resource simply came back with that
+    field at its default. This project hand-authors every `.tres`, so it is exactly the slip the
+    editor would have made impossible, and it is `[editable]`'s family (gotcha 27): a property the
+    loader drops looks identical to a property nobody set. The only thing that saw it was
+    `problems()` on the resource itself, and only because a non-ALWAYS test with no flag is a
+    declared problem — a misspelt `condition_value` would have become 0 in silence, which is why
+    T3.3's content gate refuses a count below one. **Every field a `.tres` sets that MATTERS must be
+    reachable by `problems()` or by a checker**, or authoring it is a suggestion.
+
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the
@@ -1008,19 +1075,17 @@ names the exact files that chat should read, so a session loads a few hundred li
 package never has to read upward.
 
 
-**Next package: T3.3 — a quest step that can read an ITEM COUNT, and it is the last one that
-changes what a consuming game can express.** T3.1 has closed, so the two rows left are both narrow:
+**Next package: T3.2 — the five art-contract seams T2.1 left open.** T3.3 has closed, which was the
+last row that changed what a consuming game can EXPRESS, so what remains in Phase T3 is one row:
 
-- **T3.3**, a quest step that can read an ITEM COUNT. "Bring me three petals" is still not
-  authorable. WP-09 NARROWED rather than closed it: a flag is enough for "HOLD one of this",
-  because being held is a fact about one item and a COUNT is not. WP-09's section costs both
-  candidate designs and says what each gives up; whoever takes it chooses between two stated
-  options rather than inventing a third. This is the one that is breadth of expression rather than
-  polish, so `TEMPLATE.md`'s replacement rule puts it ahead of T3.2.
-- **T3.2** still holds the five T2.1 leftovers — shared materials, the environment post-stack and
+- **T3.2** holds the five T2.1 leftovers — shared materials, the environment post-stack and
   camera framing as `@export`s, the texture import defaults, the Git LFS lines — so they stop
-  being mentioned in five places. Note gotcha 30 before starting it: `[importer_defaults]` is
-  undocumented and absent from `--doctool`, and T2.1 stopped rather than guess at it.
+  being mentioned in five places. **Note gotcha 30 before starting it:** `[importer_defaults]` is
+  undocumented and absent from `--doctool`, and T2.1 stopped rather than guess at it, so the
+  honest outcome for that one seam may be a written-down refusal rather than a change.
+  There is also a latent hazard in the same area: every committed `.import` carries
+  `detect_3d/compress_to=1`, and these sheets ARE used in 3D, so a re-import can put VRAM
+  compression through pixel art.
 
 **objective markers on the map** is now a listener rather than new state — `quest_advanced` has
 an emitter and `MapScreen` already redraws on facts.
@@ -1041,28 +1106,29 @@ and back down, press I at any point to see what you are carrying in a window tha
 world — then walk north through a door into a lantern-lit hall that has never heard of the sun,
 and come back, and ask the garden-keeper who they are and what lies behind the north gate, in a
 box that leaves the world running behind it — and that conversation now hands you an errand, which
-the lever you already threw and the dais you already crossed advance and settle, readable on `J` at
-any point — and pick a lantern up, hold it from the satchel with Enter, and pass under an arch
+the lever you already threw and the dais you already crossed advance, and three rose petals out of
+the wicker chest settle — the journal counting them `2 / 3` on the way, readable on `J` at any
+point — and pick a lantern up, hold it from the satchel with Enter, and pass under an arch
 that turned you away a moment earlier with a line its author wrote — and press `M` to see the two
 places you know drawn on one map, the hall a grey `???` until you have walked to it and a gold dot
 you can press to travel back to once you have — and every one of those walks now sounds different
 depending on whether you are crossing grass, the wooden dais or stone. Every one of those changes
 survives a save and a
 reload, including from the far side of an area that is no longer loaded. All of it is covered
-by 1,402 headless assertions.
+by 1,468 headless assertions.
 
 **Next, in this order.** The order matters and is not arbitrary:
 
 1. **The rest of the system catalogue**, WP-14 and WP-15 re-framed — see the board. WP-11 closed
    the last row that had no proof at all, and WP-10 is OPTIONAL.
-2. **T3.3**, a quest step that can read an ITEM COUNT — "bring me three petals" is still not
-   authorable, which is a limit on what a consuming game can EXPRESS, and WP-09 costed both
-   candidate designs rather than closing it; then **T3.2**, the five art-contract seams T2.1 left
-   open. *(T3.1 is DONE — one scan behind all five catalogues, with every accessor still typed.)*
+2. **T3.2**, the five art-contract seams T2.1 left open — the last row in Phase T3.
+   *(T3.1 is DONE — one scan behind all five catalogues, with every accessor still typed. T3.3 is
+   DONE — an item count is a flag published downward, so a step can require N of an item id and
+   the quest system still does not know what an inventory is.)*
 
 *(Path actions, NPC schedules, navigation baking, weather visuals, quests, equipment, the world
-map and the shared content scan are all DONE — WP-06, WP-07, WP-08, WP-09, WP-09b, WP-11, WP-13
-and T3.1.)*
+map, the shared content scan and counted quest steps are all DONE — WP-06, WP-07, WP-08, WP-09, WP-09b, WP-11,
+WP-13, T3.1 and T3.3.)*
 
 **Still open, and expensive later:**
 - **The export path is PROVEN as of T2.0** — an exported `.exe` reports the same catalogue counts

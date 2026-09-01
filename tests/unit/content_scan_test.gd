@@ -182,7 +182,7 @@ func _counts_are_unharmed() -> void:
 	equal("ItemDb still holds its fixtures", ItemDb.count(), FixtureContent.items().size())
 	equal("DialogueDb still holds its fixture", DialogueDb.count(), 1)
 	equal("ScheduleDb still holds its fixture", ScheduleDb.count(), 1)
-	equal("QuestDb still holds its fixture", QuestDb.count(), 1)
+	equal("QuestDb still holds its fixtures", QuestDb.count(), FixtureContent.quests().size())
 	equal("AreaDb still holds its fixtures", AreaDb.count(),
 		FixtureContent.area_defs().size())
 

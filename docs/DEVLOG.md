@@ -228,7 +228,7 @@ something are all authorable today, none of them touching `src/`.
   still deferred, unchanged.
 - Combat is still not a thing, and a count of arrows would not change that.
 
-**Commit `PENDING` on `claude/t3-3-item-count`, PR #21**, stacked onto `claude/t3-1-registry` (#20)
+**Commit `292dd44` on `claude/t3-3-item-count`, PR #21**, stacked onto `claude/t3-1-registry` (#20)
 rather than `main`, matching the rest of the chain.
 
 ---

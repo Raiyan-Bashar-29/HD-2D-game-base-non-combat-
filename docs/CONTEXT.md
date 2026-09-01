@@ -4,7 +4,7 @@ A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has t
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
 **Last updated:** 2026-08-31 · **T3.3 (a quest step that reads an ITEM COUNT) complete —
-`PENDING`, PR #21. Sixth package of Phase T3, and the one row on the board that was breadth of
+`292dd44`, PR #21. Sixth package of Phase T3, and the one row on the board that was breadth of
 EXPRESSION rather than polish: "bring me three petals" was not authorable, which is a limit on what
 a consuming game can SAY.** WP-09 costed two designs and closed neither. The second — a `systems`
 tracker reading a `gameplay` inventory — is not a design, it is the layer rule being broken, and

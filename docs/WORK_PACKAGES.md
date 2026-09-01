@@ -72,7 +72,7 @@ original board rather than continuing it.
 | T2.2 | Consumer documentation | **DONE** — `36b5abd`, PR #15. Phase T2 closes; see T2.2 below |
 | T3.1 | **A generic content registry** — one scan, with a thin typed façade per catalogue | **DONE** — `767fbe3`, PR #20. The fifth package of Phase T3; see below. The refactor PAID, and not in the shape WP-08 costed: the duplication was in the SCAN, not the cache, so the base went on the RESOURCE |
 | T3.2 | The five art-contract seams T2.1 left | TODO — shared materials, the environment post-stack and camera framing as `@export`s, the texture import defaults, the Git LFS lines |
-| T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `PENDING`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
+| T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
 T3 by subject and is sequenced FIRST by risk. The three content registries find items,
@@ -1962,5 +1962,5 @@ new assertions are fixtures all the way down and every one runs in a checkout wi
   all still deferred, unchanged.
 - Combat is still not a thing, and a count of arrows would not change that.
 
-**Commit:** `PENDING` on `claude/t3-3-item-count`, PR #21 — stacked onto `claude/t3-1-registry`
+**Commit:** `292dd44` on `claude/t3-3-item-count`, PR #21 — stacked onto `claude/t3-1-registry`
 (#20) rather than `main`, matching the rest of the chain.

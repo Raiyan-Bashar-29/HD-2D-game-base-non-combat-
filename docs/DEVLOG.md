@@ -4533,3 +4533,13 @@ and so quotes 1573; the two totals differ by that one computed assertion and not
 
 **Commit** `22e0046` on `claude/wp-14b-dev-tools`, stacked onto `claude/wp-14-hardening` (#23)
 rather than `main`, matching the chain.
+
+**CI green, run 33546328207, JOB LOGS read rather than the tick** (gotcha 26). Full checkout
+**1574 passed, 0 failed, 0 skipped**; stripped template **1500 passed, 0 failed, 25 skipped** —
+both identical to the local numbers. `check_budgets` reported **134 files, 11,659 code lines, 0
+warnings, 0 violations** in BOTH jobs, and rung 8 reported identical figures in both (218 CSV rows,
+96 engine scripts, 73 key declarations), which is the point of running it on a stripped tree.
+Rung 3's whole-log grep printed `Parse Error lines in boot.log: 0`. All seven rungs present in the
+full job and all six in the stripped one. The run took 38 seconds, and per gotcha 26 that is a
+cached engine rather than evidence of a skip: the rung logs show 1,574 assertions actually
+executed.

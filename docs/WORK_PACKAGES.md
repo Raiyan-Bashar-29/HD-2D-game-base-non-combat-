@@ -54,7 +54,7 @@ Headless shades nothing. This project has already shipped two bugs that every ot
 | 12 | Menus | **DONE** — taken out of order; it needed only WP-02 |
 | 13 | Presentation | **DONE** — taken out of order; see below |
 | 14 | Dev tools and hardening — **the hardening half** | **DONE (split)** — `975ff4b`, PR #23. The eighth package of Phase T3; see below. The row named four things, which is over the size limit, so its own title was the seam. Its smoke-test wording was RE-FRAMED in the same commit, because "drives the whole demo" would have welded the demo into a permanent gate |
-| 14b | Dev tools — debug console and performance overlay | **DONE** — `22e0046`, PR pending. The NINTH package of Phase T3 and the row that CLOSES the phase; see below. The four commands became ONE implementation both the command line and the console call, which is also what made room in `dev_stage.gd` — it was at exactly 250/250 |
+| 14b | Dev tools — debug console and performance overlay | **DONE** — `22e0046`, PR #24. The NINTH package of Phase T3 and the row that CLOSES the phase; see below. The four commands became ONE implementation both the command line and the console call, which is also what made room in `dev_stage.gd` — it was at exactly 250/250 |
 | 15 | Release engineering | **SPLIT, and the remnant should probably be CLOSED** — the export proof is template work and is now **T2.0**; credits and the accessibility pass belong to a consuming game. See below |
 
 ### The template phases, added 2026-08-26
@@ -1474,6 +1474,19 @@ which the strip touches.
   all, so this row had no occasion to take them; the reason has not changed and neither has the
   seam.
 - Combat is still not a thing.
+
+**CI green, run 33546328207, JOB LOGS read rather than the tick** (gotcha 26). Full checkout
+**1574 passed, 0 failed, 0 skipped**; stripped template **1500 passed, 0 failed, 25 skipped** —
+both identical to the local numbers. `check_budgets` reported **134 files, 11,659 code lines, 0
+warnings, 0 violations** in BOTH jobs, and rung 8 reported identical figures in both (218 CSV
+rows, 96 engine scripts, 73 key declarations), which is the point of running it on a stripped
+tree. Rung 3's whole-log grep printed `Parse Error lines in boot.log: 0`. All seven rungs present
+in the full job and all six in the stripped one. The run took 38 seconds, and per gotcha 26 that
+is a cached engine rather than evidence of a skip: the rung logs show 1,574 assertions actually
+executed.
+
+**Commit:** `22e0046` on `claude/wp-14b-dev-tools`, PR #24 — stacked onto
+`claude/wp-14-hardening` (#23) rather than `main`, matching the rest of the chain.
 
 
 ---

@@ -130,12 +130,11 @@ func _parse_arguments() -> void:
 
 
 
+## Through `DevCommands`, which is where the four verbs the in-game console offers actually
+## happen. `--time=` and the console's `time` are now one implementation, so a fix to either is a
+## fix to both — see src/systems/debug/dev_commands.gd for why that mattered enough to move.
 func _force_time(value: String) -> void:
-	var parts: PackedStringArray = value.split(":")
-	if parts.size() != 2:
-		Log.warn("test", "--time expects HH:MM, got '%s'" % value)
-		return
-	Clock.set_time(Clock.day, parts[0].to_int(), parts[1].to_int())
+	Log.info("test", "--time %s" % DevCommands.set_time(value))
 
 
 func _force_weather(value: String) -> void:

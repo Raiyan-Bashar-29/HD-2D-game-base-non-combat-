@@ -51,6 +51,11 @@ extends Node
 ##                        map from X.
 ##   --npc-settle=<n>     let NPCs walk for n physics frames, so a screenshot shows them AT
 ##                        their posts rather than halfway there.
+##   --console=<lines>    open the debug console and run lines through it, separated by ';':
+##                        --console="time 18:40;flag met/someone:true". The lines go through
+##                        DebugConsoleScreen.submit(), which is the same path the enter key
+##                        takes, so a capture shows a real transcript. Waits for the world to
+##                        stay still - gotcha 35, this puts something on screen.
 ##
 ## OWNS: putting the world into a named state for a capture.
 ## MUST NOT: be depended upon by gameplay, measure anything, or reach past the game to pose it.
@@ -106,6 +111,8 @@ func _parse_arguments() -> void:
 			_new_game()
 		elif argument.begins_with("--open-menu="):
 			_open_menu(argument.trim_prefix("--open-menu="))
+		elif argument.begins_with("--console="):
+			_console(argument.trim_prefix("--console="))
 		elif argument.begins_with("--npc-settle="):
 			_npc_settle(maxi(1, argument.trim_prefix("--npc-settle=").to_int()))
 
@@ -156,15 +163,7 @@ func _give(list: String) -> void:
 	await get_tree().process_frame
 	if _fresh_game:
 		await _wait_for_area()
-	var bag: Inventory = Inventory.of(Director.player)
-	if bag == null:
-		Log.error("test", "--give found no inventory on the player")
-		return
-	for entry: String in list.split(",", false):
-		var parts: PackedStringArray = entry.split(":")
-		var count: int = parts[1].to_int() if parts.size() > 1 else 1
-		var added: bool = bag.add(StringName(parts[0]), maxi(1, count))
-		Log.info("test", "--give %s x%d: %s" % [parts[0], count, str(added)])
+	Log.info("test", "--%s" % DevCommands.give(list))
 
 
 
@@ -227,7 +226,7 @@ func _open_inventory() -> void:
 ## up as a slope rather than noise.
 func _goto(area_id: StringName) -> void:
 	await _wait_for_area()
-	Events.area_change_requested.emit(area_id, &"")
+	Log.info("test", "--%s" % DevCommands.travel_to(String(area_id)))
 	await _settled()
 	Log.info("test", "--goto arrived in '%s'" % Director.current_area_id)
 
@@ -317,17 +316,7 @@ func _force_flag(value: String) -> void:
 	await get_tree().process_frame
 	if _fresh_game:
 		await _wait_for_area()
-	var at: int = value.rfind(":")
-	if at <= 0:
-		Log.warn("test", "--flag expects <key>:<value>, got '%s'" % value)
-		return
-	var flag: StringName = StringName(value.substr(0, at))
-	var raw: String = value.substr(at + 1)
-	var parsed: Variant = raw.to_int()
-	if raw == "true" or raw == "false":
-		parsed = raw == "true"
-	Flags.set_flag(flag, parsed)
-	Log.info("test", "--flag %s = %s by command line" % [flag, str(parsed)])
+	Log.info("test", "--%s by command line" % DevCommands.set_flag(value))
 
 
 func _force_standing(value: String) -> void:
@@ -419,6 +408,29 @@ func _all_npcs() -> Array[Node]:
 ## Spawn a crowd and measure. The criterion is that thirty NPCs do not MEASURABLY cost frame
 ## time, so both numbers are reported and the comparison is left visible rather than asserted
 ## against a threshold that would be meaningless on another machine.
+
+
+## Open the debug console and run lines through it, so a capture shows a real transcript rather
+## than an empty box. Goes through `submit()`, which is precisely what the enter key calls — the
+## key itself cannot be pressed by anything but a probe (gotcha 15), and the WP-14b probe that
+## did press it is quoted in DEVLOG.md.
+##
+## `_settle_stable`, not `_wait_for_area`, and gotcha 35 is why: this puts something on screen,
+## and any staging flag that does leaves `_wait_for_area` on the same frame as `--goto` and races
+## it. Sixth flag to need this after --open-menu, --flag, --open-inventory, --give and --equip.
+func _console(script: String) -> void:
+	await get_tree().process_frame
+	if _fresh_game:
+		await _wait_for_area()
+		await _settle_stable(SETTLE_FRAMES)
+	var stack: UiRoot = UiRoot.find(self)
+	var screen: DebugConsoleScreen = ScreenKeys.menu_for(
+		DebugConsoleScreen.SCREEN_ID) as DebugConsoleScreen
+	if stack == null or screen == null or not stack.open(screen):
+		Log.error("test", "--console found no stack, or no console to open")
+		return
+	for line: String in script.split(";", false):
+		Log.info("test", "--console '%s' -> %s" % [line, screen.submit(line)])
 
 
 ## Start a game. Since WP-12 the boot sequence goes to the main menu rather than straight into

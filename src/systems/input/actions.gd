@@ -43,6 +43,7 @@ const CAM_ZOOM_OUT: StringName = &"cam_zoom_out"
 # Developer only. Never referenced by gameplay code.
 const DEBUG_CONSOLE: StringName = &"debug_console"
 const DEBUG_FREECAM: StringName = &"debug_freecam"
+const DEBUG_PERF: StringName = &"debug_perf"
 const DEBUG_SCREENSHOT: StringName = &"debug_screenshot"
 
 ## Every gameplay action, in the order a rebinding screen should list them.
@@ -118,6 +119,7 @@ func _define_camera() -> void:
 func _define_debug() -> void:
 	_define(DEBUG_CONSOLE, [_key(KEY_F1)])
 	_define(DEBUG_FREECAM, [_key(KEY_F2)])
+	_define(DEBUG_PERF, [_key(KEY_F3)])
 	_define(DEBUG_SCREENSHOT, [_key(KEY_F12)])
 
 

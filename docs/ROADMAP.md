@@ -234,9 +234,13 @@ Exit criteria:
       photographs the title screen and concludes their area is broken. A walkthrough that worked
       first time would have meant the author was still reading from memory
 
-## Phase T3 — Finish the system catalogue
+## Phase T3 — Finish the system catalogue · **COMPLETE, 2026-09-02**
 
-The remaining packages, re-framed — see the board. **The export proof moved OUT of this phase and
+Nine packages: WP-08, WP-09, WP-11, WP-09b, T3.1, T3.3, T3.2, WP-14 and WP-14b, the last of which
+closed the phase's one exit criterion. WP-10 (crafting) is OPTIONAL and blocks nothing; WP-15's
+remnant is a decision awaiting the owner rather than work in this phase.
+
+The packages, re-framed — see the board. **The export proof moved OUT of this phase and
 into T2.0**, at the front of Phase T2: it was always described here as "the one genuinely blocking
 item", and a blocking item scheduled last is a contradiction. Sequenced by risk, not by theme.
 
@@ -315,9 +319,10 @@ item", and a blocking item scheduled last is a contradiction. Sequenced by risk,
   and two windowed captures LOOKED AT and READ. See the board.
 
 - **T3.2 The five art-contract seams T2.1 left — DONE, 2026-09-01.** The phase's seventh package,
-  and the LAST of its T-numbered rows — but Phase T3 is not closed and this file should not be
-  read as saying so: WP-14 is still TODO, WP-15 has a remnant, and the exit criterion below is
-  about systems having a proof rather than about T-rows being finished. T2.1 shipped the sprite-sheet contract and the project `Theme` and
+  and the LAST of its T-numbered rows — but Phase T3 was not closed by it and this file should not
+  be read as saying so: WP-14 was still TODO, WP-15 has a remnant, and the exit criterion below is
+  about systems having a proof rather than about T-rows being finished. *(The phase closed two
+  packages later, with WP-14b on 2026-09-02.)* T2.1 shipped the sprite-sheet contract and the project `Theme` and
   left five items, which then spent six packages being described in **five documents** — a backlog
   item mentioned five times is tracked zero times and described five times, and the descriptions
   drift. Four are now built and one is refused in writing, and every one of them is stated in
@@ -373,7 +378,7 @@ item", and a blocking item scheduled last is a contradiction. Sequenced by risk,
   with the invariant deleted. See the board.
 
 Exit criteria:
-- [ ] Every system has one proof, and no system has a second area's worth of content
+- [x] Every system has one proof, and no system has a second area's worth of content
       — quests: **done**, WP-08, 2026-08-27. One quest, two steps, two windowed captures LOOKED AT:
       the journal with the objective open, and the same quest under "Settled" with its toast up
       — equipment: **done**, WP-09, 2026-08-27. One equippable item, one gate requiring it, three
@@ -404,13 +409,44 @@ Exit criteria:
       `assets/materials/wood.tres` turns the dais in one area and the plinth in the other magenta
       together; `volumetric_fog_density = 0.06` on one area's driver node hazes that area alone;
       and the interior's own `fov = 36.0, distance = 9.5` draws the player at roughly 130 px
-      against 78 at the same hour, with one run logging both rigs. This criterion stays UNTICKED:
-      WP-14 is still TODO and it is about systems, not seams
+      against 78 at the same hour, with one run logging both rigs
+      — dev tools: **done**, WP-14b, 2026-09-02. A debug console on F1 and a performance overlay
+      on F3, three windowed captures LOOKED AT and READ. The console capture is a checkable
+      prediction rather than a screenshot that looks fine: the run was launched at
+      `--time=12:00 --freeze-time`, the console was handed `time 18:40`, and the HUD reads
+      `Day 1 | 18:40 | Dusk` over a dusk-lit courtyard — readout and lighting agreeing. The
+      overlay's own criterion is a frame time that visibly moves, measured across a load spike at
+      35.71 ms / 28 fps and then 16.70 ms / 54 fps
+
+**THIS CRITERION IS NOW TICKED**, and it was held open through T3.2 and WP-14 on purpose: it is
+about every system having one proof, and the last two systems with none were the two dev tools.
+
+- **WP-14b Dev tools — DONE, 2026-09-02.** The phase's NINTH package, the half WP-14 split off,
+  and the row that CLOSES Phase T3. The console lives under `src/ui/` — settled rather than
+  assumed, and settled on the stronger argument: it names no content, so putting it in the exempt
+  debug directory would have bought it an exemption it does not need and switched off the gate
+  that should be watching it. The four verbs became ONE implementation in
+  `src/systems/debug/dev_commands.gd` that both argument parsers and the console call, so what you
+  type in the console is exactly what you pass on the command line — and that extraction is also
+  what made room for a sixth staging flag in `dev_stage.gd`, which was sitting at **exactly 250 of
+  its 250 allowed code lines**. The console is a `UiScreen` declaring `pauses_world` and the
+  overlay is a `CanvasLayer` that never enters the stack, which is one decision made twice from
+  the same question. **Absence from a release export is MEASURED with a control** rather than
+  assumed: a debug export logs both armed lines and a release export logs neither. 30 new
+  assertions, seven plants each proved red with the real violation — **and the first version of
+  the gate assertion was wrong twice over** (it read its own explaining comment, and the overlay
+  carried the anchor fragment twice), which is gotcha 42 arriving on schedule and being caught
+  only because the violation was planted. See the board.
 
 ## Phase T4 — Template v1.0
 
+**Phase T3 is CLOSED as of WP-14b, 2026-09-02.** What remains before this phase is WP-15's
+remnant, and that is a DECISION rather than a build — the board recommends closing it and asks the
+owner for a yes or a no. WP-10 (crafting) is OPTIONAL and blocks nothing.
+
 Version and tag it. Write the upgrade note for games already forked from it — nothing currently
-describes how a game receives a later fix to the base.
+describes how a game receives a later fix to the base, which is the one question a *reusable* base
+must answer and this one does not.
 
 ---
 

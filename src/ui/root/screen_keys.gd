@@ -31,6 +31,12 @@ func _ready() -> void:
 	# it is standing on. Every travel goes through this one signal - a door, a load, a new game -
 	# so a menu left open across a transition cannot end up over an area that no longer exists.
 	Events.area_change_requested.connect(_on_area_change_requested)
+	# SAID OUT LOUD SO ITS ABSENCE IS EVIDENCE. This line and the overlay's are how "both tools
+	# are absent from a release export" is proved rather than assumed: a debug export prints
+	# both and a release export prints neither, which is a measurement with a control. The
+	# numbers are in DEVLOG.md for WP-14b.
+	if OS.is_debug_build():
+		Log.info(CATEGORY, "Debug console armed on %s" % Actions.DEBUG_CONSOLE)
 
 
 ## Marked handled only when a binding actually did something, so an unclaimed press falls
@@ -50,6 +56,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed(Actions.MAP) and toggle_map(stack):
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed(Actions.DEBUG_CONSOLE) and toggle_console(stack):
 		get_viewport().set_input_as_handled()
 
 
@@ -88,6 +97,11 @@ static func menu_for(menu_id: StringName) -> UiScreen:
 	# `WorldMap` itself, so naming it is enough.
 	if menu_id == MapScreen.SCREEN_ID:
 		return MapScreen.new()
+	# The console joins the table on the journal's reasoning — it takes no argument, so naming it
+	# is enough — but it is the one entry with a condition on it. A release build has no console
+	# to name, and `--open-menu=console` is staging for a capture, which only a debug build takes.
+	if menu_id == DebugConsoleScreen.SCREEN_ID and OS.is_debug_build():
+		return DebugConsoleScreen.new()
 	Log.error(CATEGORY, "No menu is named '%s'" % menu_id)
 	return null
 
@@ -155,6 +169,26 @@ func toggle_map(stack: UiRoot) -> bool:
 	if not stack.is_gameplay_input_allowed():
 		return false
 	return stack.open(MapScreen.new())
+
+
+## The debug console, on the same toggle shape as the other four and with ONE extra condition.
+##
+## THIS IS THE GATE, AND IT IS THE ONLY ONE. `src/systems/debug/`'s boundary exemption is granted
+## on the precondition that the harness is unreachable in a shipped build, and the console is a
+## UI over exactly that harness — a player who found F1 could hand themselves any item in the
+## game. So the binding refuses in a release build, `menu_for` refuses too, and
+## `src/ui/hud/perf_overlay.gd` carries the same guard in its own `_ready`. All three are
+## asserted by `tests/unit/dev_tools_test.gd`, because a guard nobody checks is a guard that gets
+## deleted in a refactor.
+func toggle_console(stack: UiRoot) -> bool:
+	if not OS.is_debug_build():
+		return false
+	var top: UiScreen = stack.top()
+	if top != null and top.screen_id == DebugConsoleScreen.SCREEN_ID:
+		return stack.close_top()
+	if not stack.is_gameplay_input_allowed():
+		return false
+	return stack.open(DebugConsoleScreen.new())
 
 
 ## Open the dialogue box and start the conversation in it. The runner is a component of the

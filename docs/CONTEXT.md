@@ -3,58 +3,60 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-01 · **WP-14 (dev tools and hardening) complete as the HARDENING half —
-`975ff4b`, PR #23. The eighth package of Phase T3, and the row was RE-FRAMED and SPLIT in the
-same commit that took it.**
+**Last updated:** 2026-09-02 · **WP-14b (dev tools) complete — `PENDING`, PR pending. The ninth
+package of Phase T3, and the row that CLOSES the phase: every system now has one proof, and the
+last two with none were the two dev tools.**
 
-**The re-framing.** WP-14 asked for "a smoke test that drives **the whole demo**", which would
-have welded the courtyard, the keeper and the rose key into a permanent gate — the exact coupling
-`tools/check_boundary.gd` exists to prevent, arriving through the back door of a test, and the
-welding T1.3 had already spent a package undoing. The smoke test drives **a** game, built from
-`tests/framework/fixtures.gd`, names no content, and skips its one game-shaped block loudly in a
-stripped checkout. The board row now says so.
+**A debug console on F1 and a performance overlay on F3.** The console is a `UiScreen` declaring
+`pauses_world`, so `UiRoot`'s existing pause table owns it; the overlay is a `CanvasLayer` at layer
+101 beside the HUD that never enters the stack. That is one decision made twice from the same
+question — *should the world be stopped?* — and the two answers are opposite for the same reason:
+typing `time 18:40` while the clock runs photographs a moving target, and a frame time is
+worthless unless frames are still happening.
 
-**The split.** The row named four things — a debug console, a performance overlay, the smoke test
-and the string audit — which is over the 8-file/500-line limit, so the row's own title was the
-seam: **hardening** shipped here, **dev tools** are the new **WP-14b** row. Splitting was chosen
-over half-finishing four things, which is what the size limit exists to prevent.
+**THE CONSOLE LIVES UNDER `src/ui/`, AND THE ARGUMENT THAT SETTLED IT IS NOT THE OBVIOUS ONE.** The
+board asked whether it could, and the test — does any part want a hard-coded area or item id — says
+yes, since a command takes its argument from whoever typed it. But the *reason to* is stronger than
+the permission: `src/systems/debug/` is EXEMPT from `check_boundary.gd`, so putting the console
+there would have bought it an exemption it does not need and switched off the gate that ought to be
+watching it. Under `src/ui/screens/` it is policed exactly like the journal and the map.
 
-**`Director` no longer leaves its loader thread to be killed**, and the payoff was not the one the
-row predicted. The defect is real and was reproduced at five frame counts: quitting mid-load tore
-the loader thread down inside the text parser, which printed **`Parse Error` for files that parse
-perfectly**, plus leaked RIDs and ObjectDB instances, *after* `0 warnings, 0 errors` had already
-been reported — **gotcha 22 with the polarity reversed**, a FALSE error poisoning the one grep the
-project treats as its compile check. Its real cost was a permanently weakened gate: CI's boot rung
-read only the last line of its log, with a comment saying a whole-log grep "would be a flake
-generator". `Director._exit_tree()` now drains the load — there is no `load_threaded_cancel` in
-4.7 (checked against `--doctool`) and `load_threaded_get()` blocks (measured, 118-197ms, paid once
-on the way out) — so **CI's rung 3 now greps the whole log**, which is a stronger gate rather than
-a faster one. The row also predicted the fix would let the boot rung's timeout drop; it does, but
-**not for the stated reason, and that is said out loud**: gotcha 13 claimed 120 frames were needed
-because the boot raced a threaded load, and gotcha 31 says a plain boot never enters an area at
-all. Measured: 30 frames and 120 produce byte-identical logs. Gotcha 13 was stale, not just
-incomplete, and is rewritten.
+**ONE PARSER, AND THE FILE IT CAME OUT OF WAS AT EXACTLY 250/250.** The row said the four commands
+already existed and to reuse them, and "reuse" was taken at its strongest: `dev_commands.gd` holds
+the four bodies, `dev_stage.gd` and `dev_capture.gd` CALL them, and so does the console — **what
+you type in the console is exactly what you pass on the command line, argument for argument.** Each
+verb returns its report rather than logging it, because a staging flag wants that line in the log
+and a console wants it on screen. The payoff was immediate and unplanned: `dev_stage.gd` was
+measured at **exactly 250 of its 250 allowed code lines**, so the sixth staging flag this row needed
+could not have been added at all; the extraction took it to 247 *while* adding it. WP-14 raised a
+budget rather than split a file and called that a last resort — this is the other outcome.
 
-**A fourth checker, and it closes a hole every other gate was blind to.** `tools/check_strings.gd`
-is the hard-coded-string audit — deliberately *not* the general one `check_content.gd` refused in
-writing, because that refusal is correct: a literal cannot be classified by looking at it. So both
-checks are anchored at a **sink** or a **declaration** instead. One: the right-hand side of a
-`.text`/`.tooltip_text`/`.placeholder_text`/`.title` assignment either passes through `tr()` or
-holds no literal at all. Two, and this is the half with teeth: every `*_KEY` const under `src/`
-names a real CSV row. **71 of them, and nothing had ever checked one** — `check_content` validates
-keys authored in `.tres`, and `items_test.gd`'s enum loop covers the two computed families. A typo
-in one renders the raw key on screen, and that was **measured**: with `notify.item_takne` planted,
-`check_content` PASSED, `check_boundary` PASSED and all **1,517 assertions PASSED**. That is this
-project's founding failure mode, still live, found by building the gate that looks for it.
+**ABSENCE FROM A RELEASE EXPORT IS MEASURED, WITH A CONTROL.** Both tools log one line when they
+arm. A real `--export-debug` prints `Debug console armed on debug_console` and `Performance overlay
+armed on debug_perf`; a real `--export-release` prints **neither**, with both runs otherwise
+identical and both ending `0 warnings, 0 errors`. The debug build is what makes it evidence rather
+than an absence of logging — gotcha 39's shape.
 
-**And the planting caught a defect in the new test rather than in the code** — T3.2's lesson
-arriving on schedule. The smoke test's save/load block claimed to assert the save-participant
-ORDER; deleting `Inventory`'s `game_loaded` republish, the real way that invariant would be lost,
-left the assertion GREEN, because the wipe above happens to let `_apply_save` publish for itself.
-The comment now states the weaker claim, which is the true one, and points at
-`item_count_test.gd`, which went red on that same plant.
+**AND THE GATE ASSERTION WAS WRONG TWICE OVER, WHICH ONLY PLANTING FOUND — gotcha 42 on schedule.**
+`OS.is_debug_build()` is true in every context the suite can run in, so the release gate has to be
+asserted by scanning source. The first version scanned each file for the bare call, and it would
+have passed over a deleted guard in two independent ways: `screen_keys.gd` EXPLAINS its gate in a
+comment, so the scan read its own documentation back; and `perf_overlay.gd` carried the anchor
+fragment **twice**, in `_ready` and in `_input`, so deleting the real one left the other. The second
+was fixed in the CODE rather than in the test — `_input` and `toggle()` now ask `_label == null`,
+which is the same question and a stricter one, because a release build never builds the label. Seven
+plants in all, each proved red with the real violation and green again.
 
-*(Previously: T3.2, the five art-contract seams T2.1 left — `d20fbc1`, PR #22. Four seams built,
+*(Previously: WP-14, the HARDENING half — `975ff4b`, PR #23. The row named four things, over the
+size limit, so its own title was the seam, and its smoke-test wording was RE-FRAMED because "drives
+the whole demo" would have welded the demo into a permanent gate. `Director` now drains its own
+loader thread, and the finding was what the defect had been COSTING: false `Parse Error` lines on a
+mid-load shutdown had bought CI's boot rung a permanently weakened grep (gotcha 41). A fourth
+checker, `check_strings.gd`, anchors at a SINK and at a DECLARATION rather than classifying
+literals, and its second rule closed a hole that was measurably live — one transposed character in a
+toast key passed `check_content`, `check_boundary` and 1,517 assertions. One of its plants exposed a
+defect in the new TEST rather than in the code, which is gotcha 42.
+Before that: T3.2, the five art-contract seams T2.1 left — `d20fbc1`, PR #22. Four seams built,
 one refused in writing, and **the row's real deliverable was neither**: these five had spent six packages being described in `CONTEXT.md`, `ROADMAP.md`,
 `WORK_PACKAGES.md`, `ARCHITECTURE.md` and `ART_CONTRACT.md`, and a backlog item mentioned in five
 places is tracked zero times and described five times. **The CURRENT STATE of each — the thing a
@@ -126,10 +128,11 @@ branched from T2.1; WP-08 is on **`claude/wp-08-quests`**, branched from T2.2; W
 branched from WP-09; WP-09b is on **`claude/wp-09b-attributes`**, branched from WP-11; T3.1 is on
 **`claude/t3-1-registry`**, branched from WP-09b; T3.3 is on **`claude/t3-3-item-count`**, branched from T3.1; T3.2 is on
 **`claude/t3-2-art-seams`**, branched from T3.3; WP-14 is on **`claude/wp-14-hardening`**,
-branched from T3.2. The earlier PRs are superseded.
+branched from T3.2; WP-14b is on **`claude/wp-14b-dev-tools`**, branched from WP-14. The earlier
+PRs are superseded.
 
-**Branch new work from `claude/wp-14-hardening`**, or from `main` once #10, #11, T1.2-T1.4,
-T2.0, T2.1, T2.2, WP-08, WP-09, WP-11, WP-09b, T3.1, T3.3, T3.2 and WP-14 have landed. The older
+**Branch new work from `claude/wp-14b-dev-tools`**, or from `main` once #10, #11, T1.2-T1.4,
+T2.0, T2.1, T2.2, WP-08, WP-09, WP-11, WP-09b, T3.1, T3.3, T3.2, WP-14 and WP-14b have landed. The older
 per-package branches (`claude/wp-04-second-area`, `claude/wp-05-dialogue`, `claude/wp-06-npcs`,
 `claude/wp-07-path-actions`, `claude/wp-12-menus`, `claude/wp-13-presentation`) are history and
 should not be built on.
@@ -149,11 +152,23 @@ game built on this will need, so a new game is content and data rather than new 
 ## Where it stands
 
 Phase 0 complete, Phase 1 COMPLETE, Phase 2 well under way, **Phase T1 COMPLETE, Phase T2
-COMPLETE as of T2.2, and Phase T3 OPEN with WP-08, WP-09, WP-11, WP-09b, T3.1, T3.3, T3.2 and
-WP-14 done. Every T-numbered row of T3 is closed, WP-14's hardening half is closed, and what
-keeps the phase open is now WP-14b (dev tools) — the half WP-14 split off rather than
-half-finish.**
-130 files, 11,338 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
+COMPLETE as of T2.2, and PHASE T3 COMPLETE as of WP-14b — nine packages: WP-08, WP-09, WP-11,
+WP-09b, T3.1, T3.3, T3.2, WP-14 and WP-14b. Its one exit criterion, "every system has one proof",
+is ticked, and the last two systems with no proof at all were the two dev tools.**
+
+**WHAT IS NEXT IS A DECISION, NOT A BUILD, AND IT IS THE OWNER'S.** Two rows stand between here
+and Phase T4 and neither is ordinary work. **WP-15's remnant should probably be CLOSED rather than
+built** — credits name a team a template does not have, and an accessibility pass over placeholder
+art and a UI every game restyles is a pass over something designed to be thrown away, while the
+seams that make accessibility possible already exist and are proved (the project `Theme`,
+rebindable input, no timed input anywhere). The board carries the full reasoning and asks for a yes
+or a no. **WP-10 (crafting) is OPTIONAL** and blocks nothing. **Then Phase T4: version and tag
+template v1.0, and write the upgrade note** for games already forked from the base — nothing
+currently describes how a game receives a later fix to the template, which is the one question a
+*reusable* base must answer and this one does not. **The handover is WP-15's yes-or-no**; T4 cannot
+sensibly start until the board knows whether that row exists.
+
+134 files, 11,659 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
 three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
 3 tagged surfaces, 1 shared area material.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
@@ -163,7 +178,7 @@ input actions · settings · save/load with atomic writes and versioning · plot
 director with a re-entrancy guard and threaded loading · world clock · weather state · audio
 buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 8-way character ·
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
-placeholder art generator · line-budget checker · a headless test suite (1,543 assertions) that
+placeholder art generator · line-budget checker · a headless test suite (1,574 assertions) that
 builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
 returns early, asserts nothing, or is not listed in the runner ·
 an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
@@ -257,11 +272,28 @@ both rigs. A PNG a game drops in imports correctly first time, because `[importe
 `detect_3d/compress_to = 0`, which is the section T2.1 could not check against the API dump and
 T3.2 settled by MEASURING instead. Six windowed captures LOOKED AT and READ, each pair differing by
 one edit to one file, and six gates proved red with the real violation — one of which was the test
-itself, passing while the thing it checked was deleted.
+itself, passing while the thing it checked was deleted ·
+**A CONSOLE YOU CAN TYPE IN AND AN OVERLAY YOU CAN READ WHILE THE GAME RUNS, AND THE FOUR COMMANDS
+ARE THE COMMAND LINE'S OWN**: `goto`, `flag`, `time` and `give` have ONE body each in
+`src/systems/debug/dev_commands.gd`, which `dev_stage.gd`, `dev_capture.gd` and
+`DebugConsoleScreen` all call, so what you type in the console is exactly what you pass after the
+bare `--`. The console is a `UiScreen` on F1 declaring `pauses_world` — no second pause mechanism —
+and it lives under `src/ui/`, INSIDE the boundary gate, because it names no content. The overlay is
+a `CanvasLayer` on F3 beside the HUD that never enters the stack, reporting frame time, fps,
+process time, draw calls, node count and ORPHAN count. Absence from a release export is MEASURED
+with a control: a debug export logs both armed lines and a release export logs neither. Three
+windowed captures LOOKED AT and READ, one of them a checkable prediction — launched at
+`--time=12:00 --freeze-time`, handed `time 18:40`, and the HUD reads `Day 1 | 18:40 | Dusk` over a
+dusk-lit courtyard.
 
-**Not built:** **an in-game debug console and a performance overlay — this is WP-14b**, the half
-WP-14 split off rather than half-finish; both are UI surfaces needing a screen, an action binding,
-localization keys and a windowed capture each, and neither is a gate · item instances (durability) ·
+**Not built:** command HISTORY and autocomplete in the debug console, and a watch list of live
+flags — deferred by the row, and the transcript is deliberately un-scrollable for the same reason:
+a console that needs scrolling wants history, and half of it is worse than none · a console command
+that mutates content on disk, also refused by the row · a GRAPH on the performance overlay, which
+is a second thing to get wrong when the averaged number already answers the question ·
+`Actions.DEBUG_FREECAM` on F2, declared since WP-01 and still bound to nothing — inventing a free
+camera was not a dev-tools row's job, and naming it is cheaper than a reader wondering whether F2
+was missed · item instances (durability) ·
 footstep PARTICLES, and a second attribute with a consumer — naming one is free, reading one is a
 line of engine code ·
 an equipment SCREEN, a character sheet, and no attribute gates an interaction ·
@@ -449,6 +481,38 @@ three compiled cleanly and passed every static gate:**
 
 ## Decisions already made — do not re-litigate
 
+- **A DEV TOOL THAT NAMES NO CONTENT BELONGS UNDER `src/`, NOT IN THE EXEMPT DEBUG DIRECTORY.**
+  `DebugConsoleScreen` is a `UiScreen` in `src/ui/screens/` beside the journal and the map. The
+  permission is that a command takes its argument from whoever typed it, so `goto courtyard` is
+  input rather than a literal — but the REASON is stronger than the permission:
+  `src/systems/debug/` is exempt from `check_boundary.gd`, so filing the console there would have
+  bought it an exemption it does not need and switched off the gate that ought to be watching it.
+  The rule generalises: the exemption is for code that must name the demo, and nothing else goes
+  looking for it.
+- **THE COMMAND LINE AND THE CONSOLE ARE ONE IMPLEMENTATION, AND THE VERB RETURNS ITS REPORT.**
+  `DevCommands` holds `goto`, `flag`, `time` and `give`; `dev_stage.gd`, `dev_capture.gd` and the
+  console all call it, and the console's argument is byte-for-byte the `--verb=` argument. Each
+  verb returns a sentence rather than logging one, because a staging flag wants that line in the
+  log and a console wants it on screen — a shared body that logged would have forced one of them
+  to read the log to find out what happened.
+- **THE CONSOLE PAUSES THE WORLD AND THE OVERLAY DOES NOT, WHICH IS ONE DECISION MADE TWICE.**
+  Both answer *should the world be stopped?* and the answers are opposite for the same reason: a
+  clock that runs while you type at it photographs a moving target, and a frame time is worthless
+  unless frames are still happening. So the console declares `pauses_world` and `UiRoot`'s table
+  does the rest, and the overlay is a `CanvasLayer` at layer 101 that never enters the stack, holds
+  no pause, takes no focus and answers no cancel. **Anything that must be READABLE DURING
+  gameplay is not a screen** — that is the general form.
+- **A DEV TOOL'S CHROME IS TEXT AND ITS OUTPUT IS DATA.** The console's title and input hint are
+  localization keys like every other screen's; its transcript is echoes of a typed command and the
+  values that came back, and the overlay is numbers, neither of which any `strings.csv` could
+  hold. This is the line `check_strings.gd` forces a developer surface to draw, and drawing it
+  deliberately is the difference between satisfying the gate and routing around it.
+- **A GUARD ASSERTED BY A TEXT SCAN MUST BE ANCHORED UNIQUELY, AND THE SCAN MUST SKIP COMMENTS.**
+  `OS.is_debug_build()` is true everywhere the suite can run, so the release gate can only be
+  asserted by reading source — and WP-14b's first attempt would have passed over a deleted guard
+  twice over: once because the file EXPLAINS its gate in a comment, and once because the same
+  fragment appeared in two functions. The second was fixed in the code rather than in the test.
+  See gotcha 43.
 - **GDScript, not C#.** The installed engine is the standard build; .NET is not available.
 - **Warnings are errors.** `var x = 5` does not parse. Read untyped data via `DictRead`, never
   `int(value)` on a `Variant`.
@@ -930,7 +994,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,543 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,574 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content
@@ -938,7 +1002,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Forty-two gotchas that each cost an hour
+## Forty-three gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -1299,6 +1363,25 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     failure could ever have shown the difference. This is T3.2's framing gate (gotcha 40) in a
     second costume, and the same rule closes both: **plant the real violation even when the
     assertion looks obvious — especially then, because the thing being tested is the test.**
+
+43. **AN ASSERTION THAT SCANS SOURCE FOR A GUARD WILL READ THE GUARD'S OWN DOCUMENTATION BACK TO
+    ITSELF, AND WILL BE SATISFIED BY THE WRONG COPY.** WP-14b had to assert that the debug console
+    and the performance overlay are unreachable in a release build. `OS.is_debug_build()` is true
+    in every context the suite can run in — a test cannot exercise the false branch — so the
+    assertable form is a text scan for the guard, the same mechanism `check_boundary.gd` already
+    uses for `src/systems/debug/`. **The first version was wrong in two independent ways, and
+    planting found both.** One: `screen_keys.gd` EXPLAINS its gate in a `##` comment, so a
+    whole-file scan passed while reading its own explanation with the binding deleted — the fix is
+    the comment rule every other text tool in this project already applies. Two, and it is the
+    sharper half: `perf_overlay.gd` carried the identical fragment `if not OS.is_debug_build():`
+    in BOTH `_ready` and `_input`, so deleting the real one left the assertion green on the
+    decorative one. **That fix belonged in the CODE, not in the test.** `_input` and `toggle()`
+    now ask `_label == null`, which is the same question and a stricter one — a release build
+    leaves `_ready` early and never builds the label — so one place decides and the anchor is
+    unique. Two rules generalise: **a scan-for-a-guard assertion must name a fragment that appears
+    exactly once in its file**, and **a guard written twice is a guard that cannot be asserted**,
+    which is a design smell before it is a testing problem. Gotchas 40 and 42's family, third
+    costume, and the third time planting has caught the test rather than the code.
 
 ## How work is sliced
 

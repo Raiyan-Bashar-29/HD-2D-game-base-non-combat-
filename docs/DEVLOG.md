@@ -4313,3 +4313,220 @@ is a cached engine, not a skip — the rung logs show 1,543 assertions executed.
 
 **Commit** `975ff4b` on `claude/wp-14-hardening`, PR #23, stacked onto `claude/t3-2-art-seams`
 (#22) rather than `main`, matching the chain.
+
+
+## 2026-09-02 — WP-14b · Dev tools: the debug console and the performance overlay
+
+**Branch:** `claude/wp-14b-dev-tools`, off `claude/wp-14-hardening`. **Phase T3 closes here.**
+
+### Did
+
+A debug console on F1 (`goto`, `flag`, `time`, `give`) and a performance overlay on F3 (frame
+time, fps, process time, draw calls, node count, orphan count). The half WP-14 split off rather
+than half-finish four things.
+
+Four new files and seven edited:
+
+- `src/systems/debug/dev_commands.gd` — the four verbs, ONE body each.
+- `src/ui/screens/debug_console_screen.gd` — a `UiScreen` declaring `pauses_world`.
+- `src/ui/hud/perf_overlay.gd` — a `CanvasLayer` at layer 101 that never enters the stack.
+- `tests/unit/dev_tools_test.gd` — 30 assertions.
+- `dev_stage.gd` (three verbs delegate; new `--console=` staging flag), `dev_capture.gd`
+  (`--time=` delegates), `screen_keys.gd` (`toggle_console`, the `menu_for` entry, the armed
+  line), `actions.gd` (`DEBUG_PERF` on F3), `game_root.tscn`, `strings.csv`, `test_runner.gd`.
+
+### Why
+
+**The console lives under `src/ui/`, and the argument that settled it is not the obvious one.**
+The board asked whether it could, with the test being whether any part wants a hard-coded area or
+item id. None does. But the reason to *prefer* `src/ui/` is stronger than the permission:
+`src/systems/debug/` is EXEMPT from `check_boundary.gd`, so filing the console there would have
+bought it an exemption it does not need and switched off the gate that ought to be watching it.
+Under `src/ui/screens/` it is policed like the journal and the map, and it passes.
+
+**One parser, taken at its strongest.** The row said reuse the four commands. So `DevCommands`
+holds the bodies and both argument parsers call them — `time 18:40` in the console is
+`--time=18:40` on the command line, argument for argument. Each verb returns its report rather
+than logging it: a staging flag wants that line in the log, a console wants it on screen.
+
+**Console pauses, overlay does not — one decision made twice.** Both answer *should the world be
+stopped?* Typing at a running clock photographs a moving target; a frame time is worthless unless
+frames are still happening.
+
+### Verified
+
+**The ladder.**
+
+```
+--headless --import                    exit 0, SCRIPT ERROR / Parse Error lines: 0
+--headless --quit-after 30             Session ended after 0.8s — 0 warnings, 0 errors
+test_runner.tscn --quit-after 400      === 1574 passed, 0 failed, 0 skipped ===   exit 0
+tools/check_budgets.gd                 134 files, 11659 code lines, 0 warnings, 0 violations · PASS
+tools/check_content.gd                 PASS
+tools/check_boundary.gd                PASS · 127 engine scripts · 14 exempt demo names · 5 debug scripts gated
+tools/check_strings.gd                 PASS · 218 CSV rows · 96 scripts · 24 sinks · 73 keys · 1 pattern
+```
+
+**Stripped template**, `--headless --path <copy>` with `.git`, `.godot`, `data/` and
+`scenes/areas/` removed: **1500 passed, 0 failed, 25 skipped** (was 1469/0/25), all four checkers
+exit 0, import clean. **No new skip** — the +31 is `dev_tools_test.gd` plus `docs_test.gd`'s one
+computed assertion, and all 30 of the former run stripped, because a console and an overlay are
+engine.
+
+**`dev_stage.gd` was at exactly 250/250 before this package.** Measured by stashing the branch and
+re-running the checker:
+
+```
+  ok   src/systems/debug/dev_stage.gd                        250 /  250
+130 files, 11338 code lines, 0 warnings, 0 violations
+```
+
+After extracting the verbs and adding `--console=`: `247 / 250`. The sixth staging flag could not
+have been added without the reuse the board asked for.
+
+**Seven plants, each red with the REAL violation then green again (gotcha 23).**
+
+1. Guard deleted from `ScreenKeys.toggle_console`, the explaining comment LEFT IN PLACE →
+   `FAILED: screen_keys.gd gates on 'if not OS.is_debug_build():' — expected true, got false`,
+   `1572 passed, 1 failed`, exit 1. Restored → `1573 passed, 0 failed`, exit 0.
+2. `and OS.is_debug_build()` deleted from `ScreenKeys.menu_for` →
+   `FAILED: screen_keys.gd gates on 'DebugConsoleScreen.SCREEN_ID and OS.is_debug_build()'`, exit 1.
+3. Guard deleted from `PerfOverlay._ready` →
+   `FAILED: perf_overlay.gd gates on 'if not OS.is_debug_build():'`, exit 1.
+4. Transcript trim removed → `FAILED: the transcript is bounded — expected 12, got 42`, exit 1.
+5. Empty-line guard removed → `FAILED: so the transcript did not grow — expected 2, got 4`, exit 1.
+6. `flag`'s malformed-argument refusal removed → two failures, including
+   `FAILED: and wrote nothing — expected false, got true`, exit 1.
+7. `ui.debug.console.title` → `ui.debug.consloe.title`:
+   `!! res://src/ui/screens/debug_console_screen.gd:31 TITLE_KEY = 'ui.debug.consloe.title' has no
+   row in res://localization/strings.csv`, `FAIL — 1 string violation(s)`, exit **1** — while
+   `check_content` exit 0, `check_boundary` exit 0, and **1573 assertions passed**. WP-14's
+   finding reproduced on this package's own keys.
+
+**Plant 3 is the one worth the section, and it changed the CODE rather than the test (gotcha
+43).** The first version of the gate assertion scanned each file for the bare
+`OS.is_debug_build()` and would have passed over a deleted guard in two independent ways:
+
+- `screen_keys.gd` documents its gate in a `##` block, so the scan read its own explanation back.
+  Fixed by skipping comment lines, as `check_boundary.gd` and `check_strings.gd` both do.
+- `perf_overlay.gd` carried `if not OS.is_debug_build():` **twice**, in `_ready` and in `_input`.
+  Deleting the real one in `_ready` left the assertion green on the other. The fix was in the
+  code: `_input` and `toggle()` now ask `_label == null`, which is the same question and stricter,
+  because a release build never builds the label. One place decides; the anchor is unique.
+
+**Absent from a release export — MEASURED, with a control.** Two real exports built and run, log
+files compared:
+
+```
+--export-debug   build/dbg/game.console.exe --quit-after 60
+  00:35:04 [INFO ] [ui       ] Debug console armed on debug_console
+  00:35:04 [INFO ] [ui       ] Performance overlay armed on debug_perf
+  00:35:05 [INFO ] [boot     ] Session ended after 1.1s — 0 warnings, 0 errors
+  armed lines: 2
+
+--export-release build/rel/game.exe --quit-after 60
+  00:35:18 [INFO ] [boot     ] Game root ready
+  00:35:19 [INFO ] [boot     ] Session ended after 1.1s — 0 warnings, 0 errors
+  armed lines: 0
+```
+
+The debug export is the control. Without it, two absent lines would prove only that nothing was
+logged. Gotcha 39's shape.
+
+**The temporary input probe (gotcha 15), in `dev_probes.gd`, quoted here and then removed.**
+`git diff src/systems/debug/dev_probes.gd` is empty.
+
+```
+PROBE stack depth before F1: 0
+PROBE F1 opened: true, depth 1, world paused true
+PROBE LineEdit found: true, has focus true
+PROBE enter ran it: clock 04:15, transcript 2 line(s), box now ''
+PROBE F1 again closed it: depth 0, world paused false
+PROBE overlay before F3: visible false
+PROBE F3 -> visible true | 35.71 ms/frame  28 fps  188.11 ms process  97 draw calls  169 nodes  0 orphans
+PROBE 90 frames later          | 16.70 ms/frame  54 fps  17.56 ms process  96 draw calls  169 nodes  0 orphans
+PROBE F3 again -> visible false
+```
+
+The overlay's own criterion is "a frame time that visibly changes": the load spike reads 35.71 ms
+at 28 fps and ninety frames later the same overlay reads 16.70 ms at 54 fps. The probe also
+settled a question the dump does not answer — a 4.3+ `LineEdit` distinguishes having focus from
+being in EDIT mode, and `has focus true` with the enter actually taking is what proves
+`grab_focus()` plus `edit()` is the right pair rather than `grab_focus()` alone.
+
+**Three windowed captures, LOOKED AT and READ (gotcha 28).** Written to `build/shots/`, which is
+gitignored, so they are described rather than committed — as every previous package's are.
+
+1. `wp14b_console.png` — `--new-game --time=12:00 --freeze-time
+   --console="time 18:40;flag map/somewhere:true;give item/rose_petal:2" --shot-frame=120`.
+   Title `Debug console` top-left; six gold transcript lines bottom-left, echo and answer for each
+   command; the input line showing the four verbs as its placeholder; the courtyard visible
+   through the dim panel, so the world is stopped rather than gone. **The checkable prediction:
+   the run asked for noon and the HUD reads `Day 1 | 18:40 | Dusk` over a dusk-lit scene.** The
+   console really moved the clock, and the readout and the lighting agree.
+2. `wp14b_console_goto.png` — `--console="goto lantern_hall"`. The interior, at its own T3.2
+   framing, with the toast `Lantern Hall is added to your map` and no console, because travel
+   unwinds the stack through `ScreenKeys`. The log:
+   `Entered 'courtyard'` … `--console 'goto lantern_hall' -> goto requested 'lantern_hall'` …
+   `Entered 'lantern_hall'`.
+3. `wp14b_overlay.png` — `16.67 ms/frame  60 fps  17.72 ms process  98 draw calls  169 nodes
+   0 orphans`, top-left in gold, over a live courtyard with the NPC visibly at a different post
+   than in capture 1 — which is the point of it not being a screen.
+
+**Capture 3's first attempt came back with no overlay in it, and it was NOT a defect.** The
+shutter frame landed before F3. Diagnosed by probing rather than guessed at:
+
+```
+PROBE overlay label: true rect=[P: (32.0, 24.0), S: (1888.0, 40.0)] vis=true text='31.25 ms/frame …'
+PROBE overlay colour=(0.86, 0.74, 0.52, 1.0) size=18 clockcolour=(0.86, 0.74, 0.52, 1.0)
+```
+
+Right rect, right visibility, right gold, right text. Nothing was wrong with the drawing and the
+timing was the whole story. Widening the probe's visible window from 90 to 400 frames fixed the
+capture.
+
+**One API fact worth recording:** `CanvasLayer` is not a `Control` and has NO theme lookup, and a
+`Control` outside the tree cannot resolve `gui/theme/custom` either — so the overlay's label asks
+for its own colour AFTER `add_child`, and there is a comment saying so. Every `Performance`
+monitor name used was checked against `--headless --doctool`: `TIME_PROCESS`,
+`RENDER_TOTAL_DRAW_CALLS_IN_FRAME`, `OBJECT_NODE_COUNT`, `OBJECT_ORPHAN_NODE_COUNT`, plus
+`Engine.get_frames_per_second()` (returns `float`).
+
+**And the GDScript compiler refused one assertion outright**, which is a better outcome than the
+assertion: `overlay is UiScreen` on a `PerfOverlay` is a *Parse Error* — `Expression is of type
+"PerfOverlay" so it can't be of type "UiScreen"`. The claim is kept in the case that owns it, via
+a `Node` local, with the reason in a comment.
+
+### Connects
+
+- `DevCommands` sits under `dev_stage.gd` and `dev_capture.gd`, so the staging vocabulary and the
+  console vocabulary cannot drift.
+- The console joins `ScreenKeys`' table beside the pause menu, inventory, journal and map, and
+  `menu_for` beside the journal and the map — so `--open-menu=console` works, gated.
+- The overlay joins `game_root.tscn` as a sibling of `UILayer`, not a child of it.
+- `--console=` is the sixth staging flag to need `_settle_stable` (gotcha 35), after
+  `--open-menu`, `--flag`, `--open-inventory`, `--give` and `--equip`.
+
+### Unblocks
+
+Phase T3 is CLOSED. Every system has one proof.
+
+### Gaps
+
+- **WP-15's remnant is a DECISION and it is the owner's**, surfaced on the board rather than
+  taken: close the row (recommended) or build credits and an accessibility pass. WP-14b found
+  nothing that changes WP-14's reasoning and one thing that sharpens it — the console and the
+  overlay are the last two engine surfaces a consuming game does *not* restyle, because a player
+  never sees either.
+- No command history, autocomplete or flag watch list; no command mutates content on disk; no
+  graph on the overlay. All deferred by the row, with reasons on the board.
+- `Actions.DEBUG_FREECAM` on F2 is still declared and still bound to nothing. It predates this
+  package; inventing a free camera is not a dev-tools row's job.
+- The `Button` styleboxes, for the sixth package running. The console draws no `Button` at all.
+- Still no branch protection and still no CI export rung, both unchanged.
+
+**Count arithmetic, stated rather than absorbed.** 1,543 → **1,574**: +30 from
+`dev_tools_test.gd` and +1 from `docs_test.gd`, which computes its plan from the documents and
+gained one `res://` path to resolve when these sections named
+`src/systems/debug/dev_commands.gd`. Every plant above was run before the documents were written
+and so quotes 1573; the two totals differ by that one computed assertion and nothing else.

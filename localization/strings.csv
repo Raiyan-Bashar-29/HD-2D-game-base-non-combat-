@@ -215,3 +215,5 @@ ui.map.empty,No map has been drawn of this world.
 ui.map.unknown,???
 ui.map.here,"{area}  ·  you are here"
 notify.map.discovered,"{area} is added to your map"
+ui.debug.console.title,Debug console
+ui.debug.console.hint,"goto <area>   flag <key>:<value>   time HH:MM   give <id>[:n]"

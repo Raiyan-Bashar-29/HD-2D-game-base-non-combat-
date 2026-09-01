@@ -2202,3 +2202,13 @@ under `assets/`, which a stripped checkout keeps.
 - **No environment-look resource**, no sixth catalogue, no registry for materials.
 - **Git LFS**, refused above.
 - Art is still deferred, permanently. This package built the seams art drops into and no art.
+
+**CI green, run 33535503432, job logs read rather than the tick** (gotcha 26). Full checkout
+**1517 passed, 0 failed, 0 skipped** with `item definitions: 4` and `quests: 1`; stripped template
+**1445 passed, 0 failed, 23 skipped** with `item definitions: 0` and `demo names derived: 0`. All
+three checkers PASS in both jobs, both at `128 files, 11119 code lines, 0 warnings, 0 violations`.
+The four new skips are the ones named above. The push run (33535489902) and the pull-request run
+(33535564427) are green too.
+
+**Commit:** `d20fbc1` on `claude/t3-2-art-seams`, PR #22 — stacked onto `claude/t3-3-item-count`
+(#21) rather than `main`, matching the rest of the chain.

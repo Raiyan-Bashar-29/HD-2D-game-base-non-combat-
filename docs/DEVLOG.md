@@ -4106,3 +4106,9 @@ is correctly a claim about content rather than about the engine:
 The arithmetic closes exactly: of the case's 47 outcomes, 4 skip and 43 run, and the remaining +2
 on the passed count is `docs_test` picking up the two new `res://` paths the documentation names —
 both under `assets/`, which a stripped checkout keeps.
+
+**CI green, run 33535503432, job logs read rather than the tick** (gotcha 26). Full checkout
+`1517 passed, 0 failed, 0 skipped`, `item definitions: 4`, `quests: 1`; stripped template
+`1445 passed, 0 failed, 23 skipped`, `item definitions: 0`, `demo names derived: 0`. Both jobs
+report `128 files, 11119 code lines, 0 warnings, 0 violations` and all three checkers PASS.
+Commit `d20fbc1` on `claude/t3-2-art-seams`, PR #22, stacked onto `claude/t3-3-item-count` (#21).

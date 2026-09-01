@@ -3,8 +3,8 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-01 · **T3.2 (the five art-contract seams T2.1 left) complete — PENDING,
-PR pending. Seventh package of Phase T3 and the LAST of its T-numbered rows — the phase itself
+**Last updated:** 2026-09-01 · **T3.2 (the five art-contract seams T2.1 left) complete — `d20fbc1`,
+PR #22. Seventh package of Phase T3 and the LAST of its T-numbered rows — the phase itself
 stays open on WP-14.** Four seams built, one refused in writing, and **the row's real deliverable
 was neither**: these five had spent six packages being described in `CONTEXT.md`, `ROADMAP.md`,
 `WORK_PACKAGES.md`, `ARCHITECTURE.md` and `ART_CONTRACT.md`, and a backlog item mentioned in five

@@ -228,6 +228,14 @@ something are all authorable today, none of them touching `src/`.
   still deferred, unchanged.
 - Combat is still not a thing, and a count of arrows would not change that.
 
+**CI green, run 33529911105, job logs read rather than the tick** (gotcha 26 — the tick is not the
+evidence). Full checkout **1468 passed, 0 failed, 0 skipped**, `item definitions: 4`, `quests: 1`.
+Stripped template **1400 passed, 0 failed, 19 skipped**, `item definitions: 0`, `quests: 0`. All
+three checkers PASS in both jobs, and **the skip count is the same 19 the previous run reported** —
+a new skip would have had to be named and counted, and there is none, because the counted step is
+proved against a fixture quest and a fixture item that a stripped checkout still writes to
+`user://`. The push run (33529829466) and the pull-request run (33529893285) are green as well.
+
 **Commit `292dd44` on `claude/t3-3-item-count`, PR #21**, stacked onto `claude/t3-1-registry` (#20)
 rather than `main`, matching the rest of the chain.
 

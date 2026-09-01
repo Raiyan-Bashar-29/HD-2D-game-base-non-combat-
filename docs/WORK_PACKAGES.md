@@ -1238,6 +1238,15 @@ frame counts rather than by a probe.
 - **No CI export rung** and **no branch protection**, both unchanged from T2.0 and T1.4.
 - Combat is still not a thing.
 
+**CI green, run 33541171263, JOB LOGS read rather than the tick** (gotcha 26). Full checkout
+**1543 passed, 0 failed, 0 skipped**; stripped template **1469 passed, 0 failed, 25 skipped** —
+both identical to the local numbers. **Rung 8 ran in both jobs and reported identical figures** (93
+engine scripts, 71 key declarations), which is the point of running it on a stripped tree. **Rung
+3's new whole-log grep printed `Parse Error lines in boot.log: 0`** — the line that could not have
+existed before this package. All seven rungs present in the full job and all six in the stripped
+one. The run took 36 seconds, and per gotcha 26 that is a cached engine rather than evidence of a
+skip: the rung logs show 1,543 assertions actually executed.
+
 **Commit:** `975ff4b` on `claude/wp-14-hardening`, PR #23 — stacked onto
 `claude/t3-2-art-seams` (#22) rather than `main`, matching the rest of the chain.
 

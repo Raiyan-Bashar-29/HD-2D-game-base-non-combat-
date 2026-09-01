@@ -4302,3 +4302,14 @@ No CI export rung and no branch protection, both unchanged. **WP-15's remnant sh
 CLOSED rather than built** — credits name a team a template does not have, and an accessibility
 pass over placeholder art is a pass over something designed to be replaced; the reasoning is in its
 board section, recorded rather than acted on, because retiring a row is the owner's call.
+
+**CI green, run 33541171263, job logs read rather than the tick (gotcha 26).** Full checkout
+`=== 1543 passed, 0 failed, 0 skipped ===`; stripped template
+`=== 1469 passed, 0 failed, 25 skipped ===` — both identical to the local numbers. Rung 8 ran in
+both jobs and reported the same 93 engine scripts and 71 key declarations, which is why it runs on
+the stripped tree at all. Rung 3's new whole-log grep printed `Parse Error lines in boot.log: 0`,
+a line that could not have existed before this package. The run took 36 seconds; per gotcha 26 that
+is a cached engine, not a skip — the rung logs show 1,543 assertions executed.
+
+**Commit** `975ff4b` on `claude/wp-14-hardening`, PR #23, stacked onto `claude/t3-2-art-seams`
+(#22) rather than `main`, matching the chain.

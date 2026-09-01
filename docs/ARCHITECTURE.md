@@ -271,8 +271,6 @@ never resolve.
 - **The UI theme sets no `Button` styleboxes,** so a menu row draws Godot's default dark panel.
   Invisible against the shipped dark palette and immediately wrong against a light one. The seam
   is right and unpopulated — see [`ART_CONTRACT.md`](ART_CONTRACT.md).
-- **No shared material library, and no environment post-stack or camera framing as `@export`s.**
-  An area declares its own materials and takes the camera rig's defaults. Open work, not design.
 - **`Director` does not cancel its threaded load on shutdown**, which is why the boot rung needs
   `--quit-after 120` rather than 30. Deferred to WP-14.
 - **A quest step CAN read an item count, and a completed quest still hands nothing over.** Closed

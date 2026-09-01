@@ -1,4 +1,4 @@
-[gd_scene load_steps=36 format=3]
+[gd_scene load_steps=35 format=3]
 
 [ext_resource type="Script" path="res://src/gameplay/world/area_root.gd" id="1_area"]
 [ext_resource type="Script" path="res://src/gameplay/world/environment_driver.gd" id="2_env"]
@@ -7,7 +7,7 @@
 [ext_resource type="Script" path="res://src/gameplay/camera/hd2d_camera_rig.gd" id="3_cam"]
 [ext_resource type="Texture2D" path="res://assets/placeholder/grass.png" id="4_grass"]
 [ext_resource type="Texture2D" path="res://assets/placeholder/stone.png" id="5_stone"]
-[ext_resource type="Texture2D" path="res://assets/placeholder/wood.png" id="6_wood"]
+[ext_resource type="Material" path="res://assets/materials/wood.tres" id="6_wood"]
 [ext_resource type="PackedScene" path="res://scenes/objects/sign.tscn" id="7_sign"]
 [ext_resource type="PackedScene" path="res://scenes/objects/lever.tscn" id="8_lever"]
 [ext_resource type="PackedScene" path="res://scenes/objects/gate.tscn" id="9_gate"]
@@ -35,11 +35,6 @@ uv1_scale = Vector3(20, 20, 1)
 albedo_texture = ExtResource("5_stone")
 texture_filter = 0
 uv1_scale = Vector3(3, 3, 1)
-
-[sub_resource type="StandardMaterial3D" id="m_wood"]
-albedo_texture = ExtResource("6_wood")
-texture_filter = 0
-uv1_scale = Vector3(2, 2, 1)
 
 [sub_resource type="BoxMesh" id="mesh_ground"]
 size = Vector3(48, 1, 48)
@@ -199,7 +194,7 @@ metadata/surface = &"wood"
 [node name="Mesh" type="MeshInstance3D" parent="Terrain/Dais"]
 mesh = SubResource("mesh_pillar")
 transform = Transform3D(5, 0, 0, 0, 0.09, 0, 0, 0, 5, 0, 0, 0)
-surface_material_override/0 = SubResource("m_wood")
+surface_material_override/0 = ExtResource("6_wood")
 
 [node name="Shape" type="CollisionShape3D" parent="Terrain/Dais"]
 transform = Transform3D(5, 0, 0, 0, 0.09, 0, 0, 0, 5, 0, 0, 0)

@@ -71,7 +71,7 @@ original board rather than continuing it.
 | T2.1 | Art contract seams | **DONE** — see T2.1 below |
 | T2.2 | Consumer documentation | **DONE** — `36b5abd`, PR #15. Phase T2 closes; see T2.2 below |
 | T3.1 | **A generic content registry** — one scan, with a thin typed façade per catalogue | **DONE** — `767fbe3`, PR #20. The fifth package of Phase T3; see below. The refactor PAID, and not in the shape WP-08 costed: the duplication was in the SCAN, not the cache, so the base went on the RESOURCE |
-| T3.2 | The five art-contract seams T2.1 left | TODO — shared materials, the environment post-stack and camera framing as `@export`s, the texture import defaults, the Git LFS lines |
+| T3.2 | The five art-contract seams T2.1 left | **DONE** — the seventh package of Phase T3 and the last of its T-numbered rows, though the phase itself stays open on WP-14; see below. Four seams built and one refused in writing, and the point of the row is as much that they stop being mentioned in five documents as that four of them exist |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -1414,15 +1414,11 @@ and fails if `character_visual.gd` regains a `TAU / 8` or a `FACING_COUNT`. Comm
 on `check_boundary`'s reasoning: a `##` line naming what the theme replaced teaches by example and
 changes nothing.
 
-**Left for later, in the roadmap's own order, because the package hit its file budget and
-half-doing five seams is worse than finishing two.** Shared materials. The environment post-stack
-as `@export`s rather than code constants. Per-area camera exports. The texture import defaults —
-and this one has a reason beyond budget: `[importer_defaults]` is an undocumented
-editor-managed section, absent from `--doctool`, so it cannot be checked against the API dump the
-way this project requires, and the per-file values already committed are correct for pixel art.
-The Git LFS lines stay commented, and the `.gitattributes` comment is right: LFS pointers for a
-2 KB placeholder are pure overhead, and enabling them would put the CI checkout on a dependency
-it does not currently have.
+**Left for later, because the package hit its file budget and half-doing five seams is worse than
+finishing two:** shared materials, the environment post-stack and camera framing as `@export`s,
+the texture import defaults, and the Git LFS lines. **All five were closed by T3.2** — four built,
+LFS refused in writing — and the current state of every one of them is stated once, in
+`docs/ART_CONTRACT.md`. Nothing in this paragraph describes the project as it is now.
 
 **One gap the restyle capture exposed, and it belongs to the theme rather than to a screen.** The
 theme governs sizes, colours and insets; it does **not** yet set the `Button` styleboxes, so
@@ -1531,8 +1527,8 @@ area diagram listed **eight** children and was missing `Navigation/` and `Waypoi
 `SYSTEMS_INVENTORY.md`'s row, which said "the eight required children are now asserted" while
 `transitions_test.gd` has asserted **ten** since it was written. And two of `ARCHITECTURE.md`'s
 "known limitations" had been false since T2.0 and WP-13 — the export path is proven and weather
-does render — so they are replaced by the two that are true: the `Button` styleboxes, and the
-missing material and camera exports.
+does render — so they are replaced by the two that were true then: the `Button` styleboxes, and the missing
+material and camera exports. The second was closed by T3.2 and its bullet is gone.
 
 **The `Button` stylebox gap was left unfixed, deliberately.** It is one addition to
 `ui_theme.tres` with no code, and it was tempting. But a stylebox has to be *designed*, and the
@@ -1552,9 +1548,8 @@ criteria are ticked. Phase T3 is *"finish the system catalogue"*, and its packag
 original WP-08 to WP-15, re-framed — so T3 is the phase and WP-08 is its first package, not an
 alternative to it. The board's ordering predates the template reframing and survives it: quests
 are a system with **no** proof at all, and the replacement rule is breadth of systems, one shallow
-proof each. The five T2.1 leftovers (shared materials, the environment post-stack and camera
-framing as `@export`s, the texture import defaults, the LFS lines) are engine work whose two exit
-criteria are already met; they belong in a T3 row of their own rather than reopening T2.
+proof each. The five T2.1 leftovers are engine work whose two exit criteria are already met; they belong in a
+T3 row of their own rather than reopening T2. That row became **T3.2**, and closed them.
 
 **CI green, run 33086307621, job logs read rather than the tick.** Full checkout
 `1081 passed, 0 failed, 0 skipped`; stripped template `1027 passed, 0 failed, 16 skipped`, the
@@ -1972,3 +1967,238 @@ too.
 
 **Commit:** `292dd44` on `claude/t3-3-item-count`, PR #21 — stacked onto `claude/t3-1-registry`
 (#20) rather than `main`, matching the rest of the chain.
+
+---
+
+## T3.2 · The five art-contract seams T2.1 left — **DONE**
+
+**This is the last T-numbered row of Phase T3, and the phase is NOT closed by it.** WP-14 is still
+TODO and WP-15 has a remnant; the phase's exit criterion is about systems having a proof, not
+about T-rows being finished. The chip this package raises is for WP-14.
+
+**Read:** `docs/ART_CONTRACT.md` as the consumer it is written for, `docs/CONTEXT.md` gotcha 30,
+and the two area scenes, `src/gameplay/world/environment_driver.gd`,
+`src/gameplay/camera/hd2d_camera_rig.gd`, `project.godot`, `.gitattributes`.
+**Write:** whatever each of the five needs — including nothing, said out loud.
+**Exit criteria:** for each of the five, either the seam EXISTS and a change to one file
+demonstrably changes what is rendered, or it is REFUSED in writing with the reason, where an
+artist reads it. Either way each is mentioned in exactly **one** place afterwards.
+
+### The row's real deliverable was the fifth criterion, not the first four.
+
+These five were named in `CONTEXT.md`, `ROADMAP.md`, `WORK_PACKAGES.md`, `ARCHITECTURE.md` and
+`ART_CONTRACT.md` — five documents, four of them too many, each saying a slightly different thing
+about work nobody was doing. A backlog item mentioned in five places is not tracked five times; it
+is tracked zero times and described five times, and the descriptions drift. So the acceptance test
+here is not "four seams exist", it is **`grep` finds each of them once**, in `ART_CONTRACT.md`,
+with the historical package sections saying "closed by T3.2" rather than repeating the state.
+Nothing was deleted from the record: T2.1's own section still says what T2.1 left, because that is
+true, and now says where to read what happened to it.
+
+**Four built, one refused.** The refusal is written where an artist reads it, with the reason and
+with the steps to turn it on, which is a different artefact from silence.
+
+### 1. Shared materials — BUILT, and the defect was already in the tree.
+
+`assets/materials/wood.tres`, pointed at by both areas with an `ExtResource`. The two demo areas
+had each grown a **byte-identical** `StandardMaterial3D` called `m_wood` — same texture, same
+`texture_filter = 0`, same `uv1_scale = Vector3(2, 2, 1)` — and neither file could see the other.
+
+**A library of ONE, and that is the whole argument.** The other five materials across the two
+areas are deliberately still inline, because they are not duplicates: one area tiles stone at
+`(3, 3)` and the other floors it at `(8, 8)` and walls it at `(6, 2)`. **A tiling rate is a
+property of the surface it is stretched over, not of the substance**, so hoisting those would give
+a shared file with a per-area override on every user — the duplication with an extra indirection,
+and a palette instead of a seam. A material is shared when two areas genuinely want the same
+thing, and exactly one of six did.
+
+Nothing under `src/` knows the folder exists. A shared material is a scene-authoring convention,
+not a system: no registry, no id, no directory scan, no sixth catalogue.
+
+**What already made this safe, and it was not planned for this:** `SurfaceWetness` duplicates
+every material before darkening it (WP-13's settled decision). Without that, rain in the courtyard
+would leave the hall's plinth wet on the far side of an area change — the exact failure a shared
+sub-resource invites, closed a package before it could happen.
+
+### 2. The environment post stack — BUILT, twenty exports at the values T2.1 shipped.
+
+`_build_post_stack()` held twenty literals. All twenty are now `@export`s on `EnvironmentDriver`,
+in two groups, **at exactly the values they had**, so no area that leaves them alone renders
+differently — the point of the seam is that a game can reach them, not that anything moved.
+
+**Per AREA, not per project, and not a resource.** The driver already lives in the area scene and
+its `Interior` group already varies that way; a game wanting one look everywhere authors its areas
+from one copy. A `.tres` "environment look" resource was considered and dropped: it is the shape
+`SpriteSheetLayout` has, but a layout is *shared between nodes in one scene* while a post stack is
+*one per area* — so it would have added a resource class, a folder and a wiring step to reach
+exactly the same set of numbers.
+
+**What stayed in code, and why that is not half a job.** The tonemapper, the fog mode, the glow
+blend mode, `AMBIENT_SOURCE_COLOR` and `BG_SKY` are the STRUCTURE the rest of the file assumes,
+not numbers an area tunes — `_apply_now` writes `ambient_light_color` every frame, which only
+means anything if the source is a colour. The four expensive effects (`ssao`, `sdfgi`, `ssil`,
+`ssr`) ARE exports despite being `false` everywhere, because "revisit only if the look demands it"
+is a decision for the game and **a value a consuming game cannot reach is not a seam, it is an
+opinion.** The day/night KEYFRAMES table is untouched and no seam is claimed for it: that is a
+curve, not a look setting.
+
+### 3. Per-area camera framing — the seam ALREADY EXISTED, and the row was wrong about it.
+
+`HD2DCameraRig` has carried `distance`, `fov`, `pitch_degrees`, `height_offset`, `follow_lag`,
+`frame_bias` and the whole depth-of-field group as `@export`s since it was written, and its header
+has said "duplicate it and change the numbers" the whole time. What was missing was **an area
+using them** — both demo areas took every default, so the claim had never been run.
+
+So this one cost an authored value and a capture rather than an implementation: the interior now
+frames at `distance = 9.5, fov = 36.0, height_offset = 0.95` against the outdoor `14.0 / 27.0 /
+1.15`, because a room reads better close. One run logs both — `Rig ready: fov 27.0, distance 14.0`
+then `Rig ready: fov 36.0, distance 9.5` — which is the seam being two different things in one
+session rather than a setting that parsed.
+
+**Reporting a seam as missing when it exists is its own kind of stale**, and it is why the
+five-mentions problem was worth a package: the claim was copied between documents four times
+without anyone opening the file.
+
+### 4. The texture import defaults — BUILT, and gotcha 30 is now WRONG.
+
+T2.1 stopped here on a sound rule: `[importer_defaults]` is undocumented, absent from `--doctool`,
+and this project checks every name against the API dump before typing it. **The rule was right and
+the conclusion was not**, because there is a stronger form of evidence available and it is
+non-negotiable #1: *run the engine.*
+
+The measurement, in four steps. A throwaway texture was copied into a scratch folder under `res://`
+and imported with stock defaults (`detect_3d/compress_to=1`, `mipmaps/generate=false`); the section was
+written into `project.godot`; the generated `.import` was DELETED; and `--headless --import`
+regenerated it. It came back carrying `detect_3d/compress_to=0` and `mipmaps/generate=true`. A
+second probe confirmed `ProjectSettings.get_setting("importer_defaults/texture")` returns it as a
+Dictionary at runtime — `type=27 value={ "detect_3d/compress_to": 0, "mipmaps/generate": true }` —
+which is what makes it assertable. Both are quoted in `DEVLOG.md`, and the probe directory is gone.
+
+**Exactly one value is set in the end**, `detect_3d/compress_to = 0`, because exactly one was
+wrong: it is the editor's "this texture was used in 3D, switch it to VRAM compression" rewrite, and
+every character sheet in an HD-2D game IS used in 3D through `Sprite3D`. `mipmaps/generate` was
+only the control value — it moved `false → true` to prove the section applied, and was removed.
+The three other values `ART_CONTRACT.md` recommended turn out to be Godot's own defaults already,
+measured on the untouched probe, so setting them would have been ceremony. **A default nobody
+needs is a default nobody maintains.**
+
+All eight committed `.import` files moved `1 → 0` too, so the hazard is closed for what is here as
+well as for what a game imports next — and the sheets were re-imported and photographed, because
+a compression change is precisely the edit that looks applied and silently ruins pixel art.
+
+### 5. Git LFS — REFUSED, in writing, with the reason and the turn-on steps.
+
+Two of the three reasons were already recorded: pointers for a 2 KB procedural placeholder are
+pure overhead, and enabling them puts the CI checkout on a dependency it does not declare
+(`actions/checkout` needs `lfs: true`, and without it every PNG arrives as a text pointer and the
+import fails). The third is the one that decides it and had not been said: **this template cannot
+verify the change it would be making.** Proving LFS works needs an LFS-enabled remote and a CI run
+against real binaries, and neither exists while art is deferred. A configuration nobody can test
+is exactly the change that looks applied and does nothing.
+
+So it is refused rather than omitted, and the difference is that `ART_CONTRACT.md` now names the
+three steps to turn it on. `.gitattributes` keeps the commented line and **stops restating the
+reason** — its comment is a pointer, because that file was the fifth mention this package existed
+to remove.
+
+### The assertions, and the one that found a defect in itself.
+
+`tests/unit/area_look_test.gd`, **47 new assertions**, 1,468 → 1,515 — and then to **1,517**,
+because `docs_test.gd` COMPUTES its plan from the documents and this package added two `res://`
+paths to them. Said rather than absorbed: the gate proofs below were run at 1,515, before the
+documentation was written. The shape is the one
+`art_contract_test.gd` established: fail if a hard-coded value grows back.
+
+- `_the_driver_assigns_no_number_to_the_environment` — zero code lines matching
+  `^_environment\.[a-z_0-9]+ = -?[0-9]`. A CALL is not a literal, deliberately: `maxf(0.1, …)`
+  clamps a computed value and is not a look decision, so only the first token after `=` is judged.
+- `_the_rig_assigns_no_number_to_its_camera` — the same over `camera.` and `_attributes.`.
+- Twenty plus thirteen assertions pairing each export's live value with `@export` appearing on its
+  declaration line, so a rename, a deletion and a moved default all fail by name.
+- `_no_two_areas_declare_the_same_material_inline` — sub-resource bodies compared with
+  `ExtResource` ids resolved to paths, because the same material carries different ids in
+  different scenes, which is why two copies of it were invisible in the first place.
+- `_the_texture_import_defaults_close_the_3d_compression_hazard` — the project setting AND every
+  committed `.import`, naming the offenders in the failure message.
+
+**A gate that never fails has never been tested, and one of these was not a gate.**
+`_an_area_really_uses_the_framing_seam` passed with the override deleted, because it scanned every
+line of an area scene and `WeatherVisuals` also exports a **`height_offset`** — two classes, one
+property name, gotcha 17's family. Found by planting the real violation, which is the entire
+argument for planting it. It now walks `[node]` blocks and reads only those whose `script`
+resolves to the rig, buffering each block and judging it at the end rather than from the moment
+the `script` line goes by, since a property authored above `script` is legal `.tscn`.
+
+### Six gates proved RED with the real violation, then green (gotcha 23).
+
+| Planted | Output | Exit |
+|---|---|---|
+| both areas' `m_wood` re-inlined | `FAILED: no two areas declare the same material inline (1 duplicated) — expected 0, got 1`, plus the 2 skips a shared material with no users correctly produces | 1 |
+| `_environment.glow_intensity = 0.9` | `FAILED: the driver writes down no environment number — expected 0, got 1` | 1 |
+| `camera.fov = 27.0` | `FAILED: the rig writes down no camera or depth-of-field number — expected 0, got 1` | 1 |
+| `"detect_3d/compress_to": 1` and one `.import` back to `=1` | `FAILED: the default disables the 3D re-import to VRAM compression` and `FAILED: every committed texture .import disables 3D detection: ["res://assets/placeholder/character_placeholder.png.import"]` | 1 |
+| the hall's three framing lines deleted | first draft: **passed** — the defect above. After the fix: `FAILED: at least one camera rig in an area authors its own framing — expected true, got false` | 1 |
+| the `glow_intensity` default moved to `0.8` | `FAILED: glow_intensity is an @export at the value T2.1 shipped — expected [0.9, true], got [0.8, true]` | 1 |
+
+All reverted, all green again: `1515 passed, 0 failed, 0 skipped` — 1,517 once the documents were
+written, for the reason above.
+
+### Six windowed captures, LOOKED AT and READ. This package is entirely visual.
+
+All at `--new-game … --time=12:00 --freeze-time`, midday rather than dusk (gotcha 31: a propless
+area at 18:40 renders near-black and looks exactly like a lighting bug), and the interior needs
+`--goto` with `--shot-frame=95 --quit-after 110` because no ordinary run enters an area at all.
+
+Captures 1 and 2 are the baselines. **Seam 1:** one line added to `assets/materials/wood.tres` —
+`albedo_color = Color(0.85, 0.15, 0.55, 1)` — and captures 3 and 4 show the courtyard's dais AND
+the hall's plinth both magenta, from **one file neither area contains**. Reverted. **Seam 2:** one
+line added to `courtyard.tscn`'s driver node, `volumetric_fog_density = 0.06`, and capture 5 is
+the same frame hazed to the horizon with the sky wall gone milky — everything else identical.
+Reverted. **Seam 3:** capture 6 against capture 2, the same interior at the same hour with the
+player sprite drawn at roughly 130 px against 78 and the floor grid visibly larger. Kept, as the
+one piece of placeholder content proving the seam.
+
+**The `.import` change was photographed rather than assumed.** All six captures were taken AFTER
+the eight `.import` files moved to `detect_3d/compress_to=0` and the project re-imported: the
+character sprites are crisp, hard-edged and free of block artefacts, and `compress/mode=0` still
+reads `0` in all eight files. This is the check the exit criteria singled out, because a
+compression change is the one edit that passes every rung and ruins the picture.
+
+### Files: 13, and the only new code is a test.
+
+`assets/materials/wood.tres` (new), `courtyard.tscn`, `lantern_hall.tscn`,
+`environment_driver.gd` (+22 code lines, 183 → 205 of 250), eight `.import` files, `project.godot`,
+`.gitattributes`, `tests/unit/area_look_test.gd` (new, 227 of 250), `tests/test_runner.gd`, and the
+documents. `hd2d_camera_rig.gd` was **not touched** — the seam was already there.
+
+### Ladder, all green.
+
+`--headless --import` with **zero** `SCRIPT ERROR` / `Parse Error` lines; boot
+`0 warnings, 0 errors`; suite **1517 passed, 0 failed, 0 skipped**, exit 0; `check_budgets`
+**128 files, 11,119 code lines, 0 warnings, 0 violations**; `check_content` PASS; `check_boundary`
+PASS over 122 engine scripts, deriving 16 demo names and finding none of them.
+
+**Stripped template, run locally** — `1445 passed, 0 failed, **23** skipped` (was `1400 / 19`),
+both checkers exit 0, `demo names derived: 0`. **The skip count MOVED and the four new ones are
+named**, because a skip nobody names is a stripped run pretending to be a full one. All four are
+`area_look_test`'s three content-dependent blocks — a shared material with no areas to use it
+(2 outcomes), the inline-duplicate gate with fewer than two areas to compare, and no area to author
+framing — and every one is correctly a claim about CONTENT rather than about the engine. The
+arithmetic closes exactly: of the case's 47 outcomes, 4 skip and 43 run, and the remaining +2 on
+the passed count is `docs_test` picking up the two new `res://` paths the documents name, both
+under `assets/`, which a stripped checkout keeps.
+
+### Deferred, with reasons, not silently.
+
+- **The day/night keyframe table** is still a `const`. It is a curve rather than a look setting,
+  and no document has ever listed it as a seam. Say so before building it, not after.
+- **The `Button` styleboxes** are left for the FOURTH time, and deliberately. A stylebox has to be
+  *designed*, and the only palette to design against is the placeholder one, so populating them
+  would ship a decision as a default — the reasoning T2.2 gave, unchanged. This package had the
+  file open and still did not take it, which is the point at which "left again" should be read as
+  settled rather than pending.
+- **No shared material beyond one.** ONE piece of placeholder content per system; a palette of
+  five would be content, and four of the five would be wrong (see seam 1).
+- **No environment-look resource**, no sixth catalogue, no registry for materials.
+- **Git LFS**, refused above.
+- Art is still deferred, permanently. This package built the seams art drops into and no art.

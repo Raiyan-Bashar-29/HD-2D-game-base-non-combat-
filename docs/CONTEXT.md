@@ -3,53 +3,62 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-31 · **T3.3 (a quest step that reads an ITEM COUNT) complete —
-`292dd44`, PR #21. Sixth package of Phase T3, and the one row on the board that was breadth of
-EXPRESSION rather than polish: "bring me three petals" was not authorable, which is a limit on what
-a consuming game can SAY.** WP-09 costed two designs and closed neither. The second — a `systems`
-tracker reading a `gameplay` inventory — is not a design, it is the layer rule being broken, and
-WP-08 had already refused exactly that over a `reward_item` field. So the choice was the first
-(mirror the counts into `Flags`) or nothing, and the whole question was whether its stated cost —
-the same number saved twice, by two participants — is real. **It is not, and `flags.gd`'s own header
-is why:** *anything recomputable does not belong in the store*, and a count mirrored from the bag is
-recomputable by definition. So `Flags.declare_derived(prefix)` keeps `bag/<carrier_id>/<item id>`
-readable, announced on `flag_changed` and visible to `FlagQuery`, and OUT of the save file —
-`Inventory.SAVE_VERSION` did not move and there is no migration. **The inversion is the whole
-package: a tracker reading a bag points UP, a bag publishing a flag points DOWN**, and the quest
-system was not touched — no field on `QuestStep`, no knowledge in `QuestTracker`, and a test now
-FAILS if either learns what an inventory is. Sixth namespace-over-`Flags`, and the first whose value
-is a NUMBER. 66 new assertions, three `check_content` branches each proved red then green, two
-windowed captures LOOKED AT, and one latent defect the design could not tolerate: **a new game did
-not empty the bag.**
+**Last updated:** 2026-09-01 · **T3.2 (the five art-contract seams T2.1 left) complete — PENDING,
+PR pending. Seventh package of Phase T3 and the LAST of its T-numbered rows — the phase itself
+stays open on WP-14.** Four seams built, one refused in writing, and **the row's real deliverable
+was neither**: these five had spent six packages being described in `CONTEXT.md`, `ROADMAP.md`,
+`WORK_PACKAGES.md`, `ARCHITECTURE.md` and `ART_CONTRACT.md`, and a backlog item mentioned in five
+places is tracked zero times and described five times. They are now stated in exactly one,
+`ART_CONTRACT.md`, with the historical sections saying "closed by T3.2" rather than repeating a
+state that has moved. **Shared materials:** `assets/materials/wood.tres`, one file both areas point
+at — and the defect was already in the tree, because the two demo areas each carried a
+byte-identical `m_wood`. A library of ONE, deliberately: the other five materials are *not*
+duplicates, since one area tiles stone at `(3, 3)` and the other at `(8, 8)` and `(6, 2)`, and **a
+tiling rate is a property of the surface it is stretched over, not of the substance**. **The
+environment post stack:** twenty literals in `_build_post_stack()` became twenty `@export`s at
+exactly the values T2.1 shipped, so nothing renders differently and a game can now reach them; what
+stays in code is the STRUCTURE the rest of the driver assumes. **Per-area camera framing: the seam
+already existed and the board was wrong about it** — `HD2DCameraRig` has carried its framing as
+`@export`s since it was written and no area had ever set one, which is a different failure from a
+missing seam and is exactly what five copies of a claim buys you. **The texture import defaults:
+gotcha 30 said this could not be done and gotcha 30 was wrong.** The rule it rested on is still
+right — `[importer_defaults]` is absent from `--doctool` — but a MEASUREMENT was available and
+outranks a dump, which is non-negotiable #1: a throwaway texture, the section added, its `.import`
+deleted, `--headless --import` re-run, and it came back carrying the values. One value is set,
+`detect_3d/compress_to = 0`, closing the latent hazard that a re-import puts VRAM block artefacts
+through pixel art. **Git LFS is REFUSED**, with the reason that actually decides it written down
+for the first time: the template cannot verify the change it would be making. 47 new assertions,
+six gates each proved red with the real violation then green — **one of which exposed a defect in
+the test itself** (gotcha 40: `WeatherVisuals` also exports `height_offset`, so a whole-file scan
+passed with the framing deleted) — and six windowed captures LOOKED AT and READ.
 
-*(Previously: T3.1, one scan behind five typed façades — `767fbe3`, PR #20. Five catalogues carried
-five copies of the same scan-and-validate, and both earlier costings were right about the wrong
-half: the duplication was in the SCAN, not the cache, so the base went on the **resource**
-(`ContentEntry`) and the shared part is a **function** — `ContentScan.into()` fills the CALLER'S own
-typed dictionary, so there is no cast at any call site. New gotcha 37: a base-class `static var` is
-ONE storage shared by every subclass.
+*(Previously: T3.3, a quest step that reads an ITEM COUNT — `292dd44`, PR #21. `Inventory`
+publishes each count as `bag/<carrier_id>/<item id>` — the SIXTH namespace over `Flags` and the
+first whose value is a number — so a step is `AT_LEAST 3` on that key, `QuestStep` gained no field
+and `QuestTracker` gained no knowledge, and **the dependency points DOWN from `gameplay` to `core`
+rather than up from `systems` to `gameplay`**. The mirror is declared DERIVED, so it is readable
+and announced but never saved and no save version moved.
+Before that: T3.1, one scan behind five typed façades — `767fbe3`, PR #20. The duplication was in
+the SCAN, not the cache, so the base went on the **resource** (`ContentEntry`) and the shared part
+is a **function** — `ContentScan.into()` fills the CALLER'S own typed dictionary, so there is no
+cast at any call site. New gotcha 37: a base-class `static var` is ONE storage shared by every
+subclass.
 Before that: WP-09b, attributes and surface-aware footsteps — `da126d9`, PR #19. An attribute is
-the flag `attr/<who>/<name>`, an integer number of steps clamped to ±4 — the **fifth** use of
-namespace-over-`Flags` — and it ships with EXACTLY ONE consumer,
-`PlayerController.current_speed()`, with the attribute's name declared as a const on that consumer
-so **an attribute nobody reads has nowhere to be written down**. A surface is `metadata/surface` on
-area geometry, inherited from the nearest tagged ancestor, and a step's sound is DERIVED FROM THE
-SURFACE'S NAME rather than looked up in a table — so a game that authors `sand` hears it without
-editing `src/`, and no table of names ever appears under `src/` for `check_boundary` to fail on.
+the flag `attr/<who>/<name>`, the **fifth** use of namespace-over-`Flags`, shipping with EXACTLY ONE
+consumer, `PlayerController.current_speed()`, with the attribute's name declared as a const on that
+consumer so **an attribute nobody reads has nowhere to be written down**. A surface is
+`metadata/surface` on area geometry, inherited from the nearest tagged ancestor, and a step's sound
+is DERIVED FROM THE SURFACE'S NAME rather than looked up in a table.
 Before that: WP-11, the world map — `cf3f3a1`, PR #18. An `AreaDef` .tres per area in
 `data/areas/`, found by the fifth directory-scan registry, and **discovery is the flag
-`map/<area id>` with no store behind it**. `WorldMap` under `GameRoot` turns arrival into discovery
-and emits the same `area_change_requested` an `AreaDoor` emits; `MapScreen` on `M` draws one dot
-per def at its authored normalised position and names no area.
-Before that: WP-09, equipment — `1b3d799`, PR #17. An `ItemDefinition` gained one field and
-`Equipment` is a component that owns no
-dictionary: a slot is the flag `equip/<wearer>/<item>`, so a `Gate`, a `QuestStep` and a
-`DialogueChoice` all gate on what is in hand with no code and no new field in any of them. `Gate`
-was not touched to make the demo's equip-gated arch work; its other two thirds are `09b`.
+`map/<area id>` with no store behind it**.
+Before that: WP-09, equipment — `1b3d799`, PR #17. A slot is the flag `equip/<wearer>/<item>`, so a
+`Gate`, a `QuestStep` and a `DialogueChoice` all gate on what is in hand with no code and no new
+field in any of them.
 Before that: WP-08, quests — a quest is authored data, every step names a FLAG CONDITION rather
-than a callback, and the placeholder quest is driven entirely by flags the demo was already
-writing. Before that: T2.2, consumer documentation — **Phase T2 is closed, and its last criterion
-was PERFORMED**, six doc defects found by authoring from the docs alone.)*
+than a callback. Before that: T2.2, consumer documentation — **Phase T2 is closed, and its last
+criterion was PERFORMED**, six doc defects found by authoring from the docs alone.)*
+
 
 > **This is a TEMPLATE, not a game.** Read [`TEMPLATE.md`](TEMPLATE.md) — it is short, and the
 > roadmap, the board and parts of this file were written before that reframing. The courtyard and
@@ -66,10 +75,11 @@ T1.3; T2.0 is on **`claude/t2-0-export-proof`**, branched from T1.4; T2.1 is on
 branched from T2.1; WP-08 is on **`claude/wp-08-quests`**, branched from T2.2; WP-09 is on
 **`claude/wp-09-character`**, branched from WP-08; WP-11 is on **`claude/wp-11-worldmap`**,
 branched from WP-09; WP-09b is on **`claude/wp-09b-attributes`**, branched from WP-11; T3.1 is on
-**`claude/t3-1-registry`**, branched from WP-09b; T3.3 is on **`claude/t3-3-item-count`**, branched from T3.1. The nine earlier PRs are superseded.
+**`claude/t3-1-registry`**, branched from WP-09b; T3.3 is on **`claude/t3-3-item-count`**, branched from T3.1; T3.2 is on
+**`claude/t3-2-art-seams`**, branched from T3.3. The earlier PRs are superseded.
 
-**Branch new work from `claude/t3-3-item-count`**, or from `main` once #10, #11, T1.2-T1.4,
-T2.0, T2.1, T2.2, WP-08, WP-09, WP-11, WP-09b, T3.1 and T3.3 have landed. The older
+**Branch new work from `claude/t3-2-art-seams`**, or from `main` once #10, #11, T1.2-T1.4,
+T2.0, T2.1, T2.2, WP-08, WP-09, WP-11, WP-09b, T3.1, T3.3 and T3.2 have landed. The older
 per-package branches (`claude/wp-04-second-area`, `claude/wp-05-dialogue`, `claude/wp-06-npcs`,
 `claude/wp-07-path-actions`, `claude/wp-12-menus`, `claude/wp-13-presentation`) are history and
 should not be built on.
@@ -89,10 +99,11 @@ game built on this will need, so a new game is content and data rather than new 
 ## Where it stands
 
 Phase 0 complete, Phase 1 COMPLETE, Phase 2 well under way, **Phase T1 COMPLETE, Phase T2
-COMPLETE as of T2.2, and Phase T3 OPEN with WP-08, WP-09, WP-11, WP-09b, T3.1 and T3.3 done.**
-127 files, 10,869 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
+COMPLETE as of T2.2, and Phase T3 OPEN with WP-08, WP-09, WP-11, WP-09b, T3.1, T3.3 and T3.2 done
+-- every T-numbered row of T3 is closed and WP-14 is what keeps the phase open.**
+128 files, 11,119 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
 three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
-3 tagged surfaces.
+3 tagged surfaces, 1 shared area material.
 Boots headless with **0 warnings, 0 errors**.
 
 **Works, and verified by running it:** logging with rotation · signal registry (`events.gd`) ·
@@ -100,7 +111,7 @@ input actions · settings · save/load with atomic writes and versioning · plot
 director with a re-entrancy guard and threaded loading · world clock · weather state · audio
 buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 8-way character ·
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
-placeholder art generator · line-budget checker · a headless test suite (1,468 assertions) that
+placeholder art generator · line-budget checker · a headless test suite (1,517 assertions) that
 builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
 returns early, asserts nothing, or is not listed in the runner ·
 an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
@@ -176,7 +187,21 @@ no field and `QuestTracker` gained no knowledge, and the dependency points DOWN 
 readable and announced but never saved and no save version moved. A step reopens when a count falls
 and a completed quest does not — WP-08's asymmetry, tested at last against something that really
 decrements. The journal draws `— Gather three rose petals.   2 / 3` and still reads no flag. Two
-windowed captures LOOKED AT and READ, differing by exactly one petal.
+windowed captures LOOKED AT and READ, differing by exactly one petal ·
+**THE LOOK OF AN AREA IS DATA, AND ONE OF THE THREE SEAMS TURNED OUT TO EXIST ALREADY**:
+`assets/materials/wood.tres` is one shared `StandardMaterial3D` that two areas point at, and
+tinting that one file turns the courtyard's dais and the hall's plinth magenta together — a
+library of ONE, because a tiling rate belongs to the surface and not the substance, so the other
+five materials are genuinely not duplicates; the twenty post-stack numbers in
+`EnvironmentDriver` are `@export`s at exactly the values T2.1 shipped, so
+`volumetric_fog_density = 0.06` on one area's driver node hazes that area and no other; and
+`HD2DCameraRig`'s framing exports, which have been there since it was written and which no area had
+ever set, now give the interior 36 degrees at 9.5 m against the outdoor 27 at 14 — one run logs
+both rigs. A PNG a game drops in imports correctly first time, because `[importer_defaults]` sets
+`detect_3d/compress_to = 0`, which is the section T2.1 could not check against the API dump and
+T3.2 settled by MEASURING instead. Six windowed captures LOOKED AT and READ, each pair differing by
+one edit to one file, and six gates proved red with the real violation — one of which was the test
+itself, passing while the thing it checked was deleted.
 
 **Not built:** hard-coded-string audit · item instances (durability) ·
 footstep PARTICLES, and a second attribute with a consumer — naming one is free, reading one is a
@@ -195,8 +220,8 @@ item id is checked, the carrier is an `@export` in a scene `check_content` does 
 `Button` styleboxes, so a light palette leaves every menu row drawing Godot's default dark
 panel — the seam is right and in the same file, simply unpopulated. Third package to leave
 them, each time for a stated reason.
-Five of T2.1's nine roadmap items are also left: shared materials, the environment post-stack as
-`@export`s, per-area camera exports, the texture import defaults and the Git LFS lines.
+Git LFS stays off, and T3.2 turned that from an omission into a written refusal with the reason
+and the turn-on steps — stated once, in `ART_CONTRACT.md`.
 
 ## Known defects
 
@@ -760,6 +785,60 @@ three compiled cleanly and passed every static gate:**
   its counts on `game_started` for the same reason. It did not before T3.3, so the previous run's
   items carried into a fresh game — unreachable in practice and invisible to every gate, and found
   only because the count projection cannot tolerate the two disagreeing.
+- **A MATERIAL IS SHARED WHEN TWO AREAS WANT THE SAME THING, AND NOT BEFORE.**
+  `assets/materials/` holds `StandardMaterial3D` resources more than one area points at, and it
+  holds exactly ONE — the wood the two demo areas had each grown a byte-identical inline copy of.
+  The other five were deliberately left inline, and the reason is the whole rule: **a tiling rate
+  is a property of the surface it is stretched over, not of the substance.** One area tiles stone
+  at `(3, 3)` and the other floors it at `(8, 8)` and walls it at `(6, 2)`, so hoisting those gives
+  a shared file with a per-area override on every user — the duplication with an extra
+  indirection, and a palette rather than a seam. Nothing under `src/` knows the folder exists: this
+  is a scene-authoring convention, not a system, so there is no registry, no id and no sixth
+  directory scan. A test fails if two areas declare the same material inline, comparing bodies with
+  `ExtResource` ids resolved to paths — which is what nobody could do by eye, and why the duplicate
+  survived. What makes sharing safe was already true: `SurfaceWetness` DUPLICATES every material
+  before darkening it, so rain outdoors cannot leave an interior's floor wet after an area change.
+- **THE LOOK IS PER AREA AND THE STRUCTURE IS IN CODE.** The twenty post-stack values on
+  `EnvironmentDriver` are `@export`s at exactly the numbers T2.1 shipped; the tonemapper, the fog
+  mode, the glow blend mode and `AMBIENT_SOURCE_COLOR` stay in code because they are what the rest
+  of the file ASSUMES rather than what an area tunes — `_apply_now` writes `ambient_light_color`
+  every frame, which means nothing unless the source is a colour. Per area rather than per project
+  because the driver already lives in the area scene and its `Interior` group already varies that
+  way. An "environment look" `.tres` was considered and dropped: a `SpriteSheetLayout` is shared
+  between nodes in one scene, a post stack is one per area, so the resource would add a class, a
+  folder and a wiring step to reach the same numbers. **The four expensive effects are exports
+  despite being `false` everywhere, because a value a consuming game cannot reach is not a seam,
+  it is an opinion.** The day/night KEYFRAMES table is NOT part of this and no seam is claimed for
+  it: that is a curve, not a look setting.
+- **A SEAM THAT NOTHING USES HAS NEVER BEEN TRIED, AND FOUR DOCUMENTS CAN AGREE IT IS MISSING WHEN
+  IT IS NOT.** `HD2DCameraRig` has carried its framing as `@export`s since it was written and its
+  header has said "duplicate it and change the numbers" the whole time; what was missing was an
+  AREA setting one. T2.1's leftover list said the seam did not exist and three more documents
+  copied that. So an area now authors its own framing — the interior at 36 degrees and 9.5 m
+  against the outdoor 27 and 14 — and a test fails if none does. Generalise the lesson rather than
+  the fix: **a backlog line about code is worth re-checking against the code before it is worked**,
+  and a claim repeated in five documents is repeated, not verified.
+- **AN UNDOCUMENTED FORMAT IS SETTLED BY MEASUREMENT, NOT BY STOPPING.** `[importer_defaults]` in
+  `project.godot` sets `detect_3d/compress_to = 0`, so a PNG a game drops in imports correctly the
+  first time and no re-import can put VRAM block artefacts through pixel art. T2.1 refused to
+  hand-author it because the section is absent from `--doctool` and this project checks every name
+  against the API dump — the rule was right, the conclusion was not, and gotcha 39 records the
+  reversal: non-negotiable #1 says the ENGINE decides, and the engine can be asked. Exactly one
+  value is set, because the other three were measured to be Godot's own defaults already and **a
+  default nobody needs is a default nobody maintains.**
+- **GIT LFS IS REFUSED, NOT DEFERRED, AND THE THIRD REASON IS THE ONE THAT DECIDES IT.** Pointers
+  for a 2 KB procedural placeholder are overhead, and enabling them puts the CI checkout on a
+  dependency it does not declare — both were already recorded. The one that had not been said is
+  that **this template cannot verify the change it would be making**: proving LFS works needs an
+  LFS-enabled remote and a CI run against real binaries, and neither exists while art is deferred.
+  The refusal lives in `ART_CONTRACT.md` with the three steps to turn it on, and `.gitattributes`
+  keeps a pointer rather than restating it.
+- **A BACKLOG ITEM MENTIONED IN FIVE PLACES IS TRACKED IN NONE OF THEM.** T3.2's stated deliverable
+  was as much that its five items stop appearing in five documents as that four of them got built.
+  The rule that came out of it: the CURRENT state of anything lives in exactly one document — the
+  one its consumer reads — and every other mention is either a historical record that says "closed
+  by <package>" or it is deleted. Nothing was removed from the record; T2.1's section still says
+  what T2.1 left, because that is still true.
 - Six ADRs in `docs/decisions/` cover the layered `src/`, warnings-as-errors, the input map,
   and save-via-callables.
 
@@ -775,14 +854,14 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 120               # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,468 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,517 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Thirty-eight gotchas that each cost an hour
+## Forty gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -965,13 +1044,16 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     wired, which is the same failure shape as an unwired `@export`, and it is worth one assertion.
 
 30. **`[importer_defaults]` IS UNDOCUMENTED AND ABSENT FROM `--doctool`.** Godot's per-importer
-    project defaults are an editor-managed `project.godot` section with no `ProjectSettings` entry,
-    so the rule this project runs on — check every name against the API dump before using it —
-    cannot be satisfied for it, and hand-authoring an undocumented format is exactly the change
-    that looks applied and does nothing. T2.1 stopped rather than guess. One latent hazard for
-    whoever picks it up: every committed `.import` carries `detect_3d/compress_to=1`, and these
-    sheets ARE used in 3D via `Sprite3D`, so a re-import can switch them to VRAM compression and
-    put block artefacts through pixel art.
+    project defaults are an editor-managed `project.godot` section, so the rule this project runs
+    on — check every name against the API dump before using it — cannot be satisfied for it, and
+    hand-authoring an undocumented format is exactly the change that looks applied and does
+    nothing. T2.1 stopped rather than guess. **ITS CONCLUSION WAS WRONG AND T3.2 REVERSED IT — see
+    gotcha 39.** The first half stands: there is still no dump to check. What was missing was that
+    a MEASUREMENT is available and is stronger evidence than a dump, which is non-negotiable #1.
+    The latent hazard it named is closed: the section now sets `detect_3d/compress_to = 0` and so
+    does every committed `.import`, so a re-import can no longer put VRAM block artefacts through
+    pixel art. Keep this entry for its general lesson, which is not about textures: **"I cannot
+    check this the usual way" is a reason to find another check, not a reason to stop.**
 
 31. **NO ORDINARY RUN EVER ENTERS AN AREA, so most of the ladder is blind to area content.**
     `--headless --quit-after 120` boots to the MAIN MENU and reports `0 warnings, 0 errors`
@@ -1066,6 +1148,41 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     T3.3's content gate refuses a count below one. **Every field a `.tres` sets that MATTERS must be
     reachable by `problems()` or by a checker**, or authoring it is a suggestion.
 
+
+39. **AN UNDOCUMENTED ENGINE FORMAT CAN BE SETTLED BY MEASUREMENT, AND `[importer_defaults]` WAS.**
+    Gotcha 30 stopped T2.1 for a good reason and reached the wrong conclusion, and this project's
+    own non-negotiable #1 is why: *nothing is done until the engine has run it* is not merely a
+    completion rule, it is an EVIDENCE rule, and it outranks the API dump. Measured under 4.7.2 in
+    four steps — a throwaway texture copied into a scratch folder under `res://`, imported with stock
+    defaults; the section written into `project.godot`; the generated `.import` DELETED; and
+    `--headless --import` run again. It came back carrying `detect_3d/compress_to=0` and
+    `mipmaps/generate=true`, against the stock `1` and `false`. So: the section works, the key is
+    the **importer's** name (`texture`, not a file extension), the value is a **Dictionary of
+    param paths**, it applies to a FRESH import only — an existing `.import` keeps its own params,
+    which is why all eight committed ones had to be edited too — and
+    `ProjectSettings.get_setting("importer_defaults/texture")` reads it back at runtime as a
+    Dictionary (`type=27`), which is what makes it assertable rather than merely written. Two
+    things generalise past textures. **A control value is what turns a probe into evidence:** only
+    one value mattered, but a second one whose stock default was the OPPOSITE of what was written
+    is what proved the section applied at all rather than the value happening to already be right.
+    And **the stock defaults were measured, not assumed** — three of the four settings
+    `ART_CONTRACT.md` had recommended turned out to be Godot's own defaults, so writing them down
+    would have been ceremony that later reads as a decision.
+
+40. **TWO CLASSES CAN EXPORT THE SAME PROPERTY NAME, SO A TEXT SCAN OF A SCENE FILE IS NOT A SCAN
+    OF A NODE.** `HD2DCameraRig` and `WeatherVisuals` both export `height_offset`, and they mean
+    entirely different things. An assertion that an area authors its own camera framing therefore
+    PASSED with the framing deleted, because the courtyard's weather node carries a
+    `height_offset = 5.0` line and the scan was looking at whole files. Every rung green, and the
+    only reason it was caught is that the gate was proved red before being believed (gotcha 23) —
+    which is the entire argument for planting the real violation, since the gate was the thing
+    that was broken. Anything reading a `.tscn` as text must resolve the OWNING NODE first: walk
+    `[node ...]` blocks, buffer each one, and match on the `script` ExtResource resolved to a path
+    — buffering rather than switching on the `script` line as it goes by, because a property
+    authored above `script` is legal `.tscn`. This is gotcha 17's family (`Area3D.priority`,
+    `class_name Container`, `DictRead.get_name`, `ItemDb.reload`) moved out of GDScript and into
+    scene text, and it is the sixth name collision this project has paid for.
+
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the
@@ -1075,17 +1192,21 @@ names the exact files that chat should read, so a session loads a few hundred li
 package never has to read upward.
 
 
-**Next package: T3.2 — the five art-contract seams T2.1 left open.** T3.3 has closed, which was the
-last row that changed what a consuming game can EXPRESS, so what remains in Phase T3 is one row:
+**Next package: WP-14 — dev tools and hardening.** T3.2 has closed, which was the last T-numbered
+row of Phase T3, and the phase is NOT over: WP-14 is still TODO, WP-15 has a remnant, and WP-10 is
+OPTIONAL and blocks nothing.
 
-- **T3.2** holds the five T2.1 leftovers — shared materials, the environment post-stack and
-  camera framing as `@export`s, the texture import defaults, the Git LFS lines — so they stop
-  being mentioned in five places. **Note gotcha 30 before starting it:** `[importer_defaults]` is
-  undocumented and absent from `--doctool`, and T2.1 stopped rather than guess at it, so the
-  honest outcome for that one seam may be a written-down refusal rather than a change.
-  There is also a latent hazard in the same area: every committed `.import` carries
-  `detect_3d/compress_to=1`, and these sheets ARE used in 3D, so a re-import can put VRAM
-  compression through pixel art.
+- **WP-14** is the last row with a real hole in it. **Read its wording critically before starting:**
+  it asks for "a smoke test that drives **the whole demo**", and that hard-wires the courtyard, the
+  keeper and the rose key into a permanent gate — which is the boundary `check_boundary` exists to
+  defend, arriving through the back door of a test. It should drive *a* game, built from
+  `tests/framework/fixtures.gd`, and skip loudly in a checkout with no game in it. Re-frame the row
+  in the same commit that takes it. The other known item in it is real and unglamorous: `Director`
+  does not cancel its threaded load on shutdown, which is why the boot rung needs `--quit-after 120`
+  rather than 30.
+- **WP-15** is mostly a consuming game's work; the export proof was split out into T2.0 and is done.
+  What is left of it is credits and an accessibility pass, both of which belong to a game.
+- **WP-10 (crafting) is OPTIONAL** and does not block v1.0 — a genre choice, per `TEMPLATE.md`.
 
 **objective markers on the map** is now a listener rather than new state — `quest_advanced` has
 an emitter and `MapScreen` already redraws on facts.
@@ -1115,16 +1236,17 @@ you can press to travel back to once you have — and every one of those walks n
 depending on whether you are crossing grass, the wooden dais or stone. Every one of those changes
 survives a save and a
 reload, including from the far side of an area that is no longer loaded. All of it is covered
-by 1,468 headless assertions.
+by 1,517 headless assertions.
 
 **Next, in this order.** The order matters and is not arbitrary:
 
 1. **The rest of the system catalogue**, WP-14 and WP-15 re-framed — see the board. WP-11 closed
    the last row that had no proof at all, and WP-10 is OPTIONAL.
-2. **T3.2**, the five art-contract seams T2.1 left open — the last row in Phase T3.
-   *(T3.1 is DONE — one scan behind all five catalogues, with every accessor still typed. T3.3 is
-   DONE — an item count is a flag published downward, so a step can require N of an item id and
-   the quest system still does not know what an inventory is.)*
+   *(Every T-numbered row is DONE. T3.1 — one scan behind all five catalogues, every accessor still
+   typed. T3.3 — an item count is a flag published downward, so a step can require N of an item id
+   and the quest system still does not know what an inventory is. T3.2 — the look of an area is
+   data: a shared material library, the environment post stack and per-area camera framing, plus
+   texture import defaults settled by measurement and Git LFS refused in writing.)*
 
 *(Path actions, NPC schedules, navigation baking, weather visuals, quests, equipment, the world
 map, the shared content scan and counted quest steps are all DONE — WP-06, WP-07, WP-08, WP-09, WP-09b, WP-11,

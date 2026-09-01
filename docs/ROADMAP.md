@@ -196,13 +196,8 @@ Exit criteria:
   sector width DERIVED from the facing count instead of a separate literal `TAU / 8.0`, and
   animation blocks with idle/walk row offsets so idle-vs-walk is no longer structurally
   impossible; a project `Theme` at `assets/theme/ui_theme.tres` so the UI look stops living as
-  constants inside five screen files. **Left for later:** shared materials; the environment
-  post-stack as `@export`s rather than code constants; camera exports set per area; the texture
-  import defaults (an undocumented editor-managed `[importer_defaults]` section, so it cannot be
-  checked against the API dump the way this project requires); the Git LFS lines, which the
-  `.gitattributes` comment is right to keep commented until real art exists — LFS pointers for a
-  2 KB placeholder are pure overhead and would put the CI checkout on a dependency it does not
-  have. See the board.
+  constants inside five screen files. It left five items, which were **closed by T3.2 in Phase
+  T3** — four built, one refused in writing. See the board.
 - **T2.2 Consumer documentation — DONE, 2026-08-27.** `AUTHORING.md`, `ART_CONTRACT.md`,
   `TESTING.md`, the extension surface as a section of `ARCHITECTURE.md`, and both routers
   updated so the new documents are reachable. (`NEW_GAME.md` was already done in T1.2.) The last
@@ -319,6 +314,36 @@ item", and a blocking item scheduled last is a contradiction. Sequenced by risk,
   header names. 66 new assertions, three new `check_content` branches each proved red then green,
   and two windowed captures LOOKED AT and READ. See the board.
 
+- **T3.2 The five art-contract seams T2.1 left — DONE, 2026-09-01.** The phase's seventh package,
+  and the LAST of its T-numbered rows — but Phase T3 is not closed and this file should not be
+  read as saying so: WP-14 is still TODO, WP-15 has a remnant, and the exit criterion below is
+  about systems having a proof rather than about T-rows being finished. T2.1 shipped the sprite-sheet contract and the project `Theme` and
+  left five items, which then spent six packages being described in **five documents** — a backlog
+  item mentioned five times is tracked zero times and described five times, and the descriptions
+  drift. Four are now built and one is refused in writing, and every one of them is stated in
+  exactly one place, `ART_CONTRACT.md`. **Shared materials:** `assets/materials/wood.tres`, one
+  file both areas point at, and the defect was already there — the two demo areas each carried a
+  byte-identical `m_wood`. A library of ONE, because the other five materials are *not* duplicates
+  (a tiling rate belongs to the surface, not the substance) and a shared file with a per-area
+  override on every user is duplication with an extra indirection. **The environment post stack:**
+  twenty literals in `_build_post_stack()` became twenty `@export`s at exactly the values T2.1
+  shipped; what stays in code is the STRUCTURE the rest of the driver assumes, and the four
+  expensive effects are exports despite being `false` because a value a game cannot reach is not a
+  seam, it is an opinion. **Per-area camera framing:** the seam already existed and the row was
+  wrong about it — `HD2DCameraRig` has carried its framing as `@export`s since it was written, and
+  what was missing was an area USING them, so the interior now frames at 36° / 9.5 m against the
+  outdoor 27° / 14 m and one run logs both. **The texture import defaults:** gotcha 30 said this
+  could not be done, because `[importer_defaults]` is undocumented and absent from `--doctool`.
+  The rule was right and the conclusion was not — it was settled by MEASUREMENT instead, which is
+  non-negotiable #1: a throwaway texture, the section added, its `.import` deleted, and
+  `--headless --import` regenerated it carrying the values. One value is set,
+  `detect_3d/compress_to = 0`, which closes the latent hazard that a re-import would put VRAM
+  block artefacts through pixel art. **Git LFS is refused**, with the reason that decides it
+  written down for the first time: the template cannot verify the change it would be making.
+  47 new assertions, six gates each proved red with the real violation then green — one of which
+  exposed a defect in the test itself — and six windowed captures LOOKED AT and READ. See the
+  board.
+
 Exit criteria:
 - [ ] Every system has one proof, and no system has a second area's worth of content
       — quests: **done**, WP-08, 2026-08-27. One quest, two steps, two windowed captures LOOKED AT:
@@ -345,6 +370,14 @@ Exit criteria:
       petals.  2 / 3` after `--give=item/rose_petal:2`, and the same screen at the same hour with
       one petal more reading `Settled - Nothing left to do.` The tally is a checkable prediction
       rather than a screenshot that merely looks fine
+      — the look of an area as data: **done**, T3.2, 2026-09-01. Three seams, each demonstrated by
+      a before/after pair from the same camera and hour in which ONE edit to ONE file is the only
+      difference, all six LOOKED AT and READ (gotcha 28): one shared material tinted in
+      `assets/materials/wood.tres` turns the dais in one area and the plinth in the other magenta
+      together; `volumetric_fog_density = 0.06` on one area's driver node hazes that area alone;
+      and the interior's own `fov = 36.0, distance = 9.5` draws the player at roughly 130 px
+      against 78 at the same hour, with one run logging both rigs. This criterion stays UNTICKED:
+      WP-14 is still TODO and it is about systems, not seams
 
 ## Phase T4 — Template v1.0
 

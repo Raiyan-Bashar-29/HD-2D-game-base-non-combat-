@@ -10,7 +10,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 ```
 
 Exit 0 if every assertion passes, 1 otherwise. The last line reads
-`=== 1402 passed, 0 failed, 0 skipped ===`.
+`=== 1517 passed, 0 failed, 0 skipped ===`.
 
 ---
 
@@ -202,6 +202,6 @@ Stated so nobody reads a green run as more than it is:
 ## Read next
 
 [`AUTHORING.md`](AUTHORING.md) · [`ARCHITECTURE.md`](ARCHITECTURE.md#the-extension-surface) ·
-[`CONTEXT.md`](CONTEXT.md) — the thirty-seven gotchas, several of which are the long form of the rules
+[`CONTEXT.md`](CONTEXT.md) — the forty gotchas, several of which are the long form of the rules
 above · `tests/framework/test_case.gd` and `tests/test_runner.gd`, whose headers carry the
 reasoning in full.

@@ -102,15 +102,36 @@ one for anything painted.
 
 ### Import settings
 
-The committed `.import` files are correct for pixel art and worth matching: `compress/mode=0`
-(lossless), `mipmaps/generate=false`, `process/fix_alpha_border=true`.
+**You do not have to touch a `.import` file.** `project.godot` carries an `[importer_defaults]`
+section, so a PNG dropped into this project imports correctly the first time:
 
-**One latent hazard.** Every committed `.import` carries `detect_3d/compress_to=1`, and these
-sheets *are* used in 3D through `Sprite3D`, so a re-import can switch them to VRAM compression and
-put block artefacts through pixel art. Godot's per-importer project defaults live in an
-undocumented, editor-managed `[importer_defaults]` section that does not appear in `--doctool`, so
-this template does not hand-author one — the per-file values are correct and hand-authoring an
-undocumented format is exactly the change that looks applied and does nothing.
+```
+[importer_defaults]
+
+texture={
+"detect_3d/compress_to": 0
+}
+```
+
+Exactly one value is set, because exactly one was wrong by default. `detect_3d/compress_to=0`
+disables the editor's *"this texture was used in 3D, so switch it to VRAM compression"* rewrite.
+Every character sheet in an HD-2D game **is** used in 3D, through `Sprite3D`, so at the stock value
+of `1` a re-import puts block artefacts through your pixel art — silently, and only in the picture.
+The committed `.import` files carry `0` as well, so the hazard is closed for what is already here
+and for whatever you import next. Everything else — `compress/mode=0` (lossless),
+`mipmaps/generate=false`, `process/fix_alpha_border=true` — is already Godot's own default for a
+2D texture and needs no help.
+
+**This section is undocumented and does not appear in `--doctool`**, which is why the template went
+five packages without one: the project rule is to check every name against the API dump, and for
+this there is no dump to check. It is written on a **measurement** instead. A throwaway texture was
+imported with stock defaults, the section was added, its `.import` was deleted, and
+`--headless --import` regenerated it carrying the values set here — `detect_3d/compress_to` moved
+`1 → 0` and a control value `mipmaps/generate` moved `false → true`. The key is the **importer's**
+name (`texture`), the value is a Dictionary of param paths, and
+`ProjectSettings.get_setting("importer_defaults/texture")` reads it back at runtime. A test asserts
+that, and asserts every committed `.import` agrees, so an editor session that clears the section
+fails the suite rather than a screenshot six months later.
 
 ### The two placeholders, and why one of them counts its own cells
 
@@ -192,18 +213,108 @@ suspecting the theme system.
 
 ---
 
+---
+
+## The look of an area
+
+Three seams, and none of them is code. All three were opened by T3.2, and each was demonstrated
+with a before/after windowed capture in which **one edit to one file** was the only difference.
+
+### Shared materials
+
+`assets/materials/` holds `StandardMaterial3D` resources that more than one area points at:
+
+```
+[node name="Mesh" type="MeshInstance3D" parent="Terrain/Dais"]
+mesh = SubResource("mesh_pillar")
+surface_material_override/0 = ExtResource("6_wood")
+```
+
+…where `6_wood` is `[ext_resource type="Material" path="res://assets/materials/wood.tres" …]`.
+Edit that one file and every area using it changes. Drop your own `.tres` in that folder, or
+replace the texture the shipped one names.
+
+**Share a material when two areas genuinely want the same thing, and not before.** The template
+ships exactly one, and the other five materials in the two demo areas are deliberately still
+inline, because they are *not* duplicates: one area tiles stone at `uv1_scale (3, 3)` and the other
+floors it at `(8, 8)` and walls it at `(6, 2)`. A tiling rate is a property of the surface it is
+stretched over, not of the substance, so hoisting those would produce a shared file with a
+per-area override on every user — the duplication with an extra indirection.
+
+A test fails if **two areas declare the same material inline**, with `ExtResource` ids resolved to
+paths so the comparison actually works. That is the defect this seam was built for: the two demo
+areas each carried a byte-identical copy, invisible until someone read both files side by side.
+
+Nothing in `src/` knows `assets/materials/` exists. A shared material is a scene-authoring
+convention, not a system — no registry, no id, no directory scan.
+
+**One thing that makes sharing safe**, and it was already true: `SurfaceWetness` *duplicates* every
+material before it darkens it, so rain outdoors cannot leave an interior's floor wet on the far
+side of an area change.
+
+### The environment post stack
+
+Every value in the HD-2D post stack — tonemap exposure, the seven glow numbers, depth fog,
+volumetric fog, and the four expensive effects that are off — is an `@export` on the
+`EnvironmentDriver` node in each area scene:
+
+```
+[node name="EnvironmentDriver" type="Node" parent="Environment"]
+script = ExtResource("2_env")
+follow_clock = true
+volumetric_fog_density = 0.06
+```
+
+The defaults are exactly what the template shipped when these were literals, so an area that
+leaves them alone renders identically. Per **area** rather than per project, because the driver
+already lives in the area scene and its `Interior` group already varies that way: a game that
+wants one look everywhere authors its areas from one copy, and a game that wants a bright market
+and a smoky cellar has the seam without having asked for it.
+
+What stays in code is the *structure* — which tonemapper, which fog mode, that ambient light comes
+from a colour — because those are what the rest of the driver assumes rather than what an area
+tunes. A test fails if a **number** is assigned to the environment anywhere in that file again.
+
+The day/night keyframe table is a separate thing and is still a `const` in the driver. It is a
+curve, not a look setting, and no seam has been claimed for it.
+
+### Per-area camera framing
+
+`HD2DCameraRig` has carried its framing as `@export`s since it was written; what was missing was
+an area using them. Set them on the rig node in your area scene:
+
+```
+[node name="CameraRig" type="Node3D" parent="Camera"]
+script = ExtResource("3_cam")
+distance = 9.5
+fov = 36.0
+height_offset = 0.95
+```
+
+`distance`, `pitch_degrees`, `yaw_degrees`, `fov`, `height_offset`, `follow_lag`, `frame_bias`, and
+the depth-of-field group. **A long lens from far away is most of the HD-2D look** — 25–30 degrees
+at 12–16 metres — so treat the defaults as the house style and reframe where a space asks for it.
+The demo's interior does: 36 degrees at 9.5 metres, because a room reads better close. Depth of
+field is expressed *relative* to the target, so it follows a reframe without being retuned.
+
+A test fails if a number is assigned to the camera or its attributes in the rig, and fails if **no
+area authors its own framing** — a seam nothing uses is a seam nobody has tried.
+
+---
+
 ## What is deliberately not here
 
-**No shared material library**, no environment post-stack as `@export`s, no per-area camera
-exports. Area scenes currently declare their own `StandardMaterial3D` sub-resources, the
-environment driver holds its post-processing values as code constants, and camera framing is the
-rig's default. Those are real seams and they are open work, not settled design — see
-`ROADMAP.md`'s Phase T2 list. Until they close, an area's materials and an area's camera are
-authored per area, which works and duplicates.
-
-**No Git LFS.** `.gitattributes` keeps the lines commented: LFS pointers for a 2 KB placeholder are
-pure overhead, and enabling them would put the CI checkout on a dependency it does not have. Turn
-them on when real art arrives.
+**No Git LFS, and this one is a refusal rather than an omission.** `.gitattributes` keeps the
+`filter=lfs` line commented, and it should stay commented until you bring real art. Three reasons,
+and the third is the one that decides it: LFS pointers for a 2 KB procedural placeholder are pure
+overhead; enabling them puts the CI checkout on a dependency it does not currently declare
+(`actions/checkout` needs `lfs: true`, and without it every PNG arrives as a text pointer and the
+project fails to import); and **the template cannot verify the change it would be making** —
+proving LFS works needs an LFS-enabled remote and a CI run against real binaries, neither of which
+exists while art is deferred. A configuration nobody can test is exactly the change that looks
+applied and does nothing, which is the failure this project is built to prevent. When you bring
+art: uncomment the line, run `git lfs install`, and add `lfs: true` to the checkout step in
+`.github/workflows/ladder.yml`.
 
 **No audio assets.** The ambience bed runs on procedurally generated filtered noise, for the same
 reason art is deferred.

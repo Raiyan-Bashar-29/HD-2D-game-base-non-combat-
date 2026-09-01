@@ -4112,3 +4112,14 @@ both under `assets/`, which a stripped checkout keeps.
 `1445 passed, 0 failed, 23 skipped`, `item definitions: 0`, `demo names derived: 0`. Both jobs
 report `128 files, 11119 code lines, 0 warnings, 0 violations` and all three checkers PASS.
 Commit `d20fbc1` on `claude/t3-2-art-seams`, PR #22, stacked onto `claude/t3-3-item-count` (#21).
+
+**One claim in this entry was overstated on the first pass and is corrected here rather than left.**
+The package section originally said the acceptance test was "`grep` finds each of the five once".
+It does not, and it should not: each seam is still named in a package section, a settled decision,
+a `SYSTEMS_INVENTORY.md` row and — for two of them — a gotcha. That is this project's standard
+record shape for finished work. What IS in exactly one place is the **current state** of each seam,
+the thing a reader would act on, and that place is `ART_CONTRACT.md`. The four stale claims are
+deleted: `ARCHITECTURE.md`'s "no shared material library" bullet, `CONTEXT.md`'s "Not built" line,
+`ROADMAP.md`'s recitation inside the T2.1 entry, and `.gitattributes` restating the LFS reason.
+The problem was never the number of mentions; it was five documents each independently describing
+PENDING work, where none of them is the one that gets corrected.

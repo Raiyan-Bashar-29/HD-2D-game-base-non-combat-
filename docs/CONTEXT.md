@@ -8,9 +8,10 @@ PR #22. Seventh package of Phase T3 and the LAST of its T-numbered rows — the 
 stays open on WP-14.** Four seams built, one refused in writing, and **the row's real deliverable
 was neither**: these five had spent six packages being described in `CONTEXT.md`, `ROADMAP.md`,
 `WORK_PACKAGES.md`, `ARCHITECTURE.md` and `ART_CONTRACT.md`, and a backlog item mentioned in five
-places is tracked zero times and described five times. They are now stated in exactly one,
-`ART_CONTRACT.md`, with the historical sections saying "closed by T3.2" rather than repeating a
-state that has moved. **Shared materials:** `assets/materials/wood.tres`, one file both areas point
+places is tracked zero times and described five times. **The CURRENT STATE of each — the thing a
+reader acts on — is now in exactly one document, `ART_CONTRACT.md`**, and the four stale claims are
+deleted; each seam is still named in a package section, a settled decision and an inventory row,
+which is this project's record shape for finished work rather than the drift shape. **Shared materials:** `assets/materials/wood.tres`, one file both areas point
 at — and the defect was already in the tree, because the two demo areas each carried a
 byte-identical `m_wood`. A library of ONE, deliberately: the other five materials are *not*
 duplicates, since one area tiles stone at `(3, 3)` and the other at `(8, 8)` and `(6, 2)`, and **a
@@ -834,11 +835,14 @@ three compiled cleanly and passed every static gate:**
   The refusal lives in `ART_CONTRACT.md` with the three steps to turn it on, and `.gitattributes`
   keeps a pointer rather than restating it.
 - **A BACKLOG ITEM MENTIONED IN FIVE PLACES IS TRACKED IN NONE OF THEM.** T3.2's stated deliverable
-  was as much that its five items stop appearing in five documents as that four of them got built.
-  The rule that came out of it: the CURRENT state of anything lives in exactly one document — the
-  one its consumer reads — and every other mention is either a historical record that says "closed
-  by <package>" or it is deleted. Nothing was removed from the record; T2.1's section still says
-  what T2.1 left, because that is still true.
+  was as much that its five items stop appearing in five documents as that four of them got built,
+  and the rule that came out of it is about STATE and not about word counts: **the current state of
+  anything lives in exactly one document — the one its consumer reads — and every other mention is
+  either a historical record that says "closed by <package>" or it is deleted.** A finished thing
+  named in a package section, a settled decision and an inventory row is the normal record shape
+  and is fine; five documents each describing PENDING work is the shape that rots, because none of
+  them is the one that gets corrected. Nothing was removed from the record; T2.1's section still
+  says what T2.1 left, because that is still true.
 - Six ADRs in `docs/decisions/` cover the layered `src/`, warnings-as-errors, the input map,
   and save-via-callables.
 

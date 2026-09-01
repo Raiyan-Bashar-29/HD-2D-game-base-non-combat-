@@ -1989,11 +1989,22 @@ artist reads it. Either way each is mentioned in exactly **one** place afterward
 These five were named in `CONTEXT.md`, `ROADMAP.md`, `WORK_PACKAGES.md`, `ARCHITECTURE.md` and
 `ART_CONTRACT.md` — five documents, four of them too many, each saying a slightly different thing
 about work nobody was doing. A backlog item mentioned in five places is not tracked five times; it
-is tracked zero times and described five times, and the descriptions drift. So the acceptance test
-here is not "four seams exist", it is **`grep` finds each of them once**, in `ART_CONTRACT.md`,
-with the historical package sections saying "closed by T3.2" rather than repeating the state.
-Nothing was deleted from the record: T2.1's own section still says what T2.1 left, because that is
-true, and now says where to read what happened to it.
+is tracked zero times and described five times, and the descriptions drift. So half the acceptance test
+here is documentary, and it is worth stating PRECISELY, because the loose version of it is not
+what was achieved. **What is now in exactly one place is the CURRENT STATE of each seam — the
+thing a reader would act on — and that place is `ART_CONTRACT.md`.** The four stale claims are
+gone: `ARCHITECTURE.md`'s "no shared material library" bullet is deleted, `CONTEXT.md`'s "Not
+built" line no longer lists them, `ROADMAP.md`'s T2.1 entry says "closed by T3.2" instead of
+reciting the five, and `.gitattributes` points at `ART_CONTRACT.md` instead of restating the LFS
+reason.
+
+Each seam is still NAMED in several documents, and that is correct rather than a failure to
+finish: a package section in this file, a settled decision in `CONTEXT.md`, a row in
+`SYSTEMS_INVENTORY.md` and a gotcha are the project's standard record shape for finished work, and
+none of them is a description of pending work that can drift out of date. **The difference that
+mattered was never the number of mentions; it was five documents each independently describing
+something nobody was doing.** Nothing was deleted from the record either: T2.1's own section still
+says what T2.1 left, because that is still true, and now says where to read what happened to it.
 
 **Four built, one refused.** The refusal is written where an artist reads it, with the reason and
 with the steps to turn it on, which is a different artefact from silence.

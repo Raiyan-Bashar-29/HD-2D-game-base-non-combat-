@@ -1794,6 +1794,14 @@ was deleted.
 `check_boundary`, `check_budgets`, `check_strings` all exit 0. Stripped template **1533 passed, 0
 failed, 25 skipped** — 1527 + 6, **no new skip**. Five windowed captures LOOKED AT and READ.
 
+**CI green, run `33599084960`, job logs read rather than the tick (gotcha 26).** Full checkout
+`=== 1607 passed, 0 failed, 0 skipped ===`; stripped template `=== 1533 passed, 0 failed, 25
+skipped ===`, the 25 skips unchanged from T4.1. All four checkers PASS in both jobs. The push run
+(`33599052173`) and the dispatch (`33599094672`) agree.
+
+**Commit:** `4f5f753` on `claude/beautiful-proskuriakova-2df954`, PR #26 — stacked onto
+`claude/wp-t4-version-upgrade` (#25) rather than `main`, matching the rest of the chain.
+
 **What was deliberately NOT done.** A `check_content` rule for `obj/` flags: it would have to know
 each prefab class's field constant, which means a list in a tool naming engine internals that
 `check_boundary` cannot help it keep honest — the field table plus "read it out of a run" is the

@@ -4850,3 +4850,8 @@ constant, which is a list in a tool naming engine internals that `check_boundary
 honest — the field table plus "read it out of a run" is the cheaper truth. The world-map assertion
 was NOT weakened to match the prose; the prose was the thing written from intent. And § Tag the
 ground still has no command, because there is none to give: no debug flag walks the player.
+
+**CI green, run `33599084960`, JOB LOGS read rather than the tick (gotcha 26).** Full checkout
+`=== 1607 passed, 0 failed, 0 skipped ===`; stripped template `=== 1533 passed, 0 failed, 25
+skipped ===`. `check_content`, `check_boundary`, `check_budgets` and `check_strings` all PASS in
+both jobs. Committed as `4f5f753`, PR #26, stacked onto `claude/wp-t4-version-upgrade`.

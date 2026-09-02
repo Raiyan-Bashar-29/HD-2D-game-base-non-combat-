@@ -65,16 +65,23 @@ func _flags() -> void:
 ## Godot passes Dictionaries and Arrays by reference. If the store handed out the real object,
 ## a caller could mutate world state without set_flag, so flag_changed would never fire and
 ## nothing listening would learn. Container contents are the first system that would be bitten.
+##
+## THE DICTIONARY KEYS ARE fixture_-NAMESPACED AND THAT IS NOT DECORATION. They were "apple" and
+## "pear", and T4.2 authored an item called pear: check_boundary derives its demo names from the
+## content a game has authored, so an arbitrary literal in an engine test becomes a boundary
+## violation the day a game happens to use that word. An id embedded after an underscore is not a
+## whole word, so the fixture prefix makes these immune by construction.
 func _flags_hands_out_copies() -> void:
 	Flags.clear_all()
-	Flags.set_flag(&"test/bag", {"apple": 2})
+	Flags.set_flag(&"test/bag", {"fixture_apple": 2})
 
 	var borrowed: Dictionary = Flags.get_dict(&"test/bag")
-	borrowed["apple"] = 99
-	borrowed["pear"] = 1
+	borrowed["fixture_apple"] = 99
+	borrowed["fixture_pear"] = 1
 	var fresh: Dictionary = Flags.get_dict(&"test/bag")
-	equal("mutating a fetched dict does not touch the store", DictRead.get_int(fresh, "apple"), 2)
-	equal("nor can it add keys to the store", fresh.has("pear"), false)
+	equal("mutating a fetched dict does not touch the store",
+		DictRead.get_int(fresh, "fixture_apple"), 2)
+	equal("nor can it add keys to the store", fresh.has("fixture_pear"), false)
 
 	Flags.set_flag(&"test/list", [1, 2])
 	var list: Array = Flags.get_array(&"test/list")

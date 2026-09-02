@@ -3,9 +3,36 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-02 · **T4.1 (template v1.0 — the version and the upgrade note) complete — `799d957`, PR #25.
-The FIRST package of Phase T4, and WP-15 was CLOSED by the owner on the same day rather than
-built.**
+**Last updated:** 2026-09-02 · **T4.2 (a second worked example, authored from `AUTHORING.md`
+alone) complete. The SECOND package of Phase T4, and the third exit criterion — a release tag —
+is still open and is still the owner's.**
+
+**T2.2'S MECHANISM WAS APPLIED TO CONTENT, AND IT FOUND TWO DEFECTS IN THE TEMPLATE ITSELF.** An
+orchard, a warden, a schedule, a four-node conversation, two items, an equip-gated arch, a
+world-map def and a two-step quest with a counted step were authored **from `AUTHORING.md` alone,
+with `src/` never opened while writing**, then deleted — it was a test of the documents, the way
+T2.2's was. Five defects. Three were prose; **two were the template**, and both are gotcha 44's
+shape, invisible to the full demo and to the stripped template alike:
+
+**`check_boundary` MATCHED SUBSTRINGS.** An item called `pear` failed the gate on
+`tests/unit/menus_test.gd`'s *"and Load has appeared under it"* — `appeared` contains `pear` — and
+the gate table told the author the fault was "a bug in the *engine*, not in your content", so the
+remedy it pointed at was filing a bug rather than renaming. Ids are now matched as WHOLE WORDS, and
+the two genuine hits left were an engine test's throwaway `"apple"` / `"pear"` dictionary keys,
+which now come from the reserved `fixture_` namespace. See gotcha 45.
+
+**`--stand-by` ALWAYS RESOLVED IN THE DEPARTURE AREA.** `--goto=<new area> --stand-by=<object in
+it>` failed with *found no node called ...* — deterministically, not as a race — so **no object in
+an authored area could be photographed at all**, which is most of what an author needs a capture
+for. `dev_stage.gd`'s own header already stated the rule it was breaking. See gotcha 46.
+
+**And the quest section named no `obj/` field**, so a step written from it (`.../opened`, when the
+field is `open`) passed `check_content`, drew its objective in the journal, reported
+`0 warnings, 0 errors` and could never have been satisfied. All seven fields are now a table in the
+document, with the trap stated: this is the one flag family no gate can check.
+
+*(Previously: T4.1, the version and the upgrade note — `799d957`, PR #25. The FIRST package
+of Phase T4, and WP-15 was CLOSED by the owner on the same day rather than built.)*
 
 **THE TEMPLATE NOW STATES ITS OWN VERSION, AND IT IS NOT `application/config/version`.** That
 field was the obvious candidate and it is the wrong one, for a reason `NEW_GAME.md` § 4 was
@@ -167,10 +194,12 @@ engineering and is assertable, but tagging is a release action. `v1.0.0` exists 
 throwaway repositories `docs/UPGRADING.md` was performed against.
 
 **Beyond that the template is v1.0-complete, and the next package is a genuine choice rather than a
-queue.** Candidates, none of them blocking: WP-10 crafting, if a game wants it; a second worked
-example area authored purely from `AUTHORING.md`, which is T2.2's mechanism applied to content
-rather than docs; or nothing at all, which is a legitimate answer for a base that has answered
-every question it set out to.
+queue.** The owner was asked on 2026-09-02 and chose T4.2 — the second worked example — which has
+now been done, and answered **not yet** on the tag. Candidates, none of them blocking: WP-10
+crafting, if a game wants it; a third performance of a document, since `NEW_GAME.md` and
+`TESTING.md` have never been walked and all three walks so far found defects reading would not
+have; or nothing at all, which is a legitimate answer for a base that has answered every question
+it set out to.
 
 136 files, 11,771 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
 three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
@@ -182,7 +211,7 @@ input actions · settings · save/load with atomic writes and versioning · plot
 director with a re-entrancy guard and threaded loading · world clock · weather state · audio
 buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 8-way character ·
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
-placeholder art generator · line-budget checker · a headless test suite (1,574 assertions) that
+placeholder art generator · line-budget checker · a headless test suite (1,607 assertions) that
 builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
 returns early, asserts nothing, or is not listed in the runner ·
 an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
@@ -1018,7 +1047,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,601 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,607 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content
@@ -1026,7 +1055,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Forty-four gotchas that each cost an hour
+## Forty-six gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -1423,6 +1452,39 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     the two states this repo has, and every state a consuming game passes through lies between
     them. Gotchas 40, 42 and 43's family, fourth costume, and the first of them that no plant in
     this repository would have caught — the fork had to exist.
+
+45. **A GATE THAT MATCHES SUBSTRINGS IS GREEN IN BOTH OF THIS REPOSITORY'S STATES AND RED ONLY IN A
+    CONSUMER'S HANDS.** `check_boundary.gd` asked whether a line CONTAINS a content id. T4.2
+    authored an item called `pear` — nothing exotic — and the gate failed on
+    `tests/unit/menus_test.gd`'s *"and Load has appeared under it"*, because **`appeared` contains
+    `pear`**. The full demo is green because its own ids happen not to collide; the stripped
+    template is green because it has no ids at all; the failure lives only in the gap, and it needs
+    an id this repository does not have. Gotcha 44's family, fifth costume, and **the second one
+    that no plant here could have caught** — the content had to be authored. Three rules
+    generalise. **A text gate that matches an identifier matches it as a WHOLE WORD**, or every
+    short id (`pear`/`appeared`, `ore`/`before`, `art`/`start`) is a build failure a consuming game
+    cannot fix. **A gate's failure message must not tell the reader whose bug it is** — the gate
+    table in `AUTHORING.md` said a `check_boundary` hit "is a bug in the *engine*, not in your
+    content", which sent an author to file a bug rather than rename an item. And **an engine test's
+    throwaway literals are content ids waiting to happen**: `borrowed["pear"] = 1` was an arbitrary
+    dictionary key that became a boundary violation the day a game used the word, so such literals
+    come from the reserved `fixture_` namespace, which is immune BY CONSTRUCTION because an id
+    sitting after an underscore is not a whole word.
+
+46. **A RULE WRITTEN IN A FILE'S OWN HEADER CAN STILL BE UNFOLLOWED BY A CALL SITE IN THAT SAME
+    FILE.** `dev_stage.gd` states gotcha 35's rule — staging that puts something on screen uses
+    `_settle_stable`, not `_wait_for_area` alone — and `--stand-by` did not, for six packages.
+    `--goto=<new area> --stand-by=<object in it>` therefore resolved the node name in the
+    **departure** area, every time, deterministically rather than as a race, so no object in an
+    authored area could be photographed at all. Every rung stayed green because the flag is only
+    used by hand. Two rules. **A written rule with more than one call site wants an assertion, not
+    a paragraph** — gotcha 41's family: a rule nothing checks is a comment. And **an assertion that
+    a function contains a call must be scoped to that FUNCTION when the fragment repeats**:
+    `_settle_stable(SETTLE_FRAMES)` appears three times in that file, so a whole-file scan is
+    satisfied by any one of them and would have stayed green with the broken call site deleted.
+    That is gotcha 43's rule met by narrowing the TEXT rather than the fragment, and the plant
+    proved it — deleting the one call failed while the other two remained.
+
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the
@@ -1432,36 +1494,20 @@ names the exact files that chat should read, so a session loads a few hundred li
 package never has to read upward.
 
 
-**Next package: WP-14b — the dev tools WP-14 split off.** WP-14's hardening half has closed, and
-it took the last row that contained a *gate*. What is left of Phase T3 is one row of developer
-convenience, and then the phase is done.
+**Next package: NOTHING IS BLOCKING, AND THE ONE OPEN CRITERION IS THE OWNER'S.** Phase T4's third
+exit criterion is a **release tag**, and it is deliberately not a package: tagging is a release
+action. On 2026-09-02 the owner was asked and answered **not yet — merge the stack first**, since
+`origin/main` is still at `d0bf153` and PRs #10–#25 have not landed, so a `v1.0.0` today would
+point either at a commit without the version it names or at an unmerged branch.
 
-- **WP-14b — an in-game debug console and a performance overlay.** These are the half of WP-14 that
-  was split out rather than half-finished: two UI surfaces, each needing a screen under `src/ui/`,
-  an action binding in `actions.gd`, localization keys, and a windowed capture that is LOOKED AT.
-  The console's commands — teleport, set flag, set time, give item — already exist as the `--goto`,
-  `--flag`, `--time` and `--give` staging flags in `src/systems/debug/dev_stage.gd`, so **the row is
-  mostly a UI over parsing that is already written**, and the interesting question is whether the
-  console can live under `src/ui/` without naming demo content (it can: a command takes its
-  argument from the player). **Keep it behind `OS.is_debug_build()`** — that guard is the
-  precondition the `src/systems/debug/` boundary exemption rests on, and `check_boundary` checks
-  it. Two things to decide out loud rather than drift into: whether the console is a `UiScreen`
-  with `pauses_world` (it should be, so the existing pause table owns it and it does not invent a
-  second) and whether the overlay is a screen at all (it should not be — it has to be visible
-  *during* gameplay, so it is a `CanvasLayer` like the HUD).
-- **WP-15 should probably be CLOSED rather than built.** The export proof was split into T2.0 and
-  is done; what remains is credits and an accessibility pass, and both belong to a *consuming
-  game* rather than to the template — a template cannot credit a team it does not have, and an
-  accessibility pass on placeholder art with no final UI is a pass over something that will be
-  replaced. The honest move is to close the row with that reasoning, the way WP-10 was marked
-  OPTIONAL, rather than build two things for a game that does not exist yet.
-- **WP-10 (crafting) is OPTIONAL** and does not block v1.0 — a genre choice, per `TEMPLATE.md`.
-- **Then Phase T4: version and tag template v1.0, and write the upgrade note** for games already
-  forked from the base. Nothing currently describes how a game receives a later fix to the
-  template, which is the one question a *reusable* base has to answer and this one does not.
+Candidates after that, none of them blocking:
 
-**objective markers on the map** is now a listener rather than new state — `quest_advanced` has
-an emitter and `MapScreen` already redraws on facts.
+- **WP-10 crafting**, if a game wants it. Still OPTIONAL, still a genre choice per `TEMPLATE.md`.
+- **A third performance of a document.** T2.2 performed `AUTHORING.md`'s first half, T4.1 performed
+  `UPGRADING.md`, T4.2 performed the rest of `AUTHORING.md` — and every one of the three found a
+  defect no amount of reading would have. `NEW_GAME.md` and `TESTING.md` have not been walked.
+- **Nothing at all**, which stays a legitimate answer for a base that has answered every question
+  it set out to.
 
 *(This line names ONE package or one honest choice between a few. Earlier revisions accumulated a
 stale line per package and two were left stranded here; if you ever find two, the lower one is
@@ -1488,7 +1534,7 @@ you can press to travel back to once you have — and every one of those walks n
 depending on whether you are crossing grass, the wooden dais or stone. Every one of those changes
 survives a save and a
 reload, including from the far side of an area that is no longer loaded. All of it is covered
-by 1,601 headless assertions.
+by 1,607 headless assertions.
 
 **Next, and for the first time it is not an ordered queue.** Every blocking row is done: Phase T3
 closed with WP-14b, WP-15 was CLOSED by the owner, and T4.1 shipped the version and the upgrade

@@ -28,6 +28,9 @@ const TEST_ROOTS: Array[String] = ["res://tests/framework", "res://tests/unit"]
 ## The one exemption from the rule. Justified at _scan_script below.
 const DEBUG_DIR: String = "res://src/systems/debug/"
 
+## What makes a neighbouring character part of a LONGER word. See names_whole_word.
+const WORD_CHARS: String = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
+
 var _violations: int = 0
 var _exempted: int = 0
 
@@ -169,13 +172,41 @@ func _scan_script(path: String, demo: Dictionary[String, String]) -> void:
 		if line.strip_edges().begins_with("#"):
 			continue
 		for name: String in demo:
-			if not line.contains(name):
+			if not names_whole_word(line, name):
 				continue
 			if exempt:
 				_exempted += 1
 				continue
 			_fail("%s:%d names demo content '%s' (from %s)" % [path, line_number, name, demo[name]])
 	file.close()
+
+
+## A CONTENT ID IS MATCHED AS A WHOLE WORD, AND THE SUBSTRING VERSION WAS A REAL DEFECT.
+## T4.2 authored an item called 'pear' — nothing exotic — and this gate failed on
+## tests/unit/menus_test.gd's "and Load has appeared under it", because "appeared" contains it.
+## A consuming game cannot fix that line, and AUTHORING.md's gate table told it the fault was
+## "a bug in the engine, not in your content", so the author is sent to file a bug rather than to
+## rename. Gotcha 44's shape: green in the full demo and green in the stripped template, red only
+## in a consumer's hands, because the collision needs an id this repository does not have.
+## An id may contain "/" (item/pear), so only the ENDS are checked; the neighbours that would
+## make this a longer word are the identifier characters.
+static func names_whole_word(line: String, name: String) -> bool:
+	var from: int = 0
+	while true:
+		var at: int = line.find(name, from)
+		if at < 0:
+			return false
+		var after: int = at + name.length()
+		var before_char: String = line.substr(at - 1, 1) if at > 0 else ""
+		var after_char: String = line.substr(after, 1) if after < line.length() else ""
+		if not _is_word_char(before_char) and not _is_word_char(after_char):
+			return true
+		from = at + 1
+	return false
+
+
+static func _is_word_char(character: String) -> bool:
+	return character != "" and WORD_CHARS.contains(character)
 
 
 ## THE DEBUG EXEMPTION HAS A PRECONDITION, AND THIS IS IT. src/systems/debug/ is allowed to name

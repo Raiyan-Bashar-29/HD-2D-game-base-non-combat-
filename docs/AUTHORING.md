@@ -241,8 +241,19 @@ Add `area.my_area.name,My Area` to `localization/strings.csv`, then:
 "$G" --headless res://tests/test_runner.tscn --quit-after 400
 ```
 
-Every area adds **20 assertions** to `transitions_test.gd`, computed from the areas found — the
-plan is `PER_AREA_ASSERTIONS * areas + fixed`, so authoring an area does not mean editing a plan.
+**THE SCENE IS NOT THE WHOLE TASK: THE SUITE STAYS RED UNTIL THE AREA IS ALSO ON THE MAP.** Write
+`data/areas/<id>.tres` as well — § Put an area on the world map, below, and it is four lines. With
+the scene alone the run above reports:
+
+```
+=== 1621 passed, 4 failed, 0 skipped ===
+FAILED: every authored area is on the map — expected 3, got 2
+FAILED: my_area has an AreaDef — expected true, got false
+```
+
+Every area adds **20 assertions** to `transitions_test.gd` and **5** to `world_map_test.gd`, both
+computed from the areas found — the plan is `PER_AREA_ASSERTIONS * areas + fixed`, so authoring an
+area does not mean editing a plan.
 
 None of those three enters your area. To actually see it, and you must:
 
@@ -270,8 +281,16 @@ An area nothing travels to is dead content. Three ways in:
 The map is one `.tres` per area in `data/areas/`, found by directory scan the way items and
 quests are. **You write no code**, and nothing on the map screen knows any area exists.
 
-An area with no `.tres` here is simply not on the map — legitimate for a cupboard, and the reason
-`data/areas/` may be empty in a game that wants no map at all.
+**EVERY AREA YOU AUTHOR NEEDS ONE, AND THE SUITE FAILS UNTIL IT HAS ONE.** This section used to
+say an area with no `.tres` here was "simply not on the map — legitimate for a cupboard"; that was
+written from intent and it is false. `world_map_test.gd` asserts that the defs and the authored
+areas are the same set, so a scene with no def is four red assertions in a suite that was green a
+moment earlier. `data/areas/` may only be empty in a game that has authored no areas at all,
+which is the state a stripped template starts in.
+
+There is no way to have an area that is deliberately off the map. A place you would rather not
+advertise is authored with `known_from_start = false` and simply never discovered, which draws it
+as a grey `???` rather than hiding it.
 
 ### The file
 
@@ -378,6 +397,15 @@ step is generated the way the rain is.
 **Untagged ground is legal and silent, and it says so once** at INFO level:
 `Ground under 'Footsteps' carries no metadata/surface, so steps are silent here`. A game that wants
 no footsteps simply tags nothing.
+
+**CHECKING A TAG IS THE ONE THING THIS DOCUMENT CANNOT GIVE YOU A COMMAND FOR, so here is what it
+takes.** No gate reads `metadata/surface` — it is node metadata, not content, so `check_content`
+never sees it — and nothing is logged when an area loads. The surface is resolved only when a
+character actually WALKS, and no debug flag walks anybody: `--stand-by` teleports and the capture
+flags pose a still. So a tag is confirmed by the footstep line appearing on a run you drive by
+hand with the arrow keys, and the honest answer for a headless check is that there is not one.
+Tag the root, override what differs, and read the first line each surface logs when you walk onto
+it.
 
 ### A character: one flag, one name, one consumer
 
@@ -561,11 +589,19 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
      --equip=item/brass_lantern --open-inventory --shot=held.png --shot-frame=70 \
      --time=12:00 --freeze-time
 ```
-
 `--equip` applies **after** the area lands, for the same reason `--flag` does: the flag it writes
 is a flag, and `--new-game` clears every one of them first. Swap `--open-inventory` for
 `--stand-by=ShadowedArch --interact=1` to photograph the gate being refused, and then the same
 line with `--equip` to photograph it opening.
+
+**For a gate in an area of your own, add `--goto` and move the frames out.** `--stand-by` waits
+for a settled area, which lands well after the seventieth frame when a travel is in flight:
+
+```bash
+"$G" --resolution 960x540 --quit-after 340 -- --new-game --goto=my_area \
+     --stand-by=MyGate --interact=260 --shot="$(pwd)/build/shots/refused.png" \
+     --shot-frame=290 --time=12:00 --freeze-time
+```
 
 ---
 
@@ -793,13 +829,35 @@ already write?"** The six writers, and where each is documented:
 | talking to someone | a `DialogueNode` effect | § Add a conversation — `effect_flag` / `effect_write` |
 | throwing a lever | `Lever.world_flag` | § Add an interactable object |
 | walking somewhere | `TriggerVolume.world_flag` | § Add an interactable object |
-| opening a gate, emptying a chest | `PersistentState` — `obj/<area_id>/<object_id>/<field>` | ADR-0005 |
+| acting on an object | `PersistentState` — `obj/<area_id>/<object_id>/<field>` | the field table below |
 | a path action succeeding | `PathAction.success_flag` | § Add an NPC, step 3 |
 | holding an item | `Equipment` — `equip/<wearer>/<item id>` | § Make an item equippable |
 | carrying N of an item | `Inventory` — `bag/<carrier>/<item id>` | § Count items in a quest step |
 
 **An item count IS a flag**, as of T3.3 — see the next section. That is the seventh writer, and it
 is the only one whose value is a *number* rather than a truth.
+
+**THE `obj/` FIELD NAMES, BECAUSE GUESSING ONE COSTS YOU A STEP THAT CAN NEVER FINISH.** Each
+prefab persists under one field, and every one of them is shorter than the word you would guess:
+
+| Prefab | The flag it writes |
+|---|---|
+| `gate.tscn` | `obj/<area>/<object_id>/open` — **not** `opened` |
+| `lever.tscn` | `obj/<area>/<object_id>/thrown` |
+| `chest.tscn` | `obj/<area>/<object_id>/emptied` |
+| `pickup.tscn` | `obj/<area>/<object_id>/taken` |
+| `sign.tscn` | `obj/<area>/<object_id>/read` |
+| `trigger_volume.tscn` | `obj/<area>/<object_id>/fired` |
+| `path_action.tscn` | `obj/<area>/<object_id>/done` |
+
+**This is the one flag family no gate can check for you, and it is the likeliest mistake in this
+document.** `check_content` fails a step that counts an item no `.tres` declares, and resolves
+every dialogue link — but an `obj/` key naming a field nothing writes is indistinguishable from
+one naming a field something writes, because the field lives in engine code and the object is
+placed in a scene. T4.2 wrote `obj/orchard/bramble_way/opened` from this table when it named no
+fields at all: `check_content` passed, the journal drew the objective, the run reported
+`0 warnings, 0 errors`, and the step could never have been satisfied. Read the field out of a run
+before you trust it — every write is logged at DEBUG as `obj/... = true`.
 
 ### The two resources
 
@@ -1022,7 +1080,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 | boot run | that the game boots clean to its main menu. **It does not enter an area** — see below |
 | test suite | a missing required child, an area with no spawn, an interior that follows the sun, a schedule waypoint no area has, a quest with no steps, an area on the map with no scene, a map dot whose `arrival_spawn` no area has |
 | `check_content` | a duplicate `object_id`, a `_key` with no CSV row, an unquoted comma, a dangling dialogue link, an id that disagrees with its file name, a stray `ItemDefinition`, a quest step whose objective has no CSV row, a gate whose `locked_key` has no row, an `AreaDef` whose `name_key` has no row, **a quest step counting an item no `.tres` declares, or counting zero of one**, **a missing `[editable]` marker** |
-| `check_boundary` | your content id appearing in `src/` — which is a bug in the *engine*, not in your content |
+| `check_boundary` | your content id appearing in `src/` or in `tests/unit/`. A content id is matched as a WHOLE WORD, so an item called `pear` does not collide with the word `appeared`; a whole-word hit is a real one, and it is a bug in the *engine* rather than in your content |
 | `check_budgets` | 250 code lines per file, 40 per function. Markdown is not counted |
 | windowed capture | everything the other six cannot see |
 
@@ -1042,7 +1100,7 @@ harness answers. They are behind `OS.is_debug_build()`, so they do not exist in 
 | `--goto=<area_id>` | travels to an area, so you can capture one that is not the first |
 | `--shot=<abs path>` and `--shot-frame=<n>` | capture a PNG, at that frame. The area load is threaded and needs frames — 70 with `--quit-after 90` is a safe pair |
 | `--time=HH:MM` and `--freeze-time` | a reproducible hour. Without the freeze, weather and the clock keep rolling and no two captures match |
-| `--stand-by=<node name>` | put the player beside a node, by its **node name** — not its `object_id`. Asking for `warden_talk` fails; ask for `Warden` |
+| `--stand-by=<node name>` | put the player beside a node, by its **node name** — not its `object_id`. Asking for `warden_talk` fails; ask for `Warden`. It waits for a SETTLED area, so with `--goto` it lands late: give `--interact` about 260 and `--quit-after` about 340 |
 | `--equip=<item id>[,<id>]` | put carried items **in hand**, after the area lands. `--give` first, on the same line — an item nobody carries is refused |
 | `--flag=<key>:<value>` | forge a plot flag **after** the area lands, so quest progress can be posed: `--flag=met/warden:true`, `--flag=count/lit:3`. `--new-game` clears flags first, which is why it cannot be earlier |
 | `--interact=<frame>`, `--cycle=<n>`, `--talk-advance=<frame>` | press the interact key, Tab between overlapping targets, advance a conversation |

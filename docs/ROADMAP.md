@@ -468,6 +468,15 @@ OPTIONAL and blocks nothing. The board carries the full reasoning.
   **What the template CANNOT promise is written down** — no clean merge, no content compatibility
   across a MAJOR, no save survival, nothing at all for a fork that edited `src/`, and no automatic
   upgrade, ever. See the board.
+- **T4.2 A second worked example, authored from `AUTHORING.md` alone — DONE, 2026-09-02.** T2.2's
+  mechanism applied to CONTENT: an orchard, a warden, a schedule, a conversation, two items, an
+  equip-gated arch, a map def and a counted quest, all authored from the document alone with
+  `src/` never opened — then deleted, because it was a test of the documents. **Five defects, and
+  two were in the template rather than the prose:** `check_boundary` matched SUBSTRINGS, so an
+  item called `pear` failed on the word `appeared` and the gate table told the author to blame
+  the engine; and `--stand-by` always resolved in the DEPARTURE area, so no object in an authored
+  area could be photographed at all. Both are gotcha 44's shape — invisible to both of this
+  repository's states. Six more sections were performed and now hold proofs rather than claims.
 
 **Exit criteria for the phase:**
 

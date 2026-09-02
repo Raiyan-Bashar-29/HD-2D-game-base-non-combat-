@@ -4710,3 +4710,143 @@ otherwise. The `Button` styleboxes are still deliberately left, for the seventh 
 `Project Gulistan 0.0.1 | base 1.0.0 | Godot 4.7.2-stable (official) | headless | debug=true`,
 which is the new banner field proved on a machine that is not this one. PR #25, stacked on
 `claude/wp-14b-dev-tools`.
+
+## 2026-09-02 — T4.2 · A second worked example, authored from `AUTHORING.md` alone
+
+**Did.** Performed `AUTHORING.md` end to end as a consuming author would, authoring an orchard
+area with a warden NPC, a schedule, a four-node conversation, two items (one equippable), a sign,
+a chest, a pickup, an equip-gated arch, a world-map def and a two-step quest whose first step
+counts items — **from the document alone, with `src/` never opened while writing**. Recorded every
+place the document did not say enough instead of patching it from knowledge. Then deleted the
+content, the way T2.2 did, because it is a test of the documents rather than new demo content.
+Fixed the five defects that walk found: two in the template, three in the prose.
+
+**Why.** T2.2 performed the area, NPC and conversation sections and found six defects. Everything
+the document has gained since — the world map, surfaces and attributes, equipment and the gate
+that reads it, quests, counted steps, the `obj/` writers — had been written and never walked.
+Gotcha 44 is the argument: the states a consuming game passes through are exactly the states this
+repository never sits in.
+
+**Connects.** `tools/check_boundary.gd` (whole-word matching), `src/systems/debug/dev_stage.gd`
+(`_stand_by` settles), `tests/unit/core_test.gd` (fixture-namespaced literals),
+`tests/unit/dev_tools_test.gd` (+6 assertions), `docs/AUTHORING.md` (five corrections).
+
+**The five defects.**
+
+1. § Add an area ends at a RED rung 4 — it never names `data/areas/<id>.tres`, and § Put an area
+   on the world map called that state "legitimate for a cupboard", which the suite disagrees with.
+2. `check_boundary` matched SUBSTRINGS: an item called `pear` failed on `menus_test.gd`'s "and
+   Load has appeared under it". Fixed to whole-word; the two genuine hits left were an engine
+   test's throwaway `"apple"`/`"pear"` dictionary keys, now `fixture_`-namespaced.
+3. `--stand-by` always resolved in the DEPARTURE area, so no object in an authored area could be
+   photographed. Fixed with `_settle_stable(SETTLE_FRAMES)`.
+4. The quest writers table named no `obj/` field. `obj/orchard/bramble_way/opened` (the field is
+   `open`) passed `check_content`, drew its objective and could never finish.
+5. § Tag the ground you walk on cannot be verified by any command at all.
+
+**Verified.**
+
+Import exit 0, zero `SCRIPT ERROR` / `Parse Error`. Boot `Session ended after 0.5s — 0 warnings,
+0 errors`. Suite `=== 1607 passed, 0 failed, 0 skipped ===` (1601 + 6). `check_content`,
+`check_boundary`, `check_budgets`, `check_strings` all exit 0. Stripped template
+`=== 1533 passed, 0 failed, 25 skipped ===` — 1527 + 6, no new skip.
+
+*The area section's own commands, followed exactly, with only the scene and the CSV row:*
+
+```
+=== 1621 passed, 4 failed, 0 skipped ===
+FAILED: every authored area is on the map — expected 3, got 2
+FAILED: orchard has an AreaDef — expected true, got false
+FAILED: orchard name keys agree — expected true, got false
+FAILED: orchard arrival spawn exists — expected true, got false
+```
+
+*The boundary gate, on an item called `pear`, before the fix:*
+
+```
+  !! res://tests/unit/core_test.gd:74 names demo content 'pear' (from res://data/items/pear.tres)
+  !! res://tests/unit/core_test.gd:77 names demo content 'pear' (from res://data/items/pear.tres)
+  !! res://tests/unit/menus_test.gd:112 names demo content 'pear' (from res://data/items/pear.tres)
+FAIL — 3 boundary violation(s)
+```
+
+`menus_test.gd:112` is `equal("and Load has appeared under it", rows[2], ...)`.
+
+*`--stand-by` measured with a control, before the fix — all three `--new-game --goto=orchard`:*
+
+```
+--stand-by=GateNotice (a COURTYARD node) -> --stand-by beside 'GateNotice', sensor has 'NOTHING'
+--stand-by=Warden     (an ORCHARD node)  -> ERROR --stand-by found no node called 'Warden'
+--stand-by=BrambleWay (an ORCHARD node)  -> ERROR --stand-by found no node called 'BrambleWay'
+```
+
+and in every one of the three the `--stand-by` line printed BEFORE `--goto arrived in 'orchard'`.
+After the fix, the same three, with the polarity correctly inverted:
+
+```
+--goto arrived in 'orchard'
+--stand-by beside 'BrambleWay', sensor has 'BrambleWay'
+--goto arrived in 'orchard'
+--stand-by beside 'Warden', sensor has 'Talk'
+--goto arrived in 'orchard'
+ERROR: [test] --stand-by found no node called 'GateNotice'
+```
+
+*The `obj/` field, read out of a run — the document named none and `opened` was the guess:*
+
+```
+12:04:00 [INFO ] [test     ] --interact on 'BrambleWay'
+12:04:00 [DEBUG] [flags    ] obj/orchard/bramble_way/open = true
+```
+
+**Planted, then removed (gotcha 23).**
+
+*Plant 1 — the settle call deleted from `_stand_by`, the real failure shape:*
+
+```
+FAIL func _stand_by settles rather than only waiting for an area — expected true, got false
+=== 1632 passed, 1 failed, 0 skipped ===   exit 1
+```
+
+The other two `_settle_stable(SETTLE_FRAMES)` calls were still in the file, so a whole-file scan
+would have stayed GREEN — which is why the scan is function-scoped (gotcha 43). Restored:
+`=== 1633 passed, 0 failed, 0 skipped ===`, exit 0.
+
+*Plant 2 — a WHOLE-WORD violation on a permanent demo id, to show the fix did not blunt the gate:*
+
+```
+!! res://tests/unit/core_test.gd:39 names demo content 'rose_key' (from res://data/items/rose_key.tres)
+FAIL — 5 boundary violation(s)   exit 1
+```
+
+*Plant 3 and its CONTROL — `"the rose_keys hung by the door"`, a longer word containing an id:*
+
+```
+with the WHOLE-WORD matcher (new):   PASS                       exit 0
+with the OLD substring matcher:      FAIL — 4 boundary violation(s)   exit 1
+  !! core_test.gd:39  names demo content 'rose_key'   <- from "rose_keys"
+  !! menus_test.gd:112 names demo content 'pear'      <- from "appeared"
+```
+
+A fix that makes a gate accept MORE has to show it still refuses, so plant 2 and plant 3 are one
+pair. Both use permanent demo ids, so they are repeatable now the walkthrough content is deleted.
+
+**Captures, LOOKED AT and READ (gotcha 28).** Five, all windowed at 960x540, `--time=12:00
+--freeze-time`. `orchard.png` — the new area entered by `--goto`, toast "The Orchard is added to
+your map", HUD `Day 1 | 12:00 | Midday`, the warden drawn. `journal.png` — `The Windfall` and
+`— Gather three pears.   2 / 3`, posed with `--give=item/pear:2`. `map.png` — "The Orchard · you
+are here" in white at the authored `(0.61, 0.24)`, measured on the plate at 0.61/0.24; "Rose
+Courtyard" gold; the hall a grey `???`. `talk.png` — the dialogue box, speaker `Warden`, the
+first-meeting line mid-typewriter, whose effect wrote `met/warden` and started the quest.
+`refused_goto.png` — the authored arch refusing with the authored line, "The brambles are thick,
+and your hands are bare.", **reached by `--goto`, which is the capture that was impossible before
+the fix**.
+
+**Unblocks.** Nothing was blocked. Phase T4's third criterion — a release tag — remains open and
+remains the owner's; asked on 2026-09-02, the answer was *not yet, merge the stack first*.
+
+**Gaps.** No `check_content` rule for `obj/` flags: it would need each prefab class's field
+constant, which is a list in a tool naming engine internals that `check_boundary` cannot keep
+honest — the field table plus "read it out of a run" is the cheaper truth. The world-map assertion
+was NOT weakened to match the prose; the prose was the thing written from intent. And § Tag the
+ground still has no command, because there is none to give: no debug flag walks the player.

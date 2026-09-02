@@ -74,6 +74,7 @@ original board rather than continuing it.
 | T3.1 | **A generic content registry** — one scan, with a thin typed façade per catalogue | **DONE** — `767fbe3`, PR #20. The fifth package of Phase T3; see below. The refactor PAID, and not in the shape WP-08 costed: the duplication was in the SCAN, not the cache, so the base went on the RESOURCE |
 | T3.2 | The five art-contract seams T2.1 left | **DONE** — the seventh package of Phase T3 and the last of its T-numbered rows, though the phase itself stays open on WP-14; see below. Four seams built and one refused in writing, and the point of the row is as much that they stop being mentioned in five documents as that four of them exist |
 | T4.1 | **Template v1.0 — the version, and the upgrade note** | **DONE** — `799d957`, PR #25. The first package of Phase T4. The version is `[template] base/version`, NOT `application/config/version`, and the reason is the whole package in one line: a fork resets its own version on day one, so that field stops recording which base the game came from. `docs/UPGRADING.md` was PERFORMED against a real stripped fork and found a template defect nobody would have reasoned their way to; see below |
+| T4.2 | **A second worked example, authored from `AUTHORING.md` alone** | **DONE** — the second package of Phase T4, and T2.2's mechanism applied to CONTENT. Five defects, two of them in the TEMPLATE rather than the prose: `check_boundary` matched SUBSTRINGS, so an item called `pear` collided with the word `appeared` and failed a gate its author could not fix; and `--stand-by` always resolved in the DEPARTURE area, so no object in an authored area could be photographed. Both gotcha 44's shape — found only by authoring content this repository does not have; see below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -1709,6 +1710,96 @@ and CI's own boot lines read `Project Gulistan 0.0.1 | base 1.0.0 | Godot 4.7.2-
 - **A tool that performs the merge.** `UPGRADING.md` § 4 states there will be no automatic
   upgrade, and shipping one would contradict the document in the same package that wrote it.
 - **Credits and the accessibility pass** — WP-15, closed above.
+
+
+## T4.2 · A second worked example, authored from `AUTHORING.md` alone — **DONE**
+
+**Goal.** T2.2's mechanism — *perform the document and count the defects* — applied to CONTENT
+rather than to docs. T2.2 performed the area, NPC and conversation sections and found six defects;
+everything `AUTHORING.md` has gained since (the world map, surfaces and attributes, equipment and
+the gate that reads it, quests, counted steps, the `obj/` writers) had been WRITTEN but never
+walked. Gotcha 44 is the argument for doing it: the states a consuming game passes through are
+exactly the states this repository never sits in.
+
+**Method, and the one rule that makes it worth anything.** A new area — an orchard with a warden,
+a schedule, a four-node conversation, two items, a sign, a basket, a pickup, an equip-gated arch,
+a world-map def and a two-step quest whose first step counts items — was authored **from the
+document alone, with `src/` never opened while writing**. Every time the document did not say
+enough, that was recorded rather than patched from knowledge. The content was then DELETED, the
+way T2.2's was: this is a test of the documents, and `TEMPLATE.md` says the demo does not get
+deepened.
+
+**Five defects, and two of them were in the TEMPLATE rather than in the prose.**
+
+1. **§ Add an area ends at a RED rung 4, and § Put an area on the world map calls that state
+   legitimate.** Following the area section exactly — scene, CSV row, then its own three closing
+   commands — gives `1621 passed, 4 failed`, `FAILED: every authored area is on the map`. The area
+   section never mentions `data/areas/<id>.tres`; the map section said an area without one "is
+   simply not on the map — legitimate for a cupboard". The suite requires one per authored area, so
+   that sentence was false, and it was false in the section a reader goes to when the assertion
+   fires. Both corrected, and the real cost measured with a control: an area adds **20** assertions
+   to `transitions_test.gd`, as documented, **plus 5** to `world_map_test.gd`, which was not.
+2. **`check_boundary` matched SUBSTRINGS, so an item called `pear` failed a gate its author could
+   not fix.** `tests/unit/menus_test.gd` says *"and Load has appeared under it"*, and **`appeared`
+   contains `pear`**. Gotcha 44's shape exactly — green in the full demo, green in the stripped
+   template, red only in a consuming game's hands, because the collision needs an id this
+   repository does not have. **And the document made it worse**: its gate table said a
+   `check_boundary` failure "is a bug in the *engine*, not in your content", sending the author to
+   file a bug rather than rename. FIXED: ids are matched as whole words. The two remaining hits
+   were real whole-word ones — an engine test using `"apple"` and `"pear"` as throwaway dictionary
+   keys — and **that fix belonged in the test**, which now draws them from the reserved `fixture_`
+   namespace, immune by construction because an id after an underscore is not a whole word.
+3. **`--stand-by` always resolved in the DEPARTURE area, so no object in an authored area could be
+   photographed at all.** `--goto=orchard --stand-by=BrambleWay` failed with *found no node called
+   'BrambleWay'*. Not a race — a deterministic loss: `_wait_for_area()` returns on the same frame
+   `--goto` asks to travel. Gotcha 35, whose rule `dev_stage.gd`'s own header already states for
+   `--open-menu` — this call site was simply missed, which is gotcha 41's family. FIXED with
+   `_settle_stable(SETTLE_FRAMES)`, and the document now carries a `--goto` + `--stand-by` recipe
+   with frames that work (260/290/340 rather than 1/70/90).
+4. **The quest section named no `obj/` field, and a step that can never finish passes every
+   gate.** Its writers table pointed at ADR-0005 for `obj/<area>/<object>/<field>`. Writing
+   `obj/orchard/bramble_way/opened` from that: `check_content` PASSED, the journal drew the
+   objective, the run reported `0 warnings, 0 errors` — and the field is `open`. **This is the one
+   flag family no gate can check**, because the field lives in engine code and the object is placed
+   in a scene. All seven are now a table in the document (`open`, `thrown`, `emptied`, `taken`,
+   `read`, `fired`, `done`), each shorter than the word you would guess, with the trap stated.
+5. **§ Tag the ground you walk on cannot be verified at all**, against the document's opening
+   promise that every section "ends with a command that tells you whether you got it right". No
+   gate reads `metadata/surface`, nothing logs it on load, and no debug flag walks anybody — the
+   surface resolves only when a character WALKS. Stated honestly rather than papered over.
+
+**Six sections performed CORRECTLY and are now proved rather than asserted**, which is the other
+half of the result: the world map (the def, the normalised `map_position` measured at 0.61/0.24 of
+the plate, discovery-by-arrival), the conversation and its fall-through entry, the NPC and its
+schedule, the `[editable]` marker rule, the counted quest step (`Gather three pears. 2 / 3`), and
+an authored `locked_key` reaching the player.
+
+**Gates proved red with the real violation, then green (gotcha 23).** The new `--stand-by`
+assertion was proved by deleting the settle call: `FAIL func _stand_by settles rather than only
+waiting for an area`, exit 1 — **and the other two `_settle_stable` calls were still in the file**,
+so a whole-file scan would have stayed green. That is gotcha 43's rule met by narrowing the TEXT
+rather than the fragment. The boundary matcher got a plant AND a control, because a fix that makes
+a gate accept more has to show it still refuses: `rose_key` planted whole → `FAIL — 5 boundary
+violation(s)`; `rose_keys` planted → `PASS`; the same `rose_keys` plant against the OLD substring
+matcher → `FAIL — 4 boundary violation(s)`, flagging `rose_keys` as `rose_key` and `appeared` as
+`pear`. Both plants use PERMANENT demo ids, so they are repeatable after the walkthrough content
+was deleted.
+
+**Files: 5, and the new code is 6 assertions plus two fixes.** `tools/check_boundary.gd`,
+`src/systems/debug/dev_stage.gd`, `tests/unit/core_test.gd`, `tests/unit/dev_tools_test.gd`,
+`docs/AUTHORING.md`.
+
+**Ladder, all green.** Import exit 0 with **zero** `SCRIPT ERROR` / `Parse Error`; boot
+`0 warnings, 0 errors`; suite **1607 passed, 0 failed, 0 skipped** (1601 + 6); `check_content`,
+`check_boundary`, `check_budgets`, `check_strings` all exit 0. Stripped template **1533 passed, 0
+failed, 25 skipped** — 1527 + 6, **no new skip**. Five windowed captures LOOKED AT and READ.
+
+**What was deliberately NOT done.** A `check_content` rule for `obj/` flags: it would have to know
+each prefab class's field constant, which means a list in a tool naming engine internals that
+`check_boundary` cannot help it keep honest — the field table plus "read it out of a run" is the
+cheaper truth, and defect 4 is now documented rather than gated. And the world-map assertion was
+NOT weakened to match the prose: requiring a def per area is a real invariant, and the document was
+the thing written from intent.
 
 ---
 

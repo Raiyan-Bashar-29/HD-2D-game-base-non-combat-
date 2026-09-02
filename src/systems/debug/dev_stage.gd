@@ -279,10 +279,19 @@ func _npc_settle(frames: int) -> void:
 		])
 
 
+## USES `_settle_stable`, NOT `_wait_for_area` ALONE, AND GOTCHA 35 IS WHY — the rule was already
+## written down for `--open-menu` below and this call site was missed. T4.2 found it by authoring
+## an area and trying to photograph an object in it: `--goto=orchard --stand-by=BrambleWay` failed
+## with "found no node called 'BrambleWay'", because `_wait_for_area` returns on the same frame
+## `--goto` asks to travel, so the name was resolved in the DEPARTURE area every time. Measured
+## with a control: a courtyard node resolved while travelling to the orchard, and both orchard
+## nodes did not. That made every object in an authored area unphotographable, since a new area
+## is reached with `--goto`.
 ## Walk the player up to a named node and let the interaction sensor settle on it. A capture of
 ## a prompt is worthless if the prompt is for whatever happened to be nearest the spawn point.
 func _stand_by(node_name: String) -> void:
 	await _wait_for_area()
+	await _settle_stable(SETTLE_FRAMES)
 	var target: Node3D = get_tree().root.find_child(node_name, true, false) as Node3D
 	if target == null:
 		Log.error("test", "--stand-by found no node called '%s'" % node_name)

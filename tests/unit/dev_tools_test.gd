@@ -25,6 +25,7 @@ extends TestCase
 ## MUST NOT: name demo content, assert a frame time's VALUE (it is a machine's number, not a
 ## contract), or reach into a private field to arrange state a public call could.
 
+const STAGE_PATH: String = "res://src/systems/debug/dev_stage.gd"
 const FLAG_A: StringName = &"fixture/console/set"
 const FLAG_B: StringName = &"fixture/console/count"
 ## THE THREE PLACES A DEV TOOL CAN BE REACHED, and the EXACT code each must carry.
@@ -46,12 +47,13 @@ const GATE_SITES: Array[Array] = [
 
 
 func run() -> void:
-	plan(30)
+	plan(36)
 	_the_four_verbs_are_the_command_lines_own()
 	_a_malformed_argument_is_refused_whole()
 	_the_console_runs_a_line_and_keeps_a_transcript()
 	_the_overlay_reads_the_engines_own_counters()
 	_every_dev_tool_is_gated_on_a_debug_build()
+	_staging_that_draws_waits_for_a_settled_area()
 
 
 ## The vocabulary, and that a typed line reaches the verb it names. `run()` takes the SAME
@@ -173,3 +175,53 @@ func _usage_names_all() -> bool:
 func _flag_int(line: String) -> int:
 	DevCommands.run(line)
 	return Flags.get_int(FLAG_B)
+
+
+## EVERY STAGING FLAG THAT PUTS SOMETHING ON SCREEN WAITS FOR A SETTLED AREA, NOT MERELY FOR
+## "an area". Gotcha 35, and `dev_stage.gd`'s own header states the rule — but `--stand-by` did
+## not follow it until T4.2, and no assertion could have shown that, because `_wait_for_area`
+## returns on the same frame `--goto` asks to travel and the run stays green either way. What it
+## cost: `--goto=<new area> --stand-by=<object in it>` resolved the NAME IN THE DEPARTURE AREA,
+## so no object in an authored area could be photographed at all.
+##
+## THE SCAN IS FUNCTION-SCOPED AND HAS TO BE. `_settle_stable(SETTLE_FRAMES)` appears three
+## times in that file, so a whole-file scan is satisfied by any one of them and would have stayed
+## green with the `--stand-by` call deleted — gotcha 43's rule, that a scan-for-a-guard must
+## anchor on a fragment appearing exactly once, met here by narrowing the TEXT rather than the
+## fragment.
+const SETTLE_SITES: Array[String] = [
+	"func _stand_by(node_name: String) -> void:",
+	"func _console(script: String) -> void:",
+	"func _open_menu(list: String) -> void:",
+]
+
+
+func _staging_that_draws_waits_for_a_settled_area() -> void:
+	for signature: String in SETTLE_SITES:
+		var body: String = _function_body(STAGE_PATH, signature)
+		equal("%s is present in dev_stage.gd" % signature.get_slice("(", 0),
+			body.is_empty(), false)
+		equal("%s settles rather than only waiting for an area"
+			% signature.get_slice("(", 0),
+			body.contains("_settle_stable(SETTLE_FRAMES)"), true)
+
+
+## The CODE lines of one function: from its signature to the next line that starts in column
+## zero. Comments are dropped for `_code_contains`'s reason — a body that merely DESCRIBES the
+## call it should make must not satisfy a scan for that call.
+func _function_body(path: String, signature: String) -> String:
+	var lines: PackedStringArray = FileAccess.get_file_as_string(path).split("\n")
+	var body: String = ""
+	var inside: bool = false
+	for line: String in lines:
+		if line == signature:
+			inside = true
+			continue
+		if not inside:
+			continue
+		if not line.is_empty() and not line.begins_with("\t"):
+			break
+		if line.strip_edges().begins_with("#"):
+			continue
+		body += line + "\n"
+	return body

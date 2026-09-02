@@ -73,7 +73,7 @@ original board rather than continuing it.
 | T2.2 | Consumer documentation | **DONE** — `36b5abd`, PR #15. Phase T2 closes; see T2.2 below |
 | T3.1 | **A generic content registry** — one scan, with a thin typed façade per catalogue | **DONE** — `767fbe3`, PR #20. The fifth package of Phase T3; see below. The refactor PAID, and not in the shape WP-08 costed: the duplication was in the SCAN, not the cache, so the base went on the RESOURCE |
 | T3.2 | The five art-contract seams T2.1 left | **DONE** — the seventh package of Phase T3 and the last of its T-numbered rows, though the phase itself stays open on WP-14; see below. Four seams built and one refused in writing, and the point of the row is as much that they stop being mentioned in five documents as that four of them exist |
-| T4.1 | **Template v1.0 — the version, and the upgrade note** | **DONE** — the first package of Phase T4. The version is `[template] base/version`, NOT `application/config/version`, and the reason is the whole package in one line: a fork resets its own version on day one, so that field stops recording which base the game came from. `docs/UPGRADING.md` was PERFORMED against a real stripped fork and found a template defect nobody would have reasoned their way to; see below |
+| T4.1 | **Template v1.0 — the version, and the upgrade note** | **DONE** — `799d957`, PR #25. The first package of Phase T4. The version is `[template] base/version`, NOT `application/config/version`, and the reason is the whole package in one line: a fork resets its own version on day one, so that field stops recording which base the game came from. `docs/UPGRADING.md` was PERFORMED against a real stripped fork and found a template defect nobody would have reasoned their way to; see below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -1563,7 +1563,7 @@ because there is no combat.
 
 ---
 
-## T4.1 · Template v1.0 — the version, and the upgrade note — **DONE**
+## T4.1 · Template v1.0 — the version, and the upgrade note — **DONE** — `799d957`, PR #25
 
 **Read:** `docs/TEMPLATE.md`, `project.godot`, `src/core/util/game_config.gd`,
 `docs/NEW_GAME.md`.
@@ -1692,6 +1692,11 @@ res://tests/test_runner.tscn            === 1601 passed, 0 failed, 0 skipped ===
 check_budgets/content/boundary/strings  exit=0, all four
 stripped template                       === 1527 passed, 0 failed, 25 skipped ===  NO new skip
 the performed fork, after two merges    === 1538 passed, 0 failed, 14 skipped ===, four checkers exit=0
+
+CI, run 33595460507, JOB LOGS read rather than the tick (gotcha 26):
+Ladder (full checkout)      === 1601 passed, 0 failed, 0 skipped ===, every rung PASS
+Ladder (stripped template)  === 1527 passed, 0 failed, 25 skipped ===, every rung PASS
+and CI's own boot lines read `Project Gulistan 0.0.1 | base 1.0.0 | Godot 4.7.2-stable`.
 ```
 
 ### Deferred, with reasons, not silently.

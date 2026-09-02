@@ -445,7 +445,7 @@ was **CLOSED by the owner** on the same day rather than built: both belong to a 
 and the seams that make accessibility possible already exist and are proved. WP-10 (crafting) is
 OPTIONAL and blocks nothing. The board carries the full reasoning.
 
-- **T4.1 The version and the upgrade note — DONE, 2026-09-02.** The phase's first package, and
+- **T4.1 The version and the upgrade note — DONE, 2026-09-02** — `799d957`, PR #25. The phase's first package, and
   both of the things this phase was named for.
 
   **The version is `[template] base/version`, not `application/config/version`**, and that choice

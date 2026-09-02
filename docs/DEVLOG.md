@@ -4702,3 +4702,11 @@ its bill, stated once and honestly. The proof used synthetic version numbers bec
 template has released one version; the merges and their output are real, the release numbers are
 scaffolding, and `UPGRADING.md` says so in its own preamble rather than letting a reader assume
 otherwise. The `Button` styleboxes are still deliberately left, for the seventh package running.
+
+**CI, run `33595460507`, dispatched on the branch and read from the JOB LOGS rather than the tick
+(gotcha 26).** `Ladder (full checkout)`: `=== 1601 passed, 0 failed, 0 skipped ===`, every rung
+`PASS`. `Ladder (stripped template)`: `=== 1527 passed, 0 failed, 25 skipped ===`, every rung
+`PASS`. The runner's own boot lines read
+`Project Gulistan 0.0.1 | base 1.0.0 | Godot 4.7.2-stable (official) | headless | debug=true`,
+which is the new banner field proved on a machine that is not this one. PR #25, stacked on
+`claude/wp-14b-dev-tools`.

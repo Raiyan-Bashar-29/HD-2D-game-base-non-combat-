@@ -3,7 +3,7 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-02 · **T4.1 (template v1.0 — the version and the upgrade note) complete.
+**Last updated:** 2026-09-02 · **T4.1 (template v1.0 — the version and the upgrade note) complete — `799d957`, PR #25.
 The FIRST package of Phase T4, and WP-15 was CLOSED by the owner on the same day rather than
 built.**
 

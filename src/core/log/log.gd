@@ -9,9 +9,10 @@ extends Node
 ## OWNS: severity threshold, category tagging, the on-disk log file, log rotation.
 ## MUST NOT: know any game rule. It never reads Flags, never touches gameplay, and imports
 ## nothing from src/gameplay or src/systems. Everything may depend on Log; Log depends only on
-## `GameConfig`, which is a pure reader of project.godot and depends on nothing itself. That one
-## edge is what lets the banner and the log file name say which GAME this is without this file
-## containing the answer — see T1.2 in docs/DEVLOG.md.
+## `GameConfig` and `TemplateVersion`, both pure readers of project.godot that depend on nothing
+## themselves. Those two edges are what let the banner and the log file name say which GAME this
+## is and which BASE it was built on, without this file containing either answer — see T1.2 and
+## T4.1 in docs/DEVLOG.md.
 ##
 ## USAGE
 ##     Log.info("world", "Area transition %s -> %s" % [from, to])
@@ -55,9 +56,14 @@ func _ready() -> void:
 	# which is exactly the leak docs/TEMPLATE.md describes: the layer that depends on nothing
 	# had a game baked into it. Both the banner and the log file name now come from
 	# project.godot through GameConfig.
-	info("boot", "%s %s | Godot %s | %s | debug=%s" % [
+	# AND WHICH BASE IT IS BUILT ON. A bug report from a forked game is unanswerable without it:
+	# the game's own version says nothing about which template fix it already has. TemplateVersion
+	# is the same kind of dependency GameConfig is — a pure reader of project.godot that depends on
+	# nothing — so the one edge this file allows itself is not widened by a second one.
+	info("boot", "%s %s | base %s | Godot %s | %s | debug=%s" % [
 		GameConfig.game_name(),
 		ProjectSettings.get_setting("application/config/version", "?"),
+		TemplateVersion.current(),
 		Engine.get_version_info().get("string", "?"),
 		DisplayServer.get_name(),
 		str(OS.is_debug_build()),

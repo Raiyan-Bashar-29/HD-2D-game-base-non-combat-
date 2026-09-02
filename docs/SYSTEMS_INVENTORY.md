@@ -23,7 +23,8 @@ previous project started as a system that was allowed to know one thing too many
 | System | Purpose | Depends on | Boundary — must NOT know | Status |
 |---|---|---|---|---|
 | Logging | Severity- and category-tagged log to console and rotating file | GameConfig | any game rule; it never reads Flags, and since T1.2 it does not know the game's NAME either | DONE |
-| Game config | The four values a consuming game sets in project.godot: first area, first spawn, name, slug | nothing | what an area contains, or whether the id it hands out is real | DONE — T1.2 |
+| Game config | The four values a consuming game sets in project.godot: first area, first spawn, name, slug | nothing | what an area contains, whether the id it hands out is real, or the BASE's version — that is the one value a game must never write, so it lives next door | DONE — T1.2 |
+| Template version | What the BASE says about itself: `[template] base/version`, the semver comparison a fork asks before it merges, and the `base <version>` field of the boot banner | nothing | the GAME's version; gating anything at runtime; a compatibility TABLE, which would be a list of exceptions to the promise | DONE — T4.1. The contract it names is `docs/UPGRADING.md`, performed against a real fork |
 | Event registry | One declared, typed home for every cross-system signal | nothing | holds zero state and zero logic, permanently | DONE |
 | Shared enums | Vocabulary two or more systems must agree on | nothing | anything used by only one system | DONE |
 | Safe data reads | Typed reads out of untyped JSON and save data | nothing | what the data means | DONE |

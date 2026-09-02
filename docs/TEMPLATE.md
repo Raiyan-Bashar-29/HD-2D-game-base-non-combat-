@@ -26,7 +26,7 @@ corrected package by package.
 | Exit criteria: "the player can rest **on the bench**" | "a `RestPoint` skips the clock and the environment re-samples" |
 | Phase 3 "thirty minutes that represent the finished game" | out of scope — that is a *consuming game's* phase |
 | **Depth before breadth** — "no second region until the first is genuinely good" | **RETRACTED.** Breadth of systems, one shallow proof each. See below. |
-| Success = a good game | Success = a second, different game can be started without editing `src/` |
+| Success = a good game | Success = a second, different game can be started without editing `src/` — and can still receive a later fix to the base, which is [`UPGRADING.md`](UPGRADING.md) |
 
 ### The retraction of "depth before breadth"
 
@@ -71,7 +71,7 @@ boundary that accumulates silently.
 | `scenes/areas/**` | **Demo.** | Delete, and author your own. |
 | `localization/strings.csv` | **Mixed.** `verb.*`, `refusal.*`, `ui.*`, `time.phase.*`, `item.category.*` are engine; `object.*`, `item.*`, `talk.*`, `action.*`, `area.*` are demo. | Prune the demo half. |
 | `tests/unit/` | **Engine**, as of T1.3. Cases build what they need from `tests/framework/`, and the blocks that genuinely assert things about a game skip themselves and say so. | Keep. |
-| `project.godot` | **Mixed, and the one place a demo id belongs.** `[game] world/first_area` names the starting area. | Rename the four `application/config/*` fields and point `first_area` at your own. |
+| `project.godot` | **Mixed, and the one place a demo id belongs.** `[game] world/first_area` names the starting area; `[template] base/version` is the BASE's own version and is not a game's to touch. | Rename the four `application/config/*` fields and point `first_area` at your own. Leave `base/version` alone — [`UPGRADING.md`](UPGRADING.md) § 1. |
 
 `data/` and `scenes/areas/` being demo is not a coupling — they are the **content roots a game
 fills**, and the registries scanning them is a convention the template defines. A new game puts

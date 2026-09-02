@@ -55,7 +55,7 @@ Headless shades nothing. This project has already shipped two bugs that every ot
 | 13 | Presentation | **DONE** — taken out of order; see below |
 | 14 | Dev tools and hardening — **the hardening half** | **DONE (split)** — `975ff4b`, PR #23. The eighth package of Phase T3; see below. The row named four things, which is over the size limit, so its own title was the seam. Its smoke-test wording was RE-FRAMED in the same commit, because "drives the whole demo" would have welded the demo into a permanent gate |
 | 14b | Dev tools — debug console and performance overlay | **DONE** — `22e0046`, PR #24. The NINTH package of Phase T3 and the row that CLOSES the phase; see below. The four commands became ONE implementation both the command line and the console call, which is also what made room in `dev_stage.gd` — it was at exactly 250/250 |
-| 15 | Release engineering | **SPLIT, and the remnant should probably be CLOSED** — the export proof is template work and is now **T2.0**; credits and the accessibility pass belong to a consuming game. See below |
+| 15 | Release engineering | **CLOSED, 2026-09-02, by the owner** — the export proof was template work and shipped as **T2.0**; credits and the accessibility pass belong to a consuming game and will not be built here. Closed the way WP-10 is OPTIONAL: recorded, not deleted. See below |
 
 ### The template phases, added 2026-08-26
 
@@ -73,6 +73,7 @@ original board rather than continuing it.
 | T2.2 | Consumer documentation | **DONE** — `36b5abd`, PR #15. Phase T2 closes; see T2.2 below |
 | T3.1 | **A generic content registry** — one scan, with a thin typed façade per catalogue | **DONE** — `767fbe3`, PR #20. The fifth package of Phase T3; see below. The refactor PAID, and not in the shape WP-08 costed: the duplication was in the SCAN, not the cache, so the base went on the RESOURCE |
 | T3.2 | The five art-contract seams T2.1 left | **DONE** — the seventh package of Phase T3 and the last of its T-numbered rows, though the phase itself stays open on WP-14; see below. Four seams built and one refused in writing, and the point of the row is as much that they stop being mentioned in five documents as that four of them exist |
+| T4.1 | **Template v1.0 — the version, and the upgrade note** | **DONE** — the first package of Phase T4. The version is `[template] base/version`, NOT `application/config/version`, and the reason is the whole package in one line: a fork resets its own version on day one, so that field stops recording which base the game came from. `docs/UPGRADING.md` was PERFORMED against a real stripped fork and found a template defect nobody would have reasoned their way to; see below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -1542,6 +1543,167 @@ real art. **This needs a yes or a no from the owner**, and the two live options 
   produces two artefacts a consuming game replaces.
 
 WP-10 (crafting) is already OPTIONAL and does not block v1.0 either way.
+
+---
+
+### THE ANSWER, 2026-09-02: CLOSED.
+
+The owner took the recommendation. **Credits and the accessibility pass will not be built on this
+base.** The row is closed the way WP-10 is marked OPTIONAL — recorded with its reasoning rather
+than deleted, so a later session finds the argument instead of re-deriving it.
+
+Nothing about the reasoning changed on the way to the decision, and the two artefacts a consuming
+game would replace are still a `credits.tres` and a restyle of a `Theme` a game is expected to
+replace. **What the template owes accessibility is the seams, and it has them and they are
+proved:** the project `Theme` at `assets/theme/ui_theme.tres` (T2.1), rebindable input through
+`src/systems/input/actions.gd` plus the rebind screen (WP-12), and no timed input anywhere,
+because there is no combat.
+
+**With this closed, Phase T4 begins.** T4.1 is below.
+
+---
+
+## T4.1 · Template v1.0 — the version, and the upgrade note — **DONE**
+
+**Read:** `docs/TEMPLATE.md`, `project.godot`, `src/core/util/game_config.gd`,
+`docs/NEW_GAME.md`.
+
+The first package of Phase T4, and the roadmap named two deliverables. The second is the one that
+mattered: *nothing described how a game already forked from this base receives a later fix*, which
+is the one question a reusable base has to answer.
+
+### The version does NOT live in `application/config/version`, and that is the package in one line.
+
+That field was the obvious candidate and it is the wrong one, for a reason `NEW_GAME.md` § 4 was
+already carrying: **it tells a fork to reset it to `0.0.1` on day one.** So after exactly one fork
+that field means *the game's* version, and nothing anywhere records which base the game came from
+— and "which base am I on" is the first question an upgrade note has to answer.
+
+So the template states its own version in its own section:
+
+```
+[template]
+base/version="1.0.0"
+```
+
+read through `src/core/util/template_version.gd`. **A fork leaves that line alone, and a merge
+that changes it is the base announcing a release inside the fork's own diff** — which is what the
+performed merge in `UPGRADING.md` § 7 actually shows happening.
+
+It is a project setting rather than a `const` under `src/` for the same reason `[game]
+world/first_area` is: reading a `const` means opening engine code, and the premise of the whole
+boundary is that a consuming game does not read `src/`.
+
+### It is readable at runtime because it is in every boot banner, which is not decoration.
+
+The banner now reads `<game> <game version> | base <base version> | Godot ... | debug=...`. A bug
+report from a forked game is unanswerable without it: the game's own version says nothing about
+which template fix it already has. `Log` previously allowed itself exactly one dependency,
+`GameConfig`; `TemplateVersion` is the same kind of thing — a pure reader of `project.godot` that
+depends on nothing — so the edge is not widened in kind.
+
+### `TemplateVersion` is a separate file from `GameConfig`, and the split is not tidiness.
+
+`GameConfig`'s header says it owns *"the values a game author writes once"*. The base's version is
+the one value a game author must NEVER write. Putting it there would have made that sentence
+false; a second small file keeps both true.
+
+### The upgrade note was PERFORMED, and it found a defect nobody would have reasoned to.
+
+`NEW_GAME.md`'s precedent (T2.2) is that a consumer document's claims are run, not written from
+intent. So: a stripped fork was made from a clone of the base, following `NEW_GAME.md` step by
+step; two template releases were landed on the base; both were merged in; and the fork's whole
+ladder was run afterwards. Everything quoted in `UPGRADING.md` § 7 is real output. **The two
+release numbers, 1.1.0 and 1.1.1, are synthetic scaffolding and the document says so** — a
+version-to-version walk needs two versions, and the real template has released one.
+
+Four things came out of it that no amount of design would have produced:
+
+1. **`project.godot` auto-merged**, including a base edit three lines from a field the fork had
+   renamed. The note says so AND says not to count on it, because git decided that, not the
+   template.
+2. **`localization/strings.csv` conflicts every time**, because both sides append at the end of
+   the file. The resolution is always "keep both sides" — it is a key-value file, not competing
+   edits to one value.
+3. **A merge pushes the template's DEMO CONTENT back into the fork.** An item belonging to the
+   template's demo arrived as a new file with no conflict and therefore no warning, because
+   `data/` is a directory both sides own files in and git has no opinion about whose. This is in
+   no other document.
+4. **The fork's rung 4 went RED, and it was a real template defect.** `smoke_test.gd` gated its
+   first-area block on `Fixtures.has_demo_content()` — "any content at all", which flips true on
+   the first `.tres` of any kind. A game that authored one item before its first area therefore
+   armed an assertion about AREAS and failed rung 4, *in exactly the window `NEW_GAME.md` walks an
+   author through, while `NEW_GAME.md` claimed the ladder stays green.* The fix is one line and it
+   is the general rule: **a block must gate on the same question it asserts.**
+   `Fixtures.area_ids()` is that question and it already existed. Nothing is weakened — a game
+   WITH areas still fails on an unset first area and on one naming a scene that is not there,
+   which was planted and proved.
+
+`NEW_GAME.md` was corrected in the same commit: its stale `880 passed, 0 failed, 12 skipped`
+became the measured `1527 passed, 0 failed, 25 skipped`, it now says `[template] base/version` is
+the one `project.godot` field a fork must not touch, and it states the authoring-order trap.
+
+### What the template CANNOT promise, written down rather than implied.
+
+Five things, in `UPGRADING.md` § 4: it cannot promise a clean merge (git decides, from a diff the
+template cannot see), that your content still loads across a MAJOR, that a save survives, or
+anything at all about a fork that edited `src/` — and there will be no automatic upgrade script.
+The fourth is the sharpest: **the boundary rule is what makes the merge safe**, so a fork that
+broke it has no upgrade path and no version number can give it one.
+
+### The changelog is a GATE, not a courtesy.
+
+`docs/CHANGELOG.md`'s newest `## <semver>` heading must equal `[template] base/version`, asserted
+by `tests/unit/version_test.gd`. Bumping one without the other is the exact rot the discipline
+exists to prevent, and it was planted: bumping the heading alone fails rung 4.
+
+### Five plants, each proved red with the real violation (gotcha 23), and one is gotcha 43's.
+
+1. The banner loses its base-version fragment — `expected 1, got 0`.
+2. **The same fragment written TWICE** — `expected 1, got 2`. This is gotcha 43 taken as a rule
+   rather than as a story: the scan asserts the fragment appears EXACTLY ONCE, so a decorative
+   second copy cannot hide a deleted real one.
+3. The changelog bumped and the setting not — `expected 1.0.0, got 1.0.1`.
+4. A two-part version in `project.godot` — three failures, including `current()` falling back to
+   `0.0.0` rather than returning something unparseable.
+5. `first_area` pointed at an area that does not exist, WITH areas present — the block that was
+   loosened still fails, which is what proves the loosening was not a weakening.
+
+### No visual and no input surface, said rather than skipped.
+
+Nothing this package touches draws a pixel or reads a key, so there is no windowed capture and no
+debug probe. The boot banner is the one new runtime output and it is a log line, proved on rung 2
+and quoted below. `git diff src/systems/debug/` is clean because nothing went in there.
+
+### Files: eleven, and new code is 118 lines.
+
+New: `src/core/util/template_version.gd` (43 code lines), `tests/unit/version_test.gd` (74),
+`docs/UPGRADING.md`, `docs/CHANGELOG.md`. Edited: `project.godot`, `src/core/log/log.gd` (+1),
+`tests/unit/smoke_test.gd` (one line changed), `tests/test_runner.gd` (+1), `docs/NEW_GAME.md`,
+`docs/TEMPLATE.md`, `CLAUDE.md`. Under the 500-line limit with room to spare.
+
+### Ladder, all green.
+
+```
+--headless --import                     zero SCRIPT ERROR / Parse Error lines
+--headless --quit-after 30              Session ended after 0.7s — 0 warnings, 0 errors
+                                        Project Gulistan 0.0.1 | base 1.0.0 | Godot 4.7.2-stable
+res://tests/test_runner.tscn            === 1601 passed, 0 failed, 0 skipped ===   (was 1574)
+check_budgets/content/boundary/strings  exit=0, all four
+stripped template                       === 1527 passed, 0 failed, 25 skipped ===  NO new skip
+the performed fork, after two merges    === 1538 passed, 0 failed, 14 skipped ===, four checkers exit=0
+```
+
+### Deferred, with reasons, not silently.
+
+- **A git tag on the real repository.** The version the template states about itself is the
+  deliverable the roadmap asked for, and it is assertable; a tag is a release action, and releases
+  are the owner's. `v1.0.0` exists only in the throwaway proof repositories.
+- **A compatibility TABLE in `TemplateVersion`.** A table is a list of exceptions to the promise,
+  and the promise is the product. `same_major_as()` and `compare_to()` are the whole surface.
+- **A tool that performs the merge.** `UPGRADING.md` § 4 states there will be no automatic
+  upgrade, and shipping one would contradict the document in the same package that wrote it.
+- **Credits and the accessibility pass** — WP-15, closed above.
 
 ---
 

@@ -49,6 +49,21 @@ Director="*res://src/systems/scene_director/director.gd"
 world/first_area="courtyard"
 world/first_spawn="default"
 
+[template]
+
+; WHAT THE BASE SAYS ABOUT ITSELF, and the reason it is not application/config/version: that
+; field is the GAME's version, and docs/NEW_GAME.md tells a fork to reset it to 0.0.1 on day one.
+; After one fork it no longer records which base the game came from, and "which base am I on" is
+; the first question docs/UPGRADING.md has to answer. So the template states its own version in
+; its own section, a fork LEAVES THIS LINE ALONE, and a merge that changes it is the base
+; announcing a new release in the diff.
+;
+; Three integers, no suffix. The major changes when a game's own files must change, the minor
+; when the base gains something a game may ignore, the patch when nothing a game wrote is
+; affected. That promise is stated in full in docs/UPGRADING.md and encoded in
+; src/core/util/template_version.gd, which reads this setting and is what the boot banner prints.
+base/version="1.0.0"
+
 [debug]
 
 ; Static enforcement. This is deliberate and load-bearing: it makes GDScript behave like a

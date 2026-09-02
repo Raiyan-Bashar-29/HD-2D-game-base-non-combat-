@@ -438,15 +438,44 @@ about every system having one proof, and the last two systems with none were the
   carried the anchor fragment twice), which is gotcha 42 arriving on schedule and being caught
   only because the violation was planted. See the board.
 
-## Phase T4 — Template v1.0
+## Phase T4 — Template v1.0 · **IN PROGRESS**
 
-**Phase T3 is CLOSED as of WP-14b, 2026-09-02.** What remains before this phase is WP-15's
-remnant, and that is a DECISION rather than a build — the board recommends closing it and asks the
-owner for a yes or a no. WP-10 (crafting) is OPTIONAL and blocks nothing.
+**Phase T3 closed with WP-14b, 2026-09-02.** WP-15's remnant — credits and an accessibility pass —
+was **CLOSED by the owner** on the same day rather than built: both belong to a consuming game,
+and the seams that make accessibility possible already exist and are proved. WP-10 (crafting) is
+OPTIONAL and blocks nothing. The board carries the full reasoning.
 
-Version and tag it. Write the upgrade note for games already forked from it — nothing currently
-describes how a game receives a later fix to the base, which is the one question a *reusable* base
-must answer and this one does not.
+- **T4.1 The version and the upgrade note — DONE, 2026-09-02.** The phase's first package, and
+  both of the things this phase was named for.
+
+  **The version is `[template] base/version`, not `application/config/version`**, and that choice
+  is the package: `NEW_GAME.md` § 4 tells a fork to reset its own version to `0.0.1` on day one,
+  so after one fork that field no longer records which base the game came from. It is read through
+  `src/core/util/template_version.gd` and printed in every boot banner as `base <version>`, which
+  is what makes a bug report from a forked game answerable.
+
+  **`docs/UPGRADING.md` was PERFORMED against a real stripped fork**, to `NEW_GAME.md`'s standard
+  rather than written from intent: a fork made, two template releases landed on the base, both
+  merged in, and the fork's whole ladder run afterwards. It found four things design would not
+  have — that `project.godot` auto-merges, that `localization/strings.csv` conflicts every time in
+  the same trivially-resolvable way, that **a merge pushes the template's own demo content back
+  into a fork with no conflict and therefore no warning**, and a genuine template defect: a test
+  block gated on "any content" while asserting about "any area", so a game that authored an item
+  before its first area had a red rung 4 in exactly the window `NEW_GAME.md` walks it through.
+  Fixed, planted and proved. `docs/CHANGELOG.md` is the version-to-version discipline and its
+  newest heading is asserted equal to the setting.
+
+  **What the template CANNOT promise is written down** — no clean merge, no content compatibility
+  across a MAJOR, no save survival, nothing at all for a fork that edited `src/`, and no automatic
+  upgrade, ever. See the board.
+
+**Exit criteria for the phase:**
+
+- [x] The template states its own version, readably at runtime and assertably. — T4.1
+- [x] A game already forked from this base has a documented, PERFORMED way to receive a later fix.
+      — T4.1
+- [ ] A release tag on the repository. Deliberately not taken by T4.1: a tag is a release action
+      and releases are the owner's.
 
 ---
 

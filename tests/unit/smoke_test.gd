@@ -158,12 +158,21 @@ func _the_whole_session_logged_nothing() -> void:
 ## THE ONE BLOCK THAT IS ABOUT A GAME RATHER THAN THE ENGINE, so it is the one that skips.
 ## `GameConfig.first_area()` is the single demo id the template allows (it lives in
 ## project.godot, not in `src/`), and this asserts only that whatever it names RESOLVES — never
-## what it is called. A stripped checkout has no first area, which is a correct state and not a
-## failure, so it is skipped and COUNTED rather than passed quietly.
+## what it is called. A checkout with no areas has no first area, which is a correct state and
+## not a failure, so it is skipped and COUNTED rather than passed quietly.
+##
+## IT GATES ON AREAS, NOT ON CONTENT, AND THE DIFFERENCE COST A RED RUNG. `has_demo_content()`
+## answers true on the FIRST .tres of any kind, so a new game that authored one item before its
+## first area armed an assertion about areas and failed rung 4 — in exactly the window
+## docs/NEW_GAME.md walks an author through, and while docs/NEW_GAME.md said the ladder stays
+## green. Found by PERFORMING docs/UPGRADING.md against a real fork, not by reading. A block
+## must gate on the same question it asserts; `Fixtures.area_ids()` is that question and it
+## already existed. Nothing is weakened: a game WITH areas still fails on an unset first area
+## and on one that names a scene that is not there.
 func _a_checkout_with_a_game_in_it_can_start_one() -> void:
-	if not Fixtures.has_demo_content():
+	if Fixtures.area_ids().is_empty():
 		skip("a game in this checkout can be started",
-				"no content — this is a stripped template", 2)
+				"no areas authored yet", 2)
 		return
 	var first: StringName = GameConfig.first_area()
 	equal("the configured first area is set", first != &"", true)

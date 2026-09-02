@@ -4543,3 +4543,162 @@ Rung 3's whole-log grep printed `Parse Error lines in boot.log: 0`. All seven ru
 full job and all six in the stripped one. The run took 38 seconds, and per gotcha 26 that is a
 cached engine rather than evidence of a skip: the rung logs show 1,574 assertions actually
 executed.
+
+## 2026-09-02 — T4.1 · Template v1.0: the version, and the upgrade note
+
+**Did.** Closed WP-15's remnant on the owner's decision, then built the first package of Phase T4:
+the template now states its own version, and `docs/UPGRADING.md` describes — from a performance,
+not from intent — how a game already forked from this base receives a later fix.
+
+- `project.godot` gained a `[template]` section with `base/version="1.0.0"`.
+- `src/core/util/template_version.gd` (new, 43 code lines) reads it: `current()`, `major()`,
+  `minor()`, `patch()`, `is_semver()`, `same_major_as()`, `compare_to()`.
+- `src/core/log/log.gd`'s boot banner gained one field, `base <version>`.
+- `docs/UPGRADING.md` (new) and `docs/CHANGELOG.md` (new).
+- `tests/unit/version_test.gd` (new, 27 assertions), registered in `CASES`.
+- `tests/unit/smoke_test.gd`: one line changed, and it is a real defect fix — see below.
+- `docs/NEW_GAME.md`, `docs/TEMPLATE.md`, `CLAUDE.md` cross-linked and corrected.
+
+**Why.** The roadmap's Phase T4 named two deliverables and the second was the one that mattered:
+nothing described how a fork receives a later fix, which is the one question a reusable base has to
+answer and this one did not.
+
+The version could not go in `application/config/version`, and the reason was already sitting in
+`NEW_GAME.md` § 4: **it tells a fork to reset that field to `0.0.1` on day one.** After exactly one
+fork it records the game's version and nothing anywhere remembers which base the game came from.
+Two facts, two settings. It is a project setting rather than a `const` under `src/` because reading
+a `const` means opening engine code, and the premise of the boundary is that a consuming game does
+not read `src/`. `TemplateVersion` is a separate file from `GameConfig` because `GameConfig`'s
+header says it owns "the values a game author writes once" and this is the one value a game author
+must never write.
+
+**Connects.** `Log` previously allowed itself exactly one dependency, `GameConfig`; this adds a
+second of the same kind — a pure reader of `project.godot` that depends on nothing — and the header
+says so rather than letting the claim quietly go stale. `docs/CHANGELOG.md` is tied to the setting
+by assertion, so the two cannot drift. `NEW_GAME.md` is the sibling document and now says
+`[template] base/version` is the one `project.godot` field a fork must not touch.
+
+**Verified.** Local ladder, all green:
+
+```
+--headless --import                     (zero SCRIPT ERROR / Parse Error lines)
+--headless --quit-after 30              Project Gulistan 0.0.1 | base 1.0.0 | Godot 4.7.2-stable (official) | headless | debug=true
+                                        Session ended after 0.7s — 0 warnings, 0 errors
+res://tests/test_runner.tscn            === 1601 passed, 0 failed, 0 skipped ===     (baseline was 1574)
+check_budgets.gd    136 files, 11771 code lines, 0 warnings, 0 violations — PASS
+check_content.gd    exit=0     check_boundary.gd  exit=0     check_strings.gd  exit=0
+```
+
+Stripped template (tree copied without `.git`/`.godot`/`build`, `rm -rf data scenes/areas`, run
+with `--path`): `=== 1527 passed, 0 failed, 25 skipped ===`, all four checkers exit 0. That is
+1500 + this package's 27, and **the skip count is unchanged at 25 — no new skip**.
+
+**THE FIVE PLANTS (gotcha 23), each proved red with the real violation, then green.**
+
+1. Banner loses its base-version fragment:
+   `FAIL the boot banner names the base version exactly once — expected 1, got 0` · `1600 passed,
+   1 failed` · exit 1. Restored: `1601 passed, 0 failed`.
+2. **The same fragment written TWICE** — a decoy `var _decoy: String = "| base %s |"` added above
+   the real banner: `FAIL ... expected 1, got 2`. This is gotcha 43 applied as a rule rather than
+   recalled as a story, and it is why the assertion counts occurrences instead of asking
+   `contains()`.
+3. Changelog heading bumped to `## 1.0.1` with the setting left at 1.0.0:
+   `FAIL its newest entry is the declared version — expected 1.0.0, got 1.0.1`.
+4. `base/version="1.0"` in `project.godot`: three failures —
+   `FAIL current() is the declared value — expected 1.0, got 0.0.0`,
+   `FAIL the declared value is three integers — expected true, got false`,
+   `FAIL newer than 0.0.1 — expected true, got false`. The fallback is what makes an unparseable
+   version read as the OLDEST rather than as garbage.
+5. `world/first_area="nowhere"` with the demo's areas present:
+   `FAIL and its scene really exists — expected true, got false`. This one exists to prove that
+   the `smoke_test.gd` fix below LOOSENED nothing.
+
+**THE UPGRADE NOTE WAS PERFORMED, NOT WRITTEN.** Every output in `UPGRADING.md` § 7 came out of
+real repositories under `C:/Users/Lenovo/AppData/Local/Temp/gup` (a short path — the session
+scratchpad is deep enough that `git checkout` failed with `Filename too long` on
+`docs/decisions/ADR-0001-...md`, which is worth knowing):
+
+1. `base` — a clone of this branch, branch renamed `main`, tagged `v1.0.0`.
+2. `game` — a clone of `base` with `origin` renamed to `template`, then stripped by following
+   `NEW_GAME.md` § 1–4 literally: `data/**` and `scenes/areas/**` deleted, the CSV pruned from
+   219 rows to 173 by the document's own `awk` line, `application/config/name` and
+   `description` renamed to *Marsh Lantern*, `[game] world/first_area="fen"`, `ui.menu.title`
+   changed. Then it authored one item of its own, `data/items/lantern_wick.tres`.
+3. A synthetic **1.1.0** landed on `base` with one change per risk class: a new static function in
+   `src/core/util/game_config.gd`; one engine CSV row; `application/config/features` edited (three
+   lines from a field the fork had renamed); a new DEMO item; `base/version` bumped.
+4. `git merge template/main` in the fork:
+
+```
+Auto-merging localization/strings.csv
+CONFLICT (content): Merge conflict in localization/strings.csv
+Auto-merging project.godot
+Automatic merge failed; fix conflicts and then commit the result.
+```
+
+The conflict, verbatim, and it is the whole shape of the CSV problem — both sides append at the
+end of the file:
+
+```
+<<<<<<< HEAD
+item.lantern_wick.name,Lantern wick
+=======
+ui.pause.resume,Resume
+item.lamp_oil.name,Lamp oil
+>>>>>>> template/main
+```
+
+`project.godot` auto-merged and put every line on the correct side —
+`config/name="Marsh Lantern"` and `world/first_area="fen"` kept, `config/features` and
+`base/version="1.1.0"` taken. The `src/` change merged with no conflict at all.
+
+**And the merge brought the template's demo item back.** `data/items/lamp_oil.tres` arrived as a
+new file with **no conflict and therefore no warning**, because `data/` is a directory both sides
+own files in. It is in no other document and it is now § 7 of the note.
+
+**THEN THE FORK'S RUNG 4 WENT RED, AND IT WAS A REAL TEMPLATE DEFECT — gotcha 44.**
+
+```
+=== 1539 passed, 1 failed, 12 skipped ===
+  FAIL and its scene really exists — expected true, got false
+```
+
+Nothing to do with the merge. `smoke_test.gd`'s first-area block gated on
+`Fixtures.has_demo_content()` — *"any content at all"*, which flips true on the first `.tres` of
+any kind — while asserting about **areas**. Both extremes are fine, so every run this repository
+has ever made was green; the failure lives only in the gap, and a real game is in that gap for as
+long as it takes to author its first area. That is exactly the window `NEW_GAME.md` walks an author
+through while claiming the ladder stays green. **A block must gate on the same question it
+asserts**, and `Fixtures.area_ids()` already was that question. Fixed, and plant 5 above is what
+proves the fix did not loosen the gate.
+
+5. That fix landed on `base` as a synthetic **1.1.1** and was merged into the fork the way a real
+   patch would be — `Merge made by the 'ort' strategy.`, no conflict — after which the fork ran its
+   own ladder:
+
+```
+Marsh Lantern 0.0.1 | base 1.1.1 | Godot 4.7.2-stable (official) | headless | debug=true
+Session ended after 0.6s — 0 warnings, 0 errors
+=== 1538 passed, 0 failed, 14 skipped ===
+check_budgets exit=0  check_content exit=0  check_boundary exit=0  check_strings exit=0
+```
+
+Fourteen skips rather than the stripped template's twenty-five: the fork has one item and no areas,
+so the cases that ask about areas say so and are counted.
+
+**No visual and no input surface, stated rather than skipped.** Nothing here draws a pixel or reads
+a key, so there is no windowed capture and no temporary probe. The boot banner is the one new
+runtime output, it is a log line, and it is quoted above. `git diff src/systems/debug/` is clean.
+
+**Unblocks.** Phase T4's two engineering criteria are ticked. What remains is a release tag, which
+is a release action and the owner's to take — `v1.0.0` exists only in the throwaway proof
+repositories. Beyond that the board has no blocking row: WP-15 is closed, WP-10 is optional, and
+the next package is a genuine choice rather than a queue.
+
+**Gaps.** The note cannot promise a clean merge and says so; git decides that from a diff the
+template cannot see. It cannot promise content compatibility across a MAJOR, save survival, or
+anything at all for a fork that edited `src/` — and that last one is the boundary rule collecting
+its bill, stated once and honestly. The proof used synthetic version numbers because the real
+template has released one version; the merges and their output are real, the release numbers are
+scaffolding, and `UPGRADING.md` says so in its own preamble rather than letting a reader assume
+otherwise. The `Button` styleboxes are still deliberately left, for the seventh package running.

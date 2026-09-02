@@ -13,10 +13,11 @@ situation; [`docs/TEMPLATE.md`](docs/TEMPLATE.md) is the framing both assume.
 | starting any session | `docs/CONTEXT.md`, then your package on the board |
 | confused about what this project IS | `docs/TEMPLATE.md` |
 | picking the next package | `docs/WORK_PACKAGES.md` (the board) and `docs/ROADMAP.md` |
-| surprised by the engine | the gotcha list in `docs/CONTEXT.md` — forty-three, each cost an hour |
+| surprised by the engine | the gotcha list in `docs/CONTEXT.md` — forty-four, each cost an hour |
 | wondering why a file is shaped that way | its own `##` header first, then `docs/ARCHITECTURE.md` and `docs/decisions/` |
 | about to write a player-facing string | `localization/strings.csv`, and quote any value containing a comma |
 | starting a new game on this base | `docs/NEW_GAME.md` |
+| **pulling a later template fix into a game already forked from it** | **`docs/UPGRADING.md`**, then `docs/CHANGELOG.md` |
 
 **Never read `docs/DEVLOG.md` whole** — it is over 1,300 lines and grows every session. Find the
 entry you need by its `## date — WP-nn` header.
@@ -81,7 +82,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate; filter "Identifier not found: <Autoload>"
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,574 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,601 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd
 "$G" --headless --script tools/check_content.gd    # ids, duplicate object_ids, CSV keys
 "$G" --headless --script tools/check_boundary.gd   # no file under src/ or tests/ names demo content
@@ -132,13 +133,15 @@ same reasoning as the file budgets: a package that outgrows one chat gets half-f
 | You want to | Read |
 |---|---|
 | know what to work on now | [`docs/WORK_PACKAGES.md`](docs/WORK_PACKAGES.md) — the board |
-| know where things stand | [`docs/CONTEXT.md`](docs/CONTEXT.md) — state, settled decisions, forty-three gotchas |
+| know where things stand | [`docs/CONTEXT.md`](docs/CONTEXT.md) — state, settled decisions, forty-four gotchas |
 | understand why this is a template and not a game | [`docs/TEMPLATE.md`](docs/TEMPLATE.md) |
 | **add an area, an NPC, a conversation, an item, an object, a quest, equipment, a place on the world map** | **[`docs/AUTHORING.md`](docs/AUTHORING.md)** |
 | **make art that drops into this** | **[`docs/ART_CONTRACT.md`](docs/ART_CONTRACT.md)** |
 | **add assertions to the suite** | **[`docs/TESTING.md`](docs/TESTING.md)** |
 | know what may be subclassed and what is internal | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — § The extension surface |
 | start a new game on this base | [`docs/NEW_GAME.md`](docs/NEW_GAME.md) |
+| **receive a later fix to the base in a game already forked from it** | **[`docs/UPGRADING.md`](docs/UPGRADING.md)** — performed against a real fork, not written from intent |
+| know what a version bump will do to your game | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) — one entry per version, each ending in what a consuming game must do |
 | know how a system is built | the file header. `src/core/events/events.gd` is the connection map |
 
 Also: `docs/SYSTEMS_INVENTORY.md` · `docs/ROADMAP.md` · `docs/DEVLOG.md` · `docs/CONVENTIONS.md` ·

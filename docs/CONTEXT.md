@@ -3,51 +3,52 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-02 · **WP-14b (dev tools) complete — `22e0046`, PR #24. The ninth
-package of Phase T3, and the row that CLOSES the phase: every system now has one proof, and the
-last two with none were the two dev tools.**
+**Last updated:** 2026-09-02 · **T4.1 (template v1.0 — the version and the upgrade note) complete.
+The FIRST package of Phase T4, and WP-15 was CLOSED by the owner on the same day rather than
+built.**
 
-**A debug console on F1 and a performance overlay on F3.** The console is a `UiScreen` declaring
-`pauses_world`, so `UiRoot`'s existing pause table owns it; the overlay is a `CanvasLayer` at layer
-101 beside the HUD that never enters the stack. That is one decision made twice from the same
-question — *should the world be stopped?* — and the two answers are opposite for the same reason:
-typing `time 18:40` while the clock runs photographs a moving target, and a frame time is
-worthless unless frames are still happening.
+**THE TEMPLATE NOW STATES ITS OWN VERSION, AND IT IS NOT `application/config/version`.** That
+field was the obvious candidate and it is the wrong one, for a reason `NEW_GAME.md` § 4 was
+already carrying: it tells a fork to reset it to `0.0.1` on day one, so after exactly one fork it
+means *the game's* version and nothing anywhere records which base the game came from. The base's
+own version is `[template] base/version` in `project.godot`, read through
+`src/core/util/template_version.gd`, and printed in every boot banner as `base <version>`:
+`Project Gulistan 0.0.1 | base 1.0.0 | Godot 4.7.2-stable`. **A fork leaves that line alone, and a
+merge that changes it is the base announcing a release inside the fork's own diff.**
 
-**THE CONSOLE LIVES UNDER `src/ui/`, AND THE ARGUMENT THAT SETTLED IT IS NOT THE OBVIOUS ONE.** The
-board asked whether it could, and the test — does any part want a hard-coded area or item id — says
-yes, since a command takes its argument from whoever typed it. But the *reason to* is stronger than
-the permission: `src/systems/debug/` is EXEMPT from `check_boundary.gd`, so putting the console
-there would have bought it an exemption it does not need and switched off the gate that ought to be
-watching it. Under `src/ui/screens/` it is policed exactly like the journal and the map.
+**`docs/UPGRADING.md` IS THE REAL DELIVERABLE, AND IT WAS PERFORMED.** Nothing described how a
+game already forked from this base receives a later fix — the one question a reusable base has to
+answer. So a stripped fork was made from a clone following `NEW_GAME.md` step by step, two
+template releases were landed on the base, both were merged in, and the fork's whole ladder was
+run afterwards. Every output quoted in that document is real. (Its versions 1.1.0 and 1.1.1 are
+synthetic scaffolding, and it says so: a version-to-version walk needs two versions and the real
+template has released one.)
 
-**ONE PARSER, AND THE FILE IT CAME OUT OF WAS AT EXACTLY 250/250.** The row said the four commands
-already existed and to reuse them, and "reuse" was taken at its strongest: `dev_commands.gd` holds
-the four bodies, `dev_stage.gd` and `dev_capture.gd` CALL them, and so does the console — **what
-you type in the console is exactly what you pass on the command line, argument for argument.** Each
-verb returns its report rather than logging it, because a staging flag wants that line in the log
-and a console wants it on screen. The payoff was immediate and unplanned: `dev_stage.gd` was
-measured at **exactly 250 of its 250 allowed code lines**, so the sixth staging flag this row needed
-could not have been added at all; the extraction took it to 247 *while* adding it. WP-14 raised a
-budget rather than split a file and called that a last resort — this is the other outcome.
+**PERFORMING IT FOUND A TEMPLATE DEFECT NOBODY WOULD HAVE REASONED TO.** `smoke_test.gd` gated its
+first-area block on `Fixtures.has_demo_content()` — "any content at all", which flips true on the
+first `.tres` of any kind — while asserting about AREAS. So a game that authored one item before
+its first area armed that assertion and failed rung 4, *in exactly the window `NEW_GAME.md` walks
+an author through, while `NEW_GAME.md` claimed the ladder stays green.* It now gates on
+`Fixtures.area_ids()`, the same question it asserts. See gotcha 44.
 
-**ABSENCE FROM A RELEASE EXPORT IS MEASURED, WITH A CONTROL.** Both tools log one line when they
-arm. A real `--export-debug` prints `Debug console armed on debug_console` and `Performance overlay
-armed on debug_perf`; a real `--export-release` prints **neither**, with both runs otherwise
-identical and both ending `0 warnings, 0 errors`. The debug build is what makes it evidence rather
-than an absence of logging — gotcha 39's shape.
+**AND THREE MERGE FACTS THAT ARE IN NO OTHER DOCUMENT.** `project.godot` auto-merges, even when
+the base edits three lines from a field the fork renamed — but git decided that, not the template,
+so the note says not to count on it. `localization/strings.csv` conflicts EVERY time, because both
+sides append at the end of the file, and the resolution is always "keep both sides". And **a merge
+pushes the template's own demo content back into a fork** as a new file, with no conflict and
+therefore no warning.
 
-**AND THE GATE ASSERTION WAS WRONG TWICE OVER, WHICH ONLY PLANTING FOUND — gotcha 42 on schedule.**
-`OS.is_debug_build()` is true in every context the suite can run in, so the release gate has to be
-asserted by scanning source. The first version scanned each file for the bare call, and it would
-have passed over a deleted guard in two independent ways: `screen_keys.gd` EXPLAINS its gate in a
-comment, so the scan read its own documentation back; and `perf_overlay.gd` carried the anchor
-fragment **twice**, in `_ready` and in `_input`, so deleting the real one left the other. The second
-was fixed in the CODE rather than in the test — `_input` and `toggle()` now ask `_label == null`,
-which is the same question and a stricter one, because a release build never builds the label. Seven
-plants in all, each proved red with the real violation and green again.
+**WP-15 IS CLOSED, BY THE OWNER, 2026-09-02.** Credits and the accessibility pass will not be
+built here; both belong to a consuming game, and the seams that make accessibility possible
+already exist and are proved. Recorded on the board with its reasoning rather than deleted, the
+way WP-10 is marked OPTIONAL.
 
-*(Previously: WP-14, the HARDENING half — `975ff4b`, PR #23. The row named four things, over the
+*(Previously: WP-14b, the debug console and the performance overlay — `22e0046`, PR #24. The row
+that CLOSED Phase T3. The console lives under `src/ui/` because `src/systems/debug/` is EXEMPT
+from `check_boundary.gd` and it does not need the exemption; the four dev verbs became ONE
+implementation both the command line and the console call. New gotcha 43: a scan-for-a-guard
+assertion must anchor on a fragment appearing exactly once, and must skip comments.
+Before that: WP-14, the HARDENING half — `975ff4b`, PR #23. The row named four things, over the
 size limit, so its own title was the seam, and its smoke-test wording was RE-FRAMED because "drives
 the whole demo" would have welded the demo into a permanent gate. `Director` now drains its own
 loader thread, and the finding was what the defect had been COSTING: false `Parse Error` lines on a
@@ -128,11 +129,11 @@ branched from T2.1; WP-08 is on **`claude/wp-08-quests`**, branched from T2.2; W
 branched from WP-09; WP-09b is on **`claude/wp-09b-attributes`**, branched from WP-11; T3.1 is on
 **`claude/t3-1-registry`**, branched from WP-09b; T3.3 is on **`claude/t3-3-item-count`**, branched from T3.1; T3.2 is on
 **`claude/t3-2-art-seams`**, branched from T3.3; WP-14 is on **`claude/wp-14-hardening`**,
-branched from T3.2; WP-14b is on **`claude/wp-14b-dev-tools`**, branched from WP-14. The earlier
-PRs are superseded.
+branched from T3.2; WP-14b is on **`claude/wp-14b-dev-tools`**, branched from WP-14; T4.1 is on
+**`claude/wp-t4-version-upgrade`**, branched from WP-14b. The earlier PRs are superseded.
 
-**Branch new work from `claude/wp-14b-dev-tools`**, or from `main` once #10, #11, T1.2-T1.4,
-T2.0, T2.1, T2.2, WP-08, WP-09, WP-11, WP-09b, T3.1, T3.3, T3.2, WP-14 and WP-14b have landed. The older
+**Branch new work from `claude/wp-t4-version-upgrade`**, or from `main` once #10, #11, T1.2-T1.4,
+T2.0, T2.1, T2.2, WP-08, WP-09, WP-11, WP-09b, T3.1, T3.3, T3.2, WP-14, WP-14b and T4.1 have landed. The older
 per-package branches (`claude/wp-04-second-area`, `claude/wp-05-dialogue`, `claude/wp-06-npcs`,
 `claude/wp-07-path-actions`, `claude/wp-12-menus`, `claude/wp-13-presentation`) are history and
 should not be built on.
@@ -151,26 +152,29 @@ game built on this will need, so a new game is content and data rather than new 
 
 ## Where it stands
 
-Phase 0 complete, Phase 1 COMPLETE, Phase 2 well under way, **Phase T1 COMPLETE, Phase T2
-COMPLETE as of T2.2, and PHASE T3 COMPLETE as of WP-14b — nine packages: WP-08, WP-09, WP-11,
-WP-09b, T3.1, T3.3, T3.2, WP-14 and WP-14b. Its one exit criterion, "every system has one proof",
-is ticked, and the last two systems with no proof at all were the two dev tools.**
+Phase 0 complete, Phase 1 COMPLETE, Phase 2 well under way, **Phase T1 COMPLETE, Phase T2 COMPLETE
+as of T2.2, PHASE T3 COMPLETE as of WP-14b, and PHASE T4 IN PROGRESS — T4.1 is done and two of its
+three exit criteria are ticked.**
 
-**WHAT IS NEXT IS A DECISION, NOT A BUILD, AND IT IS THE OWNER'S.** Two rows stand between here
-and Phase T4 and neither is ordinary work. **WP-15's remnant should probably be CLOSED rather than
-built** — credits name a team a template does not have, and an accessibility pass over placeholder
-art and a UI every game restyles is a pass over something designed to be thrown away, while the
-seams that make accessibility possible already exist and are proved (the project `Theme`,
-rebindable input, no timed input anywhere). The board carries the full reasoning and asks for a yes
-or a no. **WP-10 (crafting) is OPTIONAL** and blocks nothing. **Then Phase T4: version and tag
-template v1.0, and write the upgrade note** for games already forked from the base — nothing
-currently describes how a game receives a later fix to the template, which is the one question a
-*reusable* base must answer and this one does not. **The handover is WP-15's yes-or-no**; T4 cannot
-sensibly start until the board knows whether that row exists.
+**WP-15 IS CLOSED and WP-10 stays OPTIONAL, so nothing is blocking.** The two rows that stood
+between the board and Phase T4 are settled: the owner closed WP-15's remnant on 2026-09-02 rather
+than build credits and an accessibility pass, both of which belong to a consuming game; crafting
+was already optional and blocks nothing.
 
-134 files, 11,659 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
+**WHAT IS LEFT OF PHASE T4 IS ONE CRITERION AND IT IS THE OWNER'S:** a release tag on the
+repository. T4.1 deliberately did not take one — the template stating its own version is
+engineering and is assertable, but tagging is a release action. `v1.0.0` exists only in the
+throwaway repositories `docs/UPGRADING.md` was performed against.
+
+**Beyond that the template is v1.0-complete, and the next package is a genuine choice rather than a
+queue.** Candidates, none of them blocking: WP-10 crafting, if a game wants it; a second worked
+example area authored purely from `AUTHORING.md`, which is T2.2's mechanism applied to content
+rather than docs; or nothing at all, which is a legitimate answer for a base that has answered
+every question it set out to.
+
+136 files, 11,771 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
 three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
-3 tagged surfaces, 1 shared area material.
+3 tagged surfaces, 1 shared area material. Template version **1.0.0**.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 
 **Works, and verified by running it:** logging with rotation · signal registry (`events.gd`) ·
@@ -480,6 +484,26 @@ three compiled cleanly and passed every static gate:**
   something to bind to, not because anything reads them.
 
 ## Decisions already made — do not re-litigate
+
+- **THE TEMPLATE'S VERSION IS `[template] base/version`, NOT `application/config/version`.** The
+  obvious field is the wrong one, and `NEW_GAME.md` § 4 already said why without noticing: it tells
+  a fork to reset it to `0.0.1` on day one, so after exactly one fork it records the GAME's version
+  and nothing remembers which base the game came from. Two facts, two settings. It is a project
+  setting rather than a `const` under `src/` for the same reason `[game] world/first_area` is —
+  reading a `const` means opening engine code, and the premise of the whole boundary is that a
+  consuming game does not read `src/`. A fork LEAVES THAT LINE ALONE.
+- **`TemplateVersion` IS ITS OWN FILE AND WILL NOT BE FOLDED INTO `GameConfig`.** `GameConfig`'s
+  header says it owns "the values a game author writes once"; the base's version is the one value
+  a game author must NEVER write. Folding them would make that sentence false to save a small file.
+- **THERE WILL BE NO AUTOMATIC UPGRADE AND NO COMPATIBILITY TABLE.** `UPGRADING.md` § 4 states both
+  in writing, so shipping either would contradict the document. A table is a list of exceptions to
+  the promise, and the promise is the product; `same_major_as()` and `compare_to()` are the whole
+  surface. Git shows a diff and the game's author decides.
+- **WP-15's REMNANT IS CLOSED, BY THE OWNER, 2026-09-02.** Credits name a team a template does not
+  have, and an accessibility pass over placeholder art and a UI every game restyles is a pass over
+  something designed to be thrown away. What the template owes accessibility is the SEAMS, and they
+  exist and are proved: the project `Theme`, rebindable input, and no timed input anywhere because
+  there is no combat. Recorded rather than deleted, the way WP-10 is marked OPTIONAL.
 
 - **A DEV TOOL THAT NAMES NO CONTENT BELONGS UNDER `src/`, NOT IN THE EXEMPT DEBUG DIRECTORY.**
   `DebugConsoleScreen` is a `UiScreen` in `src/ui/screens/` beside the journal and the map. The
@@ -994,7 +1018,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,574 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,601 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content
@@ -1002,7 +1026,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Forty-three gotchas that each cost an hour
+## Forty-four gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -1383,6 +1407,22 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     which is a design smell before it is a testing problem. Gotchas 40 and 42's family, third
     costume, and the third time planting has caught the test rather than the code.
 
+
+44. **A BLOCK THAT GATES ON A BROADER QUESTION THAN IT ASSERTS IS GREEN EVERYWHERE EXCEPT IN A
+    CONSUMER'S HANDS.** `smoke_test.gd` asked *"does this checkout have any content?"* and then
+    asserted about **areas**. Both extremes are fine — the full demo has areas, a stripped template
+    has neither — so every run this project ever made was green. The failure lives only in the gap:
+    a real game that authored one item before its first area, which is exactly the window
+    `NEW_GAME.md` walks an author through while promising the ladder stays green. It was found by
+    PERFORMING `docs/UPGRADING.md` against a real fork, and it could not have been found any other
+    way, because a suite cannot run in a state neither of this repository's two checkouts is ever
+    in. Two rules generalise. **A block must gate on the same question it asserts** —
+    `Fixtures.area_ids()` already existed and is that question; the broader `has_demo_content()`
+    was reached for because it was the one that was already being used. And **a template's
+    intermediate states are a place tests never look**: the full demo and the stripped template are
+    the two states this repo has, and every state a consuming game passes through lies between
+    them. Gotchas 40, 42 and 43's family, fourth costume, and the first of them that no plant in
+    this repository would have caught — the fork had to exist.
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the
@@ -1448,12 +1488,14 @@ you can press to travel back to once you have — and every one of those walks n
 depending on whether you are crossing grass, the wooden dais or stone. Every one of those changes
 survives a save and a
 reload, including from the far side of an area that is no longer loaded. All of it is covered
-by 1,517 headless assertions.
+by 1,601 headless assertions.
 
-**Next, in this order.** The order matters and is not arbitrary:
+**Next, and for the first time it is not an ordered queue.** Every blocking row is done: Phase T3
+closed with WP-14b, WP-15 was CLOSED by the owner, and T4.1 shipped the version and the upgrade
+note. The one criterion left in Phase T4 is a RELEASE TAG, which is the owner's to take.
 
-1. **The rest of the system catalogue**, WP-14 and WP-15 re-framed — see the board. WP-11 closed
-   the last row that had no proof at all, and WP-10 is OPTIONAL.
+1. **The rest of the system catalogue is COMPLETE**, and WP-15 is closed — see the board. WP-11
+   closed the last row that had no proof at all, and WP-10 is OPTIONAL.
    *(Every T-numbered row is DONE. T3.1 — one scan behind all five catalogues, every accessor still
    typed. T3.3 — an item count is a flag published downward, so a step can require N of an item id
    and the quest system still does not know what an inventory is. T3.2 — the look of an area is

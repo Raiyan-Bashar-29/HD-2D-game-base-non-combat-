@@ -3,6 +3,10 @@
 The strip-and-start checklist. Read [`TEMPLATE.md`](TEMPLATE.md) first — it says *why* the
 boundary exists; this says *what to delete* and *what to rename*.
 
+**[`UPGRADING.md`](UPGRADING.md) is the sibling document**, and the one to read second: this says
+how to LEAVE the template, that says how to stay in touch with it and receive a later fix. Set up
+its `template` remote on the day you fork, not the day you need it.
+
 **The one-line version:** delete `data/**` and `scenes/areas/**`, prune the demo half of
 `localization/strings.csv`, rename four fields in `project.godot`, and never edit `src/`.
 
@@ -87,6 +91,11 @@ Every place the template says which game this is. There are five, and there are 
 | `project.godot` | **`[game] world/first_area`** | **the one that matters.** The area a new game begins in. `world/first_spawn` defaults to `default`. |
 | `README.md`, `CLAUDE.md` | title lines | project-facing prose, not code |
 
+**One field in `project.godot` is NOT yours and must be left exactly as it is:**
+`[template] base/version`. It records which version of the BASE you forked from, it is what the
+boot banner prints as `base <version>`, and [`UPGRADING.md`](UPGRADING.md) § 1 is the reason it
+exists. Editing it makes the one question an upgrade has to answer unanswerable.
+
 **Do not** grep-and-replace the game name across `docs/`. The DEVLOG is a history of this
 template's construction and should stay readable as one.
 
@@ -105,11 +114,19 @@ than clearing the flags and going quiet.
 
 **The test suite comes with you, and it tells you what it stopped covering.** As of T1.3 the
 cases build the content they need from `tests/framework/fixtures.gd`, so deleting `data/` and
-`scenes/areas/` leaves rung 4 intact: `880 passed, 0 failed, 12 skipped`, exit 0. Those twelve are
-the assertions that genuinely ask something about authored content — that the catalogue matches the
+`scenes/areas/` leaves rung 4 intact: `1527 passed, 0 failed, 25 skipped`, exit 0, measured on a
+stripped copy at template 1.0.0. Those twenty-five are the assertions that genuinely ask
+something about authored content — that the catalogue matches the
 disk, that every item name has a CSV row, that every waypoint a schedule names exists in some
 area. They come back one at a time as you author your own content, and until then the run PRINTS
 each one rather than quietly passing.
+
+**The order you author in does not matter, and it took a real fork to make that true.** The
+first-area block used to gate on "does this checkout have any content at all", which
+flips true on your first `.tres` of any kind — so authoring one item before your first area
+armed an assertion about AREAS and turned rung 4 red, in the exact window this document walks you
+through. It now gates on whether any area exists. See [`UPGRADING.md`](UPGRADING.md) § 7, which is
+where it was found.
 
 **`src/systems/debug/` names demo content on purpose.** `dev_probes.gd` and `dev_stage.gd` are the
 development harness — `--give=item/rose_key` stages a photograph, `--goto=` drives a real

@@ -4855,3 +4855,133 @@ ground still has no command, because there is none to give: no debug flag walks 
 `=== 1607 passed, 0 failed, 0 skipped ===`; stripped template `=== 1533 passed, 0 failed, 25
 skipped ===`. `check_content`, `check_boundary`, `check_budgets` and `check_strings` all PASS in
 both jobs. Committed as `4f5f753`, PR #26, stacked onto `claude/wp-t4-version-upgrade`.
+
+---
+
+## 2026-09-03 — T4.3 · `NEW_GAME.md` performed, and the release tag taken
+
+**Did.** Landed the whole PR stack on `main`, tagged `v1.0.0`, then performed `docs/NEW_GAME.md`
+end to end as a consuming fork and fixed the two defects doing so exposed. Bumped the template to
+`1.0.1`.
+
+**The tag first, because it was the owner's decision and it was still blocked.** Phase T4's third
+exit criterion had been put to the owner on 2026-09-02 and refused — *not yet, merge the stack
+first* — because `origin/main` was at `d0bf153`. It still was. All 26 PRs were open and zero were
+merged, so the refusal's reason had not expired. What HAD changed is that the stack turned out to
+be one linear chain: `git merge-base --is-ancestor` confirmed every one of the 25 ancestor
+branches was contained in T4.2's tip, 71 commits ahead of `main`. So retargeting #26 to `main` and
+merging it landed all of them at once (`648bac1`), and only then was `v1.0.0` a tag that names a
+tree actually declaring `base/version="1.0.0"`. Put back to the owner with that answer in hand,
+and authorised. Six PRs auto-closed as merged; the other 19 could not be retargeted — GitHub
+refuses with *"There are no new commits between base branch 'main' and head branch"* — so they
+were closed with a comment rather than left stale. They read **Closed**, not Merged; their commits
+are all in `main`.
+
+**Why perform the document at all.** Three documents had been walked before this (T2.2, T4.1,
+T4.2) and every single one found a defect that reading would not have. `NEW_GAME.md` is the one a
+fork reads FIRST and had never been walked as its own document. A fresh `git clone` from GitHub
+into `C:/Users/Lenovo/AppData/Local/Temp/gup` — short path, because a clone into the session
+scratchpad fails with `Filename too long` — then sections 1 to 4 followed literally, with `src/`
+never opened while performing.
+
+**DEFECT 1, and it is the TEMPLATE.** `tests/unit/core_test.gd:154` asserted
+`equal("a template with a game in it names one", configured != "", true)` — UNCONDITIONALLY.
+Three things in the repository already said that was wrong: the case's own name, which is
+conditional; the comment eight lines below it in the same function, *"An UNSET first area is a
+real state — a template nobody has put a game in yet"*; and `NEW_GAME.md` section 4, *"An empty
+setting is a legal state."* The file's own header MUST NOT line forbids it too — "must not know
+about gameplay or content" — and whether a game is configured is a claim about the project, not
+about `GameConfig`. Gotcha 46's shape, one function lower down.
+
+It was green in the full template (`first_area="courtyard"`) and green in the stripped template
+(which deletes `data/` and `scenes/areas/` but never touches `project.godot`, so the field stays
+`"courtyard"`). It was red **only** in a fork that had done what the document says: `1537 passed,
+1 failed, 20 skipped`, exit 1, `FAILED: a template with a game in it names one — expected true,
+got false`. That is the third instance of gotcha 44/45's family and the second in a TEST.
+
+The control that settles what it was really asserting: setting `first_area="tideglass_field"` — an
+area that does not exist — made the suite go `1538 passed, 0 failed`. It demanded a non-empty
+STRING, so it passed for content that was not there and failed for the honest empty state.
+
+Removed rather than made conditional, because `smoke_test.gd` already makes the claim properly:
+gated on `Fixtures.area_ids()`, and stronger, since it also requires the named area to resolve.
+`plan(50)` became `plan(49)`, and the docstring now says why it must not come back.
+
+**DEFECT 2: section 3's prune list never learned about quests.** The prefix list — `area. talk.
+action. object. item.` — was written at T1.2, before quests existed (WP-08), and was never
+extended. So a fork that followed the document exactly kept five rows of pure demo content in its
+own `localization/strings.csv`: `quest.keepers_errand.*`, including *"The Keeper's Errand"* and
+*"three rose petals"*. Every one of the four checkers exited 0 and the whole suite was green,
+because **no gate reads `localization/` for demo content at all** — `check_boundary` guards
+`src/`, `tests/framework/` and `tests/unit/`, and a leftover row is nobody's error: it is a
+translation for content that was deleted, so nothing loads it and nothing complains. Verified that
+every `quest.*` key is demo and that the engine's own quest strings live under `notify.quest.*`,
+which the prune correctly keeps. The list now includes `quest.`, and the section carries a third
+trap saying no gate checks this file, with a grep to run afterwards.
+
+**Three prose defects, re-measured rather than inherited.** The `awk` comment claimed "keeps 147
+of 189 rows"; the file is 219 rows and the corrected `awk` keeps 168. Section 6's quoted checker
+output was from T1.2 and had drifted — it lacked the `quests: 0` line entirely and said `src
+scripts scanned: 74` where the tool now prints `engine scripts scanned: 129, over src/ and
+["res://tests/framework", "res://tests/unit"]`. And the intro said "rename four fields in
+`project.godot`" where section 4's table lists five.
+
+**A fourth, which is the one that would have wasted an afternoon.** Section 6 asserts that
+starting a game with no `first_area` logs a specific error, but gave no command for it. The
+natural invocation, `--headless --new-game`, prints nothing at all and ends `0 warnings, 0 errors`
+— Godot swallows the flag without a `--` separator, so the run stops at the main menu having
+started nothing. `--quit-after` counting FRAMES makes it worse: below about 120 the run ends at
+the menu before the flag fires, which looks identical. Two ways to get a green run that verified
+nothing. The corrected command is `"$G" --headless --quit-after 180 -- --new-game`, and it
+reproduces the documented line verbatim, including *changes nothing*.
+
+**Verified.** Local ladder on the final tree: import 0 script/parse errors; boot `Session ended
+after 0.8s — 0 warnings, 0 errors`; suite `=== 1608 passed, 0 failed, 0 skipped ===`, exit 0;
+`check_budgets`, `check_content`, `check_boundary`, `check_strings` all exit 0.
+
+**The suite total moved and it was predicted.** 1607 to 1608: minus the one assertion removed,
+plus two, because `docs_test` computes its plan from the docs and section 6's corrected checker
+output introduces `res://tests/framework` and `res://tests/unit` as newly-named paths.
+
+**Planted, both directions (gotcha 23), and the fix that accepts MORE has a control.** The defect
+itself was the plant, found in a real fork rather than manufactured. Removing an assertion widens
+what the suite accepts, so the control is the one that matters: copying an area back into the fork
+with `first_area` still empty turned it red again — `FAILED: the configured first area is set` and
+`FAILED: and its scene really exists`, exit 1, both from `smoke_test.gd`. A game WITH areas and an
+unset first area is still caught, and caught by the assertion that names the right thing. (That
+plant also produced five incidental failures, from copying an area without its `AreaDef` or its
+CSV rows — which is `world_map_test` doing exactly what T4.2 refused to weaken.) For the CSV: the
+old `awk` leaves 5 demo rows, the corrected one leaves 0, and the new trap-3 grep returns nothing.
+
+**Measured, on the final tree, because the document quotes both.** A fork that has followed
+sections 1 to 4 with `first_area` empty: `=== 1539 passed, 0 failed, 20 skipped ===`, exit 0 —
+twenty assertions across fifteen named cases. The stripped-template variant CI runs, which deletes
+the `data/` folders outright instead of emptying them: `=== 1534 passed, 0 failed, 25 skipped ===`,
+all four checkers exit 0. Both are green and the counts differ because section 1 tells a fork to
+KEEP the content roots. The banner line the document quotes was copied from the fork's own run,
+not composed.
+
+**Version bumped to 1.0.1, and the tag for it NOT taken.** T4.1's precedent decides this: stating
+a version is engineering and is assertable, taking a tag is a release action and is the owner's.
+Leaving `main` saying `1.0.0` after changing it would have made one version name two different
+trees, which is the rot `version_test.gd` exists to prevent. `docs/CHANGELOG.md` gains a `## 1.0.1`
+PATCH entry whose *a consuming game does* line is the actionable one: a fork made at 1.0.0 that
+followed `NEW_GAME.md` should grep its CSV for `quest.` and delete what it finds.
+
+**Unblocks.** Phase T4 is COMPLETE — all three exit criteria ticked, the third by the owner's
+decision this session. Nothing is blocked; the next package is a genuine choice again, and
+`docs/TESTING.md` is now the only document never performed.
+
+**Gaps.** No gate reads `localization/` for demo content, and this package did not add one: it
+would have to know which prefixes are engine, which is a list in a tool naming content
+conventions, and the same objection that refused a `check_content` rule for `obj/` flags at T4.2
+applies. The document's own trap-3 grep is the cheaper truth, and unlike a gate it is aimed at the
+person actually holding the fork. The 19 superseded PRs read Closed rather than Merged, which is
+GitHub's limitation, not a record problem — every commit is on `main` and reachable from `v1.0.0`.
+
+**CI green, run `33785871834`, JOB LOGS read rather than the tick (gotcha 26).** Full checkout
+`=== 1608 passed, 0 failed, 0 skipped ===`; stripped template `=== 1534 passed, 0 failed, 25
+skipped ===`, the 25 skips unchanged from T4.2. `check_budgets`, `check_content`, `check_boundary`
+and `check_strings` all PASS in both jobs. Committed as `4ec29fb` on
+`claude/t4-3-new-game-perform`, PR #27 — targeting `main` directly, because the stack it would
+have been stacked onto is now merged.

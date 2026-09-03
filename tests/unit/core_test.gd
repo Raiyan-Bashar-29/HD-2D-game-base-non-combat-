@@ -9,7 +9,7 @@ var _probe_value: int = 0
 
 
 func run() -> void:
-	plan(50)
+	plan(49)
 	_dict_read()
 	_flags()
 	_flags_hands_out_copies()
@@ -148,10 +148,19 @@ func _probe_apply(data: Dictionary, from_version: int) -> void:
 ## GameConfig is the seam T1.2 added so `src/` stops naming demo content. Every assertion here
 ## compares against ProjectSettings rather than against a literal, on purpose: a test that
 ## asserted `first_area() == "courtyard"` would rebuild the leak it exists to prove is gone.
+##
+## WHETHER A GAME IS CONFIGURED AT ALL IS DELIBERATELY NOT ASSERTED HERE. This case asks only
+## that GameConfig reads ProjectSettings faithfully; "a first area is set" is a claim about the
+## PROJECT, which this file's own MUST NOT line puts out of bounds. It lived here until T4.3 as
+## an UNCONDITIONAL `configured != ""`, which contradicted its own name, the comment eight lines
+## below it, and docs/NEW_GAME.md section 4 — all three of which call an empty setting a legal
+## state. It was green in both of this repository's states and red only in a fork that had done
+## what NEW_GAME.md says, in the exact window that document walks an author through.
+## `smoke_test.gd` makes the claim properly: gated on `Fixtures.area_ids()`, and stronger, since
+## it also requires the named area to resolve. Do not re-add it here.
 func _game_config() -> void:
 	var configured: String = str(ProjectSettings.get_setting(GameConfig.FIRST_AREA_SETTING, ""))
 	equal("first area comes from project.godot", GameConfig.first_area(), StringName(configured))
-	equal("a template with a game in it names one", configured != "", true)
 	equal("first spawn comes from project.godot", GameConfig.first_spawn(), StringName(
 		str(ProjectSettings.get_setting(GameConfig.FIRST_SPAWN_SETTING, ""))))
 

@@ -438,7 +438,7 @@ about every system having one proof, and the last two systems with none were the
   carried the anchor fragment twice), which is gotcha 42 arriving on schedule and being caught
   only because the violation was planted. See the board.
 
-## Phase T4 — Template v1.0 · **IN PROGRESS**
+## Phase T4 — Template v1.0 · **COMPLETE**
 
 **Phase T3 closed with WP-14b, 2026-09-02.** WP-15's remnant — credits and an accessibility pass —
 was **CLOSED by the owner** on the same day rather than built: both belong to a consuming game,
@@ -478,13 +478,40 @@ OPTIONAL and blocks nothing. The board carries the full reasoning.
   area could be photographed at all. Both are gotcha 44's shape — invisible to both of this
   repository's states. Six more sections were performed and now hold proofs rather than claims.
 
+- **T4.3 `NEW_GAME.md` performed, and the release tag taken — DONE, 2026-09-03.** The phase's
+  last package. **The stack landed first:** all 26 PRs were still open and `origin/main` was at
+  `d0bf153`, but every branch was an ancestor of T4.2's tip, so retargeting #26 to `main` merged
+  the lot as one 71-commit chain and made `v1.0.0` an honest tag rather than the dishonest one
+  refused the day before.
+
+  **Then the fourth document was performed**, and like the three before it, it found what reading
+  could not. A fresh clone was forked, stripped and renamed from `NEW_GAME.md` alone. **Two
+  defects, one of them the template:** `core_test.gd` asserted `[game] world/first_area != ""`
+  UNCONDITIONALLY, contradicting its own case name, the comment eight lines below it and
+  `NEW_GAME.md` § 4 — so a fork that did exactly what the document says had a red rung 4 before
+  it authored its first area, while the document promised the ladder stays green. Green in both
+  of this repository's states, because neither ever empties that field. The claim moved to
+  `smoke_test.gd`, which already made it correctly and more strongly; the control — areas present
+  with the field still empty — was planted and is still red.
+
+  **And § 3's prune list never learned about quests.** Written before WP-08, it omitted `quest.`,
+  so a fork shipped the demo's `quest.keepers_errand.*` rows — "The Keeper's Errand", "three rose
+  petals" — inside its own game, with all four checkers and the whole suite green, because **no
+  gate reads `localization/` for demo content at all.** That is now stated in the document as its
+  own trap, with a grep to run after pruning. Three further prose defects were re-measured rather
+  than inherited, including a `--new-game` invocation that is silently green without a `--`.
+
 **Exit criteria for the phase:**
 
 - [x] The template states its own version, readably at runtime and assertably. — T4.1
 - [x] A game already forked from this base has a documented, PERFORMED way to receive a later fix.
       — T4.1
-- [ ] A release tag on the repository. Deliberately not taken by T4.1: a tag is a release action
-      and releases are the owner's.
+- [x] A release tag on the repository. Deliberately not taken by T4.1: a tag is a release action
+      and releases are the owner's. **Taken 2026-09-03**, once the whole PR stack had landed —
+      `v1.0.0` on `648bac1`, the merge commit that brought WP-01 through T4.2 onto `main` in one
+      linear chain of 71 commits. It was refused on 2026-09-02 for a reason that had not yet
+      expired: `origin/main` was still at `d0bf153`, so a tag then would have named either a
+      commit lacking the version it claimed or an unmerged branch.
 
 ---
 

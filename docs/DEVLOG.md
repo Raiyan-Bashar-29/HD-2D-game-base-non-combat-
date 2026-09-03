@@ -4978,3 +4978,10 @@ conventions, and the same objection that refused a `check_content` rule for `obj
 applies. The document's own trap-3 grep is the cheaper truth, and unlike a gate it is aimed at the
 person actually holding the fork. The 19 superseded PRs read Closed rather than Merged, which is
 GitHub's limitation, not a record problem — every commit is on `main` and reachable from `v1.0.0`.
+
+**CI green, run `33785871834`, JOB LOGS read rather than the tick (gotcha 26).** Full checkout
+`=== 1608 passed, 0 failed, 0 skipped ===`; stripped template `=== 1534 passed, 0 failed, 25
+skipped ===`, the 25 skips unchanged from T4.2. `check_budgets`, `check_content`, `check_boundary`
+and `check_strings` all PASS in both jobs. Committed as `4ec29fb` on
+`claude/t4-3-new-game-perform`, PR #27 — targeting `main` directly, because the stack it would
+have been stacked onto is now merged.

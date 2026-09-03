@@ -3086,3 +3086,9 @@ prefixes are engine and which are content — the same list that just rotted, mo
 away and given the authority to fail a build. The document's own grep is the cheaper truth and is
 aimed at the person actually holding the fork. This is the same objection that refused a
 `check_content` rule for `obj/` flags at T4.2, and it is recorded for the same reason.
+
+**CI green, run `33785871834`, job logs read rather than the tick (gotcha 26).** Full checkout
+`=== 1608 passed, 0 failed, 0 skipped ===`; stripped template `=== 1534 passed, 0 failed, 25
+skipped ===`, the 25 skips unchanged from T4.2. All four checkers PASS in both jobs.
+
+**Commit:** `4ec29fb` on `claude/t4-3-new-game-perform`, PR #27, targeting `main` directly.

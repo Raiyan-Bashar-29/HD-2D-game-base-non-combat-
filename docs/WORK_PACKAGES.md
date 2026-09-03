@@ -3074,8 +3074,8 @@ that followed sections 1 to 4 with `first_area` empty reports `1539 passed, 0 fa
 across fifteen named cases, and the harsher stripped variant CI runs reports `1534 passed, 0
 failed, 25 skipped`. The banner line quoted in section 6 was copied out of the fork's own run.
 
-**Version bumped to 1.0.1; the tag for THAT was not taken.** T4.1's precedent decides it — stating
-a version is engineering and assertable, cutting a release is the owner's. Leaving `main` saying
+**Version bumped to 1.0.1, and the tag for it taken separately.** T4.1's precedent decides it — stating
+a version is engineering and assertable, cutting a release is the owner's — so the bump landed with the package and the tag was asked for on its own, and authorised (`v1.0.1` on `a291691`). Leaving `main` saying
 `1.0.0` after changing it would have made one version name two trees, which is the rot
 `version_test.gd` exists to prevent. `docs/CHANGELOG.md` gains a `## 1.0.1` PATCH entry whose *a
 consuming game does* line is actionable: a fork made at 1.0.0 that followed `NEW_GAME.md` should

@@ -4985,3 +4985,12 @@ skipped ===`, the 25 skips unchanged from T4.2. `check_budgets`, `check_content`
 and `check_strings` all PASS in both jobs. Committed as `4ec29fb` on
 `claude/t4-3-new-game-perform`, PR #27 — targeting `main` directly, because the stack it would
 have been stacked onto is now merged.
+
+**PR #27 merged and `v1.0.1` tagged, 2026-09-03.** Merge commit `a291691`; `main` verified to
+carry `base/version="1.0.1"` and a matching `## 1.0.1` heading before the tag was cut. Asked for
+separately from the bump and authorised, which is T4.1's precedent held to: the bump ships with the
+package, the tag is a release action and is the owner's. Two tags now stand and each names the tree
+that declares it — `v1.0.0` on `648bac1`, `v1.0.1` on `a291691`. The claims in `CONTEXT.md`,
+`SYSTEMS_INVENTORY.md` and the board that said the 1.0.1 tag had NOT been taken were corrected in
+the same breath, because a state file that is stale about a release is the drift this project
+polices.

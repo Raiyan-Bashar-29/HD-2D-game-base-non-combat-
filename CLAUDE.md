@@ -4,11 +4,37 @@ Read this before touching anything. It is short because the detail lives in `doc
 
 **Start with [`docs/CONTEXT.md`](docs/CONTEXT.md)** — one minute, and it tells you what exists,
 what is broken right now, and what not to re-litigate. This file is the rules; that one is the
-situation.
+situation; [`docs/TEMPLATE.md`](docs/TEMPLATE.md) is the framing both assume.
+
+**Which doc do I need?**
+
+| If you are… | Read |
+|---|---|
+| starting any session | `docs/CONTEXT.md`, then your package on the board |
+| confused about what this project IS | `docs/TEMPLATE.md` |
+| picking the next package | `docs/WORK_PACKAGES.md` (the board) and `docs/ROADMAP.md` |
+| surprised by the engine | the gotcha list in `docs/CONTEXT.md` — forty-four, each cost an hour |
+| wondering why a file is shaped that way | its own `##` header first, then `docs/ARCHITECTURE.md` and `docs/decisions/` |
+| about to write a player-facing string | `localization/strings.csv`, and quote any value containing a comma |
+| starting a new game on this base | `docs/NEW_GAME.md` |
+| **pulling a later template fix into a game already forked from it** | **`docs/UPGRADING.md`**, then `docs/CHANGELOG.md` |
+
+**Never read `docs/DEVLOG.md` whole** — it is over 1,300 lines and grows every session. Find the
+entry you need by its `## date — WP-nn` header.
 
 ## What this is
 
-An HD-2D semi-open-world **exploration and narrative** game. Godot 4.7.2, GDScript.
+**A reusable BASE TEMPLATE for HD-2D exploration games. Not one game.** Godot 4.7.2, GDScript.
+Read [`docs/TEMPLATE.md`](docs/TEMPLATE.md) â it is short, and it reframes the roadmap and the
+board, several of whose older lines predate it.
+
+The product is the systems and the seams between them. The courtyard, the garden-keeper and the
+rose key are the *proof that a system works*, and they are deletable. **No file under `src/` or
+`tests/` may name demo content** — an area id, an item id, a conversation id, any of it. That is
+not a convention: `tools/check_boundary.gd` fails the build. One directory is exempt,
+`src/systems/debug/`, and the exemption is justified in that tool's header. A test builds the
+content it needs from `tests/framework/fixtures.gd`, and the suite passes with the demo deleted.
+**[`docs/NEW_GAME.md`](docs/NEW_GAME.md)** is the strip-and-start checklist.
 
 **There is no combat.** No battles, no enemies, no damage, no encounters. This was an explicit
 retraction by the owner, not an oversight. If a task seems to need combat, it does not — redirect
@@ -40,7 +66,8 @@ memory; 4.7 is newer than most training data. Module classes (`GridMap`, `CSGBox
 3. **No player-facing string literals.** Localization keys from the first line.
 4. **Respect the `MUST NOT` line** in every file header. When a change needs it broken, add a
    system instead of widening the boundary.
-5. **Run `tools/check_budgets.gd` before finishing.** It must exit 0.
+5. **Run all four checkers before finishing** — `tools/check_budgets.gd`, `check_content.gd`,
+   `check_boundary.gd`, `check_strings.gd`. Each must exit 0.
 6. **Append to `docs/DEVLOG.md`** every session: did, why, connects, verified, unblocks, gaps.
 7. **Indentation is tabs.** Author with spaces, then `unexpand -t 4 --first-only`.
 
@@ -55,10 +82,12 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate; filter "Identifier not found: <Autoload>"
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 150   # 165 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,601 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd
 "$G" --headless --script tools/check_content.gd    # ids, duplicate object_ids, CSV keys
-"$G" --resolution 960x540 --quit-after 55 -- --shot=<path> --time=18:40 --freeze-time
+"$G" --headless --script tools/check_boundary.gd   # no file under src/ or tests/ names demo content
+"$G" --headless --script tools/check_strings.gd    # no player-facing literal; every *_KEY exists
+"$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
 **Gotchas that will cost you an hour each:**
@@ -99,7 +128,21 @@ so the handoff is automatic. The full checklist is in the board.
 No package exceeds about 8 files or 500 new code lines. Over that, split it and add a row -
 same reasoning as the file budgets: a package that outgrows one chat gets half-finished.
 
-## Read next
+## Read next — which document answers which question
 
-`docs/WORK_PACKAGES.md` (the board) · `docs/CONTEXT.md` (state) · `docs/ARCHITECTURE.md` · `docs/SYSTEMS_INVENTORY.md` ·
-`docs/ROADMAP.md` · `docs/DEVLOG.md` · `docs/CONVENTIONS.md` · `docs/decisions/`
+| You want to | Read |
+|---|---|
+| know what to work on now | [`docs/WORK_PACKAGES.md`](docs/WORK_PACKAGES.md) — the board |
+| know where things stand | [`docs/CONTEXT.md`](docs/CONTEXT.md) — state, settled decisions, forty-four gotchas |
+| understand why this is a template and not a game | [`docs/TEMPLATE.md`](docs/TEMPLATE.md) |
+| **add an area, an NPC, a conversation, an item, an object, a quest, equipment, a place on the world map** | **[`docs/AUTHORING.md`](docs/AUTHORING.md)** |
+| **make art that drops into this** | **[`docs/ART_CONTRACT.md`](docs/ART_CONTRACT.md)** |
+| **add assertions to the suite** | **[`docs/TESTING.md`](docs/TESTING.md)** |
+| know what may be subclassed and what is internal | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — § The extension surface |
+| start a new game on this base | [`docs/NEW_GAME.md`](docs/NEW_GAME.md) |
+| **receive a later fix to the base in a game already forked from it** | **[`docs/UPGRADING.md`](docs/UPGRADING.md)** — performed against a real fork, not written from intent |
+| know what a version bump will do to your game | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) — one entry per version, each ending in what a consuming game must do |
+| know how a system is built | the file header. `src/core/events/events.gd` is the connection map |
+
+Also: `docs/SYSTEMS_INVENTORY.md` · `docs/ROADMAP.md` · `docs/DEVLOG.md` · `docs/CONVENTIONS.md` ·
+`docs/decisions/`

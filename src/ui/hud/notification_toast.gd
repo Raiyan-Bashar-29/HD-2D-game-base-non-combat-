@@ -16,6 +16,9 @@ var _remaining: float = 0.0
 
 
 func _ready() -> void:
+	# Keeps counting down behind a screen, so a toast raised a moment before a menu opened does
+	# not sit frozen half-shown and then reappear later. Pause table: src/ui/root/ui_root.gd.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

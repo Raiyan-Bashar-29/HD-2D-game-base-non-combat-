@@ -1,5 +1,5 @@
 class_name ItemDefinition
-extends Resource
+extends ContentEntry
 ## One item, as authored data. The project's first Resource subclass.
 ##
 ## THE ID IS THE FILE NAME. `data/items/rose_key.tres` must declare `id = &"item/rose_key"`.
@@ -25,8 +25,7 @@ extends Resource
 ## here would break the build gate. That is a real enforcement mechanism for the content
 ## layer rule, not a style preference.
 
-## Globally unique, and equal to `item/` plus this resource's file name.
-@export var id: StringName = &""
+## `id` is inherited from `ContentEntry`; for this catalogue it is `item/` plus this file name.
 ## Localization key for the player-facing name. Never raw text.
 @export var name_key: String = ""
 ## Stable, locale-independent sort and filter key. Also expresses "key item" without a bool.
@@ -34,6 +33,14 @@ extends Resource
 ## The most of this the player may hold. 1 means a unique key item. Under the current
 ## countless inventory this caps the total held; when slots arrive it becomes per-stack.
 @export_range(1, 999, 1) var max_stack: int = 99
+
+## Where this may be worn or held, if anywhere. NONE — the default — means the item is carried
+## and nothing more, which is what almost every item is; every .tres authored before this field
+## existed stays valid unedited. A FIFTH field, then, and the header above says four: the reason
+## it earned one is that "may this be equipped" is a property OF THE ITEM and of nothing else,
+## so the alternative was a list of equippable ids somewhere in `src/` — engine code naming
+## content, which is the one thing this project gates against.
+@export var equip_slot: GameEnums.EquipSlot = GameEnums.EquipSlot.NONE
 
 
 ## Everything wrong with this definition, as data rather than a log line, so the same check
@@ -57,3 +64,9 @@ func category_name() -> String:
 	var names: Array = GameEnums.ItemCategory.keys()
 	var raw: String = names[category]
 	return raw
+
+
+## Whether this item can occupy an equipment slot at all. One question, one place: an `Equipment`
+## component and a UI row both ask this rather than each comparing against NONE themselves.
+func is_equippable() -> bool:
+	return equip_slot != GameEnums.EquipSlot.NONE

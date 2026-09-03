@@ -11,6 +11,7 @@ var _lever: Lever = null
 
 
 func run() -> void:
+	plan(19)
 	_gating()
 	_persistence()
 
@@ -21,12 +22,12 @@ func _gating() -> void:
 	_lever = build("res://scenes/objects/lever.tscn") as Lever
 	_lever.object_id = &"t_lever"
 	_lever.world_flag = &"test/gate_unlocked"
-	_lever.label_key = "object.lever.gate.label"
+	_lever.label_key = "fixture.lever.label"
 	attach(_lever)
 	_gate = build("res://scenes/objects/gate.tscn") as Gate
 	_gate.object_id = &"t_gate"
 	_gate.requires_flag = &"test/gate_unlocked"
-	_gate.label_key = "object.gate.north.label"
+	_gate.label_key = "fixture.gate.label"
 	attach(_gate)
 
 	# Locked: the interaction is offered and refused, not hidden. A player must be able to
@@ -65,7 +66,7 @@ func _persistence() -> void:
 	# Destroy and rebuild, which is what an area reload does. State must survive.
 	var rebuilt: Gate = gate_scene.instantiate() as Gate
 	rebuilt.object_id = &"t_gate"
-	rebuilt.label_key = "object.gate.north.label"
+	rebuilt.label_key = "fixture.gate.label"
 	add_child(rebuilt)
 	equal("rebuilt gate is still open", rebuilt.is_open(), true)
 	equal("rebuilt gate is not offered again", rebuilt.is_offerable(), false)

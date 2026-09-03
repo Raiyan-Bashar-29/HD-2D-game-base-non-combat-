@@ -25,14 +25,25 @@ extends Node3D
 ##       night is actually lit by it. Without this the day/night cycle would not touch
 ##       characters and they would look pasted on.
 ##
-## OWNS: the sprite, its facing, and its animation frame.
-## MUST NOT: read input, move the character, or contain game rules. It is told a velocity
-## and a state, and it draws.
+## THE SHEET'S DIMENSIONS ARE NOT IN THIS FILE. They are a `SpriteSheetLayout` resource on the
+## `layout` @export, and every number that depends on them — hframes, vframes, the foot offset,
+## the frame wrap, the direction sectors — is read from it. See that class for the grid.
+##
+## OWNS: the sprite, its facing, its sheet column, and its animation frame.
+## MUST NOT: read input, move the character, contain game rules, or hold any sheet dimension of
+## its own. It is told a velocity and a state, and it draws.
 
-## Cells across the sheet: one per facing, in GameEnums.Facing order.
-const FACING_COUNT: int = 8
-## Rows down the sheet: the walk cycle.
-const FRAME_COUNT: int = 4
+## The layout assumed when the @export below is unwired. Not a fallback anybody should rely on:
+## it exists so an unwired node draws a recognisable character while the log says it is unwired,
+## because gotcha 2's whole lesson is that a silent default looks exactly like success.
+const DEFAULT_FACINGS: int = 8
+const DEFAULT_FRAMES: int = 4
+const DEFAULT_CELL: Vector2i = Vector2i(32, 48)
+
+## How this character's sheet is cut up, as authored data. THE ART CONTRACT SEAM: until T2.1 this
+## was `FACING_COUNT = 8` and `FRAME_COUNT = 4` as constants right here, so a game whose sheet had
+## four facings and six frames needed a code edit — the one thing a template must never ask for.
+@export var layout: SpriteSheetLayout = null
 
 @export var texture: Texture2D = null
 ## World size of one texture pixel. 0.01 makes a 48px-tall sprite 0.48m... too small for a
@@ -47,13 +58,19 @@ const FRAME_COUNT: int = 4
 
 var sprite: Sprite3D = null
 
+var _layout: SpriteSheetLayout = null
 var _facing: GameEnums.Facing = GameEnums.Facing.SOUTH
+## The sheet COLUMN. Deliberately NOT derived from _facing: the enum is how many directions the
+## GAME reasons about, `layout.facings` is how many the ART distinguishes, and mapping one onto
+## the other would put the sector width back in two places that have to agree by hand.
+var _column: int = 0
 var _frame_time: float = 0.0
 var _frame: int = 0
 var _moving: bool = false
 
 
 func _ready() -> void:
+	_layout = _resolved_layout()
 	sprite = get_node_or_null(^"Sprite3D") as Sprite3D
 	if sprite == null:
 		sprite = Sprite3D.new()
@@ -65,8 +82,10 @@ func _ready() -> void:
 func _configure_sprite() -> void:
 	if texture != null:
 		sprite.texture = texture
-	sprite.hframes = FACING_COUNT
-	sprite.vframes = FRAME_COUNT
+	sprite.hframes = _layout.facings
+	sprite.vframes = _layout.sheet_rows()
+	for problem: String in _layout.problems(sprite.texture):
+		Log.warn("world", "%s: %s" % [name, problem])
 	sprite.pixel_size = pixel_size
 	sprite.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
 	sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
@@ -76,7 +95,7 @@ func _configure_sprite() -> void:
 	# Anchor the sprite by its feet. The sprite stays centred and is lifted by half its
 	# height, so the node origin sits on the ground where the collision capsule does.
 	sprite.centered = true
-	sprite.offset = Vector2(0.0, float(_cell_height()) * 0.5)
+	sprite.offset = Vector2(0.0, float(_layout.cell_size.y) * 0.5)
 	sprite.position = Vector3(0.0, ground_offset, 0.0)
 	sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	_apply_frame()
@@ -90,12 +109,12 @@ func update_from_velocity(velocity: Vector3, delta: float) -> void:
 	_moving = speed > 0.05
 
 	if _moving:
-		_facing = facing_from_direction(flat)
+		_aim(flat)
 		var rate: float = walk_fps * clampf(speed / maxf(0.01, reference_speed), 0.35, 2.0)
 		_frame_time += delta * rate
 		while _frame_time >= 1.0:
 			_frame_time -= 1.0
-			_frame = (_frame + 1) % FRAME_COUNT
+			_frame = (_frame + 1) % _layout.frames
 	else:
 		# Settle on the neutral pose rather than freezing mid-stride.
 		_frame = 0
@@ -107,7 +126,7 @@ func update_from_velocity(velocity: Vector3, delta: float) -> void:
 func face_direction(direction: Vector2) -> void:
 	if direction.length_squared() < 0.0001:
 		return
-	_facing = facing_from_direction(direction)
+	_aim(direction)
 	_apply_frame()
 
 
@@ -115,14 +134,49 @@ func facing() -> GameEnums.Facing:
 	return _facing
 
 
-## Map a world-space XZ direction to a sheet column, corrected for camera yaw so that
-## "towards the camera" is always the front-facing cell even if an area frames its camera
-## from a different angle.
+## Map a world-space XZ direction to a GameEnums.Facing, corrected for camera yaw so that
+## "towards the camera" is always the front-facing value even if an area frames its camera from
+## a different angle. Sector 0 is towards the camera, matching Facing.SOUTH.
+##
+## THE SECTOR COUNT COMES FROM THE ENUM, never from a literal, for exactly the reason the
+## column's comes from the layout: `TAU / 8.0` sitting beside a separate `8` is two places
+## holding one number, and this file used to have both.
 func facing_from_direction(direction: Vector2) -> GameEnums.Facing:
-	var angle: float = atan2(direction.x, direction.y) - _camera_yaw()
-	# Eight sectors of 45 degrees. Sector 0 is towards the camera, matching Facing.SOUTH.
-	var sector: int = roundi(angle / (TAU / 8.0))
-	return posmod(sector, FACING_COUNT) as GameEnums.Facing
+	var count: int = GameEnums.Facing.size()
+	var sector: int = roundi(_screen_angle(direction) / (TAU / float(count)))
+	return posmod(sector, count) as GameEnums.Facing
+
+
+## Which sheet column a direction draws. The layout owns the quantisation because it owns the
+## facing count; this is the only caller that needs the answer.
+func column_from_direction(direction: Vector2) -> int:
+	return _layout.column_for_angle(_screen_angle(direction))
+
+
+## Set the enum value and the column together, so the two cannot drift apart by one being
+## updated at a call site and the other forgotten.
+func _aim(direction: Vector2) -> void:
+	_facing = facing_from_direction(direction)
+	_column = column_from_direction(direction)
+
+
+func _screen_angle(direction: Vector2) -> float:
+	return atan2(direction.x, direction.y) - _camera_yaw()
+
+
+## The layout to draw with. Unwired is legal and LOUD: an unwired @export renders something
+## plausible and says nothing, which is the whole of gotcha 2, so this one says something.
+func _resolved_layout() -> SpriteSheetLayout:
+	if layout != null:
+		return layout
+	var assumed := SpriteSheetLayout.new()
+	assumed.facings = DEFAULT_FACINGS
+	assumed.frames = DEFAULT_FRAMES
+	assumed.cell_size = DEFAULT_CELL
+	Log.warn("world", "%s has no SpriteSheetLayout; assuming %d facings x %d frames" % [
+		name, assumed.facings, assumed.frames,
+	])
+	return assumed
 
 
 func _camera_yaw() -> float:
@@ -136,17 +190,9 @@ func _camera_yaw() -> float:
 
 
 func _apply_frame() -> void:
-	if sprite == null:
+	if sprite == null or _layout == null:
 		return
-	sprite.frame = _frame * FACING_COUNT + int(_facing)
-
-
-## Height of one sheet cell in texture pixels, derived rather than hard-coded so a
-## different sheet size does not silently misplace every character in the game.
-func _cell_height() -> int:
-	if sprite == null or sprite.texture == null:
-		return 48
-	return sprite.texture.get_height() / FRAME_COUNT
+	sprite.frame = _layout.frame_index(_column, _frame, _layout.animation_for(_moving))
 
 
 ## Diagnostic for the dev capture tool. Cheap, and the first thing worth knowing when a

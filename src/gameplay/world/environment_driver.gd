@@ -23,6 +23,11 @@ extends Node
 ##                            what separates foreground, midground and background.
 ##   No SSAO, no SDFGI      - both are expensive and largely wasted on billboarded sprites
 ##                            and simple geometry. Revisit only if the look demands it.
+##
+## SINCE T3.2 EVERY NUMBER IN THAT STACK IS AN @export, not a literal. The descriptions above
+## say what each part is FOR; the defaults say what this template ships; and an area that wants
+## a different look sets the value in its own scene rather than editing this file. See the
+## "Post stack" group below, and docs/ART_CONTRACT.md for the consumer-facing form.
 
 ## A single point in the day. `t` is Clock.day_fraction(): 0.0 and 1.0 are midnight.
 const KEYFRAMES: Array[Dictionary] = [
@@ -82,6 +87,59 @@ const WEATHER_FOG_GAIN: float = 4.0
 ## Set false for interiors, which should not follow the outdoor sun.
 @export var follow_clock: bool = true
 
+@export_group("Interior")
+## Applied ONCE, instead of the clock, when follow_clock is false.
+##
+## WHY THIS GROUP HAD TO EXIST. Before it, follow_clock=false only stopped the driver
+## UPDATING — _ready still called _apply_now once, so an interior inherited whatever hour it
+## happened to be entered at, and the sun was hidden outright below the horizon. The first
+## interior ever built was therefore pitch black at 02:30 and fine at noon, from the same
+## scene file. An interior needs its own light, not a frozen sample of someone else's.
+@export var interior_ambient: Color = Color(0.30, 0.24, 0.22)
+@export_range(0.0, 4.0, 0.05) var interior_ambient_energy: float = 0.85
+@export var interior_fog: Color = Color(0.26, 0.19, 0.16)
+@export_range(0.0, 0.2, 0.001) var interior_fog_density: float = 0.010
+
+
+@export_group("Post stack")
+## THE HD-2D LOOK, AS DATA (T3.2). Every one of these was a literal inside _build_post_stack, so
+## re-tuning the look of a game built on this template meant editing engine code — which
+## docs/AUTHORING.md tells an author they never do. They are @exports on THIS node rather than a
+## resource, and per AREA rather than per project, for the reason the header's PER-AREA note
+## gives: this driver already lives in the area scene, and the Interior group above already
+## varies per area. A game that wants one look everywhere authors its areas from one copy; a
+## game that wants a bright market and a smoky cellar has the seam without asking for it.
+##
+## The defaults below ARE the values T2.1 shipped, to the digit, so no area that leaves them
+## alone renders differently. tests/unit/area_look_test.gd fails if a number grows back here.
+@export_range(0.0, 4.0, 0.01) var tonemap_exposure: float = 1.0
+@export var glow_enabled: bool = true
+@export_range(0.0, 4.0, 0.01) var glow_intensity: float = 0.9
+@export_range(0.0, 2.0, 0.01) var glow_strength: float = 1.1
+@export_range(0.0, 1.0, 0.01) var glow_bloom: float = 0.15
+## Above this luminance a surface bleeds. Low enough for lanterns, high enough not to haze.
+@export_range(0.0, 4.0, 0.01) var glow_hdr_threshold: float = 0.92
+@export_range(0.0, 4.0, 0.01) var glow_hdr_scale: float = 2.0
+@export var fog_enabled: bool = true
+@export var fog_depth_begin: float = 30.0
+@export var fog_depth_end: float = 160.0
+@export_range(0.0, 1.0, 0.01) var fog_sky_affect: float = 0.35
+## The godrays. Expensive, and the largest single cost in this stack on a weak GPU.
+@export var volumetric_fog_enabled: bool = true
+@export_range(0.0, 0.1, 0.0001) var volumetric_fog_density: float = 0.005
+@export var volumetric_fog_length: float = 96.0
+@export_range(-0.9, 0.9, 0.01) var volumetric_fog_anisotropy: float = 0.3
+@export_range(0.0, 1.0, 0.01) var volumetric_fog_gi_inject: float = 0.0
+
+@export_group("Expensive effects, off by default")
+## All four are OFF and the header says why: they are largely wasted on billboarded sprites and
+## simple geometry. They are exports rather than hard-coded `false` because "revisit only if the
+## look demands it" is a decision for the game, not for the template — and a value a consuming
+## game cannot reach is not a seam, it is an opinion.
+@export var ssao_enabled: bool = false
+@export var sdfgi_enabled: bool = false
+@export var ssil_enabled: bool = false
+@export var ssr_enabled: bool = false
 var _environment: Environment = null
 
 
@@ -96,7 +154,10 @@ func _ready() -> void:
 		_environment = Environment.new()
 		world_environment.environment = _environment
 	_build_post_stack()
-	_apply_now()
+	if follow_clock:
+		_apply_now()
+	else:
+		_apply_interior()
 	Log.info("world", "Environment driver ready (follow_clock=%s)" % str(follow_clock))
 
 
@@ -105,7 +166,9 @@ func _process(_delta: float) -> void:
 		_apply_now()
 
 
-## The one-time HD-2D look configuration.
+## The one-time HD-2D look configuration. Every VALUE here is an @export above; what stays in
+## code is the STRUCTURE — which tonemapper, which fog mode, that ambient comes from a colour —
+## because those are what the rest of this file assumes rather than what an area tunes.
 func _build_post_stack() -> void:
 	_environment.background_mode = Environment.BG_SKY
 	if _environment.sky == null:
@@ -114,35 +177,35 @@ func _build_post_stack() -> void:
 		_environment.sky = sky
 
 	_environment.tonemap_mode = Environment.TONE_MAPPER_AGX
-	_environment.tonemap_exposure = 1.0
+	_environment.tonemap_exposure = tonemap_exposure
 
-	_environment.glow_enabled = true
-	_environment.glow_intensity = 0.9
-	_environment.glow_strength = 1.1
-	_environment.glow_bloom = 0.15
+	_environment.glow_enabled = glow_enabled
+	_environment.glow_intensity = glow_intensity
+	_environment.glow_strength = glow_strength
+	_environment.glow_bloom = glow_bloom
 	_environment.glow_blend_mode = Environment.GLOW_BLEND_MODE_SCREEN
-	_environment.glow_hdr_threshold = 0.92
-	_environment.glow_hdr_scale = 2.0
+	_environment.glow_hdr_threshold = glow_hdr_threshold
+	_environment.glow_hdr_scale = glow_hdr_scale
 
-	_environment.fog_enabled = true
+	_environment.fog_enabled = fog_enabled
 	_environment.fog_mode = Environment.FOG_MODE_DEPTH
-	_environment.fog_depth_begin = 30.0
-	_environment.fog_depth_end = 160.0
-	_environment.fog_sky_affect = 0.35
+	_environment.fog_depth_begin = fog_depth_begin
+	_environment.fog_depth_end = fog_depth_end
+	_environment.fog_sky_affect = fog_sky_affect
 
-	_environment.volumetric_fog_enabled = true
-	_environment.volumetric_fog_density = 0.005
-	_environment.volumetric_fog_length = 96.0
-	_environment.volumetric_fog_gi_inject = 0.0
-	_environment.volumetric_fog_anisotropy = 0.3
+	_environment.volumetric_fog_enabled = volumetric_fog_enabled
+	_environment.volumetric_fog_density = volumetric_fog_density
+	_environment.volumetric_fog_length = volumetric_fog_length
+	_environment.volumetric_fog_gi_inject = volumetric_fog_gi_inject
+	_environment.volumetric_fog_anisotropy = volumetric_fog_anisotropy
 
 	_environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 
-	# Deliberately off. See the header note.
-	_environment.ssao_enabled = false
-	_environment.sdfgi_enabled = false
-	_environment.ssil_enabled = false
-	_environment.ssr_enabled = false
+	# Off by default, and see the group's note for why they are exports rather than literals.
+	_environment.ssao_enabled = ssao_enabled
+	_environment.sdfgi_enabled = sdfgi_enabled
+	_environment.ssil_enabled = ssil_enabled
+	_environment.ssr_enabled = ssr_enabled
 
 
 func _apply_now() -> void:
@@ -179,6 +242,19 @@ func _apply_now() -> void:
 		sky_material.sky_horizon_color = fog_colour.lightened(0.15)
 		sky_material.ground_horizon_color = fog_colour.lightened(0.05)
 		sky_material.ground_bottom_color = fog_colour.darkened(0.5)
+
+
+## An interior, lit once and then left alone. It deliberately does NOT touch the sun: indoors
+## that light is an authored fill at whatever angle and energy the scene set, and the outdoor
+## code path would swing it round the sky and hide it below the horizon at night.
+func _apply_interior() -> void:
+	_environment.ambient_light_color = interior_ambient
+	_environment.ambient_light_energy = interior_ambient_energy
+	_environment.fog_light_color = interior_fog
+	_environment.fog_density = interior_fog_density
+	_environment.volumetric_fog_albedo = interior_fog
+	_environment.background_mode = Environment.BG_COLOR
+	_environment.background_color = interior_fog.darkened(0.6)
 
 
 ## Blend between the two keyframes surrounding `t`, wrapping around midnight.

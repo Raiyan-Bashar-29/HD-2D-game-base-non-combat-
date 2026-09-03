@@ -89,7 +89,7 @@ func attempt(who: Node3D) -> bool:
 	if reason != GameEnums.RefusalReason.NONE:
 		var reason_names: Array = GameEnums.RefusalReason.keys()
 		Log.debug("interact", "%s refused: %s" % [name, str(reason_names[reason])])
-		Events.interaction_refused.emit(self, reason, refusal_args(who))
+		Events.interaction_refused.emit(self, reason, refusal_args(who), refusal_key(who, reason))
 		return false
 
 	Events.interaction_started.emit(self)
@@ -133,3 +133,20 @@ func _enter_tree() -> void:
 ## which is correct for LOCKED and ALREADY_DONE.
 func refusal_args(_who: Node3D) -> Dictionary:
 	return {}
+
+
+## An AUTHORED line for this refusal, replacing the generic one the UI computes from the reason.
+## Empty — the base answer, and the right answer for almost everything — means "use
+## refusal.<reason>".
+##
+## WHY THIS EXISTS AT ALL, given `RefusalReason` already names why. Because a reason is a
+## CATEGORY and a message is a sentence. `refusal.locked` reads "it will not budge, something
+## holds it shut", which is true of every locked thing in every game and specific to none of
+## them; a gate whose author wrote "it is pitch dark beyond" is saying something the enum
+## cannot. The alternative was a new enum value per authored line, which is a category per
+## sentence — exactly the growth the closed sets in `GameEnums` exist to prevent.
+##
+## `reason` is a parameter, not a lookup, because one object refuses for several reasons and
+## only some of them have a line worth writing.
+func refusal_key(_who: Node3D, _reason: GameEnums.RefusalReason) -> String:
+	return ""

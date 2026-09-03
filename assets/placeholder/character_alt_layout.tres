@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="SpriteSheetLayout" load_steps=2 format=3]
+
+; The layout of character_alt.png, and it disagrees with character_layout.tres on EVERY number:
+; 4 facings not 8, a 24x40 cell not 32x48, and 3 frames in each of two animation blocks rather
+; than 4 frames in one. It exists so T2.1's headline claim can be demonstrated rather than
+; asserted: point a CharacterVisual's `layout` and `texture` at this pair, run the windowed
+; capture, and read the pip tallies on the drawn cell. No code changes for either sheet.
+
+[ext_resource type="Script" path="res://src/content/art/sprite_sheet_layout.gd" id="1_layout"]
+
+[resource]
+script = ExtResource("1_layout")
+facings = 4
+frames = 3
+animations = 2
+cell_size = Vector2i(24, 40)
+idle_row = 0
+walk_row = 1

@@ -1,16 +1,21 @@
 extends TestCase
 ## Core layer: untyped data reads, the flag store, and the save round-trip.
 ##
-## OWNS: assertions about core/. MUST NOT: know about gameplay or content.
+## OWNS: assertions about core/, including the GameConfig seam that keeps the demo's ids out of
+## src/. MUST NOT: know about gameplay or content — and specifically, must never assert a demo
+## id, which is why the GameConfig cases compare against ProjectSettings instead.
 
 var _probe_value: int = 0
 
 
 func run() -> void:
+	plan(50)
 	_dict_read()
 	_flags()
 	_flags_hands_out_copies()
 	_save_round_trip()
+	_game_config()
+	_game_naming()
 
 
 func _dict_read() -> void:
@@ -60,16 +65,23 @@ func _flags() -> void:
 ## Godot passes Dictionaries and Arrays by reference. If the store handed out the real object,
 ## a caller could mutate world state without set_flag, so flag_changed would never fire and
 ## nothing listening would learn. Container contents are the first system that would be bitten.
+##
+## THE DICTIONARY KEYS ARE fixture_-NAMESPACED AND THAT IS NOT DECORATION. They were "apple" and
+## "pear", and T4.2 authored an item called pear: check_boundary derives its demo names from the
+## content a game has authored, so an arbitrary literal in an engine test becomes a boundary
+## violation the day a game happens to use that word. An id embedded after an underscore is not a
+## whole word, so the fixture prefix makes these immune by construction.
 func _flags_hands_out_copies() -> void:
 	Flags.clear_all()
-	Flags.set_flag(&"test/bag", {"apple": 2})
+	Flags.set_flag(&"test/bag", {"fixture_apple": 2})
 
 	var borrowed: Dictionary = Flags.get_dict(&"test/bag")
-	borrowed["apple"] = 99
-	borrowed["pear"] = 1
+	borrowed["fixture_apple"] = 99
+	borrowed["fixture_pear"] = 1
 	var fresh: Dictionary = Flags.get_dict(&"test/bag")
-	equal("mutating a fetched dict does not touch the store", DictRead.get_int(fresh, "apple"), 2)
-	equal("nor can it add keys to the store", fresh.has("pear"), false)
+	equal("mutating a fetched dict does not touch the store",
+		DictRead.get_int(fresh, "fixture_apple"), 2)
+	equal("nor can it add keys to the store", fresh.has("fixture_pear"), false)
 
 	Flags.set_flag(&"test/list", [1, 2])
 	var list: Array = Flags.get_array(&"test/list")
@@ -131,3 +143,40 @@ func _probe_collect() -> Dictionary:
 func _probe_apply(data: Dictionary, from_version: int) -> void:
 	_probe_value = DictRead.get_int(data, "v", -1)
 	_seen_version = from_version
+
+
+## GameConfig is the seam T1.2 added so `src/` stops naming demo content. Every assertion here
+## compares against ProjectSettings rather than against a literal, on purpose: a test that
+## asserted `first_area() == "courtyard"` would rebuild the leak it exists to prove is gone.
+func _game_config() -> void:
+	var configured: String = str(ProjectSettings.get_setting(GameConfig.FIRST_AREA_SETTING, ""))
+	equal("first area comes from project.godot", GameConfig.first_area(), StringName(configured))
+	equal("a template with a game in it names one", configured != "", true)
+	equal("first spawn comes from project.godot", GameConfig.first_spawn(), StringName(
+		str(ProjectSettings.get_setting(GameConfig.FIRST_SPAWN_SETTING, ""))))
+
+	# An UNSET first area is a real state — a template nobody has put a game in yet — and it must
+	# read as empty rather than as the string "<null>", which is what str(null) would give.
+	ProjectSettings.set_setting(GameConfig.FIRST_AREA_SETTING, null)
+	equal("an unset first area is empty", GameConfig.first_area(), &"")
+	ProjectSettings.set_setting(GameConfig.FIRST_SPAWN_SETTING, null)
+	equal("an unset first spawn falls back", GameConfig.first_spawn(), GameConfig.DEFAULT_FIRST_SPAWN)
+	ProjectSettings.set_setting(GameConfig.FIRST_AREA_SETTING, configured)
+	ProjectSettings.set_setting(GameConfig.FIRST_SPAWN_SETTING, "default")
+	equal("restored", GameConfig.first_area(), StringName(configured))
+
+
+## The banner and the log file name read these, which is why `Gulistan` is no longer written
+## anywhere in src/core/log/log.gd.
+func _game_naming() -> void:
+	var name_setting: String = str(ProjectSettings.get_setting("application/config/name", ""))
+	equal("name comes from project.godot", GameConfig.game_name(), name_setting)
+	var slug: String = GameConfig.game_slug()
+	equal("slug is not empty", slug != "", true)
+	equal("slug is lower case", slug, slug.to_lower())
+	var safe: bool = true
+	for character: String in slug:
+		if not GameConfig.SLUG_ALPHABET.contains(character) and character != "_":
+			safe = false
+	equal("slug is safe in a file name", safe, true)
+	equal("slug has no leading or trailing underscore", slug.trim_prefix("_").trim_suffix("_"), slug)

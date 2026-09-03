@@ -18,6 +18,8 @@ var _target: Node3D = null
 var _verb: GameEnums.InteractVerb = GameEnums.InteractVerb.LOOK
 var _label_key: String = ""
 var _refusal_left: float = 0.0
+## A screen is covering the world. Gameplay UI has nothing to say while that is true.
+var _ui_blocked: bool = false
 
 
 func _ready() -> void:
@@ -34,6 +36,7 @@ func _ready() -> void:
 	Events.interact_target_changed.connect(_on_target_changed)
 	Events.interaction_refused.connect(_on_refused)
 	Events.player_spawned.connect(_on_player_spawned)
+	Events.ui_mode_changed.connect(_on_ui_mode_changed)
 	if Director.player != null:
 		_on_player_spawned(Director.player)
 
@@ -60,14 +63,24 @@ func _on_target_changed(target: Node3D, verb: GameEnums.InteractVerb, label_key:
 		_redraw()
 
 
-func _on_refused(_target: Node3D, reason: GameEnums.RefusalReason, args: Dictionary) -> void:
-	text = tr(_refusal_key(reason)).format(args)
+func _on_refused(_target: Node3D, reason: GameEnums.RefusalReason, args: Dictionary,
+		message_key: String) -> void:
+	# An authored line wins over the one computed from the reason; see events.gd.
+	var key: String = message_key if message_key != "" else _refusal_key(reason)
+	text = tr(key).format(args)
 	visible = true
 	_refusal_left = REFUSAL_SECONDS
 
 
+func _on_ui_mode_changed(mode: GameEnums.UiMode) -> void:
+	_ui_blocked = mode != GameEnums.UiMode.GAMEPLAY
+	if _ui_blocked:
+		_refusal_left = 0.0
+	_redraw()
+
+
 func _redraw() -> void:
-	if _target == null:
+	if _ui_blocked or _target == null:
 		text = ""
 		visible = false
 		return

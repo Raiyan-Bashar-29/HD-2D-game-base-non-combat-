@@ -44,8 +44,20 @@ signal game_ending()
 signal area_change_requested(area_id: StringName, spawn_id: StringName)
 ## Transition began. UI should cover the screen. The old area is still alive at this point.
 signal area_unloading(area_id: StringName)
+## How far the threaded load of an area has got, 0.0 to 1.0. Emitted every frame while a load
+## is in flight, so a loading indicator can show progress without polling ResourceLoader
+## itself - which would mean a second place that knows the path template.
+signal area_load_progress(area_id: StringName, ratio: float)
 ## The new area is in the tree and the player is placed. Safe to query world contents.
 signal area_entered(area_id: StringName)
+
+## A place went onto the world map. Emitted by `WorldMap` and nothing else.
+##
+## NOTHING NEEDS THIS TO GATE ANYTHING, and that is the same note `equipment_changed` carries.
+## Discovery lives in `Flags` under `map/<area id>`, so a gate, a quest step or a dialogue
+## condition reacts through `flag_changed` with no code at all. This exists for a UI that wants
+## to redraw a dot, which is presentation and not a rule.
+signal area_discovered(area_id: StringName)
 
 # ---------------------------------------------------------------------------------------
 # The player character. Emitted by the player's own components.
@@ -70,8 +82,13 @@ signal interaction_started(target: Node3D)
 signal interaction_finished(target: Node3D)
 ## An interaction was rejected, with a reason the UI can explain to the player. `args` fills
 ## placeholders the same way notify_requested does - MISSING_ITEM is useless to a player
-## without naming the item.
-signal interaction_refused(target: Node3D, reason: GameEnums.RefusalReason, args: Dictionary)
+## without naming the item. `message_key` is an AUTHORED override, empty for almost everything:
+## the UI computes `refusal.<reason>` from the enum, which is right for a generic lock and wrong
+## for one whose author wrote a specific line. It travels here rather than being asked of the
+## target for the same reason `args` does - a refusal is announced once, with everything needed
+## to render it, and the prompt never has to hold a reference to a gameplay node.
+signal interaction_refused(target: Node3D, reason: GameEnums.RefusalReason, args: Dictionary,
+	message_key: String)
 
 # ---------------------------------------------------------------------------------------
 # Items and inventory. Emitted by the inventory component.
@@ -86,12 +103,27 @@ signal item_used(item_id: StringName)
 ## Something about the inventory changed. The UI redraws on this and ignores the specifics.
 signal inventory_changed()
 
+## What one carrier has equipped changed. Emitted by an `Equipment` component and nothing else.
+## `wearer_id` is carried because equipment is per carrier — an NPC or a stash may have one — and
+## a listener that assumed "the player" would be wrong the first time a second one appeared.
+##
+## NOTHING NEEDS THIS TO GATE ANYTHING. Equipment lives in `Flags` under `equip/<wearer>/<item>`,
+## so a gate, a quest step or a dialogue condition reacts through `flag_changed` with no code at
+## all — the same reasoning that keeps a `TriggerVolume` from naming its consequence. This signal
+## exists for a UI that wants to redraw a row, which is a presentation concern and not a rule.
+signal equipment_changed(wearer_id: StringName, slot: GameEnums.EquipSlot, item_id: StringName)
+
 # ---------------------------------------------------------------------------------------
-# World state. Emitted by Flags.
+# World state. Emitted by Flags, and by trigger volumes in the world.
 # ---------------------------------------------------------------------------------------
 
 ## A plot or world flag changed value. Quests, doors and dialogue conditions listen.
 signal flag_changed(flag: StringName, value: Variant)
+
+## A trigger volume fired. Emitted by TriggerVolume and nothing else. `who` is the body that
+## entered. Carried on the bus rather than left as a local node signal because the whole point
+## of a trigger is that the thing it affects is somewhere else and does not know it exists.
+signal trigger_fired(trigger_id: StringName, who: Node3D)
 
 # ---------------------------------------------------------------------------------------
 # Time and weather. Emitted by Clock and Weather.
@@ -114,6 +146,9 @@ signal weather_changed(kind: GameEnums.WeatherKind)
 # Dialogue and narrative. Emitted by the dialogue system.
 # ---------------------------------------------------------------------------------------
 
+## Someone asked to talk. The UI layer listens and opens the box; the asker does not know a
+## box exists. Same shape as area_change_requested: gameplay names an id, ui does the work.
+signal dialogue_requested(talk_id: StringName)
 ## A conversation started. Gameplay input should yield to the dialogue UI.
 signal dialogue_started(speaker_id: StringName)
 ## A conversation ended and control returns to the player.
@@ -139,6 +174,18 @@ signal quest_completed(quest_id: StringName)
 signal notify_requested(key: String, seconds: float, args: Dictionary)
 ## Fade the screen. Director uses this for transitions, and cutscenes may too.
 signal screen_fade_requested(to_black: bool, seconds: float)
+## Show the main menu. Emitted by GameRoot on boot - which is why the game no longer starts in
+## an area - and by the pause menu's "main menu" row. A `_requested` ask has many askers by
+## design; it is the FACTS on this bus that have exactly one emitter each.
+signal main_menu_requested()
+## Close the game. The menus ask; `GameRoot` is the only thing that performs it, so there is
+## still one shutdown path and an autosave policy will only ever need adding in one place.
+signal quit_requested()
+## A screen opened or closed and the world's relationship to input changed. Emitted by UiRoot
+## and by nothing else - it is the single announcement that replaces one input-lock boolean
+## per screen. Input readers take or release their own `ui` token on it; the prompt hides on
+## it. Carried on the bus because UiRoot must not know the player's components exist.
+signal ui_mode_changed(mode: GameEnums.UiMode)
 
 # ---------------------------------------------------------------------------------------
 # Settings and debug.

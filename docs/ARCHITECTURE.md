@@ -116,15 +116,75 @@ a per-area special case, and area fifty needs no code at all:
 
 ```
 AreaRoot (Node3D)                 area_root.gd
-|- Environment/                   WorldEnvironment, Sun, Moon, EnvironmentDriver
-|- Terrain/                       geometry and static collision
+|- Environment/                   WorldEnvironment, Sun, EnvironmentDriver, WeatherVisuals
+|- Terrain/                       geometry and static collision, in group navmesh_source
 |- Props/                         scenery, lights
 |- Interactables/                 anything the player can act on
 |- Actors/                        NPCs
 |- Spawns/                        one Marker3D per entry point
 |- Triggers/                      Area3D volumes
-|- Camera/                        the area's HD2DCameraRig
+|- Camera/                        the area's camera rig
+|- Navigation/                    Region, a NavigationRegion3D baked at load
+|- Waypoints/                     one Marker3D per named place an NPC can be sent to
 ```
+
+All ten are required and are asserted for every authored area by
+`tests/unit/transitions_test.gd`. [`AUTHORING.md`](AUTHORING.md) has the authoring form.
+
+## The extension surface
+
+**Which classes a consuming game is expected to subclass, call or replace — and which are the
+engine's own business.** This is the distinction most likely to be got wrong by someone moving
+fast, because nothing in the tree marks it.
+
+The one-line version: **a game adds content and resources; it does not add code under `src/`.**
+Anything that needs a new `src/` file is a change to the *template*, and belongs upstream.
+
+### Tier 1 — authored data. No code at all, and this is where nearly everything goes.
+
+Items, conversations, schedules, quests, path actions, areas, sprite sheet layouts, the UI theme,
+instances of the object and character prefabs. Adding the fiftieth of any of them touches no
+script. [`AUTHORING.md`](AUTHORING.md) is the whole of this tier;
+[`ART_CONTRACT.md`](ART_CONTRACT.md) is the two resources that carry the look.
+
+### Tier 2 — the extension points. Subclass or replace these, deliberately.
+
+| Point | How | Why it is open |
+|---|---|---|
+| `Interactable` | `extends Interactable`, override `perform(who)` and optionally `refusal(who)` | The documented way to add a kind of object. Detection, ranking, the prompt, refusal messaging, one-shot and hold-to-confirm are all already handled. Subclasses stay thin: behaviour and state go into children |
+| `UiScreen` | `extends UiScreen`, declare `pauses_world` / `closes_on_cancel` **in `_init`, never in `_build`** | A new screen is a game's business. `_build` runs from `_ready`, after a caller could have overridden a flag, so setting one there silently discards the caller's request |
+| `SpriteSheetLayout`, `ui_theme.tres` | **replace the resource, not the class** | The art contract. See `ART_CONTRACT.md` |
+| Inventory capacity | override `can_accept()` | Capacity is unlimited behind that one method. Slots or weight go there and nowhere else |
+| A bespoke area behaviour | a child node with its own script, under the area | **Do not subclass `AreaRoot`.** Areas differ in content, not in shape; the root stays generic so `Director` never grows a per-area case |
+| `Events` signals | connect to anything in `src/core/events/events.gd` | It is the connection map and it is meant to be read and listened to |
+
+### Tier 3 — internals. Read them; do not edit or subclass them.
+
+The ten autoloads (`Log`, `Events`, `Actions`, `Settings`, `SaveSystem`, `Flags`, `Clock`,
+`Weather`, `Audio`, `Director`), `Director`'s transition sequence, `InteractionSensor`, `UiRoot`,
+`PlayerController`, `PersistentState`, `EnvironmentDriver`, `WeatherVisuals`, `QuestTracker`, and
+the content registries. Each owns exactly one concern, and the seams above exist so none of them
+has to be touched.
+
+Three that look editable and are not:
+
+- **`GameEnums` is append-only.** `InteractVerb`, `RefusalReason`, `ItemCategory` and the rest are
+  stored in authored scenes as **ordinals**, so reordering one silently repoints every `.tscn` in
+  the project at a different value. Appending is a template change, not a game change.
+- **Adding an autoload requires an ADR.** There is no `GameManager` and there will not be one.
+- **There is no combat, at the template level.** No battles, enemies, damage or encounters. If a
+  design seems to need one, that effort redirects into traversal, interaction or world state.
+
+### When you genuinely need `src/` to change
+
+Say so rather than forking a screen. The seam is either missing or in the wrong place, and both
+are template bugs. `tools/check_boundary.gd` exists to make the *other* direction impossible — no
+file under `src/` may name your content — and a game editing `src/` is the failure this whole
+boundary was written to prevent.
+
+**How a game already forked from the template receives a later fix to the base is not yet
+described.** That is Phase T4's job and it is open work, stated here so nobody assumes an answer
+exists.
 
 ## Data, not code
 
@@ -148,8 +208,19 @@ Good intentions did not work last time. These are mechanical:
    category of runtime surprise.
 2. **Line budgets,** counted in CODE lines so documentation is never penalised: 250 per
    script, 150 for an autoload, 40 per function, 60 for the game root. Enforced by
-   `tools/check_budgets.gd`, which exits 1 on violation. Currently 23 files, 1,890 code
-   lines, 0 violations. It also bans `print()` outside the logger and the tools.
+   `tools/check_budgets.gd`, which exits 1 on violation. It also bans `print()` outside the
+   logger and the tools.
+
+   **A per-file override may be RAISED, and WP-14 raised one — the first time, so the reasoning
+   is recorded here rather than left in a diff.** `director.gd` went from 180 to 190 when it
+   gained the shutdown drain for its own threaded loader. The checker offers two remedies,
+   "split the file, or justify a new budget", and the split was the wrong one: the drain has to
+   sit with the code that owns the loader thread, and `Director`'s whole header is an argument
+   for *one owner, one guarded path* — carving up the project's single transition path to save
+   seven lines would trade real safety for a number. The distinction that makes this legitimate
+   rather than a slippery slope is that **190 is not above the 250 default; it is a
+   self-imposed tightening being relaxed 60 lines short of it.** Going over 250 still means
+   split.
 3. **A stated `MUST NOT` in every file header.** Every script says what it is forbidden to
    know. When a change requires violating it, that is the signal to add a new system instead.
 4. **The verification ladder,** below. Nothing is "done" until the engine has run it.
@@ -163,8 +234,12 @@ Every rung is proven working on this machine. Nothing here is aspirational.
 | 1. Parse and type gate | `--headless --check-only --script <file>` | Type errors, unknown functions, with file and line |
 | 2. Import gate | `--headless --import` | Broken scenes, resources, asset references |
 | 3. Headless run | `--headless --quit-after 30` | Boot order, null references, real `_process` frames |
-| 4. Tests | `--headless res://tests/test_runner.tscn --quit-after 150` | Logic, save round-trips. 74 assertions, exit 1 on failure |
-| 5. Visual capture | `--quit-after 55 -- --shot=<path> --time=HH:MM` | The actual look, at any hour, on demand |
+| 4. Tests | `--headless res://tests/test_runner.tscn --quit-after 400` | Logic, save round-trips. 1,574 assertions, exit 1 on failure |
+| 5. check_budgets | `--headless --script tools/check_budgets.gd` | File and function line budgets, stray `print()` |
+| 6. check_content | `--headless --script tools/check_content.gd` | Broken items, duplicate object ids, missing CSV keys, a missing `[editable]` |
+| 7. check_boundary | `--headless --script tools/check_boundary.gd` | Any demo name in a code line under `src/` or `tests/` |
+| 8. check_strings | `--headless --script tools/check_strings.gd` | A literal reaching a text sink, a `*_KEY` const with no CSV row |
+| 9. Visual capture | `--quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=HH:MM` | The actual look, at any hour, on demand |
 
 **Rung 1 gotcha:** autoload identifiers such as `Log` do not resolve under `--check-only`,
 because a standalone script check does not create them. Filter
@@ -176,7 +251,7 @@ compile (`Compile Error: Identifier not found: Log`), so no test touching a syst
 that way. Also: anything created with `.new()` and not freed prints a wall of
 `RID allocations were leaked at exit`, which drowns real errors.
 
-**Rung 5 is the important one.** `--headless` uses a dummy rasteriser and shades nothing, so
+**Rung 9 is the important one.** `--headless` uses a dummy rasteriser and shades nothing, so
 visual work needs a real window. `DevCapture` makes that repeatable: it forces the clock and
 the weather from the command line and writes the viewport to a PNG. This is what closes the
 "multi-resolution HD-2D presentation cannot be verified" item that the previous project could
@@ -202,11 +277,32 @@ never resolve.
 
 - **Input actions are invisible in the editor.** They are built in code, so Project Settings
   shows an empty Input Map. Accepted; see `docs/decisions/ADR-0003`.
-- **No test runner yet.** Rung 4 of the ladder is the next gap to close.
+- **No hard-coded-string audit.** Computed keys (`verb.*`, `refusal.*`, `item.category.*`,
+  `time.phase.*`) are each covered by an enum loop in the suite, and `tools/check_content.gd`
+  fails a CSV row with an unquoted comma — but literal player-facing text in code is still
+  caught only by review.
 - **Audio has no assets,** so every audio path is written but unexercised. It accepts `null`
   everywhere by design, which means it is untested rather than broken.
-- **`Weather` publishes state but nothing renders it yet.** No rain exists.
-- **Only one area exists,** so the transition path is written and logged but has never
-  actually swapped two areas.
-- **The content validator and string audit are not built yet.** The line-budget checker is,
-  and passes at 23 files / 1,890 code lines / 0 violations.
+- **The UI theme sets no `Button` styleboxes,** so a menu row draws Godot's default dark panel.
+  Invisible against the shipped dark palette and immediately wrong against a light one. The seam
+  is right and unpopulated — see [`ART_CONTRACT.md`](ART_CONTRACT.md).
+- **`Director` drains its threaded load on shutdown as of WP-14**, so a run killed mid-load no
+  longer prints `Parse Error` for files that parse perfectly. There is no `load_threaded_cancel` in
+  4.7, so the fix is a blocking `load_threaded_get()` in `_exit_tree()` — measured at 118-197ms,
+  paid once. The boot rung's frame count was never really about this (gotcha 31: a plain boot loads
+  no area); the gate it was really costing was CI's rung 3, which now greps its whole log.
+- **A quest step CAN read an item count, and a completed quest still hands nothing over.** Closed
+  by T3.3, and the shape is worth knowing because it is the general answer whenever a lower layer
+  holds something an upper one needs to observe: rather than a `systems` tracker reading a
+  `gameplay` inventory — which points the wrong way and is what WP-08 refused over `reward_item` —
+  `Inventory` PUBLISHES each count as the flag `bag/<carrier_id>/<item id>`, and a step tests it
+  with the comparison set it already had. The dependency points DOWN, `QuestStep` gained no field
+  and `QuestTracker` gained no knowledge. The mirror is declared DERIVED in `Flags`, so it is
+  readable and announced but never saved — the count is saved once, by the bag that owns it.
+  What remains deferred is a step that *takes* the items, for the layer reason that has not
+  changed: a completed quest emits `quest_completed` and stops.
+- **The four content registries are four copies of the same thirty lines.** `ScheduleDb`'s header
+  said "three is a pattern, four is a problem"; WP-08 made it four, reconsidered it, and kept the
+  copy because GDScript has no generics and a shared base could only hand back untyped
+  `Resource`s. The refactor that pays — a base holding the cache plus a thin typed façade each —
+  has a board row.

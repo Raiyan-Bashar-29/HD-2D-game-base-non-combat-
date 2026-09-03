@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SpriteSheetLayout" load_steps=2 format=3]
+
+; The layout of character_placeholder.png: 8 facings across, one 4-frame cycle down, 32x48 cells.
+; This is the sheet the project shipped with FACING_COUNT = 8 and FRAME_COUNT = 4 baked into
+; CharacterVisual, so these numbers are the OLD CONSTANTS moved out of code, unchanged.
+; animations = 1 with both rows at 0 means the sheet has no separate idle, which is what it had.
+
+[ext_resource type="Script" path="res://src/content/art/sprite_sheet_layout.gd" id="1_layout"]
+
+[resource]
+script = ExtResource("1_layout")
+facings = 8
+frames = 4
+animations = 1
+cell_size = Vector2i(32, 48)
+idle_row = 0
+walk_row = 0

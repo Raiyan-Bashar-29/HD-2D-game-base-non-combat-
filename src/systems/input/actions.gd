@@ -43,6 +43,7 @@ const CAM_ZOOM_OUT: StringName = &"cam_zoom_out"
 # Developer only. Never referenced by gameplay code.
 const DEBUG_CONSOLE: StringName = &"debug_console"
 const DEBUG_FREECAM: StringName = &"debug_freecam"
+const DEBUG_PERF: StringName = &"debug_perf"
 const DEBUG_SCREENSHOT: StringName = &"debug_screenshot"
 
 ## Every gameplay action, in the order a rebinding screen should list them.
@@ -63,7 +64,22 @@ func _ready() -> void:
 	_define_screens()
 	_define_camera()
 	_define_debug()
+	# AFTER the defaults, never before: installing an override erases the default of the same
+	# kind, so loading first would leave the defaults to overwrite the player's own choices.
+	KeyBindings.load_all()
 	Log.info("input", "Registered %d input actions" % InputMap.get_actions().size())
+
+
+## Put every rebindable action back to the binding declared in this file, and forget the
+## override file. `KeyBindings` cannot do this alone and must not try: the defaults live here,
+## which is the whole of ADR-0003.
+func reset_bindings() -> void:
+	KeyBindings.forget_all()
+	_define_movement()
+	_define_traversal()
+	_define_interaction()
+	_define_screens()
+	Log.info("input", "Bindings reset to defaults")
 
 
 func _define_movement() -> void:
@@ -103,6 +119,7 @@ func _define_camera() -> void:
 func _define_debug() -> void:
 	_define(DEBUG_CONSOLE, [_key(KEY_F1)])
 	_define(DEBUG_FREECAM, [_key(KEY_F2)])
+	_define(DEBUG_PERF, [_key(KEY_F3)])
 	_define(DEBUG_SCREENSHOT, [_key(KEY_F12)])
 
 

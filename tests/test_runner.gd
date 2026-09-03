@@ -3,7 +3,7 @@ extends Node
 ## This file is a dispatcher. The assertions live in tests/unit/, one file per area.
 ##
 ## RUN:
-##     godot_console --headless res://tests/test_runner.tscn --quit-after 200
+##     godot_console --headless res://tests/test_runner.tscn --quit-after 400
 ##
 ## Exit code 0 if every assertion passes, 1 otherwise, so this gates a commit or CI.
 ##
@@ -18,8 +18,22 @@ extends Node
 ## per function. Rather than raise the budget - the move that turns a file into 3,983 lines
 ## twenty reasonable lines at a time - the cases moved into tests/unit/ behind a TestCase base.
 ##
-## OWNS: discovering cases, tallying them, and the exit code.
+## THE FOUR WAYS A SUITE PASSES WITHOUT TESTING ANYTHING, and what stops each (T1.3):
+## 1. A case CRASHES. A GDScript runtime error aborts only the innermost frame, so the runner
+##    sees a case that returned normally. Caught TWICE, because one is not enough: the declared
+##    plan catches every crash that swallows an assertion, and `ErrorWatch` - an `OS.add_logger`
+##    Logger counting ERROR_TYPE_SCRIPT - catches the rest, including a crash in a leaf helper
+##    with nothing asserted after it, which the plan provably does not see.
+## 2. A case RETURNS EARLY, or a block is commented out. Same plan, same shortfall.
+## 3. A case asserts NOTHING. A plan of zero, or no plan at all, is a failure here.
+## 4. A FILE IS NEVER RUN because nobody added it to CASES. `_manifest_is_complete()` scans the
+##    directory and fails on a file that exists and is not listed. Gotcha 22 is this failure
+##    one layer down: a file that does not parse is invisible to a green run.
+##
+## OWNS: discovering cases, tallying them, enforcing the plans and the exit code.
 ## MUST NOT: contain assertions of its own, or any game logic.
+
+const CASE_DIR: String = "res://tests/unit"
 
 const CASES: Array[String] = [
 	"res://tests/unit/core_test.gd",
@@ -27,53 +41,156 @@ const CASES: Array[String] = [
 	"res://tests/unit/interaction_test.gd",
 	"res://tests/unit/items_test.gd",
 	"res://tests/unit/pickups_test.gd",
+	"res://tests/unit/traversal_test.gd",
+	"res://tests/unit/ui_test.gd",
+	"res://tests/unit/screens_test.gd",
+	"res://tests/unit/transitions_test.gd",
+	"res://tests/unit/dialogue_test.gd",
+	"res://tests/unit/npc_test.gd",
+	"res://tests/unit/path_actions_test.gd",
+	"res://tests/unit/presentation_test.gd",
+	"res://tests/unit/menus_test.gd",
+	"res://tests/unit/options_test.gd",
+	"res://tests/unit/export_test.gd",
+	"res://tests/unit/art_contract_test.gd",
+	"res://tests/unit/quests_test.gd",
+	"res://tests/unit/equipment_test.gd",
+	"res://tests/unit/world_map_test.gd",
+	"res://tests/unit/character_depth_test.gd",
+	"res://tests/unit/content_scan_test.gd",
+	"res://tests/unit/item_count_test.gd",
+	"res://tests/unit/area_look_test.gd",
+	"res://tests/unit/smoke_test.gd",
+	"res://tests/unit/dev_tools_test.gd",
+	"res://tests/unit/version_test.gd",
+	"res://tests/unit/docs_test.gd",
 ]
 
 var _passed: int = 0
 var _failed: int = 0
+var _skipped: int = 0
 var _failures: Array[String] = []
+var _skips: Array[String] = []
+var _watch: ErrorWatch = null
 
 
+## The exit code is ARMED TO FAILURE on the first line and only cleared at the end. quit() sets
+## the code and quits at the end of the frame, and a later call overwrites it - both probed. So
+## if a crash ever aborts this function itself, the run still exits 1 instead of reporting a
+## clean sweep it never finished.
 func _ready() -> void:
+	get_tree().quit(1)
+	_watch = ErrorWatch.new()
+	OS.add_logger(_watch)
 	Log.info("test", "=== test run starting ===")
 	# Determinism: a clock that advances mid-assertion makes time assertions flaky.
 	Clock.paused = true
+	if not Fixtures.has_demo_content():
+		Log.info("test", "no demo content in this checkout — demo-only cases will skip")
 
+	_manifest_is_complete()
 	for path: String in CASES:
 		_run_case(path)
 
-	Log.info("test", "=== %d passed, %d failed ===" % [_passed, _failed])
+	_report()
+	get_tree().quit(1 if _failed > 0 else 0)
+
+
+func _report() -> void:
+	Log.info("test", "=== %d passed, %d failed, %d skipped ===" % [
+		_passed, _failed, _skipped,
+	])
+	for entry: String in _skips:
+		Log.info("test", "SKIPPED: %s" % entry)
+	if _skipped > 0:
+		Log.info("test", "%d assertion(s) were skipped: this run covers less than a full one"
+			% _skipped)
 	for failure: String in _failures:
 		Log.error("test", "FAILED: %s" % failure)
-	get_tree().quit(1 if _failed > 0 else 0)
+
+
+## A suite file that nobody listed is never run, and every rung stays green. This is gotcha 22's
+## shape one layer up: not a file that fails to parse, but a file that is never asked to.
+func _manifest_is_complete() -> void:
+	for file_name: String in DirAccess.get_files_at(CASE_DIR):
+		if not file_name.ends_with(".gd"):
+			continue
+		var path: String = "%s/%s" % [CASE_DIR, file_name]
+		if not CASES.has(path):
+			_record_failure("%s exists but is not listed in CASES, so it never runs" % path)
 
 
 func _run_case(path: String) -> void:
 	var script: GDScript = load(path) as GDScript
 	if script == null:
-		_record_load_failure(path, "could not be loaded")
+		_record_failure("%s could not be loaded" % path)
 		return
 	# Object, then a cast: casting a Variant directly would trip the unsafe_cast warning.
 	var instance: Object = script.new()
 	var test_case: TestCase = instance as TestCase
 	if test_case == null:
-		_record_load_failure(path, "does not extend TestCase")
+		_record_failure("%s does not extend TestCase" % path)
 		return
 
 	test_case.name = path.get_file().get_basename()
 	add_child(test_case)
 	Log.debug("test", "--- %s ---" % test_case.name)
+	var before: int = _watch.script_errors
 	test_case.run()
-
-	_passed += test_case.passed
-	_failed += test_case.failed
-	_failures.append_array(test_case.failures)
+	_no_script_errors(test_case.name, before)
+	_tally(test_case)
 	# Free explicitly: anything left alive at exit fills the log with leaked-RID errors, and
 	# that noise is how a real error gets lost.
 	test_case.free()
+	# Unconditionally, even for a case that never switched: a case that crashed part way
+	# through its fixtures would otherwise hand the next one a redirected content root.
+	Fixtures.deactivate()
 
 
-func _record_load_failure(path: String, why: String) -> void:
+func _tally(test_case: TestCase) -> void:
+	_passed += test_case.passed
+	_failed += test_case.failed
+	_skipped += test_case.skipped
+	_failures.append_array(test_case.failures)
+	for entry: String in test_case.skips:
+		_skips.append("%s: %s" % [test_case.name, entry])
+	Log.debug("test", "--- %s: %d/%d ---" % [
+		test_case.name, test_case.outcomes(), test_case.planned,
+	])
+	_plan_holds(test_case)
+
+
+## THE CRASH CHECK. A GDScript runtime error aborts only the innermost frame, so a crash in a
+## leaf helper with no assertion after it meets its plan exactly and reports a clean pass —
+## measured, with the plan already in place, before this was added. `ErrorWatch` is the only
+## thing that sees it, and the count is read PER CASE so the failure names the case that crashed.
+func _no_script_errors(case_name: String, before: int) -> void:
+	var raised: int = _watch.script_errors - before
+	if raised == 0:
+		return
+	_record_failure("%s raised %d engine script error(s): %s" % [
+		case_name, raised, str(_watch.descriptions),
+	])
+
+
+## Checks the plan. It catches every crash that swallows an assertion, an early return, a block
+## commented out and a case that asserts nothing. See TestCase.plan().
+func _plan_holds(test_case: TestCase) -> void:
+	if test_case.planned < 0:
+		_record_failure("%s declared no plan, so a crash in it would be invisible"
+			% test_case.name)
+		return
+	if test_case.planned == 0:
+		_record_failure("%s planned zero outcomes, which is not a test" % test_case.name)
+		return
+	if test_case.outcomes() == test_case.planned:
+		return
+	_record_failure("%s planned %d outcomes and produced %d — a crash, an early return or a stale plan" % [
+		test_case.name, test_case.planned, test_case.outcomes(),
+	])
+
+
+func _record_failure(message: String) -> void:
 	_failed += 1
-	_failures.append("%s %s" % [path, why])
-	Log.error("test", "case %s %s" % [path, why])
+	_failures.append(message)
+	Log.error("test", message)

@@ -1,5 +1,5 @@
 extends Node
-## Developer capture and scene-state overrides. Lives in the game root.
+## Screenshot capture and lighting overrides. Lives in the game root.
 ##
 ## WHY THIS IS A REAL SYSTEM AND NOT A THROWAWAY SNIPPET
 ## The look of an HD-2D game is its whole point, and the look changes with the hour and the
@@ -20,10 +20,27 @@ extends Node
 ##                        image will be darker than the real thing.
 ##   --time=HH:MM         force the clock before capturing.
 ##   --freeze-time        stop the clock, so a capture is reproducible to the pixel.
+##   --skip-to-hour=<int> perform the same time skip a rest point does, after --time.
 ##   --weather=<KIND>     force weather. Any GameEnums.WeatherKind name.
+##   --wet=<0..1>         set how soaked the ground is, skipping the eight-second soak. A
+##                        capture lasts under a second, so without this every rain shot would
+##                        photograph a courtyard that has only just started getting wet.
+##   --dry-for=<seconds>  then run the wetness forward that many simulated seconds under the
+##                        current weather. --wet=1 --weather=CLEAR --dry-for=20 photographs a
+##                        specific moment of a dry-out that really takes twenty-six seconds.
+##
+## The scenario probes — --goto, --give, --talk, --round-trips, --npc-day and the rest — are
+## documented in dev_probes.gd, which owns them.
+##
+## THE SCENARIO PROBES LIVE NEXT DOOR, in dev_probes.gd, and this file deliberately knows
+## nothing about them. This one answers "what does the game LOOK like under condition X"; that
+## one answers "does sequence Y actually work". They were one file until it hit 310 of its 250
+## allowed code lines, which is the budget checker doing precisely its job: the split was
+## already there in the reasoning and only the line count made it visible.
 ##
 ## OWNS: capture, and CLI-driven overrides for time and weather.
-## MUST NOT: be depended upon by gameplay. Deleting this file must not break the game.
+## MUST NOT: be depended upon by gameplay, or drive a scenario. Deleting this file must not
+## break the game.
 
 const SHOT_DIR: String = "user://screenshots"
 const DEFAULT_SHOT_FRAME: int = 30
@@ -32,9 +49,21 @@ var _shot_path: String = ""
 var _shot_frame: int = DEFAULT_SHOT_FRAME
 var _frames: int = 0
 var _captured: bool = false
+## Negative means "--wet was not passed", which is not the same as --wet=0.
+var _wet_to: float = -1.0
+var _dry_seconds: float = 0.0
 
 
 func _ready() -> void:
+	# Captures must work while the game is paused - proving that a screen stops the world is
+	# exactly what the capture is for. Pause table: src/ui/root/ui_root.gd.
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	# THE DEBUG SURFACE DOES NOT EXIST IN A SHIPPED BUILD. Until T1.2 only the F12 hotkey was
+	# gated, so a release export still answered --give=, --standing= and --goto= from the
+	# command line: every one of these flags reaches past the game to pose it, and a player who
+	# found the list could hand themselves any item in the game.
+	if not OS.is_debug_build():
+		return
 	_parse_arguments()
 
 
@@ -75,7 +104,6 @@ func _capture(path: String) -> void:
 	else:
 		Log.error("test", "Capture to %s failed: %s" % [path, error_string(err)])
 
-
 func _parse_arguments() -> void:
 	for argument: String in OS.get_cmdline_user_args():
 		if argument.begins_with("--shot="):
@@ -87,16 +115,26 @@ func _parse_arguments() -> void:
 		elif argument == "--freeze-time":
 			Clock.paused = true
 			Log.info("test", "Clock frozen by command line")
+		elif argument.begins_with("--skip-to-hour="):
+			_skip_to_hour(argument.trim_prefix("--skip-to-hour="))
 		elif argument.begins_with("--weather="):
 			_force_weather(argument.trim_prefix("--weather="))
+		elif argument.begins_with("--wet="):
+			_wet_to = clampf(argument.trim_prefix("--wet=").to_float(), 0.0, 1.0)
+		elif argument.begins_with("--dry-for="):
+			_dry_seconds = maxf(0.0, argument.trim_prefix("--dry-for=").to_float())
+	# Both wetness flags are served by ONE coroutine, deliberately. Two would each await the
+	# area load and then race to resume, so --dry-for could run before --wet had soaked.
+	if _wet_to >= 0.0 or _dry_seconds > 0.0:
+		_soak_and_dry()
 
 
+
+## Through `DevCommands`, which is where the four verbs the in-game console offers actually
+## happen. `--time=` and the console's `time` are now one implementation, so a fix to either is a
+## fix to both — see src/systems/debug/dev_commands.gd for why that mattered enough to move.
 func _force_time(value: String) -> void:
-	var parts: PackedStringArray = value.split(":")
-	if parts.size() != 2:
-		Log.warn("test", "--time expects HH:MM, got '%s'" % value)
-		return
-	Clock.set_time(Clock.day, parts[0].to_int(), parts[1].to_int())
+	Log.info("test", "--time %s" % DevCommands.set_time(value))
 
 
 func _force_weather(value: String) -> void:
@@ -107,3 +145,52 @@ func _force_weather(value: String) -> void:
 		return
 	Weather.force(index as GameEnums.WeatherKind)
 	Log.info("test", "Weather forced to %s by command line" % value.to_upper())
+
+
+## Pose the wetness for a capture. Goes through WeatherVisuals rather than writing a material,
+## so what is photographed is the real path: the same soak() a save-load will call and the same
+## evaporate() the dry-out runs on, not a screenshot posed by hand.
+func _soak_and_dry() -> void:
+	while Director.current_area_id == &"":
+		await get_tree().process_frame
+	await _settled()
+	var found: Node = get_tree().root.find_child("WeatherVisuals", true, false)
+	var visuals: WeatherVisuals = found as WeatherVisuals
+	if visuals == null:
+		Log.error("test", "--wet/--dry-for found no WeatherVisuals in the tree")
+		return
+	if _wet_to >= 0.0:
+		visuals.soak(_wet_to)
+	if _dry_seconds > 0.0:
+		visuals.evaporate(_dry_seconds)
+	Log.info("test", "--wet %.2f --dry-for %.1fs left wetness at %.3f" % [
+		_wet_to, _dry_seconds, visuals.wetness(),
+	])
+
+
+## The same time skip a rest point performs, reachable from the command line, so a before and
+## after capture can prove that skip_to_hour really drives the lighting rather than only
+## moving a number. Deliberately Clock.skip_to_hour and not a second implementation: a debug
+## path that reimplements the thing it verifies verifies nothing.
+func _skip_to_hour(value: String) -> void:
+	var skipped: int = Clock.skip_to_hour(value.to_int())
+	Log.info("test", "Skipped %d minutes to %02d:00 by command line" % [skipped, Clock.hour])
+
+
+## Fills the player's bag from the command line, so a capture of the inventory shows real rows
+## produced by the real Inventory.add() rather than a mock the screen was posed against.
+## Deferred: GameRoot spawns the player in the same _ready() pass that reads these arguments.
+
+
+## Wait for a transition to finish and for the freed area to actually leave the tree.
+## The third copy of these five lines, and deliberately so — the note in dev_stage.gd applies
+## here too. This one was MISSING until T1.2: the WP-13 merge added the `await _settled()` in
+## `_soak_and_dry` without the function, so this entire file failed to parse and F12, --shot,
+## --time and --weather had all been dead since. The boot rung still printed
+## `0 warnings, 0 errors`, because Log counts Log.error calls and an engine parse error is
+## neither. See the gotcha in docs/CONTEXT.md.
+func _settled() -> void:
+	while Director.is_transitioning():
+		await get_tree().process_frame
+	for _i: int in 4:
+		await get_tree().process_frame

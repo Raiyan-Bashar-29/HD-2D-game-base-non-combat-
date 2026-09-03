@@ -94,3 +94,11 @@ func refusal_args(_who: Node3D) -> Dictionary:
 		return {}
 	var definition: ItemDefinition = ItemDb.definition(requires_item)
 	return {"item": tr(definition.name_key)} if definition != null else {}
+
+
+## `locked_key` was DECLARED, validated by check_content and never read by anything until WP-09,
+## which is the unwired-@export failure shape gotcha 2 is about: the field existed, an author
+## could set it, and the player still got the generic line. Nothing failed, because a message
+## that is merely wrong looks exactly like a message that is right.
+func refusal_key(_who: Node3D, reason: GameEnums.RefusalReason) -> String:
+	return locked_key if reason == GameEnums.RefusalReason.LOCKED else ""

@@ -38,6 +38,32 @@ Weather="*res://src/systems/weather/weather.gd"
 Audio="*res://src/systems/audio/audio_director.gd"
 Director="*res://src/systems/scene_director/director.gd"
 
+
+[game]
+
+; THE DEMO'S CONTENT IDS LIVE HERE, NOT IN src/. No file under src/ may name demo content —
+; docs/TEMPLATE.md states the rule and tools/check_content.gd enforces it — but the engine
+; still has to be told where a new game begins. This section is that answer, and it is the
+; one place tools/check_content.gd deliberately does not scan.
+; Read through GameConfig (src/core/util/game_config.gd). See docs/NEW_GAME.md.
+world/first_area="courtyard"
+world/first_spawn="default"
+
+[template]
+
+; WHAT THE BASE SAYS ABOUT ITSELF, and the reason it is not application/config/version: that
+; field is the GAME's version, and docs/NEW_GAME.md tells a fork to reset it to 0.0.1 on day one.
+; After one fork it no longer records which base the game came from, and "which base am I on" is
+; the first question docs/UPGRADING.md has to answer. So the template states its own version in
+; its own section, a fork LEAVES THIS LINE ALONE, and a merge that changes it is the base
+; announcing a new release in the diff.
+;
+; Three integers, no suffix. The major changes when a game's own files must change, the minor
+; when the base gains something a game may ignore, the patch when nothing a game wrote is
+; affected. That promise is stated in full in docs/UPGRADING.md and encoded in
+; src/core/util/template_version.gd, which reads this setting and is what the boot banner prints.
+base/version="1.0.0"
+
 [debug]
 
 ; Static enforcement. This is deliberate and load-bearing: it makes GDScript behave like a
@@ -74,6 +100,38 @@ window/size/window_height_override=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/vsync/vsync_mode=1
+
+[gui]
+
+; THE ART CONTRACT SEAM FOR THE UI (T2.1). Every font size, colour and inset the UI draws with
+; lives in this one resource, so a consuming game restyles the whole interface by editing it or by
+; pointing this setting at its own. Before T2.1 the look was constants inside five screen files.
+; The theme's own header explains its shape and why the palette is not copied into the variations.
+theme/custom="res://assets/theme/ui_theme.tres"
+
+[importer_defaults]
+
+; THE ART CONTRACT SEAM FOR TEXTURE IMPORT (T3.2). A consuming game drops a PNG in and gets these
+; settings without touching a .import file. Exactly ONE value is set, because exactly one was
+; wrong by default, and a default nobody needs is a default nobody maintains.
+;
+; detect_3d/compress_to=0 disables the editor's "this texture was used in 3D, so switch it to VRAM
+; compression" rewrite. Every character sheet in an HD-2D game IS used in 3D, through Sprite3D, so
+; at the stock value of 1 a re-import puts block artefacts through pixel art — silently, and only
+; in the picture. The committed .import files all carry 0 too, so the hazard is closed for the
+; placeholders as well as for whatever a game imports next.
+;
+; THIS SECTION IS UNDOCUMENTED AND ABSENT FROM --doctool, so the project rule "check every name
+; against the API dump" cannot be satisfied for it — docs/CONTEXT.md gotcha 30, which T2.1 stopped
+; on and gotcha 39 now corrects. It is written on a MEASUREMENT instead, which is the stronger
+; evidence and is non-negotiable #1: a throwaway texture was imported with stock defaults, this
+; section was added, its .import was deleted, and --headless --import regenerated it carrying these
+; values. The key is the IMPORTER's name ("texture"); the value is a Dictionary of param paths; and
+; ProjectSettings.get_setting("importer_defaults/texture") reads it back at runtime — which is what
+; tests/unit/area_look_test.gd asserts, so an editor session that clears it fails rung 4.
+texture={
+"detect_3d/compress_to": 0
+}
 
 [rendering]
 
@@ -131,3 +189,12 @@ folder_colors={
 [internationalization]
 
 locale/translations=PackedStringArray("res://localization/strings.en.translation")
+
+[navigation]
+
+; Must match the cell_size and cell_height on every NavigationMesh in the project. The engine
+; rasterises the navigation MAP at these values and each REGION at its own, and a mismatch is a
+; runtime warning plus real rasterisation error along region edges. Two numbers in two places
+; that have to agree, so they are written down here and in scenes/areas/*/navmesh.
+3d/default_cell_size=0.2
+3d/default_cell_height=0.1

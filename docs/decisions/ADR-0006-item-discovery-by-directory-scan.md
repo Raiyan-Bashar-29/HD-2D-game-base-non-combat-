@@ -1,6 +1,6 @@
 # ADR-0006 — Items are discovered by scanning a directory, not from a list
 
-**Status:** Accepted, 2026-08-25
+**Status:** Accepted, 2026-08-25. Its one open limit — the exported build — CLOSED 2026-08-26 by T2.0.
 
 ## Context
 
@@ -48,18 +48,41 @@ mismatch is refused and reported with both values.
 - **id equals filename** turns a copy-paste slip into a named startup failure rather than a
   duplicate that silently shadows another item.
 
-## The honest limit
+## The honest limit — CLOSED 2026-08-26 by T2.0
 
-**There is no export preset yet, so the exported-build half of this is unproven.** Verified in
-the editor and headless only. Two consequences, written down rather than assumed:
+**The exported-build half is now proven, and the decision above stands unchanged.** A Windows
+debug export was built and run from its own `.exe`, outside the editor, in a directory holding
+nothing but the executable and its `.pck`. It reported exactly what the editor reports:
 
-1. The export preset must export **all resources in the project**. A "selected scenes and
-   dependencies" preset would strip these `.tres` files entirely, because nothing references
-   most of them — they are found by scanning.
-2. If a real export ever comes back with an empty catalogue, the remedy is a generated manifest,
-   and `ItemDb.resource_paths()` is the single function that changes.
+```
+origin: template=true editor=false debug=true exe=game.exe
+items: 3 found in res://data/items -> [".../rose_key.tres", ".../rose_petal.tres", ".../stone_chip.tres"]
+dialogue: 1 found in res://data/dialogue -> [".../gardener.tres"]
+schedules: 1 found in res://data/schedules -> [".../keeper.tres"]
+```
 
-`ARCHITECTURE.md` therefore records the claim as *verified in editor and headless*, not as met.
+Three findings, in the order they matter:
+
+1. **`ResourceLoader.list_directory()` works through the pack, and this is the first evidence of
+   it.** The pack stores `data/items/rose_key.tres.remap`; the scan returns the `.tres` path and
+   `ResourceLoader.load()` follows the remap. The undocumented method is the right one, for the
+   reason given above, and `_normalise`'s `.remap` handling is now observed rather than defensive.
+   The `DirAccess` fallback never fires in an export and is kept for source runs.
+2. **The preset field is the whole risk.** `export_filter="all_resources"` ships them;
+   `export_filter="scenes"` ships **zero** of them. That is measured both ways, and the remedy
+   contemplated below — a generated manifest — is therefore NOT needed.
+3. **`include_filter="*.tres"` would have been the plausible wrong fix.** It is for non-resource
+   files. A `.tres` is a resource and travels under `export_filter`; setting the include filter
+   instead changes nothing and looks like a fix.
+
+So the two consequences written down above resolve as: (1) confirmed, and now enforced by an
+assertion in `tests/unit/export_test.gd` rather than trusted to a comment; (2) not triggered, and
+`ItemDb.resource_paths()` is unchanged. (T3.1 moved that function to `ContentScan.resource_paths()`
+— the same implementation, under the name of the job it does, called by all five catalogues
+instead of four of them calling the item registry. Nothing about this decision changed.)
+
+`ARCHITECTURE.md`'s claim — *"adding the fiftieth item must not touch a single line of code"* — is
+verified in the editor, headless **and in an exported build**.
 
 ## Revisit if
 

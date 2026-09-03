@@ -3,39 +3,490 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-08-25 · commit `dd90da0` plus uncommitted item work · branch `main`
+**Last updated:** 2026-09-02 · **T4.2 (a second worked example, authored from `AUTHORING.md`
+alone) complete. The SECOND package of Phase T4, and the third exit criterion — a release tag —
+is still open and is still the owner's.**
+
+**T2.2'S MECHANISM WAS APPLIED TO CONTENT, AND IT FOUND TWO DEFECTS IN THE TEMPLATE ITSELF.** An
+orchard, a warden, a schedule, a four-node conversation, two items, an equip-gated arch, a
+world-map def and a two-step quest with a counted step were authored **from `AUTHORING.md` alone,
+with `src/` never opened while writing**, then deleted — it was a test of the documents, the way
+T2.2's was. Five defects. Three were prose; **two were the template**, and both are gotcha 44's
+shape, invisible to the full demo and to the stripped template alike:
+
+**`check_boundary` MATCHED SUBSTRINGS.** An item called `pear` failed the gate on
+`tests/unit/menus_test.gd`'s *"and Load has appeared under it"* — `appeared` contains `pear` — and
+the gate table told the author the fault was "a bug in the *engine*, not in your content", so the
+remedy it pointed at was filing a bug rather than renaming. Ids are now matched as WHOLE WORDS, and
+the two genuine hits left were an engine test's throwaway `"apple"` / `"pear"` dictionary keys,
+which now come from the reserved `fixture_` namespace. See gotcha 45.
+
+**`--stand-by` ALWAYS RESOLVED IN THE DEPARTURE AREA.** `--goto=<new area> --stand-by=<object in
+it>` failed with *found no node called ...* — deterministically, not as a race — so **no object in
+an authored area could be photographed at all**, which is most of what an author needs a capture
+for. `dev_stage.gd`'s own header already stated the rule it was breaking. See gotcha 46.
+
+**And the quest section named no `obj/` field**, so a step written from it (`.../opened`, when the
+field is `open`) passed `check_content`, drew its objective in the journal, reported
+`0 warnings, 0 errors` and could never have been satisfied. All seven fields are now a table in the
+document, with the trap stated: this is the one flag family no gate can check.
+
+*(Previously: T4.1, the version and the upgrade note — `799d957`, PR #25. The FIRST package
+of Phase T4, and WP-15 was CLOSED by the owner on the same day rather than built.)*
+
+**THE TEMPLATE NOW STATES ITS OWN VERSION, AND IT IS NOT `application/config/version`.** That
+field was the obvious candidate and it is the wrong one, for a reason `NEW_GAME.md` § 4 was
+already carrying: it tells a fork to reset it to `0.0.1` on day one, so after exactly one fork it
+means *the game's* version and nothing anywhere records which base the game came from. The base's
+own version is `[template] base/version` in `project.godot`, read through
+`src/core/util/template_version.gd`, and printed in every boot banner as `base <version>`:
+`Project Gulistan 0.0.1 | base 1.0.0 | Godot 4.7.2-stable`. **A fork leaves that line alone, and a
+merge that changes it is the base announcing a release inside the fork's own diff.**
+
+**`docs/UPGRADING.md` IS THE REAL DELIVERABLE, AND IT WAS PERFORMED.** Nothing described how a
+game already forked from this base receives a later fix — the one question a reusable base has to
+answer. So a stripped fork was made from a clone following `NEW_GAME.md` step by step, two
+template releases were landed on the base, both were merged in, and the fork's whole ladder was
+run afterwards. Every output quoted in that document is real. (Its versions 1.1.0 and 1.1.1 are
+synthetic scaffolding, and it says so: a version-to-version walk needs two versions and the real
+template has released one.)
+
+**PERFORMING IT FOUND A TEMPLATE DEFECT NOBODY WOULD HAVE REASONED TO.** `smoke_test.gd` gated its
+first-area block on `Fixtures.has_demo_content()` — "any content at all", which flips true on the
+first `.tres` of any kind — while asserting about AREAS. So a game that authored one item before
+its first area armed that assertion and failed rung 4, *in exactly the window `NEW_GAME.md` walks
+an author through, while `NEW_GAME.md` claimed the ladder stays green.* It now gates on
+`Fixtures.area_ids()`, the same question it asserts. See gotcha 44.
+
+**AND THREE MERGE FACTS THAT ARE IN NO OTHER DOCUMENT.** `project.godot` auto-merges, even when
+the base edits three lines from a field the fork renamed — but git decided that, not the template,
+so the note says not to count on it. `localization/strings.csv` conflicts EVERY time, because both
+sides append at the end of the file, and the resolution is always "keep both sides". And **a merge
+pushes the template's own demo content back into a fork** as a new file, with no conflict and
+therefore no warning.
+
+**WP-15 IS CLOSED, BY THE OWNER, 2026-09-02.** Credits and the accessibility pass will not be
+built here; both belong to a consuming game, and the seams that make accessibility possible
+already exist and are proved. Recorded on the board with its reasoning rather than deleted, the
+way WP-10 is marked OPTIONAL.
+
+*(Previously: WP-14b, the debug console and the performance overlay — `22e0046`, PR #24. The row
+that CLOSED Phase T3. The console lives under `src/ui/` because `src/systems/debug/` is EXEMPT
+from `check_boundary.gd` and it does not need the exemption; the four dev verbs became ONE
+implementation both the command line and the console call. New gotcha 43: a scan-for-a-guard
+assertion must anchor on a fragment appearing exactly once, and must skip comments.
+Before that: WP-14, the HARDENING half — `975ff4b`, PR #23. The row named four things, over the
+size limit, so its own title was the seam, and its smoke-test wording was RE-FRAMED because "drives
+the whole demo" would have welded the demo into a permanent gate. `Director` now drains its own
+loader thread, and the finding was what the defect had been COSTING: false `Parse Error` lines on a
+mid-load shutdown had bought CI's boot rung a permanently weakened grep (gotcha 41). A fourth
+checker, `check_strings.gd`, anchors at a SINK and at a DECLARATION rather than classifying
+literals, and its second rule closed a hole that was measurably live — one transposed character in a
+toast key passed `check_content`, `check_boundary` and 1,517 assertions. One of its plants exposed a
+defect in the new TEST rather than in the code, which is gotcha 42.
+Before that: T3.2, the five art-contract seams T2.1 left — `d20fbc1`, PR #22. Four seams built,
+one refused in writing, and **the row's real deliverable was neither**: these five had spent six packages being described in `CONTEXT.md`, `ROADMAP.md`,
+`WORK_PACKAGES.md`, `ARCHITECTURE.md` and `ART_CONTRACT.md`, and a backlog item mentioned in five
+places is tracked zero times and described five times. **The CURRENT STATE of each — the thing a
+reader acts on — is now in exactly one document, `ART_CONTRACT.md`**, and the four stale claims are
+deleted; each seam is still named in a package section, a settled decision and an inventory row,
+which is this project's record shape for finished work rather than the drift shape. **Shared materials:** `assets/materials/wood.tres`, one file both areas point
+at — and the defect was already in the tree, because the two demo areas each carried a
+byte-identical `m_wood`. A library of ONE, deliberately: the other five materials are *not*
+duplicates, since one area tiles stone at `(3, 3)` and the other at `(8, 8)` and `(6, 2)`, and **a
+tiling rate is a property of the surface it is stretched over, not of the substance**. **The
+environment post stack:** twenty literals in `_build_post_stack()` became twenty `@export`s at
+exactly the values T2.1 shipped, so nothing renders differently and a game can now reach them; what
+stays in code is the STRUCTURE the rest of the driver assumes. **Per-area camera framing: the seam
+already existed and the board was wrong about it** — `HD2DCameraRig` has carried its framing as
+`@export`s since it was written and no area had ever set one, which is a different failure from a
+missing seam and is exactly what five copies of a claim buys you. **The texture import defaults:
+gotcha 30 said this could not be done and gotcha 30 was wrong.** The rule it rested on is still
+right — `[importer_defaults]` is absent from `--doctool` — but a MEASUREMENT was available and
+outranks a dump, which is non-negotiable #1: a throwaway texture, the section added, its `.import`
+deleted, `--headless --import` re-run, and it came back carrying the values. One value is set,
+`detect_3d/compress_to = 0`, closing the latent hazard that a re-import puts VRAM block artefacts
+through pixel art. **Git LFS is REFUSED**, with the reason that actually decides it written down
+for the first time: the template cannot verify the change it would be making. 47 new assertions,
+six gates each proved red with the real violation then green — **one of which exposed a defect in
+the test itself** (gotcha 40: `WeatherVisuals` also exports `height_offset`, so a whole-file scan
+passed with the framing deleted) — and six windowed captures LOOKED AT and READ.
+Before that: T3.3, a quest step that reads an ITEM COUNT — `292dd44`, PR #21. `Inventory`
+publishes each count as `bag/<carrier_id>/<item id>` — the SIXTH namespace over `Flags` and the
+first whose value is a number — so a step is `AT_LEAST 3` on that key, `QuestStep` gained no field
+and `QuestTracker` gained no knowledge, and **the dependency points DOWN from `gameplay` to `core`
+rather than up from `systems` to `gameplay`**. The mirror is declared DERIVED, so it is readable
+and announced but never saved and no save version moved.
+Before that: T3.1, one scan behind five typed façades — `767fbe3`, PR #20. The duplication was in
+the SCAN, not the cache, so the base went on the **resource** (`ContentEntry`) and the shared part
+is a **function** — `ContentScan.into()` fills the CALLER'S own typed dictionary, so there is no
+cast at any call site. New gotcha 37: a base-class `static var` is ONE storage shared by every
+subclass.
+Before that: WP-09b, attributes and surface-aware footsteps — `da126d9`, PR #19. An attribute is
+the flag `attr/<who>/<name>`, the **fifth** use of namespace-over-`Flags`, shipping with EXACTLY ONE
+consumer, `PlayerController.current_speed()`, with the attribute's name declared as a const on that
+consumer so **an attribute nobody reads has nowhere to be written down**. A surface is
+`metadata/surface` on area geometry, inherited from the nearest tagged ancestor, and a step's sound
+is DERIVED FROM THE SURFACE'S NAME rather than looked up in a table.
+Before that: WP-11, the world map — `cf3f3a1`, PR #18. An `AreaDef` .tres per area in
+`data/areas/`, found by the fifth directory-scan registry, and **discovery is the flag
+`map/<area id>` with no store behind it**.
+Before that: WP-09, equipment — `1b3d799`, PR #17. A slot is the flag `equip/<wearer>/<item>`, so a
+`Gate`, a `QuestStep` and a `DialogueChoice` all gate on what is in hand with no code and no new
+field in any of them.
+Before that: WP-08, quests — a quest is authored data, every step names a FLAG CONDITION rather
+than a callback. Before that: T2.2, consumer documentation — **Phase T2 is closed, and its last
+criterion was PERFORMED**, six doc defects found by authoring from the docs alone.)*
+
+
+> **This is a TEMPLATE, not a game.** Read [`TEMPLATE.md`](TEMPLATE.md) — it is short, and the
+> roadmap, the board and parts of this file were written before that reframing. The courtyard and
+> the garden-keeper are *proof that a system works*, not the product.
+
+## Which branch to work from
+
+Every package — WP-01 through WP-07, plus WP-12 and WP-13 — is on **`claude/integration`** (PR
+#10 into `main`); the reframing docs are on **`claude/template-reframing`** (PR #11); T1.2 is on
+**`claude/t1-2-boundary`**, branched from the reframing tip; T1.3 is on
+**`claude/t1-3-fixtures`**, branched from T1.2; T1.4 is on **`claude/t1-4-ci`**, branched from
+T1.3; T2.0 is on **`claude/t2-0-export-proof`**, branched from T1.4; T2.1 is on
+**`claude/t2-1-art-contract`**, branched from T2.0; T2.2 is on **`claude/t2-2-consumer-docs`**,
+branched from T2.1; WP-08 is on **`claude/wp-08-quests`**, branched from T2.2; WP-09 is on
+**`claude/wp-09-character`**, branched from WP-08; WP-11 is on **`claude/wp-11-worldmap`**,
+branched from WP-09; WP-09b is on **`claude/wp-09b-attributes`**, branched from WP-11; T3.1 is on
+**`claude/t3-1-registry`**, branched from WP-09b; T3.3 is on **`claude/t3-3-item-count`**, branched from T3.1; T3.2 is on
+**`claude/t3-2-art-seams`**, branched from T3.3; WP-14 is on **`claude/wp-14-hardening`**,
+branched from T3.2; WP-14b is on **`claude/wp-14b-dev-tools`**, branched from WP-14; T4.1 is on
+**`claude/wp-t4-version-upgrade`**, branched from WP-14b. The earlier PRs are superseded.
+
+**Branch new work from `claude/wp-t4-version-upgrade`**, or from `main` once #10, #11, T1.2-T1.4,
+T2.0, T2.1, T2.2, WP-08, WP-09, WP-11, WP-09b, T3.1, T3.3, T3.2, WP-14, WP-14b and T4.1 have landed. The older
+per-package branches (`claude/wp-04-second-area`, `claude/wp-05-dialogue`, `claude/wp-06-npcs`,
+`claude/wp-07-path-actions`, `claude/wp-12-menus`, `claude/wp-13-presentation`) are history and
+should not be built on.
+
 **Remote:** https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-
 
 ## What this is
 
-HD-2D semi-open-world **exploration and narrative** game. Godot 4.7.2, GDScript.
+A reusable BASE TEMPLATE for HD-2D exploration games. Godot 4.7.2, GDScript.
 Visual reference: Octopath Traveler I/II/0, The Adventures of Elliot.
 
 **No combat.** Explicitly retracted by the owner — not an oversight. **Art is deferred**;
-everything runs on procedural placeholders. The goal is a *base prototype*: a skeleton with a
-home for every system the finished game will need, so later work is content and data, not new
-architecture.
+everything runs on procedural placeholders, permanently â the template ships an art *contract*,
+never art, and each game brings its own. The goal is a skeleton with a home for every system a
+game built on this will need, so a new game is content and data rather than new architecture.
 
 ## Where it stands
 
-Phase 0 complete, Phase 1 nearly done. 44 files, 3,202 code lines, 9 scenes, 1 area, 3 items.
-Boots headless with **0 warnings, 0 errors**.
+Phase 0 complete, Phase 1 COMPLETE, Phase 2 well under way, **Phase T1 COMPLETE, Phase T2 COMPLETE
+as of T2.2, PHASE T3 COMPLETE as of WP-14b, and PHASE T4 IN PROGRESS — T4.1 is done and two of its
+three exit criteria are ticked.**
+
+**WP-15 IS CLOSED and WP-10 stays OPTIONAL, so nothing is blocking.** The two rows that stood
+between the board and Phase T4 are settled: the owner closed WP-15's remnant on 2026-09-02 rather
+than build credits and an accessibility pass, both of which belong to a consuming game; crafting
+was already optional and blocks nothing.
+
+**WHAT IS LEFT OF PHASE T4 IS ONE CRITERION AND IT IS THE OWNER'S:** a release tag on the
+repository. T4.1 deliberately did not take one — the template stating its own version is
+engineering and is assertable, but tagging is a release action. `v1.0.0` exists only in the
+throwaway repositories `docs/UPGRADING.md` was performed against.
+
+**Beyond that the template is v1.0-complete, and the next package is a genuine choice rather than a
+queue.** The owner was asked on 2026-09-02 and chose T4.2 — the second worked example — which has
+now been done, and answered **not yet** on the tag. Candidates, none of them blocking: WP-10
+crafting, if a game wants it; a third performance of a document, since `NEW_GAME.md` and
+`TESTING.md` have never been walked and all three walks so far found defects reading would not
+have; or nothing at all, which is a legitimate answer for a base that has answered every question
+it set out to.
+
+136 files, 11,771 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
+three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
+3 tagged surfaces, 1 shared area material. Template version **1.0.0**.
+Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 
 **Works, and verified by running it:** logging with rotation · signal registry (`events.gd`) ·
 input actions · settings · save/load with atomic writes and versioning · plot flags · area
 director with a re-entrancy guard and threaded loading · world clock · weather state · audio
 buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 8-way character ·
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
-placeholder art generator · line-budget checker · headless test suite (74 assertions) ·
+placeholder art generator · line-budget checker · a headless test suite (1,607 assertions) that
+builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
+returns early, asserts nothing, or is not listed in the runner ·
+an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
+a LOCALIZATION gate that fails on a literal reaching a text sink and on any `*_KEY` const with no
+CSV row — the second half proved to catch what nothing else could, since a planted typo passed
+`check_content`, `check_boundary` and 1,517 assertions ·
+a SMOKE TEST that drives a session end to end from fixtures and asserts it logged nothing ·
+**CI that runs seven of the eight rungs on every push, PR and manual dispatch**, in two jobs (full
+checkout and a stripped template), on a downloaded engine whose SHA512 and build string are both
+verified — proved red on a broken assertion and green again ·
 interaction sensor with ranking and Tab-cycling · Interactable contract · localized prompt and
 toasts · readable signs · levers · gates gated by flag or by a carried key · per-object
-persistence (ADR-0005) · typed item definitions found by directory scan (ADR-0006) · an
-inventory component with a capacity seam · pickups · take-all chests · a content validator.
+persistence (ADR-0005) · typed item definitions found by directory scan (ADR-0006), and since T3.1 **ONE scan behind all
+five catalogues** — `ContentScan.into()` fills each registry's own TYPED dictionary, so the five
+façades keep their own content root, cache and accessor and nothing anywhere is a cast · an
+inventory component with a capacity seam · pickups · take-all chests · a content validator ·
+trigger volumes that fire on entry · a rest point that skips hours · authored climb points ·
+a screen stack with real pause semantics · a token input lock · a HUD clock readout · an
+inventory screen with focus navigation · one action-to-screen binding · a SECOND area, an
+interior, and a door that really travels · a loading readout drawn above the curtain ·
+shader warm-up behind black · a dialogue runner with conditions, branches and effects · a
+non-pausing dialogue box with a typewriter reveal · an authorable .tres conversation format ·
+a navmesh baked from each area's own geometry · an NPC that keeps a timetable and can be
+talked to · schedules as authored data · path actions with a standing that gates them and
+that they move Â· **weather you can see**: generated rain, snow and wind emitters driven by
+`Weather.intensity()`, surfaces that darken and gain a wet clearcoat and then dry out over
+twenty-six seconds, and a layered ambience bed on procedurally generated noise ·
+**an exported build that finds its content**: a committed Windows preset, and a boot-time readout
+of every catalogue's count and resolved paths that WARNS on an empty one in an export ·
+**an art CONTRACT rather than art**: a `SpriteSheetLayout` resource carrying facings, frames,
+cell size and animation blocks, with the direction sectors DERIVED from the facing count, so a
+sheet with a different cell and frame count was swapped in with no code change at all · a project
+`Theme` at `assets/theme/ui_theme.tres` wired as `gui/theme/custom`, holding every font size,
+colour and inset the UI draws with, so one edit to that one file restyled the menu, the inventory
+screen and the HUD at once. Both demonstrated by windowed captures that were LOOKED AT ·
+**documentation a consumer can actually start from**: `AUTHORING.md`, `ART_CONTRACT.md`,
+`TESTING.md` and an extension surface, routed to from `CLAUDE.md` and this file, and proved by
+authoring a new area, NPC and conversation from them alone — plus a gate that fails on a
+documented path or worked-example field the engine no longer has ·
+**quests as authored data**: `Quest` / `QuestStep` .tres found by the fourth directory-scan
+registry, every step naming a FLAG CONDITION rather than a callback, a `QuestTracker` that derives
+progress from `Flags` and latches only the two things that cannot be derived, and a journal screen
+on `J` — the placeholder quest is started by the keeper's conversation, advanced by the courtyard
+lever and completed by the dais trigger volume, and **none of those three files was touched**.
+Two windowed captures LOOKED AT, and the `J` key proved by a temporary probe that was removed ·
+**equipment as a FLAG rather than a store**: `Equipment` is a component beside `Inventory` that owns
+no dictionary — a slot is `equip/<wearer>/<item id>`, so it is already saved, already announced on
+`flag_changed`, and a `Gate`, a `QuestStep`, a `DialogueChoice` and a `ClimbPoint` gate on what is
+in hand **with no code and no new field in any of them**; the demo's equip-gated arch works with
+`Gate` untouched. Enter on a satchel row holds or stows, proved by a temporary probe that was
+removed. Three windowed captures LOOKED AT and READ · **a WORLD MAP whose discovery is a flag**: `AreaDef` .tres per area in `data/areas/`, found by the
+fifth directory-scan registry, carrying the map position, the arrival spawn and
+`known_from_start`; `WorldMap` under `GameRoot` turns `area_entered` into the flag `map/<area id>`
+and emits the same `area_change_requested` an `AreaDoor` emits, so `Director` still owns every
+transition; `MapScreen` on `M` draws one dot per def at its authored NORMALISED position in three
+states, and names no area anywhere. Discovery needs no save section, no migration and no code in
+anything that reveals a place — `--flag=map/<id>:true` is the second capture and a conversation
+effect writes the identical key. Three windowed captures LOOKED AT and READ ·
+**a refusal can carry an AUTHORED line**:
+`Gate.locked_key` and `PathAction.refusal_key` had both been declared, validated by `check_content`
+and read by nothing, and the player got a generic message about a different door ·
+**an ATTRIBUTE with exactly one consumer, and GROUND you can hear**: `attr/<who>/<name>` is the
+FIFTH namespace over `Flags` — an integer number of steps clamped to ±4, with no resource, no
+registry and no save section — and `PlayerController.current_speed()` scales every gait by `pace`,
+measured windowed at 2.861 m against 4.687 m over the same 60 frames. The attribute's NAME is a
+const on its consumer, so an attribute nobody reads has nowhere to be written down.
+`metadata/surface` tags an area's geometry and is INHERITED from the nearest tagged ancestor, so
+the courtyard tags `Terrain` once and overrides two floors; a `Footsteps` component probes down,
+steps every 1.7 m and GENERATES the sound from the surface's name, so `sand` is audible the day a
+game writes it and no table of surface names ever exists under `src/`. Three surfaces reported
+correctly in a windowed run, one of them inherited, and the sound following each ·
+**"BRING ME THREE PETALS", AND THE QUEST SYSTEM STILL DOES NOT KNOW WHAT AN INVENTORY IS**:
+`Inventory` publishes each count as `bag/<carrier_id>/<item id>` — the SIXTH namespace over `Flags`
+and the first whose value is a number — so a step is `AT_LEAST 3` on that key, `QuestStep` gained
+no field and `QuestTracker` gained no knowledge, and the dependency points DOWN from `gameplay` to
+`core` rather than up from `systems` to `gameplay`. The mirror is declared DERIVED, so it is
+readable and announced but never saved and no save version moved. A step reopens when a count falls
+and a completed quest does not — WP-08's asymmetry, tested at last against something that really
+decrements. The journal draws `— Gather three rose petals.   2 / 3` and still reads no flag. Two
+windowed captures LOOKED AT and READ, differing by exactly one petal ·
+**THE LOOK OF AN AREA IS DATA, AND ONE OF THE THREE SEAMS TURNED OUT TO EXIST ALREADY**:
+`assets/materials/wood.tres` is one shared `StandardMaterial3D` that two areas point at, and
+tinting that one file turns the courtyard's dais and the hall's plinth magenta together — a
+library of ONE, because a tiling rate belongs to the surface and not the substance, so the other
+five materials are genuinely not duplicates; the twenty post-stack numbers in
+`EnvironmentDriver` are `@export`s at exactly the values T2.1 shipped, so
+`volumetric_fog_density = 0.06` on one area's driver node hazes that area and no other; and
+`HD2DCameraRig`'s framing exports, which have been there since it was written and which no area had
+ever set, now give the interior 36 degrees at 9.5 m against the outdoor 27 at 14 — one run logs
+both rigs. A PNG a game drops in imports correctly first time, because `[importer_defaults]` sets
+`detect_3d/compress_to = 0`, which is the section T2.1 could not check against the API dump and
+T3.2 settled by MEASURING instead. Six windowed captures LOOKED AT and READ, each pair differing by
+one edit to one file, and six gates proved red with the real violation — one of which was the test
+itself, passing while the thing it checked was deleted ·
+**A CONSOLE YOU CAN TYPE IN AND AN OVERLAY YOU CAN READ WHILE THE GAME RUNS, AND THE FOUR COMMANDS
+ARE THE COMMAND LINE'S OWN**: `goto`, `flag`, `time` and `give` have ONE body each in
+`src/systems/debug/dev_commands.gd`, which `dev_stage.gd`, `dev_capture.gd` and
+`DebugConsoleScreen` all call, so what you type in the console is exactly what you pass after the
+bare `--`. The console is a `UiScreen` on F1 declaring `pauses_world` — no second pause mechanism —
+and it lives under `src/ui/`, INSIDE the boundary gate, because it names no content. The overlay is
+a `CanvasLayer` on F3 beside the HUD that never enters the stack, reporting frame time, fps,
+process time, draw calls, node count and ORPHAN count. Absence from a release export is MEASURED
+with a control: a debug export logs both armed lines and a release export logs neither. Three
+windowed captures LOOKED AT and READ, one of them a checkable prediction — launched at
+`--time=12:00 --freeze-time`, handed `time 18:40`, and the HUD reads `Day 1 | 18:40 | Dusk` over a
+dusk-lit courtyard.
 
-**Not built:** trigger volumes · NPCs · dialogue · quests · menus and any screen at all ·
-hard-coded-string audit · weather visuals · item instances (durability) · equipment.
+**Not built:** command HISTORY and autocomplete in the debug console, and a watch list of live
+flags — deferred by the row, and the transcript is deliberately un-scrollable for the same reason:
+a console that needs scrolling wants history, and half of it is worse than none · a console command
+that mutates content on disk, also refused by the row · a GRAPH on the performance overlay, which
+is a second thing to get wrong when the averaged number already answers the question ·
+`Actions.DEBUG_FREECAM` on F2, declared since WP-01 and still bound to nothing — inventing a free
+camera was not a dev-tools row's job, and naming it is cheaper than a reader wondering whether F2
+was missed · item instances (durability) ·
+footstep PARTICLES, and a second attribute with a consumer — naming one is free, reading one is a
+line of engine code ·
+an equipment SCREEN, a character sheet, and no attribute gates an interaction ·
+item tooltips, sorting and drag-and-drop · fog of war, map zoom and pan, map art, travel costs and
+objective markers on the map — `quest_advanced` has an emitter, so markers are a listener and one
+more marker state · **a quest step that TAKES the items it counted** — a step can REQUIRE N of an
+item id since T3.3, and WP-08's layer refusal is unchanged: a completed quest emits
+`quest_completed` and stops, so handing anything over is a listener's job · a DEPARTURE-side travel
+point, which is a game policy rather than a mechanism · branch protection, so CI reports but nothing stops a
+red branch merging · no CI export rung (a GPU-less runner has no platform template) · export
+presets for platforms other than Windows · a release-build content readout, since the debug gate
+means a release export prints nothing · a counted step whose CARRIER is validated by a gate — the
+item id is checked, the carrier is an `@export` in a scene `check_content` does not open. The theme does not yet set the
+`Button` styleboxes, so a light palette leaves every menu row drawing Godot's default dark
+panel — the seam is right and in the same file, simply unpopulated. Third package to leave
+them, each time for a stated reason.
+Git LFS stays off, and T3.2 turned that from an omission into a written refusal with the reason
+and the turn-on steps — stated once, in `ART_CONTRACT.md`.
 
 ## Known defects
+
+**Fixed 2026-08-27 in WP-09, and both had been wrong for packages while every rung stayed green:**
+
+1. **`Gate.locked_key` and `PathAction.refusal_key` were DECLARED, VALIDATED AND READ BY NOTHING.**
+   Since WP-01 and WP-07 respectively. Authored content set them, `check_content` required a CSV
+   row for them, and `interact_prompt.gd` computed `refusal.<reason>` from the enum and never asked
+   the object — so every gate in the game told the player "It will not budge. Something holds it
+   shut." whatever its author had written, and `PathAction.refusal_key`'s own comment claimed it was
+   "shown for the LOW_STANDING refusal". This is gotcha 2's shape in its most invisible form: a
+   message that is merely WRONG looks exactly like a message that is right, so eight rungs, both CI
+   jobs and 1,149 assertions were green over it. Found by looking for where an equip-gated gate
+   would say "you need a light". `interaction_refused` now carries a `message_key`, and the
+   authored line is photographed in WP-09's second capture.
+2. **The satchel screen redrew only on `inventory_changed`.** So equipping from anywhere other than
+   a row press left a held item drawn as merely carried — the first WP-09 capture photographed
+   exactly that while the log said `player equipped`. Found by a capture, not by a gate; the screen
+   was still right about the bag, so nothing could fail. See gotcha 34.
+
+**Also fixed 2026-08-27 in WP-09, and it is gotcha 32 for the third time:** `--open-inventory` did
+not wait for the area, so with `--new-game` it drew over the title screen and the arriving
+transition unwound it. Third staging flag to need that wait after `--open-menu` and `--flag`, and
+`dev_stage.gd` now says any flag that puts something on screen needs it.
+
+
+**Fixed 2026-08-26 in T2.0, and it was invisible until an export existed:**
+
+1. **A missing `[editable]` marker silently dropped every instance override in an exported build.**
+   `courtyard.tscn` set `object_id`, `label_key` and `conversation_id` on two nodes INSIDE its
+   instanced `npc.tscn` with no `[editable path="Actors/Keeper"]`. From source the text loader
+   applies them; an export converts `.tscn` to binary `.scn` and the conversion DROPS overrides on
+   a non-editable instance. So the shipped keeper had no identity, no prompt, no conversation and
+   never ran its schedule — while every ladder rung, both CI jobs and 930 assertions stayed green.
+   This project hand-authors its `.tscn` files, so the marker the editor would have written is
+   exactly what a hand-authored scene forgets. Now a `tools/check_content.gd` gate, proved red on
+   the real bug. See gotcha 27.
+
+**Fixed 2026-08-26 in T1.3, and it had been wrong since ADR-0006:**
+
+1. **`ItemDb.reload()` had never called our function.** `Script` declares `reload()`, and
+   `ItemDb` as an identifier IS the GDScript object, so the static call dispatched to
+   `Script.reload()` — which reloads the script and resets its static variables. That happens to
+   do exactly what our `reload()` was written to do, so nothing broke and no test could see it.
+   It surfaced only when a redirectable `content_dir` was added: the assignment stuck, and the
+   next `reload()` silently reset it. Proved with a print inside `_ensure_loaded()` that
+   `ItemDb.reload()` never reached. All three registries now expose `rescan()`. Fourth
+   native-name collision in this project, after `Area3D.priority`, `class_name Container` and
+   `DictRead.get_name` — see gotcha 17, and note that a *static* function is no exception.
+2. **The test suite could not fail on a crash**, which invalidated every green result the project
+   had. Fixed with two mechanisms, because the first was measurably not enough — see gotcha 24.
+
+**Fixed 2026-08-26 in T1.2, both found by doing rather than by a gate:**
+
+1. **`dev_capture.gd` had failed to parse since the WP-13 merge and every rung stayed green.**
+   `await _settled()` was added without the function, so F12, `--shot`, `--time`, `--freeze-time`
+   and `--weather` were all dead for a package. See gotcha 22: `0 warnings, 0 errors` counts
+   `Log.error` calls, not engine parse errors. Found by grepping `--headless --import`.
+2. **A stripped template failed its own content gate on step one of `docs/NEW_GAME.md`**, because
+   the three content registries reported an empty folder as a problem. Found by actually
+   performing the checklist instead of writing it.
+
+**Fixed 2026-08-26 in WP-13, both found by running it and neither by a static gate:**
+
+1. **`SurfaceWetness` was driven before it had collected anything to drive.** `WeatherVisuals`
+   readies before it, and `apply()` skips a value that has not moved â so arriving in an area
+   mid-downpour would have shown a dry courtyard forever. Found by reading the line ORDER in the
+   boot log, not by a failing test.
+2. **Every `play()` against the Dummy audio driver leaks an instance.** See the audio gotcha.
+
+
+**Fixed 2026-08-26 in WP-06. Three found by running it, eight more by an independent
+adversarial review of code that had already passed every gate:**
+
+1. **A HARD SOFT-LOCK in dialogue.** `advance()` asked the AUTHORED choice array while the
+   screen drew the FILTERED one, so a node whose every choice failed its condition rendered a
+   box with no buttons that would not advance and could not be escaped, holding the player's
+   and the sensor's tokens until the process was killed. `advance()` now reads
+   `available_choices()`.
+2. **The navmesh baked EMPTY and said nothing.** `SOURCE_GEOMETRY_ROOT_NODE_CHILDREN` parses
+   children of the `NavigationRegion3D`, which has none. An empty bake takes 0ms, so "baked in
+   0ms" is what the failure looks like. Now group-sourced, and the log reports the polygon count
+   and errors at zero.
+3. **The navmesh bridged a step the body cannot climb.** `agent_max_climb` was above the dais's
+   0.4m riser, but `move_and_slide()` has NO step-up, so the NPC walked into it and stopped
+   while the agent insisted it had not arrived â silently. See the settled decision below.
+4. **A non-`Node3D` area root left the curtain black forever**, with the old area already freed
+   and `current_area_id` empty, so not even `reload_current_area()` could recover. Every failure
+   path now goes through `Director._abandon()`, which lifts the fade on the way out.
+5. **A failed load left "Loading" pinned over the game** for the rest of the session. It now
+   hides when the curtain lifts, which every path out of a transition does.
+6. **A refused transition left a save's position override armed for the NEXT one**, teleporting
+   the player to coordinates authored for a different area. Cleared on every path that does not
+   place the player.
+7. **The loading readout could never appear during the boot load** â the one load, on a cold
+   cache, that most needs it. Progress now shows it as well as updating it.
+8. **Nothing closed screens on an area change; `UiRoot.close_all()` was dead code.** Travel does
+   not lock the player, so a conversation opened during the fade-out kept running over the new
+   area with its speaker freed. `UiRoot` now unwinds on `area_unloading`.
+9. **Choice buttons and `choose(index)` indexed two different lists.** The world runs behind a
+   dialogue box, so a flag written while it is open shifts every index between drawing a button
+   and pressing it. The UI now calls `take(choice)` with the object it drew.
+10. **`InteractionSensor._on_availability_changed` swapped `_current` without resetting the
+    hold**, so a part-finished hold fired an adjacent object that became available mid-hold.
+
+**Fixed 2026-08-26 in WP-05, found by a capture:**
+
+1. **An unquoted comma in `strings.csv` had been eating text since WP-01.**
+   `object.lever.gate.on` was cut at its comma, so the lever toast had read `Somewhere north`
+   for three packages. Nothing caught it: the key still resolved and `tr()` still returned a
+   string. Both offending rows are quoted, and `check_content.gd` now FAILS any row that parses
+   to more than two columns. A translator adding a comma cannot reintroduce it silently.
+
+**Fixed 2026-08-26 in WP-04. All three were invisible until a SECOND area existed, and all
+three compiled cleanly and passed every static gate:**
+
+1. **`DictRead.get_name()` never worked, and loading a save had never restored the area.**
+   `Resource` declares `resource_name` with the getter `get_name`, and a GDScript *is* a
+   Resource, so the static call dispatched to the native zero-argument method and threw at
+   runtime. Its one caller was `Director._apply_save`. With one area it looked fine, because
+   you always reloaded into the area you were already in. Now `get_string_name`.
+2. **The interaction prompt survived an area change**, offering an Iron Lever in an area that
+   no longer existed. `InteractionSensor` pruned its candidate list but never validated
+   `_current`, and **a freed object compares EQUAL to `null` in Godot 4** — so
+   `best != _current` reported "unchanged" and nothing was re-announced. `_announced_id: int`
+   now carries the identity, because an int survives the object it names.
+3. **`follow_clock = false` did not mean "do not use the clock".** It only stopped the driver
+   *updating*; `_ready()` still sampled the clock once, so the first interior ever built was
+   pitch black when entered at 02:30 and fine at noon, from the same scene file. An interior
+   now has its own authored ambient, fog and background.
+
+**Fixed 2026-08-26 in WP-01, both found by running the engine, neither visible in the source:**
+
+1. **A climb oscillated on its corner forever.** The path turns at the top on purpose — a
+   straight line from the foot of a ladder to the ledge above passes *through* the ledge, and
+   a climb that writes `global_position` has no collision left to stop it. But the corner has
+   to latch: without it, the frame after arriving at the waypoint steps off towards the
+   target, and the next frame steers back. 600 test steps, no convergence.
+2. **A trigger volume near the area origin fired at spawn.** The player exists at the origin
+   for one frame before `Director` places them on the spawn marker, so the courtyard's dais
+   trigger toasted from three metres away, on every load. `TriggerVolume` now arms two
+   physics frames late.
 
 **Fixed 2026-08-24, all four found by audit and each verified after the fix:**
 
@@ -63,13 +514,95 @@ hard-coded-string audit · weather visuals · item instances (durability) · equ
 
 ## Decisions already made — do not re-litigate
 
+- **THE TEMPLATE'S VERSION IS `[template] base/version`, NOT `application/config/version`.** The
+  obvious field is the wrong one, and `NEW_GAME.md` § 4 already said why without noticing: it tells
+  a fork to reset it to `0.0.1` on day one, so after exactly one fork it records the GAME's version
+  and nothing remembers which base the game came from. Two facts, two settings. It is a project
+  setting rather than a `const` under `src/` for the same reason `[game] world/first_area` is —
+  reading a `const` means opening engine code, and the premise of the whole boundary is that a
+  consuming game does not read `src/`. A fork LEAVES THAT LINE ALONE.
+- **`TemplateVersion` IS ITS OWN FILE AND WILL NOT BE FOLDED INTO `GameConfig`.** `GameConfig`'s
+  header says it owns "the values a game author writes once"; the base's version is the one value
+  a game author must NEVER write. Folding them would make that sentence false to save a small file.
+- **THERE WILL BE NO AUTOMATIC UPGRADE AND NO COMPATIBILITY TABLE.** `UPGRADING.md` § 4 states both
+  in writing, so shipping either would contradict the document. A table is a list of exceptions to
+  the promise, and the promise is the product; `same_major_as()` and `compare_to()` are the whole
+  surface. Git shows a diff and the game's author decides.
+- **WP-15's REMNANT IS CLOSED, BY THE OWNER, 2026-09-02.** Credits name a team a template does not
+  have, and an accessibility pass over placeholder art and a UI every game restyles is a pass over
+  something designed to be thrown away. What the template owes accessibility is the SEAMS, and they
+  exist and are proved: the project `Theme`, rebindable input, and no timed input anywhere because
+  there is no combat. Recorded rather than deleted, the way WP-10 is marked OPTIONAL.
+
+- **A DEV TOOL THAT NAMES NO CONTENT BELONGS UNDER `src/`, NOT IN THE EXEMPT DEBUG DIRECTORY.**
+  `DebugConsoleScreen` is a `UiScreen` in `src/ui/screens/` beside the journal and the map. The
+  permission is that a command takes its argument from whoever typed it, so `goto courtyard` is
+  input rather than a literal — but the REASON is stronger than the permission:
+  `src/systems/debug/` is exempt from `check_boundary.gd`, so filing the console there would have
+  bought it an exemption it does not need and switched off the gate that ought to be watching it.
+  The rule generalises: the exemption is for code that must name the demo, and nothing else goes
+  looking for it.
+- **THE COMMAND LINE AND THE CONSOLE ARE ONE IMPLEMENTATION, AND THE VERB RETURNS ITS REPORT.**
+  `DevCommands` holds `goto`, `flag`, `time` and `give`; `dev_stage.gd`, `dev_capture.gd` and the
+  console all call it, and the console's argument is byte-for-byte the `--verb=` argument. Each
+  verb returns a sentence rather than logging one, because a staging flag wants that line in the
+  log and a console wants it on screen — a shared body that logged would have forced one of them
+  to read the log to find out what happened.
+- **THE CONSOLE PAUSES THE WORLD AND THE OVERLAY DOES NOT, WHICH IS ONE DECISION MADE TWICE.**
+  Both answer *should the world be stopped?* and the answers are opposite for the same reason: a
+  clock that runs while you type at it photographs a moving target, and a frame time is worthless
+  unless frames are still happening. So the console declares `pauses_world` and `UiRoot`'s table
+  does the rest, and the overlay is a `CanvasLayer` at layer 101 that never enters the stack, holds
+  no pause, takes no focus and answers no cancel. **Anything that must be READABLE DURING
+  gameplay is not a screen** — that is the general form.
+- **A DEV TOOL'S CHROME IS TEXT AND ITS OUTPUT IS DATA.** The console's title and input hint are
+  localization keys like every other screen's; its transcript is echoes of a typed command and the
+  values that came back, and the overlay is numbers, neither of which any `strings.csv` could
+  hold. This is the line `check_strings.gd` forces a developer surface to draw, and drawing it
+  deliberately is the difference between satisfying the gate and routing around it.
+- **A GUARD ASSERTED BY A TEXT SCAN MUST BE ANCHORED UNIQUELY, AND THE SCAN MUST SKIP COMMENTS.**
+  `OS.is_debug_build()` is true everywhere the suite can run, so the release gate can only be
+  asserted by reading source — and WP-14b's first attempt would have passed over a deleted guard
+  twice over: once because the file EXPLAINS its gate in a comment, and once because the same
+  fragment appeared in two functions. The second was fixed in the code rather than in the test.
+  See gotcha 43.
 - **GDScript, not C#.** The installed engine is the standard build; .NET is not available.
 - **Warnings are errors.** `var x = 5` does not parse. Read untyped data via `DictRead`, never
   `int(value)` on a `Variant`.
 - **Input actions live in code** (`src/systems/input/actions.gd`), so the editor's Input Map
   panel looks empty. Intentional — ADR-0003.
 - **Ten autoloads, no `GameManager`.** Adding one requires an ADR.
-- **No jumping.** Vertical movement will be authored: ladders, stairs, climb points.
+- **THE STRING AUDIT CHECKS SINKS AND DECLARATIONS, NEVER LITERALS.** `check_content.gd` refused a
+  general hard-coded-string audit in writing, and that refusal is right: nothing in a line of text
+  says whether `"world"` is a log category, a flag namespace or a sentence for a player, and a
+  partial tool that looks complete is how 409 passing checks happened. `check_strings.gd` (WP-14)
+  therefore never inspects a literal and guesses. It asks two questions with mechanical answers —
+  does the right-hand side of a **text sink** go through `tr()`, and does every `*_KEY` **const**
+  name a real CSV row — because whatever reaches `.text` is player-facing by construction whatever
+  it contains. Do not "improve" it into a literal classifier; that is the tool `check_content.gd`
+  turned down, and its header says why.
+- **A SMOKE TEST DRIVES A GAME, NOT THE DEMO.** WP-14's row said "the whole demo" and was re-framed
+  in the commit that took it. `tests/unit/smoke_test.gd` composes the session from
+  `tests/framework/fixtures.gd`, and its one game-shaped block asserts only that
+  `GameConfig.first_area()` RESOLVES — never what it is called — and skips, counted, in a stripped
+  checkout. The rule is TESTING.md's and `check_boundary` enforces it over `tests/unit/`; a smoke
+  test is not an exception to it just because "end to end" sounds like it should name real places.
+- **ONE content scan, five typed façades — and the base is on the RESOURCE, not the registry.**
+  `ContentScan.into()` is the only scan-and-validate in the project; `ContentEntry` is the base
+  every catalogued `.tres` extends. Each registry keeps its own `content_dir`, its own typed
+  cache and its own typed accessor, because a base-class `static var` is ONE storage shared by
+  every subclass (gotcha 37) and because an untyped accessor is against non-negotiable #2.
+  Settled by T3.1 after WP-08 and WP-11 costed it twice. Do not re-argue it, and do not "finish
+  the job" by moving `has()`/`count()`/`rescan()` onto a base — those name their own type.
+- **No jumping.** Vertical movement is authored: a `ClimbPoint` names two markers and asks
+  `PlayerController.begin_climb()`. The climb turns its corner at the *top* end, both going
+  up and coming down, so it never cuts through the ledge.
+- **A climb is refused, not hidden.** Mid-air gets `RefusalReason.NOT_GROUNDED` with a
+  message, on the same reasoning that makes a locked gate offer its prompt.
+- **A trigger volume never names its consequence.** It sets a flag and emits
+  `Events.trigger_fired`; anything may watch either. Same reasoning as the lever.
+- **A time skip is one event.** `Clock.skip_to_hour` routes through `set_time`, never
+  `advance_minutes` — an eight-hour sleep must not emit 480 `minute_passed` signals.
 - **Inventory is a component, not an autoload.** Interactables are handed the interactor, so
   `Inventory.of(who)` needs no global and works for an NPC or a stash too. A global would
   hard-code "one bag in the universe" into every interactable.
@@ -78,23 +611,451 @@ hard-coded-string audit · weather visuals · item instances (durability) · equ
   needs a new category, so it does not violate the no-code-per-item rule.
 - **Item instances are deferred** until something actually has durability; `{id, count}` is
   enough. Never persist an enum ordinal — persist ids.
-- Four ADRs in `docs/decisions/` cover the layered `src/`, warnings-as-errors, the input map,
+- **Input is held by NAMED TOKENS, never a boolean.** `InputLock` on the player and on the
+  interaction sensor. `lock(&"dialogue")`, `release(&"dialogue")`. A boolean broke the moment
+  WP-01 gave it a second caller, and a counter would strand instead. Do not reintroduce
+  `set_input_locked(bool)` as a convenience over the top of it.
+- **A screen never pauses anything itself.** It declares `pauses_world` and `closes_on_cancel`
+  as a `UiScreen`, and `UiRoot` does the rest. `UiRoot.is_gameplay_input_allowed()` is the one
+  truth; everything else listens to `Events.ui_mode_changed`.
+- **A screen declares its flags in `_init`, never in `_build`.** `_build` runs from `_ready`,
+  i.e. after a caller has had its chance to override one, so setting `pauses_world` there
+  silently discards an overlay's request to keep the world running. `StubScreen` did exactly
+  that and made the overlay assertion in `ui_test.gd` pass vacuously for a whole package.
+- **The HUD is a layer, not a class.** The clock, the prompt and the toasts are independent
+  siblings under `UILayer`, each subscribing to the one signal it draws. There is no `Hud`
+  node owning them, and adding one would only create somewhere for the fourth readout to
+  accumulate.
+- **An inventory screen is handed its carrier**, `InventoryScreen.for_carrier(who)`, on the
+  same reasoning as `Inventory.of(who)`: the same window shows an NPC's satchel or a stash.
+- **One node binds actions to screens.** `ScreenKeys`, under `UILayer`. The journal key and
+  the map key join it there rather than each finding a different home, which is how a boolean
+  per screen was born last time.
+- **A dialogue condition is a CLOSED SET of comparisons, never an expression.** `FlagTest` has
+  six values, `FlagWrite` has five. The moment a conversation can hold an expression it needs a
+  parser, error reporting and a sandbox, and the .tres stops being reviewable in a diff. When
+  six are genuinely not enough, add a seventh, not a grammar.
+- **A conversation is an ORDERED ARRAY and the runner falls through.** The entry point is the
+  first node whose condition passes, not `nodes[0]`, and a skipped node falls through to the
+  next in authored order. That is what makes "if we have met, greet me differently" two nodes
+  and no wiring. Effects fire on ARRIVAL, so a node has the same consequence however reached,
+  which is why a choice has a condition but no effect.
+- **A failing choice is OMITTED, not shown disabled** — the opposite of a locked gate, on
+  purpose. A gate you cannot open teaches you there is something to come back for; a reply you
+  cannot give teaches you only that the writer thought of it. So `choose(index)` indexes what is
+  ON SCREEN, not the authored array.
+- **A conversation is NOT SAVED.** Persisting a position writes a node id into the save file,
+  making every node id in every .tres a permanent public identifier — rename one and old saves
+  load into a position that no longer exists. The section exists, is always empty, and logs what
+  it discarded. A save taken mid-conversation reloads with the conversation over and control
+  returned.
+- **A waypoint must be somewhere the BODY can walk, which is not the same as somewhere the
+  navmesh covers.** A `NavigationMesh` bakes `agent_max_climb` into the walkable surface and
+  will happily bridge a knee-high step, but `CharacterBody3D.move_and_slide()` has no step-up at
+  all. This game has no jumping and authored vertical movement, so the climb limit is kept BELOW
+  anything the body cannot manage and waypoints sit on the ground.
+- **A navmesh is baked at load, never checked in.** A committed one goes stale the moment
+  someone moves a wall, and a stale navmesh fails silently. It is baked behind the same curtain
+  that already hides the shader warm-up, and the polygon count is logged so an empty bake is an
+  error rather than silence.
+- **A schedule names a WAYPOINT, not a position**, and has no `until_hour`: an entry runs until
+  the next begins and the last wraps past midnight, so a day is always completely covered and
+  two entries cannot disagree about who owns 14:00.
+- **A UI takes a dialogue choice by IDENTITY, never by index.** `take(choice)`, not
+  `choose(index)`. A conversation leaves the world running, so any flag written while the box is
+  open can shift every index under the player's finger.
+- **`Weather` renders NOTHING, and `WeatherVisuals` decides NOTHING.** Every number in the
+  visuals is read from `Weather`; the toast on a change is emitted by the visuals, so the state
+  machine still does not know a screen exists.
+- **A weather emitter is TOLD its weight; it never polls.** One that read `Weather` itself would
+  be a second place the rules live, and the two would disagree mid cross-fade.
+- **Weather particles are GENERATED, never authored.** Art is deferred indefinitely, so a rain
+  texture is a dependency this project will not take.
+- **`SurfaceWetness` duplicates every material it touches**, or a scene's shared sub-resources
+  would leave the courtyard wet after a reload on a clear day.
+- **Wetness is a pure `RefCounted`, not a node field**, because drying is the only part with
+  memory and no assertion can wait for a `_process` frame.
+- **A REFUSAL and a FAILURE are different things.** A refusal happens before anything: the
+  player is told why and nothing changes. A failure happens after committing: the action ran, it
+  did not work, and it COST something. An action that could only refuse is a lock with extra
+  steps; one that could only fail gives the player no way to read the situation first. Path
+  actions have both, and `once` applies to SUCCESS only, or a single early failure would lock
+  the player out forever with no way back.
+- **A path action is a THRESHOLD, never a dice roll.** A random one makes the player save-scum,
+  and a save-scummed mechanic is experienced as a slot machine rather than as a relationship.
+- **Standing is a namespace over `Flags`, not a store**, keyed `standing/<who>` and NOT through
+  `PersistentState` â that namespaces per area, which is right for a chest and wrong for a
+  person: the keeper who dislikes you in the courtyard must still dislike you in the hall.
+- **An NPC's actions are overlapping Interactables, not a menu.** The sensor already ranks and
+  Tab-cycles between overlapping targets; a menu would be a second selection mechanism competing
+  with the first.
+- **A door names an id and a spawn, and nothing else.** `AreaDoor` emits
+  `Events.area_change_requested` and stops. It does not load, fade or place the player.
+  `Director` owns the sequence and the guard, and nothing else calls `change_area()` — a door
+  that ran its own transition would be a second, unguarded path, which is how two doors firing
+  at once leaves two areas in the tree.
+- **An interior has its own light, not a frozen sample of the outdoor one.** `follow_clock =
+  false` now means the Interior group on `EnvironmentDriver` is applied once and the outdoor
+  path never touches that area's sun. It used to mean only "stop updating", which is not the
+  same thing and made an interior's brightness depend on the hour it was entered at.
+- **The loading indicator is the ONE node after `ScreenFade`.** Gotcha 12 says the curtain must
+  be the last child of `UILayer` so it covers every screen. The indicator has to be readable
+  *while* the curtain is up, so it is the single deliberate exception, and there should not be
+  a second one.
+- **Pause is per node, not global.** `get_tree().paused` is set by UiRoot, but each node
+  decides for itself in its own `_ready()`. The full table is the header of
+  `src/ui/root/ui_root.gd`. Clock and Weather stop; Audio, Director, ScreenFade,
+  NotificationToast and DevCapture do not.
+- **A TEST BUILDS ITS OWN CONTENT, and a test that names demo content is testing the demo.**
+  `tests/framework/fixtures.gd` is the seam, and its rule is one line: **in memory when a system
+  is HANDED content, on disk when a system LOOKS IT UP BY ID.** The three registries scan a
+  directory (ADR-0006) and cache statically, so an in-memory `ItemDefinition` is invisible to
+  `Inventory.add(id)`; the fixtures write `.tres` files to `user://test_fixtures/` and point
+  `content_dir` there. A test-only injection method on each registry was rejected: a backdoor in
+  engine code that exists for the suite and nothing else is worse than a temp folder, and going
+  out through `ResourceSaver` and back through the real scan proves the authoring round trip as a
+  side effect. Since T1.3 `check_boundary` scans `tests/` too, so this is a gate, not a habit.
+- **A CASE THAT ASSERTS THINGS ABOUT THE DEMO SKIPS LOUDLY, never silently.** `skip()` stands in
+  for the assertions it replaces, so the plan is the same number with or without `data/` and a
+  stripped run prints what it gave up. `861 passed, 0 failed, 12 skipped` is a different claim
+  from `861 passed`, and the difference is the whole point.
+- **EVERY CASE DECLARES A PLAN, and the number is maintained by hand.** TAP's `1..N`. It is the
+  only thing that can see a crash that swallowed an assertion, an early return, a commented-out
+  block, or a case that asserts nothing — see gotcha 24 for why nothing cheaper works. A stale
+  plan fails loudly with both numbers and the case name, so it is self-correcting friction rather
+  than a trap.
+- **A CONTENT ROOT IS A `static var`, NOT A CONST.** `ItemDb.content_dir` and its two siblings.
+  A game may keep its items somewhere else, and the fixtures do. `ItemDb.ITEM_DIR` is now the
+  DEFAULT, not the answer, and `tools/check_content.gd` validates whatever the root currently is.
+- **NO FILE UNDER `src/` OR `tests/` MAY NAME DEMO CONTENT**, and since T1.2 `tools/check_boundary.gd` is
+  what says so. It derives the forbidden names from `scenes/areas/` and the ids in `data/`
+  rather than listing them, so it cannot go stale. **Comments are exempt, code is not:** a `##`
+  line saying `data/items/rose_key.tres must declare id = &"item/rose_key"` is teaching by
+  example and changes nothing; a `const` changes behaviour. One directory is exempt,
+  `src/systems/debug/`, because those three files exist to drive the demo — and the exemption is
+  conditional on their argument parsing staying behind `OS.is_debug_build()`, which the same
+  tool checks. Do not widen the exemption; a second exempt directory means the rule is gone.
+- **A GAME-SPECIFIC ANSWER LIVES IN `project.godot`, read through `GameConfig`.** The starting
+  area is `[game] world/first_area`, the game's name is `application/config/name`, and
+  `src/core/util/game_config.gd` is the only place under `src/` that reads either. An `@export`
+  on the boot scene was rejected: `scenes/boot/` is engine too, so that would have moved the
+  leak, not closed it. An empty `first_area` is a legal state — a template nobody has put a game
+  in yet — and `Director` says so instead of clearing the flags and going quiet.
+- **AN EMPTY CONTENT FOLDER IS NOT AN ERROR.** `ItemDb`, `DialogueDb` and `ScheduleDb` used to
+  report "no items found" as a problem, which made a stripped template fail its own gate on step
+  one of `docs/NEW_GAME.md`. A file that is present and does not load is the error, and it is
+  reported per file. Whether a game needs items is that game's question, not this base's.
+- **`export_filter="all_resources"` IS PART OF THE ENGINE CONTRACT, NOT A PREFERENCE.** The three
+  registries find content by directory scan, so those resources are nobody's dependency and only
+  that setting ships them — measured both ways in T2.0, and asserted by `tests/unit/export_test.gd`
+  so a consuming game that narrows it fails rung 4 instead of shipping empty catalogues.
+- **THE EXPORT IS VERIFIED BY A DEBUG BUILD, AND THE READOUT NEVER REACHES A PLAYER.**
+  `CatalogueReport` reports every catalogue's count and RESOLVED PATHS at boot, behind
+  `OS.is_debug_build()`. The paths and not only the counts, because a partial ship is worse than an
+  empty one: three of four items is a plausible number. It ASKS the same registries the game asks —
+  a reporter that did its own scan would be reporting on itself.
+- **AN EXPORT PROOF CANNOT BE AN ASSERTION, and the suite says so out loud.** A test running under
+  `res://` cannot test a build it is not running in, so `export_test.gd` asserts
+  `is_exported() == false` rather than leaving the blindness implied. The proof is a RUN of the
+  exported executable with both sides' numbers quoted in `DEVLOG.md`. There is deliberately no CI
+  export rung: a GPU-less runner has no platform template, the same honesty T1.4 applied to the
+  windowed capture.
+- **A FACING IS NOT A COLUMN, and the sector width lives in exactly one place.** `GameEnums.Facing`
+  has eight values because eight is how many directions the GAME reasons about; `layout.facings` is
+  how many the ART distinguishes. The two are quantised SEPARATELY from the same angle — the enum
+  from `GameEnums.Facing.size()`, the column from `SpriteSheetLayout.column_for_angle()` — because
+  the obvious alternative, mapping the enum down with `int(facing) * facings / 8`, puts the number 8
+  back in the code in a second place, which is the exact bug T2.1 existed to remove. When
+  `facings == 8` they agree by construction, so the existing sheet did not move.
+- **NO SHEET DIMENSION LIVES IN CODE.** `SpriteSheetLayout` is the art CONTRACT: facings, frames,
+  animation blocks, cell size and the idle/walk row offsets. `CharacterVisual` reads all of it and
+  holds none of it, and `tests/unit/art_contract_test.gd` FAILS if `character_visual.gd` regains a
+  `TAU / 8` or a `FACING_COUNT`. The cell size is DECLARED and validated against the texture rather
+  than divided out of it, so a sheet of the wrong size is a named problem instead of every
+  character in the game silently misplaced.
+- **AN UNWIRED `layout` IS LEGAL AND LOUD.** `CharacterVisual` falls back to 8x4/32x48 and WARNS,
+  naming the node. Gotcha 2's whole lesson is that a silent default looks exactly like success, so
+  the fallback exists to keep a node recognisable while the log says it is unwired — it is not a
+  fallback anything should rely on.
+- **THE UI LOOK IS ONE FILE, AND THE PALETTE IS NOT COPIED INTO THE VARIATIONS.**
+  `assets/theme/ui_theme.tres`, wired as `gui/theme/custom` so it reaches the HUD too — which is
+  drawn UNDER `UiRoot` and would have been missed by handing the theme to the stack. Type variations
+  carry ONLY `font_size`, the one thing that genuinely differs by role; the four colours and six
+  insets live once each in `UiPalette` and `UiMetrics` and the screens read them by name. A `Theme`
+  resource has no variables, so a colour repeated into nine variations would be nine places to
+  change and "one Theme edit restyles every screen" would simply be false. A test case fails if any
+  of the five styled files writes a `Color(` or an `add_theme_font_size_override` down again.
+- **A DOCUMENT IS TASK-FIRST OR IT IS A FILE HEADER.** The headers in this project are good and
+  are found only by already knowing which file to open. `AUTHORING.md` therefore starts from
+  "I want to add an area", not from `AreaRoot`, and the four consumer documents are routed to from
+  both `CLAUDE.md`'s table and `CONTEXT.md` — a document nobody is routed to is a document nobody
+  reads. The extension surface went into `ARCHITECTURE.md` rather than `AUTHORING.md` because
+  `AUTHORING.md` opens with "you never edit `src/`" and a section on subclassing underneath that
+  would contradict it.
+- **A DOCUMENTATION CRITERION IS PERFORMED, NEVER ASSERTED.** T2.2's exit criterion was closed by
+  authoring a real area, NPC and conversation from the documents alone and running them; the
+  deliverable of that exercise is the list of six things the documents got wrong. A walkthrough
+  that works first time means the author was still reading from memory.
+- **THE DOCS ARE GATED FOR EXISTENCE, NOT FOR TRUTH.** `tests/unit/docs_test.gd` asserts that every
+  `res://` path the documents name resolves and that every property in a worked `.tres` example
+  exists on the class that block declares. It cannot check that a documented *sentence* is true —
+  only a walkthrough does that. `DEVLOG.md` is exempt from the path scan, because a history
+  necessarily names files it correctly removed.
+- **A QUEST STEP NAMES A FLAG CONDITION, NEVER A CALLBACK.** The same closed set of six comparisons
+  `GameEnums.FlagTest` gives a dialogue condition, evaluated by the same `FlagQuery.passes` both
+  call. That is what makes a quest authored data (adding the fiftieth touches no code, ADR-0006's
+  test) and it is what lets the rest of the game feed a quest without knowing quests exist — the
+  placeholder quest is started by a conversation effect, advanced by the courtyard lever and
+  completed by the dais trigger volume, and none of those three files was touched. The cost is
+  stated rather than hidden: **a step cannot read an item count**, because `Inventory` keeps counts
+  and not flags, so "bring me three petals" is not authorable and the seam is a `Pickup` that writes
+  a flag.
+- **QUEST PROGRESS IS DERIVED; EXACTLY TWO THINGS ARE LATCHED.** `flags.gd` says derive what can be
+  derived, and the current objective is the first step whose test fails, asked live on every flag
+  change. Two things cannot be derived: that a quest STARTED (clearing its start flag must not
+  un-give a quest carried for three hours) and that it COMPLETED (a step testing `AT_LEAST 3` on a
+  counter must not reopen when something decrements it). Those two are the whole save section, held
+  as **two lists of quest ids** — never an enum ordinal. An ACTIVE quest's objective is deliberately
+  NOT latched, so clearing the flag behind objective two brings objective two back; a per-step latch
+  would double the saved state to remove a behaviour nobody has asked for. Both halves are asserted,
+  because a latch nothing tests is indistinguishable from a cache.
+- **A COMPLETED QUEST GRANTS NOTHING.** It emits `Events.quest_completed` and stops. A `reward_item`
+  field would put `Inventory` and a player — both `gameplay` — inside a `systems` tracker, and
+  `src/` points downward only. Anything that wants to hand over an item listens; anything that wants
+  to gate a conversation tests the flag the last step tested, with no code at all. Same reasoning
+  that keeps `Weather` from drawing rain.
+- **THE FLAG-TEST TABLE LIVES IN EXACTLY ONE FILE**, `src/core/state/flag_query.gd`, extracted from
+  `DialogueRunner` when a quest step began asking the identical question. Two copies of a rule
+  eventually disagree, and the disagreement would surface as a quest that will not complete for a
+  flag a conversation is perfectly happy with. A test fails if the table grows back in either file —
+  the gate `art_contract_test.gd` established for sheet dimensions. Only the READ half is shared:
+  `FlagWrite` still has one caller, and a shared file serving one consumer is not a seam.
+- **THE FOURTH REGISTRY WAS RECONSIDERED AND THE COPY WAS KEPT.** `schedule_db.gd` said "three is a
+  pattern, four is a problem — if a fourth registry appears, that is the moment to reconsider."
+  Reconsidered in WP-08; GDScript has no generics, so a shared base could only cache `Resource` and
+  hand it back untyped, making all four accessors a cast at the call site — and static typing is
+  non-negotiable #2, not a preference. What is genuinely shared already is: `QuestDb` calls
+  `ItemDb.resource_paths()` rather than copying the `.remap` handling. The refactor that pays is a
+  base plus a thin typed façade each, and it is **T3.1 on the board** rather than a shrug.
+- **A CONTENT CHECK PRINTS WHAT IT CANNOT VALIDATE.** `check_content` prints every flag a quest and
+  its steps name and validates none of them. A flag can be written from a scene, a conversation, a
+  path action or another quest, and the writer that matters most is a runtime one —
+  `PersistentState` builds `obj/<area>/<object>/<field>` at load — so a checker that failed on any
+  flag with no findable writer would be wrong most times it fired. A partial check that looks
+  complete is the failure mode this project exists to prevent, so the flags go in the build log
+  where a reviewer reads them.
+- **EQUIPMENT IS A FLAG, NOT A STORE.** `Equipment` is a component beside `Inventory` — same
+  `of(who)` reasoning, so an NPC or a stash can have one — and it owns NO DICTIONARY. A slot is
+  `equip/<wearer_id>/<item id>` in `Flags`, which is `PersistentState`'s `obj/<area>/<object>/<field>`
+  and `Standing`'s `standing/<who>` applied a third time. Three things fall out and together they
+  are the whole argument against a `Dictionary[EquipSlot, StringName]` plus a save section: it is
+  already saved (no register, no version, no migration, and a new game clears it because
+  `start_new_game()` clears flags); a `Gate`, a `QuestStep`, a `DialogueChoice` and a `ClimbPoint`
+  gate on it **with no code and no new field**, which is WP-08's seam used by a second system; and
+  `flag_changed` already announces it. The cost is stated: the key contains an item id, so renaming
+  an item's `.tres` brings it back stowed.
+- **THE ITEM STAYS IN THE BAG WHILE IT IS HELD.** Moving it out would make equipment a second place
+  items live — `Inventory.count_of()` would begin lying and `Gate.requires_item` would refuse a key
+  that is in the player's hand. So equipping is purely a flag, and the price is that losing the item
+  has to stow it: `Equipment._revalidate`, on `inventory_changed` rather than on `item_lost`, because
+  that is the one signal every path emits including a restored save. It is the invariant the suite
+  fails first when broken.
+- **ONE ITEM PER SLOT, AND THE NEWCOMER WINS.** Holding a second LIGHT stows the first rather than
+  being refused, because a refusal would make swapping a lantern a two-step chore the player cannot
+  see a reason for. `can_equip()` is the seam a strength rule or a two-handed rule goes into, the
+  analogue of `Inventory.can_accept()`.
+- **`EquipSlot` HAS NO WEAPON AND NO ARMOUR VALUE**, the same absence `ItemCategory` has, and for
+  the same retraction. A slot answers "what does holding this let you do", never "how hard do you
+  hit". It is append-only, because an `ItemDefinition` stores it as an ordinal.
+- **A REFUSAL MAY CARRY AN AUTHORED LINE, and a reason is a CATEGORY rather than a sentence.**
+  `interaction_refused` carries a `message_key` beside `args` — travelling on the signal rather than
+  asked of the target, exactly as `args` does — and `Interactable.refusal_key(who, reason)` is the
+  override, with "" meaning "compute `refusal.<reason>` from the enum". The alternative was a new
+  `RefusalReason` per authored line, which is a category per sentence and the growth the closed sets
+  exist to prevent. `Gate.locked_key` and `PathAction.refusal_key` had been declared, validated by
+  `check_content` and read by NOTHING since WP-01 and WP-07 — see the defects section.
+- **A UI REDRAWS ON THE WORLD'S SIGNAL, NEVER ONLY ON ITS OWN INPUT.** `InventoryScreen` refreshed
+  on `inventory_changed` alone, so a row press redrew and an equip from anywhere else did not — and
+  the first WP-09 capture photographed a held lantern drawn as merely carried. A press is never the
+  only writer: staging equips from the command line, and `_revalidate` stows on its own. That is
+  why `equipment_changed` exists at all, and it is a general rule rather than one screen's bug.
+- **DISCOVERY IS A FLAG, AND THE NAMESPACE CONVENTION IS NOW A PATTERN.** `map/<area id>` in
+  `Flags`, with no store, no save section, no migration and no register — the FOURTH use of
+  namespace-over-`Flags` after `PersistentState`'s `obj/<area>/<object>/<field>`, `Standing`'s
+  `standing/<who>` and `Equipment`'s `equip/<wearer>/<item>`. Three independent systems on one
+  convention is evidence it generalises rather than a coincidence, and the next thing that needs
+  saved per-thing state should reach for it before reaching for a save section. Two things fall
+  out and they are the whole design: anything that writes the key reveals a place (a
+  `DialogueChoice` effect, a `TriggerVolume`, a `Lever`, a quest consequence — none of which was
+  touched), and a `Gate` with `requires_flag = &"map/<id>"` is a road that opens once you know
+  where it goes. The cost is stated: renaming an area's folder makes an old save forget it was
+  found, the same price `Equipment` pays for an item id.
+- **A MAP DOT'S POSITION IS AUTHORED DATA, IN NORMALISED 0..1 SPACE.** `AreaDef.map_position`, and
+  `MapScreen` has never heard of any area. A map that knew where the courtyard goes would be
+  engine code naming demo content, which `check_boundary` fails the build over — proved by
+  planting it. Normalised rather than pixels so one authored number is right at every window size
+  and every UI scale.
+- **AN AREA ID HAS NO REGISTRY PREFIX**, unlike `item/` and `quest/`. Those prefixes make a save
+  file self-describing about a thing that lives only in a save file; an area id is already a
+  public identifier, because it is a folder name. `data/areas/orchard.tres` declares
+  `id = &"orchard"`, which is what `Director` travels to, so there is no translation table
+  between `AreaDb` and `Director` — and a translation table is a second place the truth lives.
+- **FAST TRAVEL ASKS; IT DOES NOT TRAVEL.** `WorldMap.travel_to` emits
+  `Events.area_change_requested` and stops, exactly as `AreaDoor` does. Four refusals, each
+  logged: not on the map, not found, already there, already moving. Nothing but `Director` calls
+  `change_area()`, which is what keeps two things firing at once from leaving two areas in the
+  tree — and a fast-travel path that ran its own transition would have been the second one.
+- **AN AREA WITH NO `AreaDef` IS NOT AN ERROR**, it is a cupboard a game chose not to draw. It is
+  said at INFO level once per arrival rather than warned, because the boot rung counts warnings
+  and a template with no map at all is a legal state — but it is said, because "the .tres is
+  authored and the dot never appeared" must not be silent. Same shape as an empty content root.
+- **STAGING THAT PUTS SOMETHING ON SCREEN WAITS FOR THE WORLD TO STAY STILL, NOT MERELY TO ARRIVE.**
+  `dev_stage._settle_stable(20)` demands twenty CONSECUTIVE settled frames and resets on any
+  transition, which is gotcha 21's persistence shape applied to staging. `--goto` and
+  `--open-menu` both leave `_wait_for_area` on the same frame, so a fixed extra delay only moves
+  the race; a counter that a starting transition resets cannot be satisfied early.
+- **AN ATTRIBUTE'S NAME LIVES ON ITS CONSUMER, NEVER ON THE CONTAINER.** `attr/<who>/<name>` is the
+  fifth namespace over `Flags`, and `Attributes` has NO registry, no `AttributeDef` and no enum of
+  names — any StringName is an attribute the moment something writes it, which is ADR-0006's
+  no-code-per-thing test met without a sixth directory scan. What stops that becoming the failure
+  this project keeps catching is a rule about where a name is written down:
+  `PlayerController.PACE` sits beside the line that reads it, so **an attribute nobody reads has
+  nowhere to be declared** and `attributes.gd` cannot grow a table of good intentions. The cost is
+  stated: naming an attribute is free, READING one is always a line of engine code, and
+  `AUTHORING.md` says so to an author's face. The value is a STEP, not the number, because a flag
+  holding `4.7` would be a walk speed authored into a save file and the tuned `walk_speed` would
+  stop being the truth.
+- **A SURFACE IS METADATA ON GEOMETRY, INHERITED FROM THE NEAREST TAGGED ANCESTOR.**
+  `metadata/surface` on a body or anything above it. A component would be a node per floor tile; a
+  group would share one flat namespace with `navmesh_source`, where a typo becomes a second surface
+  silently; an ENUM would be a list of surface names in `src/`, which `check_boundary` fails the
+  build over. Inheritance is what makes it cheap to author, and the demo's third surface comes from
+  it. A step's timbre is DERIVED from the name for the same boundary reason a table is refused: a
+  game that authors `sand` hears it without editing `src/`.
+- **A FOOTSTEP IS THE ONE CLAIM THE LADDER CANNOT SEE AT ALL, AND THE FILE IS SPLIT ALONG THAT
+  LINE.** Not visual, so no capture reads it; not synchronous, so no assertion reaches it; and
+  headless the audio driver is `Dummy`, where every `play()` leaks (gotcha 20). So the pure parts
+  — the stride accumulator, the surface query and the two timbre functions — are asserted, and the
+  raycast, the frame loop and the `play()` are a windowed run with the log quoted. The same split
+  `SurfaceWetness` made for drying, and it is said out loud rather than implied.
+- **AN ITEM COUNT IS A FLAG THAT IS PUBLISHED DOWNWARD, NOT A BAG THAT IS READ UPWARD.**
+  `bag/<carrier_id>/<item id>` in `Flags`, written only by `Inventory._publish`, and it is the
+  general answer whenever a lower layer holds something an upper one must observe. `QuestTracker`
+  is `systems` and `Inventory` is `gameplay`, so a tracker reading a bag points the wrong way —
+  the same violation WP-08 refused over `reward_item`. Publishing inverts it, and the capability is
+  identical: `QuestStep` gained NO field, `QuestTracker` gained no knowledge, and `item_count_test`
+  FAILS if either file's code names `Inventory`, `ItemDb` or `BagKeys` — nothing else in the suite
+  could, because the behaviour would be identical with the layer rule gone. Settled by T3.3 from
+  the FIRST of WP-09's two costed designs. Do not "simplify" it by handing the tracker a bag.
+- **A DERIVED FLAG IS READABLE, ANNOUNCED, AND NOT SAVED.** `Flags.declare_derived(prefix)`, and
+  `_collect_save` skips those keys. That is what makes the count projection legal rather than a
+  second copy of the truth: `flags.gd`'s own header forbids storing anything recomputable, and a
+  count mirrored from the bag is recomputable by definition. The consequence is a duty rather than
+  a freedom — the PUBLISHER must republish whenever the store is wiped under it, which is why
+  `Inventory` subscribes to `game_started` (clear) and `game_loaded` (republish, after every
+  section, so the answer cannot depend on save-participant order). Anything else that wants to be
+  readable-but-derived pays the same price and should say so in its header.
+- **A COUNTED CONDITION IS `AT_LEAST` OR `EQUALS`, AND `AT_MOST` DRAWS NO TALLY.** `AT_MOST` is a
+  ceiling, so "2 / 3" under *keep it below three* tells the player to gather more of the one thing
+  they must not; a `condition_value` of 0 is not a count either, because `AT_LEAST 0` passes with an
+  empty bag. `FlagQuery.progress()` answers `(have, need)` with `need == 0` meaning "not a count",
+  and `check_content` fails the build on both mistakes rather than letting a journal draw `0 / 0`.
+- **THE BAG KEY SHAPE LIVES IN `src/core/state/bag_keys.gd`, AND NOT ON `Inventory`.** Three places
+  need it and none may rebuild it: the bag WRITES it, `check_content` PARSES it to validate the item
+  id, and the suite asserts on it. The reason it cannot sit beside `Equipment.PREFIX` is a compile
+  error, not taste — `check_content` runs under `--script`, where autoload identifiers do not
+  resolve, so naming `Inventory.PREFIX` would not compile. Keep that file free of autoloads.
+- **ONE FLAG NAMESPACE IS VALIDATED BY `check_content`; THE REST ARE STILL ONLY PRINTED.** WP-08's
+  rule stands — a flag can be written from anywhere, so failing on one with no findable writer would
+  be wrong most times it fired. `bag/<carrier>/<item id>` is the exception because it has exactly
+  ONE writer and half the key is an item id the tool can look up. The CARRIER is deliberately not
+  validated: it is an `@export` in a scene the tool does not open, and a game may put a bag on an
+  NPC or a stash.
+- **A NEW GAME IS A NEW BAG.** `Director.start_new_game()` clears the flags; `Inventory` now clears
+  its counts on `game_started` for the same reason. It did not before T3.3, so the previous run's
+  items carried into a fresh game — unreachable in practice and invisible to every gate, and found
+  only because the count projection cannot tolerate the two disagreeing.
+- **A MATERIAL IS SHARED WHEN TWO AREAS WANT THE SAME THING, AND NOT BEFORE.**
+  `assets/materials/` holds `StandardMaterial3D` resources more than one area points at, and it
+  holds exactly ONE — the wood the two demo areas had each grown a byte-identical inline copy of.
+  The other five were deliberately left inline, and the reason is the whole rule: **a tiling rate
+  is a property of the surface it is stretched over, not of the substance.** One area tiles stone
+  at `(3, 3)` and the other floors it at `(8, 8)` and walls it at `(6, 2)`, so hoisting those gives
+  a shared file with a per-area override on every user — the duplication with an extra
+  indirection, and a palette rather than a seam. Nothing under `src/` knows the folder exists: this
+  is a scene-authoring convention, not a system, so there is no registry, no id and no sixth
+  directory scan. A test fails if two areas declare the same material inline, comparing bodies with
+  `ExtResource` ids resolved to paths — which is what nobody could do by eye, and why the duplicate
+  survived. What makes sharing safe was already true: `SurfaceWetness` DUPLICATES every material
+  before darkening it, so rain outdoors cannot leave an interior's floor wet after an area change.
+- **THE LOOK IS PER AREA AND THE STRUCTURE IS IN CODE.** The twenty post-stack values on
+  `EnvironmentDriver` are `@export`s at exactly the numbers T2.1 shipped; the tonemapper, the fog
+  mode, the glow blend mode and `AMBIENT_SOURCE_COLOR` stay in code because they are what the rest
+  of the file ASSUMES rather than what an area tunes — `_apply_now` writes `ambient_light_color`
+  every frame, which means nothing unless the source is a colour. Per area rather than per project
+  because the driver already lives in the area scene and its `Interior` group already varies that
+  way. An "environment look" `.tres` was considered and dropped: a `SpriteSheetLayout` is shared
+  between nodes in one scene, a post stack is one per area, so the resource would add a class, a
+  folder and a wiring step to reach the same numbers. **The four expensive effects are exports
+  despite being `false` everywhere, because a value a consuming game cannot reach is not a seam,
+  it is an opinion.** The day/night KEYFRAMES table is NOT part of this and no seam is claimed for
+  it: that is a curve, not a look setting.
+- **A SEAM THAT NOTHING USES HAS NEVER BEEN TRIED, AND FOUR DOCUMENTS CAN AGREE IT IS MISSING WHEN
+  IT IS NOT.** `HD2DCameraRig` has carried its framing as `@export`s since it was written and its
+  header has said "duplicate it and change the numbers" the whole time; what was missing was an
+  AREA setting one. T2.1's leftover list said the seam did not exist and three more documents
+  copied that. So an area now authors its own framing — the interior at 36 degrees and 9.5 m
+  against the outdoor 27 and 14 — and a test fails if none does. Generalise the lesson rather than
+  the fix: **a backlog line about code is worth re-checking against the code before it is worked**,
+  and a claim repeated in five documents is repeated, not verified.
+- **AN UNDOCUMENTED FORMAT IS SETTLED BY MEASUREMENT, NOT BY STOPPING.** `[importer_defaults]` in
+  `project.godot` sets `detect_3d/compress_to = 0`, so a PNG a game drops in imports correctly the
+  first time and no re-import can put VRAM block artefacts through pixel art. T2.1 refused to
+  hand-author it because the section is absent from `--doctool` and this project checks every name
+  against the API dump — the rule was right, the conclusion was not, and gotcha 39 records the
+  reversal: non-negotiable #1 says the ENGINE decides, and the engine can be asked. Exactly one
+  value is set, because the other three were measured to be Godot's own defaults already and **a
+  default nobody needs is a default nobody maintains.**
+- **GIT LFS IS REFUSED, NOT DEFERRED, AND THE THIRD REASON IS THE ONE THAT DECIDES IT.** Pointers
+  for a 2 KB procedural placeholder are overhead, and enabling them puts the CI checkout on a
+  dependency it does not declare — both were already recorded. The one that had not been said is
+  that **this template cannot verify the change it would be making**: proving LFS works needs an
+  LFS-enabled remote and a CI run against real binaries, and neither exists while art is deferred.
+  The refusal lives in `ART_CONTRACT.md` with the three steps to turn it on, and `.gitattributes`
+  keeps a pointer rather than restating it.
+- **A BACKLOG ITEM MENTIONED IN FIVE PLACES IS TRACKED IN NONE OF THEM.** T3.2's stated deliverable
+  was as much that its five items stop appearing in five documents as that four of them got built,
+  and the rule that came out of it is about STATE and not about word counts: **the current state of
+  anything lives in exactly one document — the one its consumer reads — and every other mention is
+  either a historical record that says "closed by <package>" or it is deleted.** A finished thing
+  named in a package section, a settled decision and an inventory row is the normal record shape
+  and is fine; five documents each describing PENDING work is the shape that rots, because none of
+  them is the one that gets corrected. Nothing was removed from the record; T2.1's section still
+  says what T2.1 left, because that is still true.
+- Six ADRs in `docs/decisions/` cover the layered `src/`, warnings-as-errors, the input map,
   and save-via-callables.
 
 ## Verify before claiming anything is done
+
+Since T1.4 these run in CI too — `.github/workflows/ladder.yml`, on every push, pull request and
+manual `gh workflow run ladder.yml --ref <branch>`. CI is not a substitute for running them: the
+windowed capture is the one rung a GPU-less runner cannot do, and push events on this repo have
+lagged by as much as 25 minutes.
 
 ```bash
 G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 150   # 165 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,607 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
-"$G" --resolution 960x540 --quit-after 55 -- --shot=<path> --time=18:40 --freeze-time
+"$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content
+"$G" --headless --script tools/check_strings.gd            # must exit 0 — no player-facing literal, every *_KEY exists
+"$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Eight gotchas that each cost an hour
+## Forty-six gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -116,49 +1077,498 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 8. Configure an interactable BEFORE `add_child`. `object_id` is forwarded to `PersistentState`
    in `_enter_tree`, so anything set afterwards is too late and the object silently stops
    persisting. `TestCase.build()` then `attach()` exists to make that ordering explicit.
+9. A body spawns at the area **origin** and is placed on its spawn marker a frame later, so
+   an `Area3D` sitting near the origin sees it pass through. `TriggerVolume` arms two physics
+   frames late for exactly this reason. Anything else that watches for bodies needs the same
+   guard.
+10. `TestCase.run()` is **synchronous** — the runner calls it, it does not await it. So no
+    test can wait on a physics frame, which is why interactions are driven through `attempt()`
+    and a climb through `climb_step(delta)` in a bounded loop. A test that needs a real
+    physics step belongs in the windowed run instead.
+11. **Autoloads are PAUSABLE by default**, so `get_tree().paused` silently stops `Clock`,
+    `Weather` and `Audio` alike. Audio has to opt out explicitly or the score cuts out the
+    moment a menu opens — and it is the autoload *node* that needs it, not just the
+    `AudioStreamPlayer` children, because the cross-fade tweens are created on the node.
+    Verified with `can_process()` in `tests/unit/ui_test.gd`, not assumed.
+12. **Child order in a `CanvasLayer` is draw order.** `ScreenFade` has to come after every
+    SCREEN or the curtain does not cover them. It was the first child until WP-02. Since WP-04
+    exactly one node sits after it, `LoadingIndicator`, which has to be readable while the
+    curtain is up — that is the only deliberate exception and there should not be a second.
+13. **A RUN THAT QUITS MID-LOAD USED TO PRINT `Parse Error` FOR FILES THAT PARSE PERFECTLY, AND
+    THAT IS FIXED — but the shape is worth keeping, because it is the only case in this project
+    where the engine reported a failure that was not there.** Killing the process while a
+    threaded load is in flight tore the loader thread down inside the text parser, which then
+    printed `Parse Error` for `courtyard.tscn` and `wood.tres` plus leaked RIDs and leaked
+    ObjectDB instances, *after* the run had already reported `0 warnings, 0 errors`. **Gotcha 22
+    with the polarity reversed:** not an error a rung cannot see, but a FALSE error poisoning the
+    `Parse Error` grep that rung 2 uses as the project's compile check — and its real cost was
+    that CI's boot rung had to read only the last line of its log instead of grepping it, so a
+    live defect had bought itself a permanently weakened gate. Fixed in WP-14:
+    `Director._exit_tree()` drains its own loader thread, because `--doctool` confirms there is
+    no `load_threaded_cancel` and `load_threaded_get()` blocks (measured, 118-197ms, paid once
+    on the way out). CI's rung 3 now greps the whole log.
+
+    **THIS GOTCHA ALSO USED TO GIVE THE WRONG REASON FOR THE BOOT RUNG'S FRAME COUNT, and that
+    part was stale rather than fixed.** It said 120 rather than 30 because "the area load is
+    threaded and 30 frames does not finish it". Since WP-12 the boot stops at the MAIN MENU and
+    loads no area at all — gotcha 31 — so the boot rung was never racing a load, and 30 frames
+    was measured as producing a byte-identical log to 120 (29 lines, same content, both
+    `0 warnings, 0 errors`). **The local boot rung is `--quit-after 30`.** CI keeps 300 for the
+    reason that does apply: a shared runner is slower, a headless frame costs milliseconds, and
+    a rung that quits before the boot finishes would report clean about work it never did.
+14. **`x if c else [] as Array[StringName]` is a RUNTIME cast failure.** The empty literal is
+    a plain `Array`, the ternary takes its type from it, and the assignment throws every time
+    the condition is false. It compiles, the boot run is clean, and the test suite still
+    reports every assertion passing — the only trace is a `SCRIPT ERROR` line in the output.
+    Declare the typed local, then assign inside an `if`.
+15. **No assertion can press a key.** `TestCase.run()` is synchronous, so an input event never
+    reaches the frame that would deliver it. An input path is proved by a TEMPORARY probe
+    added to `dev_capture.gd`, run windowed with real `InputEventAction`s, read in the log,
+    and then removed. WP-03's probe is quoted verbatim in `DEVLOG.md`; copy its shape.
+16. **A FREED object compares EQUAL to `null` in Godot 4.** So `if thing != null` does NOT
+    fire for a dangling reference, and `a != b` against one reports "unchanged". Only
+    `is_instance_valid()` tells the truth. Worse, a freed instance cannot even be PASSED to a
+    typed parameter — the argument type check itself fails with "previously freed" — so a
+    dangling reference must never cross a call boundary; read the field in place. This kept a
+    prompt for an unloaded area on screen through three packages.
+17. **Check a name against the API dump before using it, EVERY time — static functions
+    included.** `Resource` declares `resource_name` with the getter `get_name`, and a GDScript
+    is a Resource, so `DictRead.get_name(...)` compiled and then dispatched to the native
+    zero-argument method at runtime. Third time this project has been bitten by a native-name
+    collision, after `Area3D.priority` and `class_name Container`. Regenerate with
+    `--headless --doctool <dir>` and grep it.
+18. **A navmesh bake that finds nothing takes NO TIME and reports SUCCESS.** `bake_navigation_mesh`
+    on a region whose geometry mode does not actually reach the terrain produces zero polygons,
+    logs nothing, and every NPC then concludes it has already arrived, everywhere. Always report
+    `navigation_mesh.get_polygon_count()` and treat zero as an error. Godot's default
+    `SOURCE_GEOMETRY_ROOT_NODE_CHILDREN` parses the children of the `NavigationRegion3D` itself,
+    which in this project's area layout has none — the terrain is a sibling, so the areas use
+    `SOURCE_GEOMETRY_GROUPS_WITH_CHILDREN` with the group `navmesh_source`.
+19. **`agent_max_climb` describes an abstraction the character controller does not implement.**
+    The bake will bridge a knee-high step; `CharacterBody3D.move_and_slide()` has no step-up at
+    all, so the body walks into the riser and stops while the agent reports "not finished"
+    forever. Keep the climb limit below anything the body cannot manage. Related: do not ask the
+    navigation map anything before it has synchronised — an unsynchronised map answers
+    "unreachable" to everything, and acting on that answer strands an agent at the origin.
+20. **Under `--headless` the audio driver is `Dummy`, and every `play()` against it LEAKS.**
+    The AudioServer releases a stopped playback on the next mix and headless quits before there
+    is one, so each `play()` shows up as a leaked ObjectDB instance along with its stream.
+    Stopping the player and nulling its stream in `_exit_tree` does NOT help â the server owns
+    the playback. Anything that starts a sound gates on `AmbienceBed.is_audible()`, which reads
+    `AudioServer.get_driver_name()`: measured as `Dummy` headless, `WASAPI` windowed.
+21. **An asynchronous system needs a PERSISTENCE test, not just a delay before you ask it.**
+    `NavigationAgent3D` recomputes its path over frames, so the frame after a target moves it
+    answers "unreachable" to a question it has not finished thinking about. WP-06 added a delay
+    before the first question and it was still wrong â the keeper reported "cannot reach" in
+    windowed runs and never in headless ones, because a WANDER activity re-targets every few
+    seconds and only real-framerate timing landed inside the window. The answer must now hold
+    for thirty consecutive physics frames, and a new target clears the evidence. Anything asked
+    of an async subsystem should be treated the same way.
+22. **"0 warnings, 0 errors" DOES NOT MEAN THE SCRIPTS COMPILED.** `Log` counts its own
+    `Log.warn` and `Log.error` calls; an engine-level `Parse Error` is neither, so a file that
+    fails to load prints a `SCRIPT ERROR` on stderr and the boot rung still reports a clean
+    session. `dev_capture.gd` was dead for a whole package this way — the WP-13 merge added
+    `await _settled()` without the function, and F12, `--shot`, `--time` and `--weather` were all
+    broken while every rung stayed green. **Rung 2, `--headless --import`, is the compile check.**
+    Grep its output for `SCRIPT ERROR` and `Parse Error` and require zero; do not read only the
+    last line of rung 3.
+23. **A GATE THAT NEVER FAILS HAS NEVER BEEN TESTED.** Every checker added since T1.2 is proved
+    by planting a violation, watching it exit 1, removing it, and watching it exit 0 — both
+    quoted in `DEVLOG.md`. This costs two minutes and is the only thing separating a gate from a
+    reassuring printout. `tools/check_boundary.gd` also gets it wrong in a way no failure can
+    show: it reads text, so a computed id or a name that exists in neither `data/` nor
+    `scenes/areas/` passes silently. Its header lists what it cannot see, and that list is part
+    of the gate.
+
+24. **A GDScript RUNTIME ERROR ABORTS ONLY THE INNERMOST FRAME, so a crashing test passed for
+    the life of the project.** Probed: a null dereference three frames deep printed its
+    `SCRIPT ERROR`, and both the calling function and `_ready()` above it ran to completion. So
+    the runner sees a case that returned normally, and a completion sentinel at the end of
+    `run()` cannot work either — it is reached. T1.3 needed TWO mechanisms, and the second was
+    added because the first was measured and found wanting: a declared PLAN catches every crash
+    that swallows an assertion, but a crash planted in a leaf helper with nothing asserted after
+    it still reported `2/2` and exit 0. `tests/framework/error_watch.gd` — an `OS.add_logger`
+    `Logger` counting `ERROR_TYPE_SCRIPT` — is the only thing in the engine that sees that one.
+    Related and useful: `get_tree().quit(1)` followed later by `quit(0)` exits 0, last call wins,
+    which is why the runner ARMS its exit code to failure on its first line.
+
+
+25. **GITHUB RUNS EVERY `run:` BLOCK AS `bash -e {0}`, so `set -uo pipefail` inside a step does
+    NOT turn errexit off.** T1.4's first red run reported nothing but `Process completed with exit
+    code 1`: the step died on the failing `godot` line, before the line that prints WHICH
+    assertion failed. The uploaded artefact had the answer and the step did not, which is a gate
+    that fails without saying why — half a gate. Any rung that must outlive its own command's
+    failure captures the status with `|| status=$?`, which is exempt from errexit, and judges it
+    afterwards. Related, and it wasted an hour on its own: **verifying a shell fragment
+    interactively with `( ... )` inside an `&&` chain also silently disables `set -e`** — the same
+    fragment reported exit 0 on a deliberately failing suite inline and exit 1 as a script file.
+    Test a workflow fragment as a FILE, never inline.
+
+26. **`gh`'s run listing lags, and believing it produces a confident wrong diagnosis.**
+    `actions/runs` reported `total_count: 0` for four minutes after a push whose run had already
+    been created AND completed. On that evidence CI looked disabled, which cost a needless
+    visibility change to rule out a private-repo minutes limit — the runs that had already passed
+    were pushed while the repo was private. Push-event delivery on this repo ran up to **25
+    minutes** behind at times. Check `run_started_at` against the push time before concluding
+    anything is broken, and prefer `gh workflow run` for a prompt answer: `workflow_dispatch` is a
+    trigger on the ladder precisely because a gate with one way in has a single point of failure.
+    A manual run gets its own `concurrency` group keyed on its run id, because a dispatch was
+    once cancelled by the very push it was verifying and a cancelled run reports neither pass nor
+    fail.
+
+27. **AN EXPORT DROPS AN INSTANCE OVERRIDE THAT HAS NO `[editable]` MARKER, and running from
+    source cannot see it.** A hand-authored `.tscn` that sets a property on a node INSIDE an
+    instanced scene needs `[editable path="<the instance>"]` at the foot of the file. Without it
+    the text loader applies the override happily; the exporter converts `.tscn` to binary `.scn`
+    and the conversion silently discards it, so the prefab reverts to its defaults in the shipped
+    build ONLY. The demo's NPC lost its `object_id`, its prompt and its conversation exactly this
+    way, and every rung, both CI jobs and 930 assertions were green throughout. Stale `index=`
+    values look like the culprit and are not — correcting them changed nothing.
+    `tools/check_content.gd` gates it now. Related, from the same package:
+    **`export_filter="all_resources"` is the only setting that ships directory-scanned content**
+    (`"scenes"` ships zero of it), **`include_filter="*.tres"` is the plausible wrong fix** because
+    the include filter is for NON-resource files, and **a debug export is required to verify
+    content at all**, because the readout is behind `OS.is_debug_build()`. An export template must
+    be installed first, and it comes only in a 1.28 GB `.tpz`.
+
+
+28. **A SPRITE DRAWN FROM THE WRONG CELL STILL LOOKS LIKE A CHARACTER.** This is gotcha 2 in its
+    sharpest form: a day/night system that lights nothing is at least obviously wrong on screen,
+    but a person drawn from the wrong row is still a person — upright, lit, facing *some*
+    direction — so a capture of it cannot be JUDGED, it has to be READ. T2.1's second placeholder
+    sheet therefore labels every cell: `column + 1` bright pips down the left edge, `frame + 1`
+    along the foot, and a different body tint per animation block. That is what turned
+    `frame=19/24` from a number to be taken on trust into a checkable prediction — four left pips,
+    two foot pips, orange body, `(1*3 + 1) * 4 + 3 = 19`. Any future visual seam whose failure mode
+    is "plausible but wrong" needs the same treatment; a screenshot of something that merely looks
+    fine is not evidence.
+
+29. **A `Theme` HAS NO VARIABLES, so a colour put in a type variation is a colour duplicated.**
+    Godot's `Theme` stores each item per type, and there is no reference between them — so the
+    natural-looking design, where `TitleText` carries both its `font_size` and its `font_color`,
+    means the accent colour is written into as many variations as use it and "one Theme edit
+    restyles every screen" is false the moment there are two. The split T2.1 settled on: variations
+    carry ONLY sizes, and the colours and insets live once each under `UiPalette` / `UiMetrics`
+    which the screens read by name. Related, and it is what makes this work at all: the project
+    theme set as `gui/theme/custom` resolves from ANY Control in the tree, so a screen never has to
+    be handed it — but a theme item that exists in the file and does not resolve from a node is not
+    wired, which is the same failure shape as an unwired `@export`, and it is worth one assertion.
+
+30. **`[importer_defaults]` IS UNDOCUMENTED AND ABSENT FROM `--doctool`.** Godot's per-importer
+    project defaults are an editor-managed `project.godot` section, so the rule this project runs
+    on — check every name against the API dump before using it — cannot be satisfied for it, and
+    hand-authoring an undocumented format is exactly the change that looks applied and does
+    nothing. T2.1 stopped rather than guess. **ITS CONCLUSION WAS WRONG AND T3.2 REVERSED IT — see
+    gotcha 39.** The first half stands: there is still no dump to check. What was missing was that
+    a MEASUREMENT is available and is stronger evidence than a dump, which is non-negotiable #1.
+    The latent hazard it named is closed: the section now sets `detect_3d/compress_to = 0` and so
+    does every committed `.import`, so a re-import can no longer put VRAM block artefacts through
+    pixel art. Keep this entry for its general lesson, which is not about textures: **"I cannot
+    check this the usual way" is a reason to find another check, not a reason to stop.**
+
+31. **NO ORDINARY RUN EVER ENTERS AN AREA, so most of the ladder is blind to area content.**
+    `--headless --quit-after 30` boots to the MAIN MENU and reports `0 warnings, 0 errors`
+    without loading anything — it cannot see a wrong `area_id`, an empty navmesh bake, an NPC with
+    no schedule or an unlit interior. Neither can a bare `--shot`: the PNG is the title screen,
+    which is what the first capture in T2.2 turned out to be. **`--new-game` is what starts a
+    game**, `--goto=<area>` travels to a different one, and the area load is threaded so the
+    shutter needs `--shot-frame=70` with `--quit-after 90` rather than the old bare 55. This is
+    gotcha 22's family, one level up: not a rung that cannot see an error, but a rung reporting
+    clean about work it never did. Related and cheap to trip over: `--stand-by=` takes a NODE
+    NAME, not an `object_id`, and a propless new area at 18:40 renders near-black, which looks
+    exactly like a lighting bug — capture a new area at midday first.
+
+32. **STAGING THAT RUNS BEFORE `--new-game` HAS ITS STATE THROWN AWAY.** `--new-game` CLEARS EVERY
+    FLAG, so `--flag=met/x:true` applied during argument parsing is gone by the time the area
+    lands — and the run still reports `0 warnings, 0 errors`, because nothing failed. The first
+    WP-08 capture was a journal with no quest in it for exactly that reason, and the only trace is
+    the ORDER of the log lines: `--flag` before `Quest tracker ready`, and no `started` line after
+    it. `--flag` now waits for the area the way `--open-menu` already did. This is gotcha 31 one
+    step further in: not a rung blind to an error, and not a rung reporting clean about work it
+    never did, but staging that ran before the thing it was staging for. Any future `--` flag that
+    poses state a new game resets needs the same wait, and `dev_stage.gd`'s header says so.
+
+
+33. **`Array[StringName].sort()` DOES NOT SORT ALPHABETICALLY.** It orders by the StringName's
+    internal handle, so the result is stable within a run and arbitrary between them. It compiles,
+    it looks like a sort, and `Equipment.equipped_ids()` returned two ids in the wrong order with a
+    single failing assertion as the only trace. `Inventory.ids()` had already hit this and sorts
+    through `String` with a `sort_custom`, which is the only reason this cost a minute rather than
+    an hour — a comment saying WHY a line is not the obvious one is worth more than the line.
+    Anything sorting `StringName`s goes through `String`.
+
+34. **A UI THAT REDRAWS ONLY ON ITS OWN INPUT IS SILENTLY WRONG THE MOMENT SOMETHING ELSE WRITES.**
+    `InventoryScreen` refreshed on `inventory_changed`, so pressing a row to equip redrew correctly
+    and equipping from anywhere else did not — and the first WP-09 capture came back showing a held
+    lantern drawn as merely carried while the log said `player equipped`. Nothing failed, because
+    the screen was still right about the bag. A press is never the only writer: staging equips from
+    the command line, `_revalidate` stows on its own, and a save restores. Subscribe to the fact,
+    not to the gesture. This is gotcha 2's family in the UI layer, and only a capture sees it.
+
+35. **TWO STAGING FLAGS THAT BOTH WAIT FOR "THE AREA" LEAVE THAT WAIT ON THE SAME FRAME, AND
+    RACE.** `--goto` and `--open-menu` each begin with `_wait_for_area()`, so they resume
+    together: if the menu opened first, the travel `--goto` was about to request unwound it —
+    `ScreenKeys` unwinds the stack on every `area_change_requested` — and the capture came back
+    showing nothing, with `0 warnings, 0 errors` and every rung green. This is gotcha 32's family
+    one step further out: not staging that ran before the thing it staged for, but two pieces of
+    staging that were both correct and were ordered by chance. A LONGER FIXED WAIT ONLY MOVES THE
+    RACE. The fix is gotcha 21's shape — `dev_stage._settle_stable(20)` requires twenty
+    CONSECUTIVE settled frames and resets its count the moment a transition begins, so it cannot
+    be satisfied early no matter which flag resumed first. Any future staging flag that puts
+    something on screen uses it, and `dev_stage.gd`'s header says so.
+
+36. **`String.hash()` MIXES ITS LOW BITS WEAKLY, so `hash() % N` CLUSTERS SHORT SIMILAR NAMES.**
+    Measured: `"grass"` hashes to 260508453 and `"stone"` to 274826446 — wildly different numbers
+    whose last three digits are 453 and 446 — and `"wood"` and `"sand"` differ by 159027 in a
+    number of 2.09 billion. WP-09b derives a footstep's timbre from the surface's name, so those
+    two surfaces produced brightnesses 0.006 apart and **sounded identical**, with every rung
+    green, a `playing=true` in the log and an inequality assertion passing. Adding a second derived
+    axis did not help — the salted hashes collided the same way. The fix is an avalanche before the
+    modulus (one multiply, two shifts), which moves the pair to 796 and 572. Two lessons, and the
+    second is the general one: anything deriving a VALUE from a Godot string hash must mix it
+    first, and **a regression assertion about a perceptible difference must demand a MARGIN**,
+    because mere inequality is exactly what the broken version passed. Gotcha 2 with a speaker on
+    it: a step that plays is not a step that follows.
+
+
+37. **A BASE-CLASS `static var` IS ONE STORAGE SHARED BY EVERY SUBCLASS.** Probed under 4.7.2 with
+    two throwaway subclasses bumping a counter declared on their base: `A.shared=3 B.shared=3
+    Base.shared=3`. This is the opposite of the per-class statics most languages give you, and it
+    is what made the obvious shape of T3.1 — `ItemDb extends ContentDb`, with `_by_id`, `_loaded`
+    and `content_dir` on the base — silently catastrophic: five registries would have shared ONE
+    cache and ONE content root, so `Fixtures.activate()` would have pointed all five at a single
+    folder and four catalogues would have come back empty. Every accessor would still have been
+    typed and the class diagram would still have looked right. The shared part of five static
+    classes must therefore be a FUNCTION taking the caller's state, never inherited state. Three
+    related facts from the same probe, each of which the design depends on: a `class_name` passed
+    as a `Script` works with `is_instance_of()`; `Script.get_global_name()` returns the class name;
+    and a `Dictionary[StringName, X]` handed to an untyped `Dictionary` parameter keeps its value
+    type and is filled BY REFERENCE — which is the whole mechanism keeping every registry accessor
+    typed with one shared scan. Related and cheaper to trip over: **`ResourceLoader` caches by
+    path**, so re-saving a different resource over a path already loaded in this run hands the next
+    scan the FIRST one. A new file name, not a second write.
+
+38. **A MISSPELLED PROPERTY NAME IN A HAND-AUTHORED `.tres` IS SILENTLY DISCARDED.** Measured under
+    4.7.2: `conditio_flag = &"bag/player/item/rose_petal"` in a quest step loaded with **no engine
+    error, no warning and no `Invalid` line anywhere** — the resource simply came back with that
+    field at its default. This project hand-authors every `.tres`, so it is exactly the slip the
+    editor would have made impossible, and it is `[editable]`'s family (gotcha 27): a property the
+    loader drops looks identical to a property nobody set. The only thing that saw it was
+    `problems()` on the resource itself, and only because a non-ALWAYS test with no flag is a
+    declared problem — a misspelt `condition_value` would have become 0 in silence, which is why
+    T3.3's content gate refuses a count below one. **Every field a `.tres` sets that MATTERS must be
+    reachable by `problems()` or by a checker**, or authoring it is a suggestion.
+
+
+39. **AN UNDOCUMENTED ENGINE FORMAT CAN BE SETTLED BY MEASUREMENT, AND `[importer_defaults]` WAS.**
+    Gotcha 30 stopped T2.1 for a good reason and reached the wrong conclusion, and this project's
+    own non-negotiable #1 is why: *nothing is done until the engine has run it* is not merely a
+    completion rule, it is an EVIDENCE rule, and it outranks the API dump. Measured under 4.7.2 in
+    four steps — a throwaway texture copied into a scratch folder under `res://`, imported with stock
+    defaults; the section written into `project.godot`; the generated `.import` DELETED; and
+    `--headless --import` run again. It came back carrying `detect_3d/compress_to=0` and
+    `mipmaps/generate=true`, against the stock `1` and `false`. So: the section works, the key is
+    the **importer's** name (`texture`, not a file extension), the value is a **Dictionary of
+    param paths**, it applies to a FRESH import only — an existing `.import` keeps its own params,
+    which is why all eight committed ones had to be edited too — and
+    `ProjectSettings.get_setting("importer_defaults/texture")` reads it back at runtime as a
+    Dictionary (`type=27`), which is what makes it assertable rather than merely written. Two
+    things generalise past textures. **A control value is what turns a probe into evidence:** only
+    one value mattered, but a second one whose stock default was the OPPOSITE of what was written
+    is what proved the section applied at all rather than the value happening to already be right.
+    And **the stock defaults were measured, not assumed** — three of the four settings
+    `ART_CONTRACT.md` had recommended turned out to be Godot's own defaults, so writing them down
+    would have been ceremony that later reads as a decision.
+
+40. **TWO CLASSES CAN EXPORT THE SAME PROPERTY NAME, SO A TEXT SCAN OF A SCENE FILE IS NOT A SCAN
+    OF A NODE.** `HD2DCameraRig` and `WeatherVisuals` both export `height_offset`, and they mean
+    entirely different things. An assertion that an area authors its own camera framing therefore
+    PASSED with the framing deleted, because the courtyard's weather node carries a
+    `height_offset = 5.0` line and the scan was looking at whole files. Every rung green, and the
+    only reason it was caught is that the gate was proved red before being believed (gotcha 23) —
+    which is the entire argument for planting the real violation, since the gate was the thing
+    that was broken. Anything reading a `.tscn` as text must resolve the OWNING NODE first: walk
+    `[node ...]` blocks, buffer each one, and match on the `script` ExtResource resolved to a path
+    — buffering rather than switching on the `script` line as it goes by, because a property
+    authored above `script` is legal `.tscn`. This is gotcha 17's family (`Area3D.priority`,
+    `class_name Container`, `DictRead.get_name`, `ItemDb.reload`) moved out of GDScript and into
+    scene text, and it is the sixth name collision this project has paid for.
+
+41. **A DEFECT CAN BUY ITSELF A WEAKENED GATE, AND THAT COSTS MORE THAN THE DEFECT.** The engine
+    printing false `Parse Error` lines on a mid-load shutdown (gotcha 13) was, on its own, cosmetic
+    noise after a run had already reported cleanly. Its real price was paid one level up: CI's boot
+    rung was written to grep only the LAST LINE of its log, with a comment explaining that a
+    whole-log grep "would be a flake generator" — so the project's single most load-bearing check,
+    the `Parse Error` grep that gotcha 22 exists to insist on, was switched off on that rung, on
+    purpose, correctly, for as long as the defect lived. **Nobody weakens a gate for no reason;
+    they weaken it because something real is making it lie.** So a gate carrying a comment that
+    explains why it checks less than it could is a defect report in disguise, and the fix is
+    upstream of the gate every time. WP-14 fixed the shutdown and switched the grep back on. When
+    you find a scope-limiting comment on a check, read it as a lead rather than as settled design.
+
+42. **AN ASSERTION THAT PASSES CAN STILL BE ASSERTING THE WRONG THING, AND ONLY PLANTING FINDS
+    OUT.** WP-14's smoke test carried a comment claiming its save/load block asserted the
+    save-participant ORDER — the invariant T3.3 established, that a derived count must be
+    republished on `game_loaded` because `Flags._apply_save` wipes the store from underneath it.
+    Deleting that subscription, which is exactly how the invariant would really be lost, left the
+    assertion GREEN: the test's own wipe happened to let `_apply_save` publish for itself, so the
+    ordering never came into play. The assertion was true, the comment above it was not, and no
+    failure could ever have shown the difference. This is T3.2's framing gate (gotcha 40) in a
+    second costume, and the same rule closes both: **plant the real violation even when the
+    assertion looks obvious — especially then, because the thing being tested is the test.**
+
+43. **AN ASSERTION THAT SCANS SOURCE FOR A GUARD WILL READ THE GUARD'S OWN DOCUMENTATION BACK TO
+    ITSELF, AND WILL BE SATISFIED BY THE WRONG COPY.** WP-14b had to assert that the debug console
+    and the performance overlay are unreachable in a release build. `OS.is_debug_build()` is true
+    in every context the suite can run in — a test cannot exercise the false branch — so the
+    assertable form is a text scan for the guard, the same mechanism `check_boundary.gd` already
+    uses for `src/systems/debug/`. **The first version was wrong in two independent ways, and
+    planting found both.** One: `screen_keys.gd` EXPLAINS its gate in a `##` comment, so a
+    whole-file scan passed while reading its own explanation with the binding deleted — the fix is
+    the comment rule every other text tool in this project already applies. Two, and it is the
+    sharper half: `perf_overlay.gd` carried the identical fragment `if not OS.is_debug_build():`
+    in BOTH `_ready` and `_input`, so deleting the real one left the assertion green on the
+    decorative one. **That fix belonged in the CODE, not in the test.** `_input` and `toggle()`
+    now ask `_label == null`, which is the same question and a stricter one — a release build
+    leaves `_ready` early and never builds the label — so one place decides and the anchor is
+    unique. Two rules generalise: **a scan-for-a-guard assertion must name a fragment that appears
+    exactly once in its file**, and **a guard written twice is a guard that cannot be asserted**,
+    which is a design smell before it is a testing problem. Gotchas 40 and 42's family, third
+    costume, and the third time planting has caught the test rather than the code.
+
+
+44. **A BLOCK THAT GATES ON A BROADER QUESTION THAN IT ASSERTS IS GREEN EVERYWHERE EXCEPT IN A
+    CONSUMER'S HANDS.** `smoke_test.gd` asked *"does this checkout have any content?"* and then
+    asserted about **areas**. Both extremes are fine — the full demo has areas, a stripped template
+    has neither — so every run this project ever made was green. The failure lives only in the gap:
+    a real game that authored one item before its first area, which is exactly the window
+    `NEW_GAME.md` walks an author through while promising the ladder stays green. It was found by
+    PERFORMING `docs/UPGRADING.md` against a real fork, and it could not have been found any other
+    way, because a suite cannot run in a state neither of this repository's two checkouts is ever
+    in. Two rules generalise. **A block must gate on the same question it asserts** —
+    `Fixtures.area_ids()` already existed and is that question; the broader `has_demo_content()`
+    was reached for because it was the one that was already being used. And **a template's
+    intermediate states are a place tests never look**: the full demo and the stripped template are
+    the two states this repo has, and every state a consuming game passes through lies between
+    them. Gotchas 40, 42 and 43's family, fourth costume, and the first of them that no plant in
+    this repository would have caught — the fork had to exist.
+
+45. **A GATE THAT MATCHES SUBSTRINGS IS GREEN IN BOTH OF THIS REPOSITORY'S STATES AND RED ONLY IN A
+    CONSUMER'S HANDS.** `check_boundary.gd` asked whether a line CONTAINS a content id. T4.2
+    authored an item called `pear` — nothing exotic — and the gate failed on
+    `tests/unit/menus_test.gd`'s *"and Load has appeared under it"*, because **`appeared` contains
+    `pear`**. The full demo is green because its own ids happen not to collide; the stripped
+    template is green because it has no ids at all; the failure lives only in the gap, and it needs
+    an id this repository does not have. Gotcha 44's family, fifth costume, and **the second one
+    that no plant here could have caught** — the content had to be authored. Three rules
+    generalise. **A text gate that matches an identifier matches it as a WHOLE WORD**, or every
+    short id (`pear`/`appeared`, `ore`/`before`, `art`/`start`) is a build failure a consuming game
+    cannot fix. **A gate's failure message must not tell the reader whose bug it is** — the gate
+    table in `AUTHORING.md` said a `check_boundary` hit "is a bug in the *engine*, not in your
+    content", which sent an author to file a bug rather than rename an item. And **an engine test's
+    throwaway literals are content ids waiting to happen**: `borrowed["pear"] = 1` was an arbitrary
+    dictionary key that became a boundary violation the day a game used the word, so such literals
+    come from the reserved `fixture_` namespace, which is immune BY CONSTRUCTION because an id
+    sitting after an underscore is not a whole word.
+
+46. **A RULE WRITTEN IN A FILE'S OWN HEADER CAN STILL BE UNFOLLOWED BY A CALL SITE IN THAT SAME
+    FILE.** `dev_stage.gd` states gotcha 35's rule — staging that puts something on screen uses
+    `_settle_stable`, not `_wait_for_area` alone — and `--stand-by` did not, for six packages.
+    `--goto=<new area> --stand-by=<object in it>` therefore resolved the node name in the
+    **departure** area, every time, deterministically rather than as a race, so no object in an
+    authored area could be photographed at all. Every rung stayed green because the flag is only
+    used by hand. Two rules. **A written rule with more than one call site wants an assertion, not
+    a paragraph** — gotcha 41's family: a rule nothing checks is a comment. And **an assertion that
+    a function contains a call must be scoped to that FUNCTION when the fragment repeats**:
+    `_settle_stable(SETTLE_FRAMES)` appears three times in that file, so a whole-file scan is
+    satisfied by any one of them and would have stayed green with the broken call site deleted.
+    That is gotcha 43's rule met by narrowing the TEXT rather than the fragment, and the plant
+    proved it — deleting the one call failed while the other two remained.
 
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the
-board of fifteen packages from here to skeleton-complete. Each names the exact files that chat
-should read, so a session loads a few hundred lines instead of three thousand. The layer rule
+board of every package from here to skeleton-complete — WP-01 to WP-15 plus the T-phases. Each
+names the exact files that chat should read, so a session loads a few hundred lines instead of three thousand. The layer rule
 (`core -> content -> systems -> gameplay -> ui`, downward only) is what makes that possible: a
 package never has to read upward.
 
-**Next package: WP-01, triggers and traversal.**
+
+**Next package: NOTHING IS BLOCKING, AND THE ONE OPEN CRITERION IS THE OWNER'S.** Phase T4's third
+exit criterion is a **release tag**, and it is deliberately not a package: tagging is a release
+action. On 2026-09-02 the owner was asked and answered **not yet — merge the stack first**, since
+`origin/main` is still at `d0bf153` and PRs #10–#25 have not landed, so a `v1.0.0` today would
+point either at a commit without the version it names or at an unmerged branch.
+
+Candidates after that, none of them blocking:
+
+- **WP-10 crafting**, if a game wants it. Still OPTIONAL, still a genre choice per `TEMPLATE.md`.
+- **A third performance of a document.** T2.2 performed `AUTHORING.md`'s first half, T4.1 performed
+  `UPGRADING.md`, T4.2 performed the rest of `AUTHORING.md` — and every one of the three found a
+  defect no amount of reading would have. `NEW_GAME.md` and `TESTING.md` have not been walked.
+- **Nothing at all**, which stays a legitimate answer for a base that has answered every question
+  it set out to.
+
+*(This line names ONE package or one honest choice between a few. Earlier revisions accumulated a
+stale line per package and two were left stranded here; if you ever find two, the lower one is
+history — delete it.)*
+
+The original WP-08 through WP-15 continue after the T1 and T2 phases, several of them re-framed.
 
 ## Plan — where this is going
 
-**Phase 1 is nearly complete.** The demo loop works end to end: walk a lit courtyard through a
-day/night cycle, be prompted, read a sign, throw a lever, take an item, empty a chest, be
-refused by a gate that wants a key, open it once you carry the key — and every one of those
-changes survives a save and reload. All of it is covered by 165 headless assertions.
+**Phase 1 is complete and Phase 2 is well under way.** The demo loop works end to end: walk a lit
+courtyard through a day/night cycle, be prompted, read a sign, throw a lever, take an item,
+empty a chest, be refused by a gate that wants a key, open it once you carry the key, cross a
+volume that fires once, rest on a bench and watch the light change, climb a trellis to a terrace
+and back down, press I at any point to see what you are carrying in a window that stops the
+world — then walk north through a door into a lantern-lit hall that has never heard of the sun,
+and come back, and ask the garden-keeper who they are and what lies behind the north gate, in a
+box that leaves the world running behind it — and that conversation now hands you an errand, which
+the lever you already threw and the dais you already crossed advance, and three rose petals out of
+the wicker chest settle — the journal counting them `2 / 3` on the way, readable on `J` at any
+point — and pick a lantern up, hold it from the satchel with Enter, and pass under an arch
+that turned you away a moment earlier with a line its author wrote — and press `M` to see the two
+places you know drawn on one map, the hall a grey `???` until you have walked to it and a gold dot
+you can press to travel back to once you have — and every one of those walks now sounds different
+depending on whether you are crossing grass, the wooden dais or stone. Every one of those changes
+survives a save and a
+reload, including from the far side of an area that is no longer loaded. All of it is covered
+by 1,607 headless assertions.
 
-**Next, in this order.** The order matters and is not arbitrary:
+**Next, and for the first time it is not an ordered queue.** Every blocking row is done: Phase T3
+closed with WP-14b, WP-15 was CLOSED by the owner, and T4.1 shipped the version and the upgrade
+note. The one criterion left in Phase T4 is a RELEASE TAG, which is the owner's to take.
 
-1. **Trigger volumes.** `Area3D` with once-or-repeat, persisted by `object_id`. The folder, the
-   collision layer (`Layers.TRIGGER`) and the inventory row all already exist and nothing
-   populates them.
-2. **A rest point** — sleep to skip time. Needs a `Clock.skip_to_hour()` routed through
-   `set_time`, not `advance_minutes`, or an eight-hour sleep emits 480 minute signals.
-3. **Screen stack and input contexts, and only THEN the inventory screen.** In that order,
-   deliberately: a screen built first forces an ad-hoc pause and a boolean per screen, and the
-   interaction sensor currently reads input every physics frame with no notion of a modal UI.
-4. **A second area and a real transition.** The transition code is written, guarded and logged
-   but has never actually swapped two areas, because only one exists.
+1. **The rest of the system catalogue is COMPLETE**, and WP-15 is closed — see the board. WP-11
+   closed the last row that had no proof at all, and WP-10 is OPTIONAL.
+   *(Every T-numbered row is DONE. T3.1 — one scan behind all five catalogues, every accessor still
+   typed. T3.3 — an item count is a flag published downward, so a step can require N of an item id
+   and the quest system still does not know what an inventory is. T3.2 — the look of an area is
+   data: a shared material library, the environment post stack and per-area camera framing, plus
+   texture import defaults settled by measurement and Git LFS refused in writing.)*
 
-**Then Phase 2:** dialogue, NPC schedules, navigation baking, weather visuals.
+*(Path actions, NPC schedules, navigation baking, weather visuals, quests, equipment, the world
+map, the shared content scan and counted quest steps are all DONE — WP-06, WP-07, WP-08, WP-09, WP-09b, WP-11,
+WP-13, T3.1 and T3.3.)*
 
 **Still open, and expensive later:**
-- **Sprite sheet layout is hardcoded.** `CharacterVisual` has `FACING_COUNT = 8` and
-  `FRAME_COUNT = 4` as constants; a different sheet needs a code edit. Should be a resource.
-- **The export path is unproven.** Items are found by scanning a directory, which is verified
-  in the editor and headless only. There is no export preset yet, and it must export *all*
-  resources or the item catalogue ships empty. See ADR-0006.
-- **No hard-coded-string audit.** Computed keys (`verb.*`, `refusal.*`) are covered by an enum
-  loop in the test suite, but literal player-facing text in code is still caught only by review.
+- **The export path is PROVEN as of T2.0** — an exported `.exe` reports the same catalogue counts
+  and resolved paths the editor does. What remains unproven is a RELEASE export's content, because
+  the readout is behind `OS.is_debug_build()`, and every platform other than Windows.
+- **The string audit exists as of WP-14 and is deliberately PARTIAL.** `tools/check_strings.gd`
+  checks a literal reaching a text SINK and every `*_KEY` const resolving. What it still cannot
+  see is written in its own header: a literal reaching a sink through a variable, a sink outside
+  `src/*.gd` (a `.tscn` authoring `text = "Play"`), a literal handed to `draw_string()`, and
+  whether the key `tr()` got was the RIGHT key. Computed keys (`verb.*`, `refusal.*`) are still
+  the enum loop in `items_test.gd`, which is better verification than a scan could be.
 
 ## Read next
 
-`CLAUDE.md` (rules) · `docs/ARCHITECTURE.md` · `docs/SYSTEMS_INVENTORY.md` ·
-`docs/ROADMAP.md` · `docs/DEVLOG.md` · `src/core/events/events.gd` (the connection map)
+`CLAUDE.md` (rules, and the doc router table) · `docs/TEMPLATE.md` (why this is not a game) ·
+**`docs/AUTHORING.md`** (add an area, an NPC, a conversation, an item, an object, a quest,
+equipment, a place on the world map) ·
+**`docs/ART_CONTRACT.md`** (what art must satisfy) · **`docs/TESTING.md`** (adding assertions) ·
+`docs/ARCHITECTURE.md` (§ The extension surface — what may be subclassed) ·
+`docs/NEW_GAME.md` · `docs/SYSTEMS_INVENTORY.md` · `docs/ROADMAP.md` · `docs/DEVLOG.md` ·
+`src/core/events/events.gd` (the connection map)

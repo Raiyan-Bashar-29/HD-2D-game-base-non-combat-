@@ -5,7 +5,7 @@ Keep it short. When it drifts from reality, fix it in the same commit as the cha
 
 **Last updated:** 2026-09-03 · **T4.3 (`NEW_GAME.md` performed, and the release tag taken)
 complete. PHASE T4 IS COMPLETE — all three exit criteria are ticked, and the template is tagged
-`v1.0.0` with `main` now declaring `1.0.1`.**
+`v1.0.0` and `v1.0.1`, `main` declaring `1.0.1`.**
 
 **THE STACK LANDED AND THE TAG IS TAKEN.** For twenty-six PRs `origin/main` sat at `d0bf153` and
 nothing had merged, which is exactly why the owner refused a tag on 2026-09-02. The stack turned
@@ -105,7 +105,7 @@ that has answered every question it set out to.
 
 136 files, 11,771 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
 three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
-3 tagged surfaces, 1 shared area material. Template version **1.0.1**, tagged `v1.0.0`.
+3 tagged surfaces, 1 shared area material. Template version **1.0.1**, tagged `v1.0.1` (and `v1.0.0` on the commit that closed Phase T4).
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 
 **Works, and verified by running it:** logging with rotation · signal registry (`events.gd`) ·

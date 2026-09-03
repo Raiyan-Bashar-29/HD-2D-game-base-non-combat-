@@ -75,6 +75,7 @@ original board rather than continuing it.
 | T3.2 | The five art-contract seams T2.1 left | **DONE** — the seventh package of Phase T3 and the last of its T-numbered rows, though the phase itself stays open on WP-14; see below. Four seams built and one refused in writing, and the point of the row is as much that they stop being mentioned in five documents as that four of them exist |
 | T4.1 | **Template v1.0 — the version, and the upgrade note** | **DONE** — `799d957`, PR #25. The first package of Phase T4. The version is `[template] base/version`, NOT `application/config/version`, and the reason is the whole package in one line: a fork resets its own version on day one, so that field stops recording which base the game came from. `docs/UPGRADING.md` was PERFORMED against a real stripped fork and found a template defect nobody would have reasoned their way to; see below |
 | T4.2 | **A second worked example, authored from `AUTHORING.md` alone** | **DONE** — the second package of Phase T4, and T2.2's mechanism applied to CONTENT. Five defects, two of them in the TEMPLATE rather than the prose: `check_boundary` matched SUBSTRINGS, so an item called `pear` collided with the word `appeared` and failed a gate its author could not fix; and `--stand-by` always resolved in the DEPARTURE area, so no object in an authored area could be photographed. Both gotcha 44's shape — found only by authoring content this repository does not have; see below |
+| T4.3 | **`NEW_GAME.md` performed as a fork, and the release tag** | **DONE** — the last package of Phase T4, which it CLOSES. Landed the 26-PR stack on `main` as one 71-commit chain and tagged `v1.0.0` with the owner's authorisation, then performed `NEW_GAME.md` from a fresh clone. Two defects, one in the TEMPLATE: `core_test.gd` asserted an empty `first_area` was illegal when four other statements call it legal, so a fork had a red rung 4 before authoring its first area; and the prune list never learned about `quest.`, so a fork shipped this template's demo quest strings with every gate green. Bumped to `1.0.1`; see below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -2989,3 +2990,99 @@ The four new skips are the ones named above. The push run (33535489902) and the 
 
 **Commit:** `d20fbc1` on `claude/t3-2-art-seams`, PR #22 — stacked onto `claude/t3-3-item-count`
 (#21) rather than `main`, matching the rest of the chain.
+
+---
+
+## T4.3 · `NEW_GAME.md` performed, and the release tag taken — **DONE**
+
+**The last package of Phase T4, and the phase's third exit criterion.** Two jobs: land the stack
+and take the tag the owner had deferred, then perform the one document a fork reads first.
+
+**THE TAG WAS STILL BLOCKED FOR THE SAME REASON, AND THE FIX WAS ONE MERGE.** Phase T4's third
+criterion had been refused on 2026-09-02 — *not yet, merge the stack first* — because
+`origin/main` was at `d0bf153`. It still was: all 26 PRs open, zero merged, so the reason had not
+expired. What made it tractable is that the stack was one LINEAR chain. `git merge-base
+--is-ancestor` confirmed all 25 ancestor branches were contained in T4.2's tip, 71 commits ahead
+of `main`, so retargeting PR #26 from `claude/wp-t4-version-upgrade` to `main` and merging it
+landed the entire stack at once as `648bac1`. Only then did `v1.0.0` name a tree that actually
+declares `base/version="1.0.0"`. Put back to the owner with that answer in hand, and authorised.
+
+Six PRs (#1, #2, #3, #10, #12, #13) auto-closed as merged because they targeted `main`. The other
+19 could not: GitHub refuses to retarget a PR whose base already contains its commits — *"There
+are no new commits between base branch 'main' and head branch"* — so they were closed with a
+comment pointing at #26. **They read Closed, not Merged.** Every commit is on `main` and reachable
+from `v1.0.0`; this is a GitHub limitation, not a gap in the record, and it is written here
+because the board would otherwise look like 19 abandoned packages.
+
+**THEN THE FOURTH DOCUMENT WAS PERFORMED, AND IT FOUND A TEMPLATE DEFECT.** A fresh `git clone`
+from GitHub into a short path, then sections 1 to 4 followed literally with `src/` never opened
+while performing — the same discipline as T2.2, T4.1 and T4.2. Four for four now: every document
+walked has found something reading did not.
+
+**DEFECT 1 — `core_test.gd` failed a fork that had not authored its first area yet.** It asserted
+`equal("a template with a game in it names one", configured != "", true)` — unconditionally,
+though the name is conditional. Four things in the repository already said an empty
+`[game] world/first_area` is legal: that case name, the comment eight lines below it in the same
+function, `NEW_GAME.md` section 4, and the file's own header MUST NOT line, since whether a game
+is configured is a claim about the PROJECT and not about `GameConfig`. Gotcha 46's shape, one
+function further down.
+
+It was green in the full template and green in the stripped one — neither ever empties that field
+— and red only in a real fork: `1537 passed, 1 failed, 20 skipped`, exit 1. The control names what
+it was really asserting: `first_area="tideglass_field"`, an area that does not exist, made it pass
+`1538 passed, 0 failed`. It demanded a non-empty STRING. **Removed rather than made conditional**,
+because `smoke_test.gd` already makes the claim properly — gated on `Fixtures.area_ids()` and
+stronger, since it also requires the named area to resolve. `plan(50)` became `plan(49)`.
+
+**DEFECT 2 — section 3's prune list never learned about quests.** Written at T1.2, before WP-08
+existed, it listed `area. talk. action. object. item.` and was never extended. A fork that followed
+the document kept five rows of demo content in its own `localization/strings.csv`:
+`quest.keepers_errand.*`, *"The Keeper's Errand"*, *"three rose petals"*. All four checkers exited
+0 and the whole suite was green, because **no gate reads `localization/` for demo content at all**
+(gotcha 48). Verified that every `quest.*` key is demo and that the engine's quest strings live
+under `notify.quest.*`, which the prune keeps. The prefix is now listed, and the section carries a
+third trap saying no gate checks this file, with a grep to run afterwards.
+
+**FOUR PROSE DEFECTS, RE-MEASURED RATHER THAN INHERITED.** The `awk` comment claimed "keeps 147 of
+189 rows"; the file is 219 rows and the corrected `awk` keeps 168. Section 6's quoted checker
+output was T1.2's and had drifted — no `quests: 0` line at all, and `src scripts scanned: 74` where
+the tool now prints `engine scripts scanned: 129, over src/ and ["res://tests/framework",
+"res://tests/unit"]`. The intro said "rename four fields" where section 4 lists five. And section 6
+asserted the unset-first-area error **with no command to produce it**: `--headless --new-game`
+prints nothing and ends `0 warnings, 0 errors`, because game flags need a `--` separator and
+`--quit-after` counts FRAMES — two independent ways to get a green run that verified nothing
+(gotcha 47).
+
+**Ladder, all green.** Import exit 0 with **zero** `SCRIPT ERROR` / `Parse Error`; boot
+`0 warnings, 0 errors`; suite **1608 passed, 0 failed, 0 skipped**, exit 0; `check_content`,
+`check_boundary`, `check_budgets`, `check_strings` all exit 0. Stripped template **1534 passed, 0
+failed, 25 skipped**, all four checkers exit 0 — **no new skip**.
+
+**The total moved by +1 and it was predicted.** Minus the one assertion removed, plus two:
+`docs_test` computes its plan from the docs, and section 6's corrected checker output names
+`res://tests/framework` and `res://tests/unit` for the first time.
+
+**Planted, and the fix that accepts MORE has a control (gotcha 23).** The defect was found in a
+real fork rather than manufactured, so the control is the half that matters: copying an area back
+into the fork with `first_area` still empty turned it red again — `FAILED: the configured first
+area is set` and `FAILED: and its scene really exists`, exit 1, both from `smoke_test.gd`. A game
+WITH areas and an unset first area is still caught. For the CSV, the old `awk` leaves 5 demo rows
+and the corrected one leaves 0, with the new trap-3 grep returning nothing.
+
+**Both numbers the document quotes were measured on the final tree**, not carried over: a fork
+that followed sections 1 to 4 with `first_area` empty reports `1539 passed, 0 failed, 20 skipped`
+across fifteen named cases, and the harsher stripped variant CI runs reports `1534 passed, 0
+failed, 25 skipped`. The banner line quoted in section 6 was copied out of the fork's own run.
+
+**Version bumped to 1.0.1; the tag for THAT was not taken.** T4.1's precedent decides it — stating
+a version is engineering and assertable, cutting a release is the owner's. Leaving `main` saying
+`1.0.0` after changing it would have made one version name two trees, which is the rot
+`version_test.gd` exists to prevent. `docs/CHANGELOG.md` gains a `## 1.0.1` PATCH entry whose *a
+consuming game does* line is actionable: a fork made at 1.0.0 that followed `NEW_GAME.md` should
+grep its CSV for `quest.` and delete what it finds.
+
+**What was deliberately NOT done.** No gate over `localization/`. It would need to know which key
+prefixes are engine and which are content — the same list that just rotted, moved one directory
+away and given the authority to fail a build. The document's own grep is the cheaper truth and is
+aimed at the person actually holding the fork. This is the same objection that refused a
+`check_content` rule for `obj/` flags at T4.2, and it is recorded for the same reason.

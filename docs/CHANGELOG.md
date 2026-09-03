@@ -20,6 +20,36 @@ the exact rot this discipline exists to prevent.
 
 ---
 
+## 1.0.1
+
+*2026-09-03 — two defects found by performing [`NEW_GAME.md`](NEW_GAME.md) as a fork.*
+
+**A consuming game does:** nothing, unless it forked at 1.0.0 and followed `NEW_GAME.md`, in
+which case check `localization/strings.csv` for rows starting `quest.` and delete them — they
+are this template's demo quest, and the pruning instructions did not list them.
+
+**`core_test.gd` no longer fails a fork that has not authored its first area yet.** It asserted
+`[game] world/first_area != ""` unconditionally, which contradicted its own case name, the
+comment eight lines below it, and `NEW_GAME.md` § 4 — all three of which call an empty setting a
+legal state. It was green in the full template and in the stripped one, because neither ever
+empties that field, and red only in a real fork during the window `NEW_GAME.md` walks an author
+through. The claim now lives only in [`tests/unit/smoke_test.gd`](../tests/unit/smoke_test.gd),
+which gates it on whether any area exists and also requires the named area to resolve, so a game
+WITH areas and an unset first area still fails rung 4.
+
+**`NEW_GAME.md` § 3 now prunes `quest.` from the localization CSV.** The prefix list was written
+before quests existed (WP-08) and was never extended, so a fork that followed the document
+shipped the demo's `quest.keepers_errand.*` rows inside its own game — with all four checkers and
+the whole suite green, because no gate reads `localization/` for demo content. The section now
+lists the prefix, and states that nothing checks this file for you.
+
+**Also in this version:** `NEW_GAME.md`'s verification output, row counts and suite totals are
+re-measured rather than inherited, and § 6 now gives the `--` separator that `--new-game`
+requires — without it the run stops at the main menu and reports `0 warnings, 0 errors`, a green
+run that proves nothing.
+
+---
+
 ## 1.0.0
 
 *2026-09-02 — the first version the template states about itself.*

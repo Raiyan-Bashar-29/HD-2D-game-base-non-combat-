@@ -8,7 +8,7 @@ how to LEAVE the template, that says how to stay in touch with it and receive a 
 its `template` remote on the day you fork, not the day you need it.
 
 **The one-line version:** delete `data/**` and `scenes/areas/**`, prune the demo half of
-`localization/strings.csv`, rename four fields in `project.godot`, and never edit `src/`.
+`localization/strings.csv`, rename five fields in `project.godot`, and never edit `src/`.
 
 **The test that you did it right** is at the bottom, and it is mechanical: the ladder still goes
 green on an empty game, and `tools/check_boundary.gd` still exits 0.
@@ -55,7 +55,7 @@ rm -rf scenes/areas/courtyard scenes/areas/lantern_hall
 `localization/strings.csv` is the one mixed file. **Delete every row whose key starts with:**
 
 ```
-area.        talk.        action.        object.
+area.        talk.        action.        object.       quest.
 item.        — EXCEPT every item.category.* row, which is engine
 ```
 
@@ -63,17 +63,29 @@ Everything else is engine and stays: `ui.*`, `verb.*`, `refusal.*`, `notify.*`, 
 `time.*`, `keys.*`, `item.category.*`.
 
 ```bash
-awk '!/^(area|talk|action|object)\./ && (!/^item\./ || /^item\.category\./)' \
-  localization/strings.csv > /tmp/pruned.csv   # keeps 147 of 189 rows; review, then move it back
+awk '!/^(area|talk|action|object|quest)\./ && (!/^item\./ || /^item\.category\./)' \
+  localization/strings.csv > /tmp/pruned.csv   # keeps 168 of 219 rows; review, then move it back
 ```
 
-**Two traps in this file:**
+**Three traps in this file:**
 
 1. **A value containing a comma MUST be quoted**, or the CSV parser silently truncates it at the
    comma and `tr()` still returns a plausible-looking string. This shipped a half-sentence for
    three packages. `tools/check_content.gd` fails any row that parses to more than two columns.
 2. **`ui.menu.title` holds the game's NAME**, not a UI label. It is an engine key with a
    game-specific value — change the value, keep the key.
+3. **NO GATE CHECKS THIS FILE FOR DEMO ROWS, so a prefix missing from the list above ships.**
+   `check_boundary.gd` guards `src/`, `tests/framework/` and `tests/unit/` — not `localization/`
+   — and a leftover row is nobody's error: it is a translation for content you deleted, so
+   nothing loads it and nothing complains. `quest.` was missing from this list from WP-08 until
+   T4.3, and a fork that followed this document shipped the demo's `quest.keepers_errand.*`
+   rows — "The Keeper's Errand", "three rose petals" — inside its own game, with all four
+   checkers and the whole suite green. The list above is the only thing standing between you and
+   that, so after pruning, grep the result for the demo's vocabulary and expect nothing back:
+
+```bash
+grep -niE 'keeper|gardener|courtyard|lantern|rose|petal|dais' localization/strings.csv
+```
 
 Regenerate `strings.en.translation` by running `--headless --import` after editing.
 
@@ -113,13 +125,21 @@ than clearing the flags and going quiet.
 ## 5. The one thing that will not be clean, stated honestly
 
 **The test suite comes with you, and it tells you what it stopped covering.** As of T1.3 the
-cases build the content they need from `tests/framework/fixtures.gd`, so deleting `data/` and
-`scenes/areas/` leaves rung 4 intact: `1527 passed, 0 failed, 25 skipped`, exit 0, measured on a
-stripped copy at template 1.0.0. Those twenty-five are the assertions that genuinely ask
-something about authored content — that the catalogue matches the
-disk, that every item name has a CSV row, that every waypoint a schedule names exists in some
-area. They come back one at a time as you author your own content, and until then the run PRINTS
-each one rather than quietly passing.
+cases build the content they need from `tests/framework/fixtures.gd`, so doing everything above
+leaves rung 4 intact. Measured on a fork that had just followed sections 1 to 4 of this document
+at template 1.0.1, with `[game] world/first_area` still empty:
+
+```
+=== 1539 passed, 0 failed, 20 skipped ===
+```
+
+Those twenty are the assertions that genuinely ask something about authored content — that the
+catalogue matches the disk, that every item name has a CSV row, that every waypoint a schedule
+names exists in some area. They are reported as fifteen named cases, and they come back one at a
+time as you author your own content; until then the run PRINTS each one rather than quietly
+passing. (The template's own CI runs a harsher variant that deletes the `data/` folders outright
+instead of emptying them, and reports `1534 passed, 0 failed, 25 skipped`. Both are green; the
+counts differ because you kept the content roots, which is what section 1 tells you to do.)
 
 **The order you author in does not matter, and it took a real fork to make that true.** The
 first-area block used to gate on "does this checkout have any content at all", which
@@ -127,6 +147,15 @@ flips true on your first `.tres` of any kind — so authoring one item before yo
 armed an assertion about AREAS and turned rung 4 red, in the exact window this document walks you
 through. It now gates on whether any area exists. See [`UPGRADING.md`](UPGRADING.md) § 7, which is
 where it was found.
+
+**AND AN EMPTY `[game] world/first_area` IS GREEN, which took a second fork to make true.**
+`core_test.gd` asserted `first_area != ""` unconditionally until T4.3 — contradicting its own
+name, its own neighbouring comment and section 4 of this document, all of which call the empty
+setting legal. It passed in the full template and in the stripped one, because neither ever
+empties that field, and failed only here: in a fork that had done exactly what this document
+says and had not yet authored its first area. The claim now lives only in `smoke_test.gd`, gated
+on whether any area exists and strengthened to require that the named area resolves — so a game
+WITH areas and an unset first area still turns rung 4 red, which was checked by planting it.
 
 **`src/systems/debug/` names demo content on purpose.** `dev_probes.gd` and `dev_stage.gd` are the
 development harness — `--give=item/rose_key` stages a photograph, `--goto=` drives a real
@@ -151,15 +180,21 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 ```
 
 **On a stripped template with no content yet, the first four must still pass.** This was RUN, not
-assumed — the whole strip above was performed against the demo and reverted, and T1.2 in
-`DEVLOG.md` quotes the output:
+assumed — the whole strip above was performed against a fresh clone, and these are that run's
+own lines, at template 1.0.1:
 
 ```
-  item definitions: 0 · conversations: 0 · schedules: 0 · path actions: 0 · scenes scanned: 14
-  PASS
+  item definitions: 0
+  conversations: 0
+  schedules: 0
+  quests: 0
+  path actions: 0
+  scenes scanned: 14
+PASS
   demo names derived: 0 — []
-  src scripts scanned: 74 (res://src/systems/debug/ is exempt)
-  PASS
+  engine scripts scanned: 129, over src/ and ["res://tests/framework", "res://tests/unit"] (res://src/systems/debug/ is exempt)
+  demo names inside the exempt debug surface: 0
+PASS
 ```
 
 Zero items is not an error; an item that is present and does not load is, and `ItemDb` reports
@@ -167,14 +202,28 @@ that per file. (It WAS an error until T1.2, and the first command in this docume
 fail.) `check_boundary.gd` derives zero demo names and passes trivially, which is exactly right:
 the rule it enforces is about `src/`, and `src/` did not change.
 
-The boot run is clean and lands on the main menu. Starting a game before you have set
-`[game] world/first_area` logs, and changes nothing:
+The boot run is clean, prints your name and the base's version, and lands on the main menu:
 
+```
+[INFO ] [boot     ] Tideglass 0.0.1 | base 1.0.1 | Godot 4.7.2-stable (official) | headless | debug=true
+```
+
+Starting a game before you have set `[game] world/first_area` logs, and changes nothing:
+
+```bash
+"$G" --headless --quit-after 180 -- --new-game
+```
 ```
 [ERROR] [world    ] No first area — set game/world/first_area in project.godot
 ```
 
 That is the template telling you the one thing it still needs.
+
+**THE `--` IS LOAD-BEARING AND ITS ABSENCE IS SILENT.** Everything after it is the GAME's
+argument list; without it Godot swallows `--new-game`, the run stops at the main menu having
+started nothing, and it reports `0 warnings, 0 errors` — a green run that verified nothing.
+`--quit-after` counts FRAMES, not seconds, so a value below about 120 also ends at the menu
+before the flag has fired, which looks identical. Both mistakes read as success.
 
 The test suite passes, with skips reported. Section 5 says what the skips are.
 

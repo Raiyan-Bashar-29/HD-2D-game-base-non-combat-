@@ -6010,3 +6010,135 @@ an author's per-object value, `reduce_motion` shows a motion being skipped rathe
   lives, and one input list read instead of copied. No autoload, no new layer, no new seam
   concept — `ARCHITECTURE.md` already says the owning system reacts, and this row only made that
   true for nine more settings.
+
+## 2026-09-05 — T5.6 · A wholesale character swap, photographed
+
+**Did.** Gave the alt placeholder sheet a complete gait set — five blocks where it had two —
+pointed the player at it, drove it through idle, walk, run, sneak and climb through the real
+input path, and photographed every one. **No file under `src/` changed for the swap**, which is
+the claim the row exists to test, and the swap itself is two `ExtResource` paths in
+`scenes/characters/player.tscn`. New `tests/unit/character_swap_test.gd` (14 assertions), a new
+`src/systems/debug/dev_gait_shots.gd` that owns the shutter for a gait, and four gotchas —
+three of them defects this row created and one it inherited from the capture standard.
+
+**Why this row and not the other two.** It was Phase T5's last unmet exit criterion and the only
+one of the three that is a PROOF rather than a feature. The phase claims a future game inherits
+working characters and changes only assets, and until today the repository held a sheet with a
+different GRID (`character_alt.png`, 4 facings, 24x40, two blocks) and a sheet with GAITS
+(`character_placeholder.png`, 8 facings, 32x48, three blocks) and **never one with both** — so
+the claim had been demonstrated in halves and never end to end. T5.3's own DEVLOG says this row
+"would have caught T5.3's defect if it had included a climb", and that is exactly the shape of
+the evidence below: `MoveState.CLIMB` was exported, validated and asserted for two rows while
+being undrawable, and a swap sheet with a climb block would have photographed the absence.
+
+**THE CONTROL IS THE STRONGEST THING IN THIS ROW, and it took one extra run.** The same probe,
+the same code, the same courtyard, the same five gaits — with the DEFAULT sheet on the player
+instead of the alt one:
+
+| gait | alt sheet (96x600, 60 cells) | default sheet (256x576, 96 cells) |
+|---|---|---|
+| IDLE | `frame=0` -> block 0, column 0, cell 0 | `frame=24` -> block 0, column 0, cell 3 |
+| WALK | `frame=21` -> block 1, column 1, cell 2 | `frame=42` -> block 1, column 2, cell 1 |
+| RUN | `frame=29` -> block 2, column 1, cell 1 | `frame=82` -> block 2, column 2, cell 2 |
+| SNEAK | `frame=41` -> **block 3**, column 1, cell 1 | `frame=42` -> **block 1**, the walk block |
+| CLIMB | `frame=57` -> **block 4**, column 1, cell 2 | `frame=50` -> **block 1**, the walk block |
+
+Five distinct blocks against three-with-a-fallback, from one unchanged codebase. The right-hand
+column is also the first measurement anywhere of the `-1` fallback chain running in the live
+game rather than in an assertion: a sheet that does not draw a sneak plays its walk block, which
+is what every sheet authored before T5.2 must keep doing.
+
+**Photographed, and the photographs are COUNTED rather than judged.** Each alt cell now carries
+three pip tallies — `column + 1` down the left edge, `frame + 1` across the foot, and, new here,
+`block + 1` down the right edge in white. Without the third, the block would have been the one
+thing in a gait capture that had to be inferred from a tint, which is precisely the judgement
+gotcha 28 says a capture cannot be trusted to make. Five zoomed captures in
+`user://shots/gaits/`, each x5 nearest-neighbour, and each agrees with the decoded number: the
+sneak shot is purple, crouched, **four** white pips, two yellow left pips, two foot pips —
+block 3, column 1, cell 1, which is `frame=41` exactly. `courtyard_control.png` is the ordinary
+dusk capture with the swap reverted, and shows the demo unchanged.
+
+**FOUR DEFECTS, AND THREE OF THEM WERE MINE. Each was invisible in every rung that does not open
+a window.**
+
+1. **The run block bled into the cell below it.** `_plot` in the generator clips to the IMAGE and
+   not to the cell, so a four-pixel overreach at a hip height of 28 put the trailing boot's last
+   row at y=40 — one row into the next block's cell, drawing a stray foot above its head. The
+   assertion written for it caught it on its first run: `expected [], got [8, 9]`.
+2. **The foot tally could not be read in the game.** The sprite is anchored by its feet, so its
+   last rows meet the ground plane and are occluded by it. The tally was correct, the sheet was
+   correct, and the photograph showed one pip where the decoded frame said three. Moved from
+   `y - 3` to `y - 7`. **A capture standard failing, not a drawing failing.**
+3. **The number and the picture came from different frames.** `sprite.frame` was read BEFORE the
+   `RenderingServer.frame_post_draw` await, so a physics step separated the measurement from the
+   image — two honest readings of two different moments, which reads exactly like the sheet being
+   wrong. This is the one that cost the most, because it presents as a content bug.
+4. **`unproject_position` answers in the viewport's LOGICAL size.** The project scales content
+   from 1920x1080, so at `--resolution 960x540` every unprojected point came back at twice its
+   place in the captured image and the first five zoom crops were photographs of grass.
+
+**Connects.** `tools/gen_placeholders.gd` -> `character_alt.png` -> `character_alt_layout.tres`
+-> `CharacterVisual.layout`, and nothing between them is code this row wrote. The five blocks are
+addressed by `SpriteSheetLayout.animation_for` exactly as T5.2 built it and reached by
+`PlayerController` exactly as T5.3 fixed it; the alt layout is now **the only layout in the
+project that leaves no gait at -1**, so it is also the only one that exercises the whole of
+`_row_for` without a fallback. `dev_gait_shots.gd` is the fourth debug file and owns the one
+thing the other three cannot: WHEN to open the shutter for a gait. It waits until the character
+is in the gait rather than aiming at a frame number, which is gotcha 52 answered rather than
+survived.
+
+**Verified.**
+- `--headless --import` -> exit 0 (run first; gotcha 53).
+- `--headless --quit-after 30` -> `Session ended after 0.6s — 0 warnings, 0 errors`, exit 0.
+- `--headless res://tests/test_runner.tscn` -> `=== 1798 passed, 0 failed, 0 skipped ===`,
+  exit 0. 1,782 -> 1,798 — 14 from `character_swap_test.gd` and 2 that `doc_counts_test`
+  derives from this row's own prose, since it counts every document line that spells the gotcha
+  total and this row added four gotchas.
+- **Both new gates proved by planting, and BOTH exit codes are here.**
+  Plant 1, the cell bleed — hip height back to 28, regenerated, reimported:
+  `=== 1794 passed, 2 failed ===`, **exit 1**, naming
+  `and no cell bleeds into the one below it — expected [], got [8, 9]` and
+  `the sneak block draws a lower figure than the walk block — expected true, got false`.
+  Plant 2, T5.3's own defect re-created — `climb_row = -1` in the alt layout:
+  `=== 1794 passed, 2 failed ===`, **exit 1**, naming
+  `the alt layout names a row for every gait — expected [2, 3, 4], got [2, 3, -1]` and
+  `so no alt gait falls back to the walk block — expected 5, got 4`. **That is the row's own
+  claim made good: this sheet would have caught T5.3.** Control after removing both plants:
+  `=== 1796 passed, 0 failed ===`, exit 0. (The plants were run before this row's documentation
+  was written, so their totals are two lower than the final one — `doc_counts_test` derives two
+  of its assertions from prose that did not exist yet.)
+- **All six checkers exit 0** — `check_budgets`, `check_content`, `check_boundary`,
+  `check_strings`, `check_layers`, `check_signals`. `check_budgets` refused
+  `art_contract_test.gd` at `254 / 250` first, which is the seam it always finds: the swap
+  assertions were a case of their own and are now `character_swap_test.gd`.
+- **Windowed capture, which for this row is the whole point** (gotcha 2): eleven PNGs in
+  `user://shots/gaits/` — five gaits as a full frame plus an x5 crop on the alt sheet, five more
+  on the default sheet under `default/`, and the dusk control. `0 warnings, 0 errors` per run.
+- Budgets: `gen_placeholders.gd` 141 -> 171, `art_contract_test.gd` 196 -> 190,
+  `character_swap_test.gd` 79 (new), `dev_gait_shots.gd` 75 (new).
+
+**Unblocks.** **Phase T5's third exit criterion is met, and the phase is closable at the owner's
+word rather than by me** — the two remaining boxes are a second idle block and a turn in place,
+and the turn is explicitly the owner's seam decision. A consuming game now has a worked example
+of the swap it is promised, with both halves in one sheet, and can re-take the proof itself with
+one command.
+
+**Gaps, stated rather than left to be rediscovered.**
+- **`--gait-shots` presses one direction and photographs one column.** Every capture in this row
+  is column 0 or column 1. The facing quantisation is `facing_test.gd`'s subject and is asserted
+  rather than photographed, which is the right division, but nothing has ever photographed all
+  four alt columns in one run.
+- **The swap was performed and reverted, on T2.1's precedent.** `scenes/characters/player.tscn`
+  ships pointing at the default sheet, so the demo's look is unchanged and the swap lives in the
+  captures and in `ART_CONTRACT.md` rather than in the tree. Pointing the keeper NPC at the alt
+  sheet permanently was considered and declined: an NPC only ever passes WALK or IDLE, so it
+  would demonstrate the GRID swap the shipped tree already documents and none of the gait set.
+- **The two `reduce_motion` consumers T5.5 left are still missing** — `ScreenFade` and
+  `HD2DCameraRig.follow_lag` — and `_apply_shadows` still restores the atlas to a `2048` const
+  rather than to the authored value. **Deliberately skipped, and not because they are hard.**
+  Both are candidate I and a two-line fix respectively, and neither touches a sprite sheet, a
+  layout or a capture; folding them in would have put three unrelated diffs in the one row whose
+  headline claim is *no file under `src/` changed*. Candidate I should take both.
+- **One run in ten printed `1 errors` with no `[ERROR]` line in the captured output**, and it did
+  not reproduce across four subsequent runs of the identical command. Recorded rather than
+  claimed as clean: it was not chased, and it is the only unexplained thing in this row.

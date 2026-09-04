@@ -674,6 +674,21 @@ because the first row exposed how much of it was declared and unread.
   exit 1; six settings photographed in pairs. 1,782 assertions, stripped 1,708. Version 2.0.0,
   untagged. CI green on `31fea16`, PR #34.
 
+- **T5.6 A wholesale character swap, photographed — DONE, 2026-09-05.** The phase's last proof
+  criterion, and the only one of the three that was a proof rather than a feature. The repository
+  held a sheet with a different GRID and a sheet with GAITS and **never one with both**, so the
+  phase's claim had been demonstrated in halves. `character_alt.png` went from two animation
+  blocks to five (idle, walk, run, sneak, climb, 96x600) and `character_alt_layout.tres` is now
+  the only layout in the project that leaves no gait at -1. The player was pointed at the pair,
+  driven through all five gaits through the real input path and photographed, and **no file under
+  `src/` changed for the swap** — the swap is two `ExtResource` paths in `player.tscn`. The
+  CONTROL is the strongest evidence: the same probe on the DEFAULT sheet draws blocks 0, 1, 2, 1,
+  1 — sneak and climb falling back to the walk block, which is the `-1` contract measured in the
+  live game for the first time. Four defects, three of them this row's own, and all four
+  invisible to any rung that does not open a window: gotchas 57 to 60. Two plants, each exit 1,
+  and plant 2 re-created T5.3's defect exactly, which is the row's own claim made good.
+  1,782 -> 1,798 assertions. Version 2.1.0, untagged.
+
 **Exit criteria for the phase:**
 
 - [x] A character's movement styles come from its sheet, not its code: idle, walk, run, sneak and
@@ -696,9 +711,21 @@ because the first row exposed how much of it was declared and unread.
       for one: the player turning to face an interaction target, or an NPC turning to face the
       player in dialogue. That is a seam decision and T5.3 deliberately left it to the owner
       rather than picking one silently.
-- [ ] **A worked example of swapping a character wholesale** — a second sheet with a different
+- [x] **A worked example of swapping a character wholesale** — a second sheet with a different
       cell size, facing count and gait set, dropped in and photographed, to the standard T2.1 set
-      for the layout swap. The alt sheet proves the GRID swaps; nothing yet proves the GAITS do.
+      for the layout swap. — **T5.6, 2026-09-05.** `character_alt.png` is 4 facings, 24x40 and
+      FIVE blocks against the default's 8, 32x48 and three, and the swap is two `ExtResource`
+      paths in `player.tscn` with nothing under `src/` touched. Five gaits driven through the
+      real input path and photographed, each pip tally agreeing with the block decoded off
+      `sprite.frame`; the same probe on the default sheet draws sneak and climb from the WALK
+      block, which is the `-1` fallback measured live. Captures are re-takeable with `--gait-shots=<dir>` rather than committed, which is this project's standing practice for screenshots.
+
+**THE PHASE IS CLOSABLE, AND CLOSING IT IS THE OWNER'S.** Two boxes remain and neither is a
+defect: a second idle block is a chooser on top of machinery that now works, and **a turn in
+place is explicitly a seam decision the owner has not made** — WHO may ask for a turn. T5.3 and
+T5.5 both declined to pick one silently and T5.6 declines too. If the owner answers that
+question the phase has one small row left; if the owner says the two remaining boxes belong to a
+consuming game rather than to the base, the phase closes today.
 
 
 ## Sequencing rules

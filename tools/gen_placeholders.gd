@@ -46,21 +46,45 @@ const SHOWS_FACE: Array[bool] = [true, true, false, false, false, false, false, 
 # THE SECOND SHEET, and it exists to be a DIFFERENT SHAPE rather than a second character.
 # T2.1's headline claim is that a game swaps in a sheet with another cell and frame count and
 # edits no code, so the proof needs a sheet that disagrees with the first one on every number:
-# 4 facings not 8, a 24x40 cell not 32x48, and 3 frames in each of TWO animation blocks rather
-# than 4 frames in one. Its layout is assets/placeholder/character_alt_layout.tres.
+# 4 facings not 8, a 24x40 cell not 32x48, and 3 frames in each of FIVE animation blocks rather
+# than 4 frames in three. Its layout is assets/placeholder/character_alt_layout.tres.
+#
+# IT HAD TWO BLOCKS UNTIL T5.6, and that gap is the reason this row exists. T5.2 gave the
+# DEFAULT sheet three blocks and left this one at idle and walk, so a sheet with a different
+# cell size AND a full gait set existed nowhere in the repository - while the phase's whole
+# claim is that a future game inherits working characters and changes only assets. A swap that
+# proves only the GRID moves proves half of it. This sheet now names all five gaits
+# SpriteSheetLayout can address: idle, walk, run, sneak, climb.
 #
 # EVERY CELL IS SELF-LABELLING, which is the point. A character drawn from the wrong cell still
 # looks like a character (gotcha 2, in the one form headless cannot answer), so each cell carries
-# a column tally down its left edge and a frame tally along its foot. A windowed capture can then
-# be READ rather than judged: three left pips and two foot pips is column 2, frame 1, and no
-# amount of plausible-looking pixel art can fake that.
+# a column tally down its left edge, a frame tally along its foot and - since the gait set - a
+# BLOCK tally down its right edge. A windowed capture can then be READ rather than judged: three
+# left pips, two foot pips and four right pips is column 2, frame 1, block 3, and no amount of
+# plausible-looking pixel art can fake that. Without the third tally the block would be the one
+# thing in a capture that had to be inferred from a tint, which is exactly the judgement
+# gotcha 28 says not to make.
 const ALT_CELL: Vector2i = Vector2i(24, 40)
 const ALT_DIRECTIONS: int = 4
 const ALT_FRAMES: int = 3
-const ALT_ANIMATIONS: int = 2
-## Idle wears the first colour, walk the second, so which BLOCK is playing reads at a glance.
-const ALT_BLOCK_TINT: Array[Color] = [Color(0.28, 0.55, 0.42), Color(0.72, 0.38, 0.22)]
+## FIVE BLOCKS: idle, walk, run, sneak, climb - the whole of GameEnums.MoveState that
+## SpriteSheetLayout can name a row for.
+const ALT_ANIMATIONS: int = 5
+const ALT_SNEAK_BLOCK: int = 3
+const ALT_CLIMB_BLOCK: int = 4
+## A colour per block, so which one is playing reads at a glance before the pips are counted.
+const ALT_BLOCK_TINT: Array[Color] = [
+    Color(0.28, 0.55, 0.42), Color(0.72, 0.38, 0.22), Color(0.78, 0.24, 0.30),
+    Color(0.42, 0.30, 0.62), Color(0.20, 0.58, 0.68),
+]
+## How far the legs travel per block, and how far the body tips into it. A run overreaches and
+## leans; a sneak barely shifts its weight; a climb does not stride at all.
+const ALT_SWING: Array[int] = [0, 2, 4, 1, 0]
+const ALT_LEAN: Array[int] = [0, 0, -1, 0, 0]
 const PIP: Color = Color(1.0, 0.95, 0.35)
+## The block tally is WHITE against the column and frame tallies' yellow, so a capture read at a
+## glance cannot mistake one edge's count for another's.
+const BLOCK_PIP: Color = Color(1.0, 1.0, 1.0)
 
 const SKIN: Color = Color(0.85, 0.68, 0.52)
 const BOOT: Color = Color(0.28, 0.22, 0.18)
@@ -202,8 +226,8 @@ func _save(image: Image, file_name: String) -> void:
 		print("  FAILED %s: %s" % [file_name, error_string(err)])
 
 
-## The second sheet: 4 facings across, and 3 frames down in each of 2 animation blocks, so the
-## rows run idle.0 idle.1 idle.2 walk.0 walk.1 walk.2. See ALT_CELL for why it exists.
+## The second sheet: 4 facings across, and 3 frames down in each of 5 animation blocks, so the
+## rows run idle.0-2, walk.0-2, run.0-2, sneak.0-2, climb.0-2. See ALT_CELL for why it exists.
 func _build_alt_sheet() -> Image:
 	var rows: int = ALT_FRAMES * ALT_ANIMATIONS
 	var sheet: Image = Image.create(
@@ -217,26 +241,75 @@ func _build_alt_sheet() -> Image:
 	return sheet
 
 
-## One labelled figure. Simple on purpose: a readable body, an animation tint, and the two pip
-## tallies that let a capture be read rather than believed.
+## One labelled figure. Simple on purpose: a readable body, a tint and a posture per gait, and
+## the three pip tallies that let a capture be read rather than believed.
+##
+## EACH GAIT DIFFERS IN SILHOUETTE AND NOT ONLY IN TINT. A capture whose only difference is a
+## colour is still a judgement, and a sneak that merely wore purple would photograph as a walk
+## in the wrong shirt: the crouch, the run's lean and the climb's raised arms are what make the
+## five blocks tell themselves apart at a glance, with the pips there to settle it exactly.
 func _draw_alt_cell(image: Image, origin: Vector2i, column: int, block: int, frame: int) -> void:
 	var tint: Color = ALT_BLOCK_TINT[block]
-	# Idle bobs by a pixel; walk swings its legs. Two visibly different cycles.
-	var bob: int = 0 if block == 1 else [0, 1, 0][frame]
-	var swing: int = [0, 2, -2][frame] if block == 1 else 0
+	var swing: int = [0, 1, -1][frame] * ALT_SWING[block]
+	# Only the idle block shifts its weight vertically; the moving blocks say it with the legs.
+	var bob: int = [0, 1, 0][frame] if block == 0 else 0
+	var lean: int = ALT_LEAN[block]
+	# A sneak drops the whole figure and shortens the stride. Nothing else in the sheet changes
+	# the character's HEIGHT, which is what makes it unmistakable beside a walk.
+	var crouch: int = 4 if block == ALT_SNEAK_BLOCK else 0
+	var top: int = 14 + bob + crouch
+	var head: int = 9 + bob + crouch
 
-	_rect(image, origin + Vector2i(9, 28 + swing), Vector2i(3, 9), BOOT)
-	_rect(image, origin + Vector2i(13, 28 - swing), Vector2i(3, 9), BOOT)
-	_rect(image, origin + Vector2i(8, 14 + bob), Vector2i(9, 15), tint)
-	_disc(image, origin + Vector2i(12, 9 + bob), 5, SKIN)
-	_rect(image, origin + Vector2i(7, 3 + bob), Vector2i(11, 4), HAIR)
+	# THE HIP SITS AT 27 AND NOT 28, and one pixel is the whole reason. `_plot` clips to the
+	# IMAGE, not to the cell, so a run's four-pixel overreach at 28 put the trailing boot's last
+	# row at y=40 - one row into the cell BELOW, where it drew a stray foot above the next
+	# block's head. Every rung stayed green and the sheet looked right until the assertion
+	# counted it. That is gotcha 28's lesson from the generator's side: a sheet that bleeds is
+	# still a picture of a person.
+	_rect(image, origin + Vector2i(9, 27 + swing + crouch), Vector2i(3, 9 - crouch), BOOT)
+	_rect(image, origin + Vector2i(13, 27 - swing + crouch), Vector2i(3, 9 - crouch), BOOT)
+	_rect(image, origin + Vector2i(8 + lean, top), Vector2i(9, 15 - crouch), tint)
+	_draw_alt_arms(image, origin, block, frame, tint, top, lean)
+	_disc(image, origin + Vector2i(12 + lean, head), 5, SKIN)
+	_rect(image, origin + Vector2i(7 + lean, head - 6), Vector2i(11, 4), HAIR)
 	# Eyes only on column 0, which is towards the camera in a four-facing sheet.
 	if column == 0:
-		_rect(image, origin + Vector2i(10, 9 + bob), Vector2i(2, 2), EYE)
-		_rect(image, origin + Vector2i(14, 9 + bob), Vector2i(2, 2), EYE)
+		_rect(image, origin + Vector2i(10 + lean, head), Vector2i(2, 2), EYE)
+		_rect(image, origin + Vector2i(14 + lean, head), Vector2i(2, 2), EYE)
+	_draw_alt_pips(image, origin, column, block, frame)
 
-	# column + 1 pips down the left edge, frame + 1 pips along the foot.
+
+## Arms, and the climb is the one that matters. A ladder is the only gait in this template whose
+## POSE differs rather than its pace, and it is also the gait T5.3 found undrawable for two
+## rows - so it gets the silhouette that cannot be mistaken for anything else on the sheet.
+func _draw_alt_arms(image: Image, origin: Vector2i, block: int, frame: int, tint: Color,
+		top: int, lean: int) -> void:
+	var sleeve: Color = tint.darkened(0.35)
+	if block == ALT_CLIMB_BLOCK:
+		var reach: int = [0, 3, 6][frame]
+		_rect(image, origin + Vector2i(4, top - 6 - reach), Vector2i(3, 10 + reach), sleeve)
+		_rect(image, origin + Vector2i(18, top - reach), Vector2i(3, 4 + reach), sleeve)
+		return
+	# Everything else swings its arms opposite its legs, by the same reach as the block's stride.
+	var swing: int = [0, 1, -1][frame] * ALT_SWING[block]
+	_rect(image, origin + Vector2i(5 + lean, top - swing), Vector2i(3, 10), sleeve)
+	_rect(image, origin + Vector2i(17 + lean, top + swing), Vector2i(3, 10), sleeve)
+
+
+## The three tallies. column + 1 down the left edge, frame + 1 across the foot, block + 1 down
+## the right edge - so a windowed capture is COUNTED rather than judged, which is the only
+## answer to gotcha 28 that survives a sheet with five blocks instead of two.
+##
+## THE FOOT TALLY SITS AT y - 7 AND NOT AT y - 3, because at y - 3 IT COULD NOT BE READ IN THE
+## GAME. The sprite is anchored by its feet, so its last few rows meet the ground plane and are
+## occluded by it: the first gait capture of this row showed one foot pip where the decoded
+## frame said three. The tally was correct, the sheet was correct, and the photograph was
+## unreadable - which is a capture standard failing rather than a drawing failing, and exactly
+## the kind of thing only a windowed run finds.
+func _draw_alt_pips(image: Image, origin: Vector2i, column: int, block: int, frame: int) -> void:
 	for pip: int in column + 1:
 		_rect(image, origin + Vector2i(1, 2 + pip * 4), Vector2i(2, 2), PIP)
 	for pip: int in frame + 1:
-		_rect(image, origin + Vector2i(2 + pip * 4, ALT_CELL.y - 3), Vector2i(2, 2), PIP)
+		_rect(image, origin + Vector2i(2 + pip * 4, ALT_CELL.y - 7), Vector2i(2, 2), PIP)
+	for pip: int in block + 1:
+		_rect(image, origin + Vector2i(ALT_CELL.x - 3, 2 + pip * 4), Vector2i(2, 2), BLOCK_PIP)

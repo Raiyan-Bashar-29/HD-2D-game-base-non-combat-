@@ -20,6 +20,36 @@ the exact rot this discipline exists to prevent.
 
 ---
 
+## 2.1.0
+
+*2026-09-05 — the second placeholder sheet gained a complete gait set, so the wholesale character
+swap the base promises can be performed and photographed rather than described.*
+
+**A consuming game does:** almost certainly nothing. One grep is worth running:
+
+**`grep -rn 'character_alt' your_game/`.** If it returns nothing, stop here — this version is
+purely additive to you. If it returns something, you are using the base's *swap demonstration
+asset* as real art, and it changed shape: `character_alt.png` went from **96x240** (2 animation
+blocks) to **96x600** (5), and `character_alt_layout.tres` now declares `animations = 5` with
+`run_row = 2`, `sneak_row = 3` and `climb_row = 4` where it previously left all three at `-1`. The
+two are committed together and `character_swap_test.gd` asserts they agree, so taking both is
+safe and taking one is not. A character pointed at that pair will start drawing a distinct run,
+sneak and climb cycle instead of replaying its walk block — which is the improvement, but it is a
+visible change and you should see it before your players do.
+
+Nothing else in this version can reach a game. No file under `src/` changed for the swap itself —
+that was the point of the row, and it is what a fork inherits: your own sheets, your own layouts,
+no code. `SpriteSheetLayout`, `CharacterVisual` and `PlayerController` are byte-identical to
+2.0.0. No signal, no autoload, no setting, no save version, no layer.
+
+**Added, and safe to ignore:** `src/systems/debug/dev_gait_shots.gd` and its `--gait-shots=<dir>`
+flag, which drives a character through all five gaits and photographs each one with the block
+decoded out of `sprite.frame`. Debug surface, gated on `OS.is_debug_build()` like the other three,
+and deleting it cannot break a game. `tests/unit/character_swap_test.gd` is new and asserts only
+the base's own placeholder sheet, so it survives the demo strip.
+
+---
+
 ## 2.0.0
 
 *2026-09-05 — every setting the options screen draws is now read by something. Nine were wired to

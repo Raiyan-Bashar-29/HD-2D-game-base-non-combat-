@@ -16,6 +16,7 @@
 [ext_resource type="Script" path="res://src/systems/world_map/world_map.gd" id="14_map"]
 [ext_resource type="Script" path="res://src/ui/hud/perf_overlay.gd" id="15_perf"]
 [ext_resource type="Script" path="res://src/ui/root/ui_accessibility.gd" id="16_access"]
+[ext_resource type="Script" path="res://src/systems/debug/dev_gait_shots.gd" id="17_gait"]
 
 [node name="GameRoot" type="Node"]
 script = ExtResource("1_root")
@@ -83,3 +84,6 @@ script = ExtResource("14_map")
 [node name="PerfOverlay" type="CanvasLayer" parent="."]
 layer = 101
 script = ExtResource("15_perf")
+
+[node name="DevGaitShots" type="Node" parent="."]
+script = ExtResource("17_gait")

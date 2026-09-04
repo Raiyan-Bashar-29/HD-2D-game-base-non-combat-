@@ -178,19 +178,55 @@ fails the suite rather than a screenshot six months later.
   32×48 cells. 256×576. Each block wears a different cloth tint and the run leans forward,
   so which GAIT is drawn can be READ off a capture rather than guessed at — see the
   labelling note below, and gotcha 28 for why that matters.
-- `character_alt.png` — 4 facings × 3 frames in **2** blocks, 24×40 cells. 96×240. It disagrees
-  with the first on every number, and exists so the "swap a sheet, change no code" claim can be
-  demonstrated rather than asserted.
+- `character_alt.png` — 4 facings × 3 frames in **5** blocks (idle, walk, run, sneak, climb),
+  24×40 cells. 96×600. It disagrees with the first on every number, and exists so the "swap a
+  sheet, change no code" claim can be demonstrated rather than asserted. **It is also the only
+  layout in the project that leaves no gait at `-1`**, so it is the only one that draws a sneak
+  and a climb from rows of their own rather than from the walk block.
 
 **Every cell of the alt sheet labels itself**, and the reason generalises to any art you make for
 testing this seam. A day/night system that lights nothing is at least obviously wrong on screen; a
 character drawn from the *wrong cell* still looks like a character — upright, lit, facing *some*
-direction. So a capture of it cannot be judged, it has to be **read**. Each cell carries
-`column + 1` bright pips down its left edge and `frame + 1` along its foot, and the two blocks wear
-different body tints. Four left pips and two foot pips on an orange body is block 1, frame 1,
-column 3 — index `(1*3 + 1) * 4 + 3 = 19` — and no amount of plausible pixel art fakes that number.
+direction. So a capture of it cannot be judged, it has to be **read**. Each cell carries three
+tallies: `column + 1` yellow pips down its left edge, `frame + 1` across its foot, and
+`block + 1` **white** pips down its right edge. Two left pips, two foot pips and four right pips
+on a purple crouching body is column 1, frame 1, block 3 — index `(3*3 + 1) * 4 + 1 = 41` — and no
+amount of plausible pixel art fakes that number.
 
-Regenerate both with `tools/gen_placeholders.gd`.
+Two things about those tallies that cost an hour each, and both are in your way if you make a
+sheet of your own. The foot tally sits at `cell.y - 7` and not at the very bottom, because a
+sprite anchored by its feet has its last rows **occluded by the ground plane** and a tally drawn
+there photographs short (gotcha 58). And nothing may overrun its cell: the generator's `_plot`
+clips to the image rather than to the cell, so a stride that reaches past the bottom row draws a
+stray limb above the head of the block below (gotcha 57). `character_swap_test.gd` asserts both.
+
+### Performing the swap yourself
+
+This is the whole of it, and it is worth doing once on your own sheet before you trust it:
+
+```
+# scenes/characters/player.tscn — two lines, and nothing else anywhere
+[ext_resource type="Texture2D" path="res://assets/placeholder/character_alt.png" id="3_tex"]
+[ext_resource type="Resource" path="res://assets/placeholder/character_alt_layout.tres" id="6_layout"]
+```
+
+Then photograph it, because `--headless` shades nothing:
+
+```
+godot_console --resolution 960x540 --quit-after 600 -- --new-game --time=13:00 --freeze-time \
+    --gait-shots=<dir>
+```
+
+That drives the character through all five gaits through the real input path, writes a full frame
+and an ×5 nearest-neighbour crop for each, and logs the block, column and cell decoded out of
+`sprite.frame`. **Check that the log and the pips agree** — the number without the picture does
+not prove it reached a screen, and the picture without the number does not prove it was the right
+cell. T5.6 wrote its run to `user://shots/gaits/`; captures are not committed on this project, so
+re-take them with the command above rather than looking for a PNG. Run it once on the default
+sheet too: there, sneak and climb both draw block 1, because that sheet leaves their rows at
+`-1`.
+
+Regenerate both sheets with `tools/gen_placeholders.gd`.
 
 ---
 

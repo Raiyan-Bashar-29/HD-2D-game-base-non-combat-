@@ -133,7 +133,7 @@ func _the_committed_layouts_match_the_committed_sheets() -> void:
 	equal("the default layout is 8 facings", main.facings, 8)
 	equal("the default layout is 4 frames", main.frames, 4)
 	equal("the alt layout is 4 facings", alt.facings, 4)
-	equal("the alt layout is 3 frames in 2 blocks", [alt.frames, alt.animations], [3, 2])
+	equal("the alt layout is 3 frames in 5 blocks", [alt.frames, alt.animations], [3, 5])
 	equal("the alt layout has a separate walk block", alt.walk_row != alt.idle_row, true)
 	# The swap has to BE a swap: two layouts agreeing on the numbers would prove nothing.
 	equal("the two layouts disagree on the cell", main.cell_size != alt.cell_size, true)
@@ -293,3 +293,5 @@ func _layout(facings: int, frames: int, animations: int, cell: Vector2i) -> Spri
 	made.animations = animations
 	made.cell_size = cell
 	return made
+
+

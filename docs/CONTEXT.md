@@ -3,7 +3,34 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-05 · **T5.5 (the twelve settings with no consumer) complete — EVERY ONE
+**Last updated:** 2026-09-05 · **T5.6 (a wholesale character swap, photographed) complete —
+PHASE T5'S LAST PROOF CRITERION IS MET AND THE PHASE IS CLOSABLE AT THE OWNER'S WORD.** The
+repository held a sheet with a different GRID and a sheet with GAITS and **never one with both**,
+so the phase's claim — a future game inherits working characters and changes only assets — had
+been demonstrated in halves and never end to end. `character_alt.png` is now five blocks (idle,
+walk, run, sneak, climb, 96x600) and `character_alt_layout.tres` is **the only layout in the
+project that leaves no gait at -1**. The player was pointed at the pair, driven through all five
+gaits through the real input path, and photographed. **NO FILE UNDER `src/` CHANGED FOR THE
+SWAP** — it is two `ExtResource` paths in `player.tscn` — which is the claim the row exists to
+test rather than a happy accident.
+
+**THE CONTROL IS THE STRONGEST THING IN IT.** The same probe, the same code, the DEFAULT sheet:
+blocks 0, 1, 2, **1, 1** — sneak and climb falling back to the walk block. That is the `-1`
+fallback contract measured in the live game for the first time, rather than in an assertion.
+
+**FOUR GOTCHAS, THREE OF THEM DEFECTS THIS ROW CREATED, ALL FOUR INVISIBLE TO ANY RUNG THAT DOES
+NOT OPEN A WINDOW.** 57: a generator that clips to the IMAGE and not to the CELL draws into the
+next cell, and the sheet still looks like people. 58: a sprite anchored by its feet has its bottom
+rows eaten by the ground plane, so a tally drawn there cannot be read in a capture — a capture
+STANDARD failing, not a drawing failing. 59: reading `sprite.frame` before the post-draw await
+measures a different moment from the photograph, and the disagreement looks exactly like a content
+bug. 60: `unproject_position` answers in the viewport's LOGICAL size, so at `--resolution
+960x540` every crop was off by a factor of two. Two plants, each exit 1, and **plant 2 re-created
+T5.3's defect exactly** — `climb_row = -1` gives `expected [2, 3, 4], got [2, 3, -1]` — which
+makes good T5.3's own note that this row would have caught it. Suite 1,782 -> 1,798 (the last two are `doc_counts_test` gaining claims from this row's own prose). Version
+2.1.0, untagged.
+
+**T5.5 (the twelve settings with no consumer) is the row before it — EVERY ONE
 OF THE TWENTY REMAINING SETTINGS IS NOW READ BY SOMETHING, and an assertion refuses a
 twenty-first that is not. Nine were wired; THREE WERE REMOVED, because honouring
 `gameplay/camera_shake`, `gameplay/autosave` and `accessibility/subtitles` would have meant
@@ -64,19 +91,21 @@ with it.
 repository is the phrase "duck-typed" in a comment; that is candidate E, and `DialogueRunner` is
 the natural home. **`face_direction()` still has only test callers**, so nothing changes facing
 while stationary; that is candidate C, and WHO may ask for a turn is an owner's seam decision that
-T5.3 declined to pick silently.
+T5.3, T5.5 and T5.6 all declined to pick silently.
 
 Everything else on it is closed. **T5.4 closed the three enforcement holes** — the layer direction,
 the signal registry's shape and `localization/` demo content all have gates now, and the corrected
 measurement is **51 of 214 CSV rows** in a content namespace, not 59: the audit counted the eight
 `item.category.*` rows, which are engine. **T5.5 closed the settings four** — `set_dof_enabled()`
 has a caller, the twelve consumerless settings are nine wired and three removed, `Actions.JUMP` is
-gone entirely, and `KeyBindings.rebind()` gates on `Actions.REBINDABLE`.
+gone entirely, and `KeyBindings.rebind()` gates on `Actions.REBINDABLE`. **T5.6 closed the swap.**
 
 **EVERY EXIT CRITERION IN PHASES 0 TO T4 IS TICKED, and each was PROVED rather than asserted** —
 T5.1 closed the last four, one of which (the locale) was a missing FEATURE rather than a missing
-proof. Phase 2 closed with it. Phase T5 is the open one and has three criteria left: more than one
-idle, a turn in place, and a wholesale character swap photographed to T2.1's standard.
+proof. Phase 2 closed with it. **Phase T5 is the open one and has TWO criteria left**, neither of
+them a defect: more than one idle, which is a chooser on top of machinery that now works, and a
+turn in place, which is the owner's seam decision. The wholesale character swap was the third and
+T5.6 photographed it. **The phase is closable, and closing it is the owner's call, not mine.**
 
 **THE TEST RUNNER SILENTLY SKIPPED A LISTED CASE THAT DID NOT PARSE, AT EXIT 0.** `load()` on a
 script with a parse error returns a `GDScript` that is **not `null`** and cannot be instantiated;
@@ -142,7 +171,7 @@ the owner on the same day rather than built.)*
 
 **`main`. Branch from it, target it, and stop stacking.** As of 2026-09-03 every package from
 WP-01 to T4.2 is on `main` — PR #26 was retargeted to `main` and merged, which landed the whole
-71-commit chain at once as `648bac1`, tagged `v1.0.0`. T4.3 is on
+71-commit chain at once as `648bac1`, tagged `v1.0.0`. **T5.6 is on `claude/t5-6-character-swap`, branched from T5.5's `claude/t5-5-settings-consumers` (PR #34) because that row had not merged yet — so T5.5 and T5.6 are a two-deep stack and T5.6's PR targets T5.5's branch.** T4.3 was on
 **`claude/t4-3-new-game-perform`**, branched from `main`.
 
 **The stack is history and should not be built on.** Every `claude/wp-*` and `claude/t*` branch
@@ -221,10 +250,11 @@ something declared, validated and read by nothing, after `Gate.locked_key`,
 T5.1 just fixed.
 
 
-146 files, 13,101 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
+148 files, 13,287 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
 three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
-3 tagged surfaces, 2 languages, 3 gait blocks, 1 shared area material, **20 settings and 20
-consumers**. Template version **2.0.0**, and that version is deliberately UNTAGGED — `v1.0.0` and
+3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 3 on the default one**,
+1 shared area material, **20 settings and 20 consumers**.
+Template version **2.1.0**, and that version is deliberately UNTAGGED — `v1.0.0` and
 `v1.0.1` are the tags, each naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 
@@ -261,7 +291,7 @@ which is `check_strings.gd`'s static rule made visible and including anything co
 **A SAVE THAT SURVIVES A REAL RELAUNCH**, proved in TWO PROCESSES rather than one reload:
 `--save-state` / `--load-state` in `dev_probes.gd`, with the fresh process's boot line as
 the control and the weather deliberately STORM because CLEAR is the boot default ·
-placeholder art generator · line-budget checker · a headless test suite (1,782 assertions) that
+placeholder art generator · line-budget checker · a headless test suite (1,798 assertions) that
 builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
 returns early, asserts nothing, or is not listed in the runner ·
 an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
@@ -1130,7 +1160,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Fifty-six gotchas that each cost an hour
+## Sixty gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -1767,6 +1797,49 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     hard part, writing one that can actually fail is. Plant every assertion whose job is to
     catch an absence; the ones that check for a presence tell you they work by passing, and the
     ones that check for an absence never tell you anything at all.
+
+57. **A GENERATOR THAT CLIPS TO THE IMAGE INSTEAD OF TO THE CELL DRAWS INTO THE NEXT CELL, AND
+    THE SHEET STILL LOOKS LIKE PEOPLE.** `_plot` in `tools/gen_placeholders.gd` bounds-checks
+    the IMAGE, which is correct and useless: a sprite sheet is a grid of independent cells, and
+    T5.6's run block overreached its stride by four pixels so the trailing boot's last row
+    landed at y=40 — one row inside the cell below, where it drew a stray foot floating above
+    the next block's head. Every rung stayed green, because no rung looks at a placeholder's
+    pixels, and at a glance the sheet was fine. **The assertion caught it on its first run**:
+    `and no cell bleeds into the one below it — expected [], got [8, 9]`. The transferable form
+    is that a cell's TOP ROW is the one row nothing legitimately occupies, so it is a free and
+    exact test for the whole class — and it costs one assertion for any number of cells.
+
+58. **A SPRITE ANCHORED BY ITS FEET HAS ITS BOTTOM ROWS EATEN BY THE GROUND PLANE, SO ANYTHING
+    DRAWN THERE CANNOT BE READ IN A CAPTURE.** `CharacterVisual` lifts the sprite by half its
+    cell height so the node origin sits where the collision capsule does, which puts the last
+    few rows of every cell right at the ground and behind it in depth. T5.6's frame tally lived
+    at `cell.y - 3` and photographed as ONE pip where the decoded frame said three: the tally
+    was right, the sheet was right, and the picture was unreadable. Moved to `cell.y - 7`.
+    **This is a capture STANDARD failing rather than a drawing failing**, and it is invisible to
+    every check that reads the PNG instead of the screen — the assertion on the sheet passed
+    throughout. If a placeholder carries information meant to be read off a screenshot, keep it
+    clear of the bottom four rows.
+
+59. **READING A SPRITE'S FRAME BEFORE THE POST-DRAW AWAIT MEASURES A DIFFERENT MOMENT FROM THE
+    PHOTOGRAPH, AND THE DISAGREEMENT LOOKS LIKE A CONTENT BUG.** `await
+    RenderingServer.frame_post_draw` lets a physics step run, so a probe that logs
+    `sprite.frame` and then awaits the shutter has produced two honest measurements of two
+    different frames. T5.6 spent a while believing its own sheet was wrong because the log said
+    cell 2 and the image showed one foot pip. Await first, then read the frame and grab the
+    image together — inside the post-draw callback nothing advances, so the number and the
+    picture are the same frame by construction. This is the sharp edge of the project's own
+    rule that a capture must be READ rather than judged: reading it against the wrong number is
+    worse than not reading it.
+
+60. **`Camera3D.unproject_position` ANSWERS IN THE VIEWPORT'S LOGICAL SIZE, NOT IN THE CAPTURED
+    IMAGE'S PIXELS.** This project scales content from 1920x1080, so under
+    `--resolution 960x540` the viewport still reports a visible rect of `(1920, 1080)` while
+    `get_viewport().get_texture().get_image()` returns a 960x540 image. Every unprojected point
+    therefore comes back at exactly twice its place in the capture, and T5.6's first five zoom
+    crops were photographs of grass with the character just off the edge. Scale by
+    `Vector2(shot.get_size()) / camera.get_viewport().get_visible_rect().size` rather than by a
+    literal 0.5, or the crop is right at one resolution and silently wrong at every other.
+
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the
@@ -1776,20 +1849,29 @@ names the exact files that chat should read, so a session loads a few hundred li
 package never has to read upward.
 
 
-**Next package: NOTHING IS BLOCKING, AND EVERY PHASE ON THE BOARD IS CLOSED.** Phase T4's third
-exit criterion — a release tag — was taken on 2026-09-03 with the owner's authorisation, once the
-stack had landed and `v1.0.0` could name a tree that genuinely declared the version. The template
-is v1.0-complete. What follows is a real choice, not a queue:
+**Next package: NOTHING IS BLOCKING. Phase T5 has two boxes left and ONE OF THEM IS A QUESTION
+FOR THE OWNER.** T5.6 met the phase's last proof criterion, so what remains is a second idle
+block (a chooser on top of machinery that works) and a turn in place — and the turn is a seam
+decision three rows in a row have declined to make silently. **Putting that question to the owner
+is itself the next action, and it is cheaper than any package below.** What follows is a real
+choice, not a queue:
 
-- **Perform `docs/TESTING.md`** — the strongest of the three, and the last document standing.
-  T2.2 walked `AUTHORING.md`'s first half, T4.1 walked `UPGRADING.md`, T4.2 walked the rest of
-  `AUTHORING.md`, T4.3 walked `NEW_GAME.md` — **four for four, every one found a defect no amount
-  of reading would have, and two of the four were defects in the TEMPLATE rather than the prose.**
-  `TESTING.md` is the only one never walked, and it is aimed at a consumer adding assertions to a
-  suite they did not write.
+- **Candidate I — `reduce_motion` finished.** The smallest honest row on the board and the one
+  T5.6 explicitly skipped rather than folded in: `ScreenFade` and `HD2DCameraRig.follow_lag` are
+  both motion and both ignore the setting T5.5 wired to the typewriter. Take `_apply_shadows`'
+  `2048` const with it — the fix is `HD2DCameraRig`'s `_authored_dof` pattern and it needs a home
+  outside `settings.gd`, which is at 144 of its 150-line override.
+- **Candidate E — music ducking, or delete it.** `stop_music`, `duck` and `unduck` have no
+  callers anywhere. Lowering music under dialogue is the obvious use and `DialogueRunner` is the
+  home; the honest alternative is deleting three methods.
+- **Perform `docs/TESTING.md`** — the last document never walked. T2.2, T4.1, T4.2 and T4.3 are
+  **four for four**: every walk found a defect no amount of reading would have, and two of the
+  four were defects in the TEMPLATE rather than the prose.
+- **F, G, H** — the `Button` styleboxes, autosave (which needs a slot POLICY before it needs a
+  trigger) and screen shake, in that order of cost.
 - **WP-10 crafting**, if a game wants it. Still OPTIONAL, still a genre choice per `TEMPLATE.md`.
 - **Nothing at all**, which stays a legitimate answer for a base that has answered every question
-  it set out to — and is more defensible now than it has ever been.
+  it set out to.
 
 *(This line names ONE package or one honest choice between a few. Earlier revisions accumulated a
 stale line per package and two were left stranded here; if you ever find two, the lower one is

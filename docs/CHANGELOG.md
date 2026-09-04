@@ -20,6 +20,41 @@ the exact rot this discipline exists to prevent.
 
 ---
 
+## 1.0.2
+
+*2026-09-04 — one defect in the TEST RUNNER, found by performing [`TESTING.md`](TESTING.md).*
+
+**A consuming game does:** nothing, unless its suite has a case that does not compile — in which
+case rung 4 will now fail where it previously passed, and the failure names the file. That is the
+bug being fixed, not a new restriction: the case was never running.
+
+**A listed test case that does not parse no longer reports a clean pass.** `load()` on a script
+with a parse error returns a `GDScript` that is **not null** and cannot be instantiated, so
+`_run_case` walked straight into `script.new()`; that call's failure is a runtime error, and a
+GDScript runtime error aborts only the innermost frame, so the `does not extend TestCase` failure
+below it was never reached and the loop in `_ready` moved on. Measured on this repository: a
+parse error planted in one listed case produced `=== 1608 passed, 0 failed, 0 skipped ===` and
+**exit 0**, indistinguishable from a run in which the case did not exist.
+`tests/framework/error_watch.gd` had counted the error and nothing ever asked it.
+[`tests/test_runner.gd`](../tests/test_runner.gd) now checks `can_instantiate()` before
+instantiating, and separately fails the run on any engine script error that no named case
+accounted for — the second guard being the general one, since the next hole in that wall will not
+be a parse error.
+
+**`TESTING.md`'s worked example now compiles.** Its one assertion example read
+`inventory.count()`, which is wrong twice over — nothing declares `inventory`, and `Inventory`
+has no `count()`. Copying it verbatim is what began this package. The document also states what
+`TestCase` actually provides, that `Fixtures.activate()` returns a bool a case must check, and
+that fixture ids are consts in `tests/framework/fixture_content.gd` rather than strings to
+retype.
+
+**Also in this version:** `bag_mirror_test.gd` asserts that the `bag/<carrier>/<item>` count
+flags are already current when `item_gained` and `item_lost` fire — an ordering `Inventory.add`
+documents in a comment and which nothing tested on either path. `TESTING.md`'s suite total,
+gotcha count and `transitions_test.gd` plan are re-measured rather than inherited.
+
+---
+
 ## 1.0.1
 
 *2026-09-03 — two defects found by performing [`NEW_GAME.md`](NEW_GAME.md) as a fork.*

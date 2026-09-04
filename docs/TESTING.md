@@ -9,8 +9,12 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless res://tests/test_runner.tscn --quit-after 400
 ```
 
-Exit 0 if every assertion passes, 1 otherwise. The last line reads
-`=== 1574 passed, 0 failed, 0 skipped ===`.
+Exit 0 if every assertion passes, 1 otherwise. In a full checkout the last line reads
+`=== 1625 passed, 0 failed, 0 skipped ===`; in a stripped template it reads
+`=== 1551 passed, 0 failed, 25 skipped ===`, and the difference is entirely skips that say so.
+**Re-measure this rather than quoting it** — the number moves with every package, and
+`docs_test.gd` and `doc_counts_test.gd` compute their plans from the documents, so editing a
+document can move it too.
 
 ---
 
@@ -73,9 +77,12 @@ that asserts nothing at all. This is TAP's `1..N`, for TAP's reason.
 A crashing case exited 0 for the life of this project before the plan existed. That invalidated
 every green result it had.
 
-**A plan may be computed, and should be when the count depends on content.** `transitions_test.gd`
-declares `plan(FIXED + PER_AREA * areas.size())`, so authoring an area does not mean editing a
-number. Compute it from something you gathered *before* the assertions run.
+**A plan may be computed, and should be when the count depends on content.**
+`transitions_test.gd` declares
+`plan(FIXED_ASSERTIONS + (SKIPS_WITHOUT_AREAS if _areas.is_empty() else with_areas))`, so
+authoring an area does not mean editing a number, and a checkout with no areas at all still
+declares a figure it can meet. Compute it from something you gathered *before* the assertions
+run.
 
 **A skip counts as the outcomes it stands in for**, so the plan is the same number with or without
 demo content in the checkout.
@@ -100,6 +107,16 @@ Add your file's path to `CASES` in `tests/test_runner.gd`. `_manifest_is_complet
 never run and every rung stays green, which is the same failure shape as a file that does not
 parse, one layer up.
 
+**And the layer up is covered too, since T4.4 — but it was not, and this document is what found
+it.** A case that IS listed and does not compile used to be skipped in silence: `load()` returns
+a `GDScript` that is not null and cannot be instantiated, so `_run_case` walked into
+`script.new()`, whose failure is a runtime error, and rule 3's own reasoning applies to the
+runner as much as to a case — it aborts only that frame. The loop moved on, and the suite
+reported `1608 passed, 0 failed` and **exit 0** with a whole case never run. Two guards close it
+now: `can_instantiate()` before the call, naming the file, and a run-level check that any engine
+script error nothing attributed to a named case fails the run. The second is the general one,
+because the next hole in that wall will not be a parse error.
+
 ---
 
 ## Writing a case
@@ -112,14 +129,23 @@ extends TestCase
 ## MUST NOT: ...
 
 func run() -> void:
-    plan(3)
+    plan(1)
     _a_named_block()
 
 
 ## One behaviour per function, named as the sentence it proves.
 func _a_named_block() -> void:
-    equal("an empty inventory holds nothing", inventory.count(), 0)
+    var bag := Inventory.new()
+    equal("a new bag holds nothing", bag.distinct_count(), 0)
+    bag.free()
 ```
+
+**`TestCase` hands you five things and no content**: `plan`, `equal`, `skip`, `build` and
+`attach`. There is no fixture member, no `inventory`, and no system pre-wired for you — a case
+constructs or `build`s whatever it is asserting about, and frees it. An earlier version of the
+example above read `inventory.count()`, which is wrong twice over: nothing declares `inventory`,
+and `Inventory` has `distinct_count()`, `total_count()` and `count_of(id)` but no `count()`. It
+was copied verbatim while performing this document and produced two parse errors.
 
 - **`equal(label, actual, expected)` is the only assertion**, deliberately: a suite with eight
   helpers spends its time debating which to use. Floats go through
@@ -164,8 +190,17 @@ The runner calls `Fixtures.deactivate()` after **every** case, including ones th
 activated — a case that crashed half way through its fixtures would otherwise hand the next one a
 redirected content root and never say so.
 
-Everything in `FixtureContent` is abstract on purpose: `fixture/unique`, `fixture_post_a`. If a
-name in there ever describes a place, that is the demo growing back.
+**`Fixtures.activate()` returns `false` if it could not write the fixture root**, so the shape is
+`if not Fixtures.activate(): skip(...); return` — an unchecked call leaves every lookup below it
+pointed at whatever content root the checkout happens to have.
+
+**The ids themselves are consts in `tests/framework/fixture_content.gd`, and a case names them
+from there** — `FixtureContent.STACK_ITEM`, `FixtureContent.QUEST`, `FixtureContent.PLACE_A`.
+Never retype the string: the consts are the list, and they are what keeps a case out of
+`check_boundary`'s way.
+
+Everything in `FixtureContent` is abstract on purpose: `item/fixture_unique`, `fixture_post_a`.
+If a name in there ever describes a place, that is the demo growing back.
 
 ### Asserting something about content that may not exist
 
@@ -202,6 +237,6 @@ Stated so nobody reads a green run as more than it is:
 ## Read next
 
 [`AUTHORING.md`](AUTHORING.md) · [`ARCHITECTURE.md`](ARCHITECTURE.md#the-extension-surface) ·
-[`CONTEXT.md`](CONTEXT.md) — the forty-three gotchas, several of which are the long form of the rules
+[`CONTEXT.md`](CONTEXT.md) — the forty-nine gotchas, several of which are the long form of the rules
 above · `tests/framework/test_case.gd` and `tests/test_runner.gd`, whose headers carry the
 reasoning in full.

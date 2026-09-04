@@ -501,6 +501,36 @@ OPTIONAL and blocks nothing. The board carries the full reasoning.
   own trap, with a grep to run after pruning. Three further prose defects were re-measured rather
   than inherited, including a `--new-game` invocation that is silently green without a `--`.
 
+- **T4.4 `TESTING.md` performed, the last document never walked — DONE, 2026-09-04.** After the
+  phase's exit criteria were already met, so it adds none: the phase closed with T4.3 and this
+  package neither reopens it nor is required by it. What it settles is the *last* of the five
+  consumer documents, and **five for five now — every document performed has found a defect no
+  amount of reading would have, and three of the five were defects in the TEMPLATE.**
+
+  **The template defect is the sharpest of the three, because it invalidated the rung that judges
+  every other one.** The suite SKIPPED A LISTED CASE THAT DID NOT PARSE, in silence, at exit 0.
+  `load()` on a script with a parse error returns a `GDScript` that is not `null` and cannot be
+  instantiated, so `_run_case` walked into `script.new()` — and gotcha 24 already established that
+  a GDScript runtime error aborts only the innermost frame, so the failure two lines below was
+  never reached and the loop moved on. Measured: `=== 1608 passed, 0 failed, 0 skipped ===` and
+  exit 0, a last line byte-identical to a checkout in which the file does not exist. T1.3 built
+  two mechanisms here because the first was measured and found wanting; this was the third hole in
+  the same wall, and the one neither was positioned to see — `error_watch.gd` had counted the error
+  the whole time and nothing ever asked it. Two guards close it, and the second closes the class.
+
+  **The document's one worked example did not compile**, and was wrong twice over — nothing
+  declares `inventory`, and `Inventory` has no `count()`. Copying it verbatim is what began the
+  package, which is a fair summary of why documents get performed rather than proofread.
+
+  **And three documents gave three different answers to a countable question:** 44,
+  48 and 43, over a list of 48 gotchas. `doc_counts_test.gd` counts the
+  entries and requires every document that states the number to state that one — gotcha 48's shape
+  without gotcha 48's excuse, since a count needs no list of exceptions behind it.
+
+  One assertion was KEPT rather than deleted with the throwaway: `bag_mirror_test.gd`, on the
+  ordering between the count-flag publish and `item_gained` / `item_lost`, which `Inventory.add`
+  documents in a comment and which nothing tested on either path.
+
 **Exit criteria for the phase:**
 
 - [x] The template states its own version, readably at runtime and assertably. — T4.1

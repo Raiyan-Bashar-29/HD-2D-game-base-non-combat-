@@ -3,9 +3,32 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-03 · **T4.3 (`NEW_GAME.md` performed, and the release tag taken)
-complete. PHASE T4 IS COMPLETE — all three exit criteria are ticked, and the template is tagged
-`v1.0.0` with `main` now declaring `1.0.1`.**
+**Last updated:** 2026-09-04 · **T4.4 (`TESTING.md` performed) complete. PHASE T4 REMAINS
+COMPLETE — it closed at T4.3 and T4.4 adds no exit criterion. `main` declares `1.0.2`; the
+repository is tagged `v1.0.0` and 1.0.2 is deliberately untagged.**
+
+**ALL FIVE CONSUMER DOCUMENTS HAVE NOW BEEN PERFORMED, AND ALL FIVE FOUND A DEFECT. THREE OF THE
+FIVE WERE DEFECTS IN THE TEMPLATE.** T4.4 walked `TESTING.md`, the last one never walked, and
+found the sharpest of the three — because it was in the rung that judges every other one.
+
+**THE TEST RUNNER SILENTLY SKIPPED A LISTED CASE THAT DID NOT PARSE, AT EXIT 0.** `load()` on a
+script with a parse error returns a `GDScript` that is **not `null`** and cannot be instantiated;
+`_run_case` tested only for `null`, walked into `script.new()`, and **gotcha 24 already said a
+GDScript runtime error aborts only the innermost frame** — so the failure two lines below was
+never reached and the loop moved on. Measured: `=== 1608 passed, 0 failed, 0 skipped ===` and
+exit 0, a last line byte-identical to a checkout where the file does not exist. T1.3 built two
+mechanisms here because the first was measured and found wanting; this was the third hole in the
+same wall, and `error_watch.gd` **had counted the error the whole time** — `_no_script_errors` is
+read per case from inside `_run_case`, after `run()` returns, so an error raised on the way IN is
+tallied by the watch and read by nobody. Two guards now: `can_instantiate()`, which names the
+file, and a run-level check on any script error no named case accounted for. See gotcha 49.
+
+**AND THE DOCUMENT'S ONE WORKED EXAMPLE DID NOT COMPILE.** `inventory.count()` is wrong twice
+over: nothing declares `inventory`, and `Inventory` has no `count()`. Copying it verbatim is what
+began the package. Three documents also gave three different gotcha counts — 44,
+48 and 43, over a list of 48 — so `doc_counts_test.gd` now counts the
+entries and requires every document stating the number to state that one.
+
 
 **THE STACK LANDED AND THE TAG IS TAKEN.** For twenty-six PRs `origin/main` sat at `d0bf153` and
 nothing had merged, which is exactly why the owner refused a tag on 2026-09-02. The stack turned
@@ -97,15 +120,18 @@ still the owner's** — T4.3 bumped `base/version` to `1.0.1` for its own fixes 
 NOT tag that, which is T4.1's precedent: stating a version is engineering, cutting a release is
 not.
 
-**The template is v1.0-complete, and the next package is a genuine choice rather than a queue.**
-Candidates, none of them blocking: **`docs/TESTING.md` is now the only document never performed**,
-and all four walks so far (T2.2, T4.1, T4.2, T4.3) found defects that reading would not have;
-WP-10 crafting, if a game wants it; or nothing at all, which is a legitimate answer for a base
-that has answered every question it set out to.
+**The template is v1.0-complete, EVERY CONSUMER DOCUMENT HAS BEEN PERFORMED, and the next package
+is a genuine choice rather than a queue.** There is no candidate that blocks anything and no
+document left to walk — the five walks (T2.2, T4.1, T4.2, T4.3, T4.4) are done and all five found
+defects that reading would not have. What is left: **WP-10 crafting**, still OPTIONAL, if a game
+wants it; or **nothing at all**, which is a legitimate and increasingly defensible answer for a
+base that has answered every question it set out to. **That is the owner's call and the next
+session should put it to them rather than pick.**
 
-136 files, 11,771 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
+138 files, 11,983 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
 three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
-3 tagged surfaces, 1 shared area material. Template version **1.0.1**, tagged `v1.0.0`.
+3 tagged surfaces, 1 shared area material. Template version **1.0.2**, tagged `v1.0.0` —
+and 1.0.2 is deliberately untagged.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 
 **Works, and verified by running it:** logging with rotation · signal registry (`events.gd`) ·
@@ -113,7 +139,7 @@ input actions · settings · save/load with atomic writes and versioning · plot
 director with a re-entrancy guard and threaded loading · world clock · weather state · audio
 buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 8-way character ·
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
-placeholder art generator · line-budget checker · a headless test suite (1,608 assertions) that
+placeholder art generator · line-budget checker · a headless test suite (1,625 assertions) that
 builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
 returns early, asserts nothing, or is not listed in the runner ·
 an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
@@ -949,7 +975,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,608 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,625 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content
@@ -957,7 +983,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Forty-eight gotchas that each cost an hour
+## Forty-nine gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -1415,6 +1441,33 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     not a rule in a tool — a tool would need to know which prefixes are engine, which is the same
     list rotting one directory further away.
 
+
+49. **A SCRIPT THAT DOES NOT PARSE IS NOT `null`, SO THE TEST RUNNER SKIPPED A LISTED CASE IN
+    SILENCE FOR THE LIFE OF THE SUITE.** `load()` on a `.gd` file with a parse error hands back a
+    `GDScript` that exists, is not null, and cannot be instantiated. `_run_case` checked only for
+    null, so it walked into `script.new()` — and **the failure of that call is a runtime error,
+    which gotcha 24 already established aborts only the innermost frame.** So `_run_case` itself
+    aborted, the `does not extend TestCase` failure two lines below was never reached, the `for`
+    loop in `_ready` moved on to the next case, and the suite reported
+    `=== 1608 passed, 0 failed, 0 skipped ===` and **exit 0** with an entire case never run.
+    Measured, twice: the identical plant after the fix gives exit 1 and names the file. The
+    sharpest part is that `tests/framework/error_watch.gd` **had counted the error the whole
+    time** — `_no_script_errors` is read per case from inside `_run_case`, after `run()` returns,
+    so an error raised on the way IN is tallied by the watch and read by nobody. T1.3 built two
+    mechanisms because the first was measurably not enough (gotcha 24); this is the third hole in
+    the same wall, and the one neither mechanism was positioned to see. Three rules generalise.
+    **A guard that only checks `null` has not checked that a resource is USABLE** — `load()` has
+    more than two outcomes, and `can_instantiate()` is the question actually being asked.
+    **Gotcha 24's own reasoning applies to the RUNNER, not just to the cases** — the code that
+    judges whether a frame aborted is written in the same language and aborts the same way, which
+    is why the run-level backstop had to be a separate check rather than a better per-case one.
+    And **a mechanism that sees a failure is worth nothing until something asks it**: the watch,
+    the plan and the manifest were all correct and all silent here. Found by performing
+    `docs/TESTING.md` — whose rule 5 *named* this failure shape in prose, as the thing
+    `_manifest_is_complete` was analogous to, while nothing in the runner covered it. **The fifth
+    document walked, and the fifth to find a defect; the third of the five where the defect was
+    in the TEMPLATE rather than the prose.**
+
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the
@@ -1464,7 +1517,7 @@ you can press to travel back to once you have — and every one of those walks n
 depending on whether you are crossing grass, the wooden dais or stone. Every one of those changes
 survives a save and a
 reload, including from the far side of an area that is no longer loaded. All of it is covered
-by 1,608 headless assertions.
+by 1,625 headless assertions.
 
 **Next, and for the first time it is not an ordered queue.** Every blocking row is done: Phase T3
 closed with WP-14b, WP-15 was CLOSED by the owner, and T4.1 shipped the version and the upgrade

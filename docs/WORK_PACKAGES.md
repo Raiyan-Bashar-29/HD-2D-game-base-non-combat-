@@ -76,6 +76,7 @@ original board rather than continuing it.
 | T4.1 | **Template v1.0 — the version, and the upgrade note** | **DONE** — `799d957`, PR #25. The first package of Phase T4. The version is `[template] base/version`, NOT `application/config/version`, and the reason is the whole package in one line: a fork resets its own version on day one, so that field stops recording which base the game came from. `docs/UPGRADING.md` was PERFORMED against a real stripped fork and found a template defect nobody would have reasoned their way to; see below |
 | T4.2 | **A second worked example, authored from `AUTHORING.md` alone** | **DONE** — the second package of Phase T4, and T2.2's mechanism applied to CONTENT. Five defects, two of them in the TEMPLATE rather than the prose: `check_boundary` matched SUBSTRINGS, so an item called `pear` collided with the word `appeared` and failed a gate its author could not fix; and `--stand-by` always resolved in the DEPARTURE area, so no object in an authored area could be photographed. Both gotcha 44's shape — found only by authoring content this repository does not have; see below |
 | T4.3 | **`NEW_GAME.md` performed as a fork, and the release tag** | **DONE** — the last package of Phase T4, which it CLOSES. Landed the 26-PR stack on `main` as one 71-commit chain and tagged `v1.0.0` with the owner's authorisation, then performed `NEW_GAME.md` from a fresh clone. Two defects, one in the TEMPLATE: `core_test.gd` asserted an empty `first_area` was illegal when four other statements call it legal, so a fork had a red rung 4 before authoring its first area; and the prune list never learned about `quest.`, so a fork shipped this template's demo quest strings with every gate green. Bumped to `1.0.1`; see below |
+| T4.4 | **`TESTING.md` performed, the last document never walked** | **DONE** — five for five: every document performed has found a defect reading would not, and this is the third of the five where the defect was in the TEMPLATE. The test runner SKIPPED A LISTED CASE THAT DID NOT PARSE, in silence, for the life of the suite — `load()` returns a non-null uninstantiable `GDScript`, `script.new()` then raises a runtime error, and that aborts only `_run_case`, so the loop moved on and the suite reported `1608 passed, 0 failed` and exit 0 with a whole case never run. `error_watch.gd` had counted the error the whole time and nothing asked it. Also: the document's ONE worked example did not compile, and three documents gave three different gotcha counts. Bumped to `1.0.2`; see below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -3092,3 +3093,158 @@ aimed at the person actually holding the fork. This is the same objection that r
 skipped ===`, the 25 skips unchanged from T4.2. All four checkers PASS in both jobs.
 
 **Commit:** `4ec29fb` on `claude/t4-3-new-game-perform`, PR #27, targeting `main` directly.
+
+
+## T4.4 · `TESTING.md` performed, the last document never walked — **DONE**
+
+**The fifth document performed, and the fifth to find a defect.** T2.2 walked the first half of
+`AUTHORING.md`, T4.1 `UPGRADING.md`, T4.2 the rest of `AUTHORING.md`, T4.3 `NEW_GAME.md`. Five for
+five, and **three of the five found a defect in the TEMPLATE rather than in the prose.** The
+mechanism was the same one and it is not negotiable: do what the document says a consumer does,
+from the document alone, and treat every wall as a finding rather than as a reason to go and read
+the code. For `TESTING.md` the consumer is somebody adding assertions to a suite they did not
+write, so the walk began by copying the document's own worked example verbatim into a new case
+and registering it in `CASES`.
+
+### The defect: a listed case that does not parse reported a clean pass, and exit 0
+
+The very first run found it, and it found it by accident, which is the point. The copied example
+did not compile — see below — and the suite's answer to a case that does not compile was:
+
+```
+SCRIPT ERROR: Parse Error: Identifier "inventory" not declared in the current scope.
+   at: GDScript::reload (tests/unit/inventory_order_test.gd:14)
+ERROR: Failed to load script "tests/unit/inventory_order_test.gd" with error "Parse error".
+SCRIPT ERROR: Invalid call. Nonexistent function 'new' in base 'GDScript'.
+=== 1608 passed, 0 failed, 0 skipped ===
+```
+
+*(The throwaway case's `res://` prefix is stripped in that quote on purpose. It was deleted at
+the end of the package, and `docs_test.gd` asserts that every `res://` path named in `docs/`
+resolves — so quoting the engine's own line verbatim fails rung 4. `DEVLOG.md` is exempt from
+that scan for exactly this reason; the board is not. The gate caught it here, which is a fair
+demonstration that it works.)*
+
+
+**Exit 0.** `0 failed`, `0 skipped`, and a whole case never run — a last line byte-identical to
+one from a checkout in which the file does not exist.
+
+The chain is three facts this project already knew, meeting in a place nobody looked.
+`load()` on a script with a parse error returns a `GDScript` that is **not `null`** and cannot be
+instantiated; `_run_case` tested only for `null`, so it walked into `script.new()`; and the
+failure of that call is a GDScript runtime error, which **gotcha 24 established aborts only the
+innermost frame.** So `_run_case` itself aborted, the `does not extend TestCase` failure two lines
+below was never reached, and the `for` loop in `_ready` carried on. The sharpest part is that
+`tests/framework/error_watch.gd` — T1.3's second mechanism, built precisely because the plan was
+measured and found insufficient — **had counted the error the whole time.** `_no_script_errors` is
+read per case from *inside* `_run_case`, after `run()` returns, so an error raised on the way IN
+is tallied by the watch and read by nobody. Three correct mechanisms, all silent: the plan never
+ran, the manifest was satisfied because the file WAS listed, and the watch was never asked.
+
+**Two guards, because the second is the general one.** `can_instantiate()` before instantiating,
+which names the file; and a run-level check that any engine script error no named case accounted
+for fails the run, because the next hole in that wall will not be a parse error.
+
+**Proved by planting, and the plant was caught twice — once deliberately and once by accident.**
+Deliberately: a parse error appended to `version_test.gd`, a case with nothing else wrong with it.
+
+```
+res://tests/unit/version_test.gd is listed but does not parse, so it never ran
+FAILED: 2 engine script error(s) were raised outside any case: ["Parse Error: Identifier
+  nothing_declared_anywhere not declared in the current scope. at
+  res://tests/unit/version_test.gd:123 in GDScript::reload()", ...]
+=== 1591 passed, 2 failed, 0 skipped ===
+```
+
+Exit 1, both guards firing independently, the file and the line named, and the parse errors
+quoted. Removed, and the control is exit 0 at `=== 1624 passed, 0 failed, 0 skipped ===`. By
+accident, and it is better evidence than the plant: while this package was writing
+`doc_counts_test.gd`, a stray escape produced `Invalid escape in string` at line 29 — and the new
+guard reported the file and line unprompted, on a real mistake, where the old runner would have
+carried on green.
+
+### The document's one worked example did not compile, and it was wrong twice over
+
+`equal("an empty inventory holds nothing", inventory.count(), 0)` — the only assertion example in
+the document. Copied verbatim it produces two parse errors. **Nothing declares `inventory`**:
+`TestCase` provides `plan`, `equal`, `skip`, `build` and `attach` and no content whatsoever, which
+the document nowhere states. And **`Inventory` has no `count()`** — it has `distinct_count()`,
+`total_count()` and `count_of(id)`. So a consumer's first act on this document is a compile
+failure, followed, until this package, by a *green suite* that hid it. The replacement was written
+and then RUN as a real case before being put in the document, which is non-negotiable #1 aimed at
+prose.
+
+### Three documents, three different answers to a countable question
+
+`CLAUDE.md` said 44 in two places, `CONTEXT.md` said 48 and `TESTING.md` said
+43, over a list of 48 entries. Each was true when written; none was updated.
+This is gotcha 48's shape — a number in prose with no gate — but **without gotcha 48's excuse**:
+the localization gate was refused in writing because it would need a list of which key prefixes
+are engine, which is the same rot moved sideways. A count needs no list. `doc_counts_test.gd`
+counts the entries, checks they run 1..N without a gap or a repeat, spells the number, and
+requires every document that states it to state that one.
+
+It is **its own case file rather than three more checks inside `docs_test.gd`**, because that
+file's MUST NOT line forbids asserting anything about what the documents SAY, and non-negotiable
+#4 says a change that needs a MUST NOT broken adds a system instead of widening the boundary.
+
+**Planted twice.** A fiftieth gotcha added with no count updated fails all four claim sites at
+once — `expected fifty, got forty-nine` — which is the rot that actually happened. `CLAUDE.md`
+alone drifted back to 44 fails exactly one, naming the file. Both exit 1; both restored.
+The gate also had a hole of its own on the first pass, and it was gotcha 43's shape: the section
+heading is the PRIMARY statement of the count and was being swallowed by the section it opens, so
+the gate would have passed while the list's own title was wrong. It is kept as a claim now.
+
+### The assertion that was kept, and why
+
+The throwaway case was deleted; **`bag_mirror_test.gd` was kept**, because it covers something
+genuinely missing. `Inventory.add` carries a comment saying `_publish()` runs *before* either
+signal, "so nothing woken by one reads a flag that still says the old number". `remove` has the
+identical ordering and no comment, and **nothing asserted it on either path** — so a listener that
+reacted to `item_gained` by reading `bag/<carrier>/<item>` would have read the previous count, with
+an off-by-one in whatever it drew as the only trace. Ten assertions, and the last is the
+interesting one: spending the LAST of a stack ERASES the row rather than zeroing it, so "current"
+there means absent, and an emission tally is what makes a missing row distinguishable from a
+handler that never ran.
+
+Planted on both sides. `_publish()` moved after `Events.item_lost.emit` gives
+`FAIL the flag already read the REMAINDER inside item_lost — expected 3, got 5` — the listener
+reading the old number, exactly the defect the comment warns about. After
+`Events.item_gained.emit` gives `expected 5, got -1`. **Nothing else in the suite failed on either
+plant**, which is the proof the invariant was uncovered rather than covered twice.
+
+One assertion of the ten caught the author rather than the code, and it is worth recording: the
+first version expected `0` from the erased row and got `-1`, because `_publish` erases rather than
+zeroes. The code was right and the assertion was wrong — which is what the second and third
+outcomes of `plan()` are for, and the plan itself caught a miscount in the same file
+(`planned 9 outcomes and produced 10`).
+
+### What was deliberately NOT done
+
+No windowed capture, and no temporary probe under `src/systems/debug/`. This package changes no
+rendering, no input path and no engine file at all — `git diff src/` is empty, the inventory
+plants having been fully restored — so a capture would be a screenshot of something it did not
+touch, which is ceremony that later reads as evidence. `git diff src/systems/debug/` is clean.
+
+No third mechanism in the runner. The plan, the watch and the manifest are enough once the watch
+is actually asked, and the run-level backstop is that asking. Adding a fourth would be a second
+thing to get wrong in the file whose job is judging whether things went wrong.
+
+### Verification
+
+Full ladder green, run locally. Rung 2 greps to zero `SCRIPT ERROR` / `Parse Error`; rung 3 ends
+`0 warnings, 0 errors`; rung 4 is `=== 1625 passed, 0 failed, 0 skipped ===`, up 17 from 1,608 —
+ten from `bag_mirror_test.gd`, six from `doc_counts_test.gd`, and one more because `docs_test.gd`
+COMPUTES its plan from the documents and this section names an additional `res://` path. All
+four checkers exit 0.
+
+**Stripped template, measured rather than inherited:** `=== 1551 passed, 0 failed, 25 skipped ===`,
+up 17 by the same arithmetic, and **the 25 skips are unchanged** — neither new case adds one,
+since fixtures work in a stripped checkout and the documents are still there. All four checkers
+exit 0 against `--path` as well.
+
+**Version bumped to 1.0.2; the tag for it was NOT taken.** T4.1's precedent, reaffirmed by T4.3.
+The `## 1.0.2` CHANGELOG entry's *a consuming game does* line is honest about the one visible
+consequence: a game whose suite contains a case that does not compile will see rung 4 fail where
+it previously passed, and that is the bug being fixed rather than a new restriction — the case was
+never running.

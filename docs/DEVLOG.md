@@ -4985,3 +4985,187 @@ skipped ===`, the 25 skips unchanged from T4.2. `check_budgets`, `check_content`
 and `check_strings` all PASS in both jobs. Committed as `4ec29fb` on
 `claude/t4-3-new-game-perform`, PR #27 — targeting `main` directly, because the stack it would
 have been stacked onto is now merged.
+
+## 2026-09-04 — T4.4 · `TESTING.md` performed, the last document never walked
+
+**Did.** Performed `docs/TESTING.md` as a consumer adding assertions to a suite they did not
+write, from the document alone. Found and fixed one defect in the TEMPLATE — the test runner
+silently skipped a listed case that did not parse, at exit 0 — plus three in the prose. Kept one
+of the new assertions because it covers something genuinely missing, deleted the throwaway, added
+a gate over a number three documents disagreed about, and bumped the template to `1.0.2`.
+
+**Why perform the document at all.** Four had been walked before this — T2.2 (`AUTHORING.md`'s
+first half), T4.1 (`UPGRADING.md`), T4.2 (the rest of `AUTHORING.md`), T4.3 (`NEW_GAME.md`) — and
+every single one found a defect reading would not have; two of the four were defects in the
+template rather than the prose. `TESTING.md` was the last one never walked. The mechanism is not
+negotiable and it is the whole method: do what the document says a consumer does, from the
+document alone, and treat a wall as a FINDING rather than as a reason to go and read the code.
+`src/` and the existing test files stayed shut while performing; the only framework files opened
+were the ones the document itself points at, and each time it had to be opened is recorded below
+as a gap in the document.
+
+**The first run found the template defect, and found it by accident, which is the point.** Step
+one was to copy the document's own worked example verbatim into `tests/unit/inventory_order_test.gd`
+and register it in `CASES`, as rule 5 says. The example does not compile. The suite's answer:
+
+```
+SCRIPT ERROR: Parse Error: Identifier "inventory" not declared in the current scope.
+   at: GDScript::reload (tests/unit/inventory_order_test.gd:14)
+SCRIPT ERROR: Parse Error: The method "count()" is not present on the inferred type "Variant"
+   (but may be present on a subtype). (Warning treated as error.)
+ERROR: Failed to load script "tests/unit/inventory_order_test.gd" with error "Parse error".
+SCRIPT ERROR: Invalid call. Nonexistent function 'new' in base 'GDScript'.
+=== 1608 passed, 0 failed, 0 skipped ===
+```
+
+Exit 0. `0 failed`, `0 skipped`, a whole case never run, and a last line byte-identical to one
+from a checkout where the file does not exist. (The `res://` prefix is stripped from those two
+lines here only in the board's copy of them, where `docs_test.gd` would fail on a deleted path;
+`DEVLOG.md` is exempt from that scan, so the engine's lines stand as printed except for the
+prefix being retained — see the gap note below.)
+
+**The chain is three facts this project already knew, meeting where nobody looked.** `load()` on
+a script with a parse error returns a `GDScript` that is **not `null`** and cannot be instantiated.
+`_run_case` tested only for `null`, so it walked into `script.new()`. And the failure of that call
+is a GDScript runtime error, which **gotcha 24 established aborts only the innermost frame** — so
+`_run_case` itself aborted, the `does not extend TestCase` failure two lines below was never
+reached, and the `for` loop in `_ready` carried on to the next case. The sharpest part:
+`tests/framework/error_watch.gd`, T1.3's SECOND mechanism, built precisely because the plan had
+been measured and found insufficient, **had counted the error the whole time.**
+`_no_script_errors` is read per case from *inside* `_run_case`, after `run()` returns, so an error
+raised on the way IN is tallied by the watch and read by nobody. Three correct mechanisms, all
+silent: the plan never ran, the manifest was satisfied because the file WAS listed, and the watch
+was never asked.
+
+**Two guards, and the second is the general one.** `script.can_instantiate()` before instantiating
+— checked against the API dump first (gotcha 17), `Script.can_instantiate() -> bool`, present in
+`doc/classes/Script.xml` — which records a failure naming the file. And
+`_no_unattributed_errors()`, run once after the loop, failing on any engine script error that no
+named case accounted for. The second exists because the next hole in that wall will not be a parse
+error, and because gotcha 24's reasoning applies to the RUNNER as much as to the cases: the code
+that judges whether a frame aborted is written in the same language and aborts the same way, so
+the backstop had to be a separate check rather than a better per-case one.
+
+**Planted, both directions (gotcha 23), and then caught a real mistake unprompted.** The plant is
+a parse error appended to `version_test.gd`, a case with nothing else wrong with it:
+
+```
+res://tests/unit/version_test.gd is listed but does not parse, so it never ran
+FAILED: 2 engine script error(s) were raised outside any case: ["Parse Error: Identifier
+  ... not declared in the current scope. at res://tests/unit/version_test.gd:123 in
+  GDScript::reload()", ...]
+=== 1591 passed, 2 failed, 0 skipped ===
+```
+
+Exit 1, both guards firing independently, file and line named, the parse errors quoted verbatim.
+Removed, and the control is exit 0 at `=== 1624 passed, 0 failed, 0 skipped ===`. Better evidence
+than the plant arrived by accident later in the same package: writing `doc_counts_test.gd`, a
+backslash was eaten in transit and produced `Invalid escape in string. at
+res://tests/unit/doc_counts_test.gd:29` — and the new guard reported it, by file and line, on a
+genuine mistake, where the old runner would have carried on green and left a case that never ran.
+
+**The document's one worked example was wrong twice over.**
+`equal("an empty inventory holds nothing", inventory.count(), 0)` is the only assertion example in
+`TESTING.md`. **Nothing declares `inventory`** — `TestCase` provides `plan`, `equal`, `skip`,
+`build` and `attach` and no content at all, which the document nowhere stated. **And `Inventory`
+has no `count()`**; it has `distinct_count()`, `total_count()` and `count_of(id)`. So a consumer's
+first act on this document is a compile failure, and until this package a *green suite* hid it.
+The replacement was written and then RUN as a real case before being put into the document —
+non-negotiable #1 aimed at prose, which is gotcha 47's rule.
+
+**Three documents, three different answers to a countable question.** `CLAUDE.md` said forty-four
+in two places, `CONTEXT.md` said forty-eight, `TESTING.md` said forty-three, over a list of
+forty-eight entries. Each was true when written and none was updated. `tests/unit/doc_counts_test.gd`
+counts the entries in `CONTEXT.md`'s gotcha section, asserts they run 1..N with no gap or repeat,
+spells the number, and requires every document stating it to state that one. It is **its own file
+rather than three checks inside `docs_test.gd`**, whose MUST NOT line forbids asserting anything
+about what the documents SAY — non-negotiable #4 says add a system rather than widen a boundary.
+Planted twice: a fiftieth gotcha with no count updated fails all four claim sites at once
+(`expected fifty, got forty-nine`), which is the rot that actually happened; `CLAUDE.md` alone
+drifted back to forty-four fails exactly one, naming the file. Both exit 1, both restored, control
+exit 0. **The gate had a hole of its own on the first pass and it was gotcha 43's shape** — the
+section heading is the PRIMARY statement of the count and was being swallowed by the section it
+opens, so the gate would have passed while the list's own title was wrong. It is kept as a claim
+now, and the heading is one of the four sites the plant fails.
+
+**The gate's first run also failed on a FALSE positive, and narrowing it is the finding.** Gotcha
+35's own prose says a staging wait requires "twenty CONSECUTIVE settled frames" — a tens-word on a
+line that mentions gotchas, read as a claim about the list's length. The count is never quoted
+inside the list, so the scan now skips the section's body and keeps only its heading. Only
+tens-words are looked for at all, so "gotcha 22's family, one level up" cannot be mistaken for a
+count either.
+
+**The assertion that was KEPT, and why.** The throwaway case was deleted — it was a test of the
+document. `tests/unit/bag_mirror_test.gd` was kept, because it covers something genuinely missing:
+`Inventory.add` carries a comment saying `_publish()` runs BEFORE either signal, "so nothing woken
+by one reads a flag that still says the old number", `remove` has the identical ordering and no
+comment, and **nothing asserted it on either path.** A listener reacting to `item_gained` by
+reading `bag/<carrier>/<item>` would have read the previous count, with an off-by-one in whatever
+it drew as the only trace. Ten assertions. Planted on both sides: `_publish()` after
+`Events.item_lost.emit` gives `FAIL the flag already read the REMAINDER inside item_lost —
+expected 3, got 5`; after `Events.item_gained.emit` gives `expected 5, got -1`. **Nothing else in
+the suite failed on either plant** — 1616/2 and 1617/1 — which is the proof the invariant was
+uncovered rather than covered twice. `git diff src/` is empty; both plants were fully restored.
+
+**One of the ten caught the author rather than the code**, and it is worth the line: the first
+version expected `0` from the row of a stack spent to nothing and got `-1`, because `_publish`
+ERASES rather than zeroes — deliberately, on `Equipment.unequip`'s reasoning, and its own comment
+says so. The code was right and the assertion was wrong. The final version asserts the erase
+explicitly and tallies the emissions, because otherwise an absent row and a handler that never ran
+are the same reading. The plan caught a miscount in the same file on the way:
+`bag_mirror_test planned 9 outcomes and produced 10 — a crash, an early return or a stale plan`,
+which is rule 3 doing exactly what it promises.
+
+**Verified.** Local ladder on the final tree. Rung 2 `--headless --import` greps to **zero**
+`SCRIPT ERROR` / `Parse Error`. Rung 3 `--headless --quit-after 30` ends
+`0 warnings, 0 errors`. Rung 4 is `=== 1625 passed, 0 failed, 0 skipped ===`, exit 0. All four
+checkers exit 0, and all four exit 0 against the stripped tree as well. Budgets: `test_runner.gd`
+138/250, `bag_mirror_test.gd` 58/250, `doc_counts_test.gd` 91/250.
+
+**The suite total moved twice and both moves were predicted.** 1,608 to 1,624 is ten assertions
+from `bag_mirror_test.gd` plus six from `doc_counts_test.gd`. Then 1,624 to 1,625, because
+`docs_test.gd` COMPUTES its plan from the documents and the board's new section names one more
+`res://` path — the same mechanism that moved T4.3's total by one, arriving from the other
+direction. **And it caught a real mistake in this package's own prose:** the board first quoted
+the engine's `res://tests/unit/inventory_order_test.gd` lines verbatim, and since that throwaway
+was deleted, `FAIL WORK_PACKAGES.md names res://tests/unit/inventory_order_test.gd, which exists
+— expected true, got false`. `DEVLOG.md` is exempt from that scan for precisely this reason and
+the board is not, so the prefix is stripped in the board's copy with a note saying why.
+
+**Measured, not inherited, because the document quotes both figures.** Stripped template — the
+tree copied without `.git`/`.godot`/`build`, then `data/` and `scenes/areas/` removed — reports
+`=== 1551 passed, 0 failed, 25 skipped ===`, exit 0, up seventeen by the same arithmetic, and **the
+25 skips are unchanged**: neither new case adds one, since `Fixtures.activate()` works in a
+stripped checkout and the documents are still there. So there is no new skip to name. All four
+checkers exit 0 with `--path`. `TESTING.md`'s stated total had said 1,574 and is now both figures,
+with an instruction to re-measure rather than quote.
+
+**No capture and no probe, deliberately.** This package changes no rendering, no input path and no
+engine file — `git diff src/` is empty and `git diff src/systems/debug/` is clean. A windowed
+capture would photograph something it did not touch, which is ceremony that later reads as
+evidence.
+
+**Version bumped to 1.0.2, and the tag for it NOT taken.** T4.1's precedent, reaffirmed by T4.3:
+stating a version is engineering and is assertable, cutting a release is the owner's.
+`docs/CHANGELOG.md` gains a `## 1.0.2` entry whose *a consuming game does* line is honest about
+the one visible consequence — a game whose suite holds a case that does not compile will see rung
+4 fail where it previously passed, and that is the bug being fixed rather than a new restriction,
+because the case was never running.
+
+**Unblocks.** Nothing, and that is the state of the board: Phase T4 closed at T4.3 and this
+package adds no exit criterion. All five consumer documents have now been PERFORMED. The next
+package is a genuine choice rather than a queue — WP-10 crafting, still OPTIONAL and blocking
+nothing, or nothing at all, which is a defensible answer for a base that has answered every
+question it set out to. That is the owner's call and it is being put to them rather than taken.
+
+**Gaps.** The document still does not tell a consumer how to obtain the system under test — it now
+says `TestCase` hands you nothing, which is the honest half, but a case asserting about
+`Inventory`, `Equipment` or `QuestTracker` has to discover from engine code that they are
+components reached by `Inventory.of(who)` and constructed with `.new()`. That is arguably
+`AUTHORING.md`'s or `ARCHITECTURE.md`'s job rather than this document's, and it was left rather
+than guessed at. `FixtureContent`'s function surface is still undocumented beyond the pointer
+added here; a case needing a fixture shape the six existing items do not cover must read that
+file. And `doc_counts_test.gd` guards exactly one number, on purpose — its MUST NOT line refuses a
+second unrelated one, because a count with no countable thing behind it belongs in review. The
+suite total quoted in `TESTING.md` is such a number and is deliberately left ungated, with an
+instruction to re-measure instead.

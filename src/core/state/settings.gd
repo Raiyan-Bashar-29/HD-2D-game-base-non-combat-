@@ -11,7 +11,7 @@ extends Node
 ##
 ## OWNS: the settings file, the default values, and applying the ones that belong to the
 ## window and the display server.
-## MUST NOT: apply audio or gameplay settings itself. It announces a change through
+## MUST NOT: apply audio, world or gameplay settings itself. It announces a change through
 ## Events.setting_changed and the owning system reacts. That keeps this file from growing a
 ## branch for every feature that ever gains an option.
 
@@ -19,6 +19,20 @@ const PATH: String = "user://settings.cfg"
 
 ## Every setting the game has, with its default. This is also the validation list: a key
 ## that is not here is rejected, so a typo cannot silently create a dead setting.
+##
+## AND EVERY KEY HERE IS READ BY SOMETHING. `settings_screen.gd` generates its rows FROM this
+## dictionary, so a key added here is drawn to the player immediately - which makes a key with no
+## consumer worse than a dead constant: the player is shown a control that does nothing. Twelve
+## of twenty-three were in that state until T5.5. Nine were wired; three were REMOVED, because
+## honouring them would have meant inventing a feature rather than connecting one:
+##   `gameplay/camera_shake`   - the template has no screen shake to scale. No `shake` identifier
+##                               exists anywhere under `src/`.
+##   `gameplay/autosave`       - there is no autosave, and `SaveSystem` has no notion of the slot
+##                               a run belongs to, so there is nothing for `true` to mean.
+##   `accessibility/subtitles` - nothing is voiced, so there is nothing to caption.
+## Each is one line here plus one CSV row to bring back the day its feature exists; the screen
+## needs no edit at all. `tests/unit/settings_consumers_test.gd` is what now refuses a key with
+## no reader, so do not re-add one before its consumer.
 const DEFAULTS: Dictionary = {
 	"video/window_mode": 0,          # 0 windowed, 1 borderless fullscreen, 2 exclusive
 	"video/vsync": 1,                # matches DisplayServer.VSyncMode
@@ -33,17 +47,19 @@ const DEFAULTS: Dictionary = {
 	"audio/sfx": 0.9,
 	"audio/ui": 0.8,
 	"gameplay/text_speed": 1.0,      # dialogue characters per tick multiplier
-	"gameplay/autosave": true,
 	"gameplay/run_is_toggle": false, # hold to run by default
 	"gameplay/show_interact_hints": true,
-	"gameplay/camera_shake": 1.0,
 	"accessibility/text_scale": 1.0,
 	"accessibility/reduce_motion": false,
 	"accessibility/high_contrast_prompts": false,
-	"accessibility/subtitles": true,
 	"accessibility/hold_to_confirm": false,
 	"locale": "en",
 }
+
+## Shadow map sizes restored when `video/shadows` is on. The engine's own defaults, spelled out
+## here because zero is the off value and something has to remember what on meant.
+const POSITIONAL_ATLAS: int = 2048
+const DIRECTIONAL_ATLAS: int = 2048
 
 ## The one setting with no section, and the second this file applies without a system owning it.
 const LOCALE: String = "locale"
@@ -129,6 +145,7 @@ func reset_to_defaults() -> void:
 	_config.clear()
 	save()
 	_apply_display()
+	_apply_locale()
 	for path: String in DEFAULTS:
 		var parts: PackedStringArray = _split(path)
 		Events.setting_changed.emit(parts[0], parts[1], DEFAULTS[path])
@@ -151,6 +168,8 @@ func _apply_display() -> void:
 		return
 	_apply_vsync(get_int("video/vsync"))
 	Engine.max_fps = get_int("video/max_fps")
+	_apply_render_scale(get_float("video/resolution_scale"))
+	_apply_shadows(get_bool("video/shadows"))
 	match get_int("video/window_mode"):
 		1:
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
@@ -198,3 +217,33 @@ func _apply_locale() -> void:
 		return
 	TranslationServer.set_locale(wanted)
 	Log.info("settings", "Locale -> %s" % TranslationServer.get_locale())
+
+
+## THE THIRD THING THIS FILE APPLIES ITSELF, on `_apply_display`'s reasoning: the render scale is
+## a property of the VIEWPORT, and no system owns the viewport either. Announcing it would mean
+## inventing a listener whose only job is to set one property on a node it does not own.
+##
+## Clamped, because `scaling_3d_scale` at 0.0 renders a zero-pixel image and a hand-edited
+## settings file must not be able to blank the game.
+func _apply_render_scale(scale: float) -> void:
+	var viewport: Viewport = get_viewport()
+	if viewport == null:
+		return
+	viewport.scaling_3d_scale = clampf(scale, 0.25, 2.0)
+
+
+## AND THE FOURTH, for the reason that decided where `video/bloom` went and then pointed the other
+## way. Bloom belongs to `EnvironmentDriver` because the Environment is that node's. But shadows
+## are cast by LIGHTS AN AREA AUTHOR PLACED - the courtyard has four - and no node owns the set of
+## them. Enumerating lights would mean a driver that walks the scene tree and gets it wrong for
+## every light added after it, which is the shape of the god object ADR-0001 refuses.
+##
+## So it is applied at the ATLAS instead: a shadow map of size zero means every light in the world
+## casts nothing, whoever placed it and whenever. A game that adds a hundred lights gets this
+## setting for free and writes no code, which is the whole test of a template seam.
+func _apply_shadows(enabled: bool) -> void:
+	var viewport: Viewport = get_viewport()
+	if viewport == null:
+		return
+	viewport.positional_shadow_atlas_size = POSITIONAL_ATLAS if enabled else 0
+	RenderingServer.directional_shadow_atlas_set_size(DIRECTIONAL_ATLAS if enabled else 0, true)

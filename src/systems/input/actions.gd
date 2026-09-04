@@ -21,9 +21,16 @@ const MOVE_LEFT: StringName = &"move_left"
 const MOVE_RIGHT: StringName = &"move_right"
 
 # Traversal modifiers. Default gait is a walk; run is held.
+#
+# THERE IS NO `jump`. There was one from WP-01 until T5.5: declared, bound to Space and the pad's
+# west button, listed in REBINDABLE, drawn as a row on the rebinding screen and translated in
+# both languages - for a verb `player_controller.gd`'s own header says three times over this
+# template does not have. Nothing polled it. A rebinding screen offering a control that cannot
+# do anything is worse than a dead constant, because the player is the one who finds out.
+# `GameEnums.MoveState.JUMP` is a different symbol and stays: an enum value a game may drive is
+# not the same as an input action this one binds. Re-add the action WITH its poller, never before.
 const RUN: StringName = &"run"
 const SNEAK: StringName = &"sneak"
-const JUMP: StringName = &"jump"
 
 # World interaction.
 const INTERACT: StringName = &"interact"
@@ -49,7 +56,7 @@ const DEBUG_SCREENSHOT: StringName = &"debug_screenshot"
 ## Every gameplay action, in the order a rebinding screen should list them.
 const REBINDABLE: Array[StringName] = [
 	MOVE_UP, MOVE_DOWN, MOVE_LEFT, MOVE_RIGHT,
-	RUN, SNEAK, JUMP,
+	RUN, SNEAK,
 	INTERACT, INTERACT_CYCLE, CANCEL,
 	INVENTORY, JOURNAL, MAP, PAUSE,
 ]
@@ -92,7 +99,6 @@ func _define_movement() -> void:
 func _define_traversal() -> void:
 	_define(RUN, [_key(KEY_SHIFT), _pad(JOY_BUTTON_LEFT_SHOULDER)])
 	_define(SNEAK, [_key(KEY_CTRL), _pad(JOY_BUTTON_LEFT_STICK)])
-	_define(JUMP, [_key(KEY_SPACE), _pad(JOY_BUTTON_X)])
 
 
 func _define_interaction() -> void:

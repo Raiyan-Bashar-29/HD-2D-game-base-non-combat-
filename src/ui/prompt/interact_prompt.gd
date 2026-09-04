@@ -13,6 +13,19 @@ extends Label
 ## Seconds a refusal message stays up before the normal prompt returns.
 const REFUSAL_SECONDS: float = 1.8
 
+## THE TWO SETTINGS THIS LABEL CONSUMES, named here because this is the only file that can.
+## `gameplay/show_interact_hints` is a preference about the PROMPT, and this node is the prompt;
+## `accessibility/high_contrast_prompts` is a preference about how the prompt READS, and the
+## outline it turns on is a property of this Label. Neither had a consumer before T5.5, and both
+## were drawn to the player and translated in both languages the whole time.
+const HINTS_SETTING: String = "gameplay/show_interact_hints"
+const CONTRAST_SETTING: String = "accessibility/high_contrast_prompts"
+## Outline width in pixels when high contrast is on. Wide enough to survive the prompt sitting
+## over a lit stone floor, which is what the courtyard capture shows it against.
+const OUTLINE_PIXELS: int = 6
+## The theme type the palette colours live under, spelled the same way the HUD spells it.
+const PALETTE: StringName = &"UiPalette"
+
 var _sensor: InteractionSensor = null
 var _target: Node3D = null
 var _verb: GameEnums.InteractVerb = GameEnums.InteractVerb.LOOK
@@ -37,6 +50,8 @@ func _ready() -> void:
 	Events.interaction_refused.connect(_on_refused)
 	Events.player_spawned.connect(_on_player_spawned)
 	Events.ui_mode_changed.connect(_on_ui_mode_changed)
+	Events.setting_changed.connect(_on_setting_changed)
+	_apply_contrast()
 	if Director.player != null:
 		_on_player_spawned(Director.player)
 
@@ -80,7 +95,9 @@ func _on_ui_mode_changed(mode: GameEnums.UiMode) -> void:
 
 
 func _redraw() -> void:
-	if _ui_blocked or _target == null:
+	# A refusal is NOT a hint and is shown either way: the player pressed a button and is owed
+	# an answer. Turning hints off silences the standing prompt, not the reply to a press.
+	if _ui_blocked or _target == null or not Settings.get_bool(HINTS_SETTING):
 		text = ""
 		visible = false
 		return
@@ -107,3 +124,24 @@ func _refusal_key(reason: GameEnums.RefusalReason) -> String:
 	var names: Array = GameEnums.RefusalReason.keys()
 	var raw: String = names[reason]
 	return "refusal.%s" % raw.to_lower()
+
+
+## An outline rather than a background box, because the prompt is centred over the world and a
+## box would occlude what the player is about to interact with. The outline colour comes from the
+## project theme's palette, so a game that restyles the UI restyles this too and nothing here
+## names a colour.
+func _apply_contrast() -> void:
+	if not Settings.get_bool(CONTRAST_SETTING):
+		remove_theme_constant_override(&"outline_size")
+		remove_theme_color_override(&"font_outline_color")
+		return
+	add_theme_constant_override(&"outline_size", OUTLINE_PIXELS)
+	add_theme_color_override(&"font_outline_color", get_theme_color(&"solid", PALETTE))
+
+
+func _on_setting_changed(section: String, key: String, _value: Variant) -> void:
+	var path: String = "%s/%s" % [section, key]
+	if path == CONTRAST_SETTING:
+		_apply_contrast()
+	elif path == HINTS_SETTING:
+		_redraw()

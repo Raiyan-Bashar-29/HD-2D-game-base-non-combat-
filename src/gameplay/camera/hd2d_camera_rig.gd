@@ -35,6 +35,9 @@ extends Node3D
 ## Vertical framing bias. Positive pushes the subject down the screen, showing more ahead.
 @export var frame_bias: float = 0.10
 
+## The setting this rig obeys. Named here, on the consumer, for the reason `PACE` is named on
+## `PlayerController`: a setting nobody reads has nowhere to be written down.
+const DOF_SETTING: String = "video/depth_of_field"
 @export_group("Depth of field")
 @export var dof_enabled: bool = true
 ## Everything beyond target distance plus this blurs out.
@@ -51,6 +54,8 @@ var camera: Camera3D = null
 var _target: Node3D = null
 var _smoothed: Vector3 = Vector3.ZERO
 var _attributes: CameraAttributesPractical = null
+## What the area scene authored, before the player's setting was folded in.
+var _authored_dof: bool = true
 
 
 func _ready() -> void:
@@ -64,7 +69,14 @@ func _ready() -> void:
 	camera.attributes = _attributes
 	camera.fov = fov
 	camera.current = true
+	# THE EXPORT IS THE AREA AUTHOR'S DEFAULT AND THE SETTING IS THE PLAYER'S VETO, which is why
+	# the authored value is remembered rather than overwritten: a player who turns DOF off and
+	# back on gets the framing the area author chose, not a blanket yes. A rig that ships with
+	# DOF off stays off however the setting moves, in every area, with no area scene edited.
+	_authored_dof = dof_enabled
+	dof_enabled = _authored_dof and Settings.get_bool(DOF_SETTING)
 	_apply_dof()
+	Events.setting_changed.connect(_on_setting_changed)
 
 	# Adopt whoever is already here, then keep listening. Order of area load versus player
 	# spawn is not guaranteed, so handle both directions.
@@ -149,3 +161,10 @@ func _update_dof_distances() -> void:
 func set_dof_enabled(enabled: bool) -> void:
 	dof_enabled = enabled
 	_apply_dof()
+
+
+## AND ITS CALLER, which it did not have. `video/depth_of_field` was drawn to the player and
+## translated from WP-01 and this method was the thing it should have reached the whole time.
+func _on_setting_changed(section: String, key: String, _value: Variant) -> void:
+	if "%s/%s" % [section, key] == DOF_SETTING:
+		set_dof_enabled(_authored_dof and Settings.get_bool(DOF_SETTING))

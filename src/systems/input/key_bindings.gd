@@ -20,18 +20,34 @@ extends RefCounted
 ## keyboard rebind from quietly making the game unplayable on a controller.
 ##
 ## OWNS: user://input.cfg, and the events it installs into the InputMap.
-## MUST NOT: name an action, decide a default, or read input. It never mentions `Actions`, so
-## the two files cannot become a cycle.
+## MUST NOT: name an action, decide a default, or read input. It mentions `Actions` in exactly
+## one expression - `rebind`'s gate - and `Actions` does not mention this class, so the two files
+## cannot become a cycle. See that method's note for why the list is read rather than copied.
 
 const PATH: String = "user://input.cfg"
 const KEY_FIELD: String = "key"
 const PAD_FIELD: String = "pad"
 
 
-## Bind `action` to `event` and remember it. Returns false for an action the InputMap has never
-## heard of, or an event that is neither a key nor a pad button - a mouse wheel cannot be a
-## movement key, and saying so is better than storing a binding that never fires.
+## Bind `action` to `event` and remember it. Returns false for an action that is not REBINDABLE,
+## or an event that is neither a key nor a pad button - a mouse wheel cannot be a movement key,
+## and saying so is better than storing a binding that never fires.
+##
+## THE GATE IS `Actions.REBINDABLE`, NOT `InputMap.has_action`, AND THE DIFFERENCE WAS A BUG.
+## Until T5.5 this asked only whether the action EXISTED, so `debug_console` or `cam_zoom_in`
+## could be overridden and written to input.cfg - and then `reset_bindings()` re-declares only
+## the four rebindable groups, so nothing put the erased default back and `forget_all()` was the
+## only way out of a file the player could not see. Refusing the write is the fix: an override
+## that cannot be reset must not be storable in the first place.
+##
+## AND THIS IS THE ONE PLACE THE MUST NOT LINE BELOW IS SPENT. It says this file never mentions
+## `Actions`; it now does, in exactly one expression, because the alternative is a second copy of
+## the rebindable list here and two lists that drift is the defect this project keeps finding.
+## `Actions` is an autoload and does not reference this class, so there is still no cycle.
 static func rebind(action: StringName, event: InputEvent) -> bool:
+	if not Actions.REBINDABLE.has(action):
+		Log.error("input", "'%s' is not a rebindable action" % action)
+		return false
 	if not InputMap.has_action(action):
 		Log.error("input", "Cannot rebind unknown action '%s'" % action)
 		return false

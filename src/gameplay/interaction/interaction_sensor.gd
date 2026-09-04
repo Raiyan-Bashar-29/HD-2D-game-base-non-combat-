@@ -21,6 +21,14 @@ extends Area3D
 ## alternative - routing interaction input through PlayerController - would force the
 ## controller to know about interaction, which its own MUST NOT line forbids.
 
+## THE CONSUMER OF `accessibility/hold_to_confirm`, and the only file that could be. What an
+## interaction COSTS in input is this component's business: `Interactable.hold_seconds` is the
+## author's per-object answer, and this setting is the player's floor under all of them.
+const HOLD_TO_CONFIRM: String = "accessibility/hold_to_confirm"
+## The hold a player who asked for one gets on an object the author gave none. Long enough that
+## a brushed key cannot fire it, short enough not to feel like the 1.5s a chest asks for.
+const FLOOR_SECONDS: float = 0.4
+
 ## How far the player can reach. The Area3D shape should be at least this big.
 @export var max_distance: float = 2.4
 ## How much facing the target matters relative to being close to it. Raise it if selection
@@ -84,9 +92,20 @@ func current() -> Interactable:
 
 ## 0.0 to 1.0 while a hold-to-confirm interaction is in progress. The UI draws this.
 func hold_progress() -> float:
-	if _current == null or _current.hold_seconds <= 0.0:
+	var needed: float = hold_needed()
+	if needed <= 0.0:
 		return 0.0
-	return clampf(_hold / _current.hold_seconds, 0.0, 1.0)
+	return clampf(_hold / needed, 0.0, 1.0)
+
+
+## How long the current target must be held for, which is the AUTHOR'S value or the player's
+## floor, whichever is longer. One function so the progress the prompt draws and the threshold
+## that fires can never disagree - reading the setting in both places is how they would.
+func hold_needed() -> float:
+	if _current == null:
+		return 0.0
+	var floor_seconds: float = FLOOR_SECONDS if Settings.get_bool(HOLD_TO_CONFIRM) else 0.0
+	return maxf(_current.hold_seconds, floor_seconds)
 
 
 func _handle_input(delta: float) -> void:
@@ -106,10 +125,11 @@ func _handle_input(delta: float) -> void:
 		_announce()
 		return
 
-	if _current.hold_seconds > 0.0:
+	var needed: float = hold_needed()
+	if needed > 0.0:
 		if Input.is_action_pressed(Actions.INTERACT):
 			_hold += delta
-			if _hold >= _current.hold_seconds:
+			if _hold >= needed:
 				_hold = 0.0
 				_current.attempt(_body)
 		else:

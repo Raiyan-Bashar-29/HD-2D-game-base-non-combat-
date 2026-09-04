@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://src/core/boot/game_root.gd" id="1_root"]
 [ext_resource type="Script" path="res://src/ui/hud/screen_fade.gd" id="2_fade"]
@@ -15,6 +15,7 @@
 [ext_resource type="Script" path="res://src/systems/quest/quest_tracker.gd" id="13_quests"]
 [ext_resource type="Script" path="res://src/systems/world_map/world_map.gd" id="14_map"]
 [ext_resource type="Script" path="res://src/ui/hud/perf_overlay.gd" id="15_perf"]
+[ext_resource type="Script" path="res://src/ui/root/ui_accessibility.gd" id="16_access"]
 
 [node name="GameRoot" type="Node"]
 script = ExtResource("1_root")
@@ -44,6 +45,9 @@ script = ExtResource("6_ui")
 
 [node name="ScreenKeys" type="Node" parent="UILayer"]
 script = ExtResource("8_keys")
+
+[node name="UiAccessibility" type="Node" parent="UILayer"]
+script = ExtResource("16_access")
 
 [node name="ScreenFade" type="ColorRect" parent="UILayer"]
 anchors_preset = 15

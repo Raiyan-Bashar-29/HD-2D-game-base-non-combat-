@@ -5169,3 +5169,11 @@ file. And `doc_counts_test.gd` guards exactly one number, on purpose — its MUS
 second unrelated one, because a count with no countable thing behind it belongs in review. The
 suite total quoted in `TESTING.md` is such a number and is deliberately left ungated, with an
 instruction to re-measure instead.
+
+**CI green, run `33840155182`, job logs read rather than the tick (gotcha 26).** Both jobs report
+`success`. Full checkout `=== 1625 passed, 0 failed, 0 skipped ===`; stripped template
+`=== 1551 passed, 0 failed, 25 skipped ===` — byte-identical to the local measurements, and the
+25 skips unchanged from T4.3. All four checkers pass in both jobs. The only `error:` strings
+anywhere in the log are the workflow's own `::error::` echo lines for the failure path it did not
+take, plus the expected "couldn't open directory" notices for the content roots in the tree
+where that content is deliberately deleted.

@@ -100,7 +100,12 @@ func _physics_process(delta: float) -> void:
 	velocity.y = velocity.y - gravity * delta if not is_on_floor() else 0.0
 	move_and_slide()
 	if _visual != null:
-		_visual.update_from_velocity(Vector3(velocity.x, 0.0, velocity.z), delta)
+		# AN NPC HAS NO `MoveState` OF ITS OWN, and inventing a field for one would be a second
+		# state machine to keep in step with the brain. It walks or it stands, which is the honest
+		# extent of what a schedule-driven actor does - and it means an NPC picks up a game's walk
+		# block for free, without `NpcBrain` knowing that animation blocks exist.
+		var gait: GameEnums.MoveState = GameEnums.MoveState.WALK if step.length() > 0.001 else GameEnums.MoveState.IDLE
+		_visual.update_from_velocity(Vector3(velocity.x, 0.0, velocity.z), delta, gait)
 
 
 ## Consecutive frames an answer must hold before it is believed. Half a second at 60Hz, which

@@ -586,6 +586,51 @@ OPTIONAL and blocks nothing. The board carries the full reasoning.
 
 ---
 
+
+## Phase T5 — The base as a reusable CHARACTER kit · **IN PROGRESS**
+
+*Goal: a future game inherits working characters and changes only assets. Several idle formats and
+several movement styles, so that swapping a sprite sheet makes a character feel different without
+touching code.*
+
+**Why this phase exists, and why it is not scope creep.** Phases 0 to T4 answered "does the base
+have a home for every system a game needs". This one answers a narrower and more practical
+question the owner put on 2026-09-04: *when we make the actual game, what do we get for free?* The
+answer had better be "the characters move, animate and feel distinct from their art alone",
+because that is the part a new game otherwise rebuilds blind. It is a phase rather than a package
+because the first row exposed how much of it was declared and unread.
+
+- **T5.1 The skeleton's four open exit criteria — DONE, 2026-09-04.** Not part of this phase's
+  goal, but it is what revealed the gap: proving criteria rather than ticking them found the
+  locale setting wired to nothing, and reading the roadmap honestly is what prompted the question
+  this phase answers. See Phase 1 and Phase 2, now fully ticked.
+
+- **T5.2 An animation block per GAIT — DONE, 2026-09-04.** `SpriteSheetLayout.animation_for` took
+  a **boolean**, so a sheet could hold an idle cycle and a walk cycle and nothing else: run and
+  sneak replayed the walk block faster. Meanwhile `GameEnums.MoveState` had ten values and
+  `Events.player_state_changed` was declared, emitted and **listened to by nothing** — the sixth
+  time this project has found something validated and unread. It now takes a `MoveState`, and
+  `run_row` / `sneak_row` / `climb_row` default to `-1` meaning "replay the walk block", so every
+  sheet authored before it behaves identically and a game adds a run cycle by drawing one. Proved
+  by 19 assertions, a live probe reading the real `sprite.frame`, and three captures in which the
+  player walks in green and runs in rust while the NPC beside them stands in blue — same sheet,
+  same frame, different blocks.
+
+**Exit criteria for the phase:**
+
+- [x] A character's movement styles come from its sheet, not its code: idle, walk, run, sneak and
+      climb each addressable, and an unnamed one falling back rather than breaking. — T5.2
+- [x] The same seam serves NPCs, with no NPC-specific animation code. — T5.2, `NpcBrain` passes a
+      gait and knows nothing about animation blocks
+- [ ] **More than one idle.** A second idle block chosen over time or at random, so a standing
+      character is not a held pose. The block seam now exists; what is missing is the chooser, and
+      it is the smallest remaining piece of "characters feel alive".
+- [ ] **A turn in place.** Changing facing while stationary currently snaps between columns.
+- [ ] **A worked example of swapping a character wholesale** — a second sheet with a different
+      cell size, facing count and gait set, dropped in and photographed, to the standard T2.1 set
+      for the layout swap. The alt sheet proves the GRID swaps; nothing yet proves the GAITS do.
+
+
 ## Sequencing rules
 
 1. **Breadth of systems, one shallow proof each.** This *replaces* "depth before breadth", which

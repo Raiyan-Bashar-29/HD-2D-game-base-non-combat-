@@ -115,9 +115,13 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 
-	if visual != null:
-		visual.update_from_velocity(velocity, delta)
+	# STATE BEFORE THE VISUAL, not after. `_update_state` is what decides whether this frame was a
+	# walk, a run or a sneak, and since T5.2 the sprite picks its animation BLOCK from that - so
+	# updating it afterwards drew every gait one frame late, which is invisible until the block
+	# changes and then reads as a flicker on the first frame of every run.
 	_update_state(wish)
+	if visual != null:
+		visual.update_from_velocity(velocity, delta, state)
 
 
 ## Input is read on the horizontal plane, then rotated into the camera's frame.
@@ -314,4 +318,4 @@ func climb_step(delta: float) -> void:
 	release_input(&"climb")
 	_enter_state(GameEnums.MoveState.IDLE)
 	if visual != null:
-		visual.update_from_velocity(Vector3.ZERO, delta)
+		visual.update_from_velocity(Vector3.ZERO, delta, state)

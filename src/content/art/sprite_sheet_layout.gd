@@ -50,7 +50,61 @@ extends Resource
 ## sheet has no separate idle, which is legal and was the only possibility before T2.1.
 @export_range(0, 31, 1) var idle_row: int = 0
 @export_range(0, 31, 1) var walk_row: int = 0
+## THE GAITS, and -1 MEANS "REPLAY THE WALK BLOCK". A sheet with no distinct run cycle is the
+## normal case and was the ONLY case before T5.2 - `animation_for` took a bool, so run and
+## sneak drew the walk block faster and nothing else. Declaring these as -1 rather than 0
+## matters: 0 is a real row, so a default of 0 would silently draw the IDLE block for a
+## running character on every sheet that had not been updated.
+@export_range(-1, 31, 1) var run_row: int = -1
+@export_range(-1, 31, 1) var sneak_row: int = -1
+@export_range(-1, 31, 1) var climb_row: int = -1
 
+
+
+
+## WHICH ANIMATION BLOCK A MOVE STATE PLAYS. It took a BOOLEAN until T5.2, which is why a sheet
+## could only ever have an idle cycle and a walk cycle: run and sneak replayed the walk block at a
+## different rate and there was nowhere to put a distinct one. `GameEnums.MoveState` had ten
+## values and `Events.player_state_changed` was emitted and listened to by nothing, so the
+## information existed and had no way to reach the sprite.
+##
+## THE FALLBACK CHAIN IS THE POINT, not a convenience. A gait row left at -1 inherits the WALK
+## block, so every sheet authored before this existed behaves exactly as it did, and a game adds a
+## run cycle by drawing one and naming its row - no code, in this file or anywhere else. States
+## with no gait of their own fall to IDLE: there is no jumping and no swimming in this template,
+## and BUSY and LOCKED are "something else is driving", which looks like standing there.
+##
+## Clamped rather than trusted, because a row past the end of the sheet should draw the last block
+## instead of an out-of-range cell - and `problems()` reports it so the author hears about it.
+func animation_for(state: GameEnums.MoveState) -> int:
+	return clampi(_row_for(state), 0, animations - 1)
+
+
+func _row_for(state: GameEnums.MoveState) -> int:
+	match state:
+		GameEnums.MoveState.WALK:
+			return walk_row
+		GameEnums.MoveState.RUN:
+			return run_row if run_row >= 0 else walk_row
+		GameEnums.MoveState.SNEAK:
+			return sneak_row if sneak_row >= 0 else walk_row
+		GameEnums.MoveState.CLIMB:
+			return climb_row if climb_row >= 0 else walk_row
+		_:
+			return idle_row
+
+
+## Every gait this layout actually draws separately, for a report a person can read. A sheet whose
+## run and walk are the same block is not a problem - it is the common case - but it is worth
+## being able to SEE which blocks a sheet really has rather than inferring it from four numbers.
+func distinct_gaits() -> int:
+	var rows: Dictionary[int, bool] = {}
+	for state: GameEnums.MoveState in [
+		GameEnums.MoveState.IDLE, GameEnums.MoveState.WALK,
+		GameEnums.MoveState.RUN, GameEnums.MoveState.SNEAK, GameEnums.MoveState.CLIMB,
+	]:
+		rows[animation_for(state)] = true
+	return rows.size()
 
 ## Total rows down the sheet. Derived: an author sets the cycle length and the block count.
 func sheet_rows() -> int:
@@ -72,11 +126,6 @@ func column_for_angle(angle: float) -> int:
 	return posmod(roundi(angle / sector_radians()), facings)
 
 
-## Which animation block a state plays. Clamped rather than trusted: a layout whose walk_row
-## points past the end of the sheet should draw the last block, not an out-of-range cell.
-func animation_for(moving: bool) -> int:
-	return clampi(walk_row if moving else idle_row, 0, animations - 1)
-
 
 ## The Sprite3D `frame` for one cell. Sprite3D numbers cells left to right, then top to bottom,
 ## so the row has to be multiplied by the column count and not by anything else.
@@ -92,10 +141,19 @@ func problems(texture: Texture2D = null) -> PackedStringArray:
 	var found: PackedStringArray = PackedStringArray()
 	if cell_size.x <= 0 or cell_size.y <= 0:
 		found.append("%s declares a cell of %s, which has no area" % [resource_path, cell_size])
-	if idle_row >= animations or walk_row >= animations:
-		found.append("%s names row %d/%d past its %d animation(s)" % [
-			resource_path, idle_row, walk_row, animations,
-		])
+	# EVERY named row, not just the two that existed before T5.2. A gait row past the end of the
+	# sheet is exactly gotcha 38's shape - the loader keeps whatever number was typed, the clamp
+	# in `animation_for` quietly draws the last block, and the character animates plausibly and
+	# wrongly. -1 is not a problem: it MEANS "inherit the walk block".
+	var named: Dictionary[String, int] = {
+		"idle_row": idle_row, "walk_row": walk_row, "run_row": run_row,
+		"sneak_row": sneak_row, "climb_row": climb_row,
+	}
+	for field: String in named:
+		if named[field] >= animations:
+			found.append("%s names %s row %d, past its %d animation(s)" % [
+				resource_path, field, named[field], animations,
+			])
 	if texture != null and Vector2i(texture.get_size()) != sheet_size():
 		found.append("%s expects a %s sheet; the texture is %s" % [
 			resource_path, sheet_size(), Vector2i(texture.get_size()),

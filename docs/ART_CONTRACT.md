@@ -30,7 +30,8 @@ row 5   walk.2   ...
 So the sheet is `facings` cells wide and `frames * animations` cells tall, and an animation is
 addressed by **index**, not by its first row — move the walk block down and you do not recount.
 
-`animations = 1` with both row fields at `0` is a single-cycle sheet with no separate idle. That
+`animations = 1` with every row field at `0` or `-1` is a single-cycle sheet: no separate idle
+and no separate gaits. That
 is legal, it is what this project shipped before the layout resource existed, and every such sheet
 still works unchanged.
 
@@ -47,10 +48,13 @@ One `.tres` beside the texture:
 script = ExtResource("1_layout")
 facings = 8
 frames = 4
-animations = 1
+animations = 3
 cell_size = Vector2i(32, 48)
 idle_row = 0
-walk_row = 0
+walk_row = 1
+run_row = 2
+sneak_row = -1
+climb_row = -1
 ```
 
 | Field | Means |
@@ -59,7 +63,42 @@ walk_row = 0
 | `frames` | cells down within one animation: the length of its cycle. 1–64 |
 | `animations` | how many blocks are stacked down the sheet. 1–32 |
 | `cell_size` | one cell in texture pixels |
-| `idle_row` / `walk_row` | which block plays standing still, and which moving. Equal means no separate idle |
+| `idle_row` / `walk_row` | which block plays standing still, and which walking |
+| `run_row` / `sneak_row` / `climb_row` | the other gaits. **-1 means "replay the walk block"** |
+
+### A block per GAIT, and the ones you leave out
+
+**Since 1.2.0 the block is chosen by what the character is DOING, not by whether it is moving.**
+`SpriteSheetLayout.animation_for` takes a `GameEnums.MoveState`, so a sheet can carry a separate
+cycle for each gait, and **every character in the game picks them up by asset swap with no code** —
+the player and every NPC draw through the same `CharacterVisual`.
+
+| Field | Means | Leave it at |
+|---|---|---|
+| `idle_row` | standing still | `0` |
+| `walk_row` | walking | its own block if you have one |
+| `run_row` | running | **`-1`** to replay the walk block |
+| `sneak_row` | sneaking | **`-1`** to replay the walk block |
+| `climb_row` | on an authored climb | **`-1`** to replay the walk block |
+
+**`-1` means "replay the walk block", and it is the default for a reason.** A sheet that names none
+of the three behaves exactly as every sheet did before 1.2.0, when `animation_for` took a boolean
+and run and sneak had nowhere to go. So you can ship one walk cycle and add a run later by drawing
+one and naming its row — nothing else changes, in your project or in the base.
+
+**`0` would have been the wrong default.** Row 0 is a real row — normally the idle block — so a
+default of `0` would have drawn a *standing* character for anything running, on every sheet that
+had not been updated. `-1` is the only value that can mean "I have not drawn this".
+
+**States with no gait of their own fall back to idle**, not to walk: `JUMP`, `FALL`, `SWIM`, `BUSY`
+and `LOCKED`. There is no jumping and no swimming in this template; `BUSY` and `LOCKED` mean
+something else is driving the character — a dialogue box, a cutscene — which looks like standing
+there rather than walking on the spot.
+
+**A row past the end of the sheet is a reported problem**, not a silent clamp. `problems()` names
+the field — `names run_row row 9, past its 3 animation(s)` — because the draw call clamps to the
+last block, so without the report a mis-typed row animates plausibly and wrongly. That is gotcha
+38's shape: a number the loader kept and nobody checked.
 
 **The cell size is declared, not divided out of the texture.** A sheet of the wrong size is then a
 named problem — `expects a (256, 192) sheet; the texture is (240, 192)` — instead of every
@@ -135,7 +174,10 @@ fails the suite rather than a screenshot six months later.
 
 ### The two placeholders, and why one of them counts its own cells
 
-- `character_placeholder.png` — 8 facings × 4 frames, 32×48 cells, one animation block. 256×192.
+- `character_placeholder.png` — 8 facings × 4 frames in **3** blocks (idle, walk, run),
+  32×48 cells. 256×576. Each block wears a different cloth tint and the run leans forward,
+  so which GAIT is drawn can be READ off a capture rather than guessed at — see the
+  labelling note below, and gotcha 28 for why that matters.
 - `character_alt.png` — 4 facings × 3 frames in **2** blocks, 24×40 cells. 96×240. It disagrees
   with the first on every number, and exists so the "swap a sheet, change no code" claim can be
   demonstrated rather than asserted.

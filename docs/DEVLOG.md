@@ -5360,3 +5360,119 @@ or at random), no turn-in-place, and the shipped placeholder declares `animation
 `idle_row = walk_row = 0`, so it has no separate idle at all — the alt sheet proves two blocks
 work, the default one does not use them. And `--locale=` persisting is correct but sharp: anything
 else that stages through a persisted setting will need the runner pin that gotcha 50 describes.
+
+## 2026-09-04 — T5.2 · An animation block per GAIT
+
+**Did.** Made the animation block a function of `GameEnums.MoveState` rather than of a boolean, so
+a sprite sheet can carry a separate cycle per gait and a character's movement styles come from its
+art instead of its code. Added `run_row` / `sneak_row` / `climb_row` to `SpriteSheetLayout`, wired
+the state through `CharacterVisual` from both the player and the NPC brain, gave the placeholder
+sheet three readable blocks, and opened **Phase T5** on the roadmap. Template `1.2.0`.
+
+**Why, and it is the owner's framing rather than mine.** T5.1 closed the last roadmap criteria, and
+the owner then said what the base is FOR: reusable character infrastructure that future games
+inherit by swapping assets — several idle formats, several movement styles — so a new game starts
+from something working rather than going in blind. Asked what that needed, the answer was one seam,
+and it was already half-built.
+
+**THE SEAM WAS A BOOLEAN, AND THE INFORMATION IT NEEDED HAD NO LISTENER.**
+`SpriteSheetLayout.animation_for(moving: bool)` — so a sheet could hold an idle cycle and a walk
+cycle and that was the ceiling; run and sneak replayed the walk block faster and there was nowhere
+to name a third. Meanwhile `GameEnums.MoveState` has had ten values since WP-01, and
+`Events.player_state_changed(state)` is declared AND emitted by `PlayerController` — and **grep
+found no subscriber at all.** So the sprite's own state was computed every frame, announced on the
+bus every time it changed, and thrown away. **Sixth instance** of this project's characteristic
+defect after `Gate.locked_key`, `PathAction.refusal_key`, `ItemDb.reload`, `HD2DCameraRig`'s
+framing exports and T5.1's locale: not broken code, but correct code with no consumer. Worth
+stating as a general suspicion — **a field validated by a checker and read by nothing is this
+project's most reliable place to find a missing feature.**
+
+**`-1` MEANS "REPLAY THE WALK BLOCK", AND THE DEFAULT IS THE WHOLE COMPATIBILITY STORY.** Row 0 is
+a real row — normally the idle block — so defaulting the three new rows to `0` would have drawn a
+STANDING character for anything running, on every sheet in every consuming game that had not been
+updated. `-1` is the only value that can mean "I have not drawn this". The assertions are ordered
+to match: the fallback is asserted before the feature, because the thing that must not break is
+that a two-block sheet keeps drawing exactly what it drew. States with no gait of their own fall to
+IDLE rather than to walk — no jumping and no swimming here, and `BUSY`/`LOCKED` mean something else
+is driving, which looks like standing rather than walking on the spot.
+
+**The visual is TOLD its state and does not listen.** A subscription to `player_state_changed`
+would have been one line and wrong: every NPC draws through the same `CharacterVisual`, so all of
+them would animate to the PLAYER's gait. The parameter defaults to `WALK` so an un-updated caller
+behaves as before. `NpcBrain` passes `WALK` or `IDLE` from whether it is stepping and gets no
+`MoveState` field of its own, which would be a second state machine to keep in step with the brain.
+**The signal still has no listener, and that is correct** — the visual is pushed to, and a listener
+would be a second route to the same fact.
+
+**A one-frame lag that had been latent since WP-01.** `_update_state(wish)` ran AFTER
+`visual.update_from_velocity`, so the sprite drew last frame's state. Invisible while nothing read
+the state; a flicker on the first frame of every gait change the moment something did. Reordered.
+
+**Planted twice (gotcha 23).** Removing the `>= 0` check gives
+`gait 2 with no row of its own inherits the walk block — expected 1, got 0` — the exact regression
+a consuming game would hit. Dropping `run_row` from `problems()` gives
+`and it is a reported problem, not a silent clamp — expected true, got false`. Both exit 1; control
+green.
+
+**AND THE T4.4 GUARD EARNED ITS KEEP TWO PACKAGES LATER, unprompted.** Changing the signature broke
+`art_contract_test.gd`, and rung 4 said
+`res://tests/unit/art_contract_test.gd is listed but does not parse, so it never ran`, with all six
+parse errors quoted by file and line. Before T4.4 that would have been `0 failed`, exit 0, with one
+case silently skipped — which is exactly the false green that guard was built for, met by accident
+rather than by a plant.
+
+**Proved three ways, because the claim is visual and the failure mode is plausible.** 19
+assertions; the ASSET measured by sampling its own pixels (256×576, block torsos reading
+`(0.298, 0.447, 0.620)` blue, `(0.239, 0.518, 0.439)` green, `(0.620, 0.337, 0.298)` rust); and the
+RUNTIME read off `sprite.frame` in the live courtyard — `idle: state=0 cell=0 block=0`,
+`walk: state=1 cell=38 block=1`, `run: state=2 cell=78 block=2`, each cycling inside its own block.
+
+**Three captures, and the walk one is the money shot.** The placeholder sheet gained a cloth tint
+per block and a forward lean on the run, on the alt sheet's reasoning (gotcha 28) — a running
+figure drawn from the walk block is still a person mid-stride, so the BLOCK has to be readable
+rather than judged. **The player is in green and the keeper NPC standing beside them is in blue, in
+the same frame, from the same sheet.** Two characters, two blocks. The run capture shows rust
+against the NPC's blue.
+
+**GETTING THOSE THREE CAPTURES COST AN HOUR AND IS GOTCHA 52.** `--shot-frame` aims at a frame
+NUMBER, and the same number is a different moment every run: measured across runs of the identical
+command, the player was grounded in its area at process frame **17** in one run and **115** in
+another, because the area load is threaded. Three failures came out of that one fact. A shot aimed
+early enough to catch a gait landed before the area existed, and a PNG of empty sky with a working
+HUD reads as a rendering bug. A shot aimed late enough to be safe caught a character that had
+walked clean out of the area — x went 0 to -16.8 by frame 115 at run speed. And an oscillation
+added to keep it in frame introduced a one-frame window where velocity is zero between releasing
+one direction and pressing the other, in which the visual correctly reports IDLE — so a walk
+capture came back showing the idle block, and the honest reading of that was "the feature does not
+work". What settled it was **asking the asset instead of the renderer**: one pixel sample of the
+PNG proved the three tints existed, after which the remaining problem was obviously timing.
+
+**A false alarm worth recording, because it looked like a serious bug for several minutes.** The
+first gait probe reported the player at `y=-0.30` falling to `y=-20.54` with `is_on_floor()` false
+throughout — "the player falls through the world". It was the probe: it awaited `_settled()` without
+the `while Director.current_area_id == &""` wait that every other probe in that file opens with, so
+it was measuring the body at the area origin BEFORE `Director` placed it on its spawn marker.
+Gotcha 9 seen from a probe that arrived too early. With the wait, `grounded after 0 frame(s) at
+y=0.00`.
+
+**Verified.** Rung 2 zero `SCRIPT ERROR` / `Parse Error`; rung 3 `0 warnings, 0 errors`; rung 4
+`=== 1676 passed, 0 failed, 0 skipped ===`, exit 0; stripped `1602 passed, 0 failed, 25 skipped`,
+its 25 skips unchanged; all four checkers exit 0 in both trees. Budgets: `sprite_sheet_layout.gd`
+34 → 62 of 250,
+`character_visual.gd` 107 → 110, `gen_placeholders.gd` 129 → 143, `npc_brain.gd` 171 → 172.
+
+**Version 1.2.0, MINOR, untagged.** The base gained something a game may ignore. The *a consuming
+game does* line: nothing changes unless you want the gaits, but a game using the shipped
+placeholder now has a 256×576 three-block sheet rather than 256×192 with one.
+
+**Unblocks.** Phase T5's first two exit criteria are ticked: movement styles come from the sheet,
+and the same seam serves NPCs with no NPC-specific animation code.
+
+**Gaps, and all three are now roadmap criteria rather than notes.** **More than one idle** — the
+block seam exists and what is missing is the chooser, which is the smallest remaining piece of
+"characters feel alive". **A turn in place** — changing facing while stationary snaps between
+columns. **A wholesale character swap, photographed** — the alt sheet proves the GRID swaps and
+nothing yet proves the GAITS do, which is the T2.1-standard proof this row did not attempt. Also
+still true: `Actions.DEBUG_FREECAM` is bound to nothing, and the default placeholder now has three
+blocks but the ALT sheet still has two, so a sheet with a different cell size AND a full gait set
+does not yet exist anywhere.

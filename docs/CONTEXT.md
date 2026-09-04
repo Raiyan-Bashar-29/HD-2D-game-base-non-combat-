@@ -3,22 +3,24 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-04 · **T5.1 (the skeleton's four open exit criteria) complete.
-EVERY EXIT CRITERION IN EVERY PHASE IS NOW TICKED, and each was PROVED rather than asserted
-— Phase 2 closed with the last of them. `main` declares `1.1.0`; the repository is tagged
-`v1.0.0` and `v1.0.1`, each on the tree that declares it, and 1.0.2 and 1.1.0 are
-deliberately untagged.**
+**Last updated:** 2026-09-04 · **T5.2 (an animation block per GAIT) complete. PHASE T5 IS OPEN —
+the base as a reusable CHARACTER kit, which is what the owner says it is FOR: a future game
+inherits working characters and changes only assets. `main` declares `1.2.0`; `v1.0.0` and
+`v1.0.1` are the tags, and 1.0.2, 1.1.0 and 1.2.0 are deliberately untagged.**
 
-**THE SKELETON WAS NOT FINISHED WHEN THE BOARD WAS CLOSED, AND ONE OF THE FOUR OPEN CRITERIA
-WAS A MISSING FEATURE.** `Settings` stored a locale, `settings_screen.gd` let you cycle one,
-and **nothing anywhere called `TranslationServer.set_locale`** — so the language could be
-chosen, was persisted, survived a relaunch and changed nothing. There was also only ONE
-locale column in the CSV, so there was nothing to switch to. Fixed, generated a second
-language, and proved by two captures that were READ. See gotchas 50 and 51.
+**A CHARACTER'S MOVEMENT STYLES NOW COME FROM ITS SHEET, NOT ITS CODE.**
+`SpriteSheetLayout.animation_for` took a **boolean**, so a sheet could hold an idle cycle and a
+walk cycle and nothing else — run and sneak replayed the walk block faster. Meanwhile
+`GameEnums.MoveState` has had ten values since WP-01 and `Events.player_state_changed` was
+declared, emitted and **listened to by nothing.** It now takes a `MoveState`, and
+`run_row`/`sneak_row`/`climb_row` default to `-1` = "replay the walk block", so no sheet authored
+before it changes behaviour and a game adds a run cycle by drawing one. **Sixth instance of this
+project's characteristic defect: not broken code, but correct code with no consumer.**
 
-**ALL FIVE CONSUMER DOCUMENTS HAVE NOW BEEN PERFORMED, AND ALL FIVE FOUND A DEFECT. THREE OF THE
-FIVE WERE DEFECTS IN THE TEMPLATE.** T4.4 walked `TESTING.md`, the last one never walked, and
-found the sharpest of the three — because it was in the rung that judges every other one.
+**EVERY EXIT CRITERION IN PHASES 0 TO T4 IS TICKED, and each was PROVED rather than asserted** —
+T5.1 closed the last four, one of which (the locale) was a missing FEATURE rather than a missing
+proof. Phase 2 closed with it. Phase T5 is the open one and has three criteria left: more than one
+idle, a turn in place, and a wholesale character swap photographed to T2.1's standard.
 
 **THE TEST RUNNER SILENTLY SKIPPED A LISTED CASE THAT DID NOT PARSE, AT EXIT 0.** `load()` on a
 script with a parse error returns a `GDScript` that is **not `null`** and cannot be instantiated;
@@ -163,11 +165,11 @@ something declared, validated and read by nothing, after `Gate.locked_key`,
 T5.1 just fixed.
 
 
-140 files, 12,236 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
+140 files, 12,324 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
 three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
-3 tagged surfaces, 2 languages, 1 shared area material. Template version **1.1.0**, and that
-version is deliberately UNTAGGED — `v1.0.0` and `v1.0.1` are the tags, each naming the tree
-that declares it.
+3 tagged surfaces, 2 languages, 3 gait blocks, 1 shared area material. Template version **1.2.0**,
+and that version is deliberately UNTAGGED — `v1.0.0` and `v1.0.1` are the tags, each naming the
+tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 
 **Works, and verified by running it:** logging with rotation · signal registry (`events.gd`) ·
@@ -175,6 +177,12 @@ input actions · settings · save/load with atomic writes and versioning · plot
 director with a re-entrancy guard and threaded loading · world clock · weather state · audio
 buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 8-way character ·
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
+**A CHARACTER WHOSE GAITS ARE DATA**: `animation_for` takes a `GameEnums.MoveState`, so idle,
+walk, run, sneak and climb are separate cycles a SHEET names and every character - player or
+NPC, both through the same `CharacterVisual` - picks up by asset swap with no code. An unnamed
+gait inherits the walk block, so no sheet authored before T5.2 changed behaviour. Proved by
+the asset's own pixels, by `sprite.frame` read live, and by a capture in which the player
+walks in GREEN while the NPC beside them stands in BLUE - same sheet, same frame ·
 **A LANGUAGE YOU CAN ACTUALLY SWITCH**: `Settings._apply_locale` reaches `TranslationServer`
 on `_apply_display`'s reasoning — nothing else owns it — and `tools/gen_pseudolocale.gd`
 generates an `en_XA` column so a second language EXISTS without the template pretending to
@@ -186,7 +194,7 @@ which is `check_strings.gd`'s static rule made visible and including anything co
 **A SAVE THAT SURVIVES A REAL RELAUNCH**, proved in TWO PROCESSES rather than one reload:
 `--save-state` / `--load-state` in `dev_probes.gd`, with the fresh process's boot line as
 the control and the weather deliberately STORM because CLEAR is the boot default ·
-placeholder art generator · line-budget checker · a headless test suite (1,653 assertions) that
+placeholder art generator · line-budget checker · a headless test suite (1,676 assertions) that
 builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
 returns early, asserts nothing, or is not listed in the runner ·
 an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
@@ -1034,7 +1042,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,653 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,676 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content
@@ -1042,7 +1050,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Fifty-one gotchas that each cost an hour
+## Fifty-two gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -1566,6 +1574,32 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     `walk_fps 8.0 * clampf(speed / 3.2, 0.35, 2.0)`. **A probe that reads a value someone else
     writes every frame is reading their answer, not yours.**
 
+
+52. **`--shot-frame` AIMS AT A FRAME NUMBER, AND THE SAME FRAME NUMBER IS A DIFFERENT MOMENT IN
+    EVERY RUN.** T5.2 needed three captures of one character in three gaits, and spent an hour
+    getting them because a frame is not a point in the game's story. **Measured across runs of the
+    identical command: the player was grounded in its area at process frame 17 in one run and at
+    frame 115 in another** — the area load is threaded, so everything downstream of it slides by
+    a hundred frames. Three separate failure modes came out of that one fact. A capture aimed
+    early enough to catch a gait in one run **landed before the area existed in the next**, and a
+    PNG of empty sky with a working HUD looks exactly like a rendering bug rather than a mis-timed
+    shutter. A capture aimed late enough to be safe caught a character that had **walked clean out
+    of the area** — x went 0 to -16.8 by frame 115 at run speed, and the camera followed it into
+    nothing. And an oscillation added to keep the character in frame introduced a **one-frame
+    window where velocity is zero** between releasing one direction and pressing the other, in
+    which the visual correctly reports IDLE — so a walk capture came back showing the idle block
+    and the honest reading of it was "the feature does not work". Three rules. **A capture that
+    must land on a game STATE needs the shutter driven by that state, not by a frame count** —
+    aim at a window, verify from the log which state the run was actually in at that frame, and
+    treat the number as a guess to be checked rather than a setting. **Ask the ASSET before
+    blaming the renderer:** sampling the generated sheet's pixels settled in one command what four
+    captures had left ambiguous, because a PNG on disk has no timing in it. And **a probe that
+    starts before the area does measures nothing** — `_gait_parade` skipped the
+    `while Director.current_area_id == &""` wait that every other probe in that file opens with,
+    and duly reported the player falling from -0.30 to -20.54 with `is_on_floor()` false, which is
+    gotcha 9 seen from a probe that arrived too early and reads as "the player falls through the
+    world".
+
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the
@@ -1615,7 +1649,7 @@ you can press to travel back to once you have — and every one of those walks n
 depending on whether you are crossing grass, the wooden dais or stone. Every one of those changes
 survives a save and a
 reload, including from the far side of an area that is no longer loaded. All of it is covered
-by 1,653 headless assertions.
+by 1,676 headless assertions.
 
 **Next, and for the first time it is not an ordered queue.** Every blocking row is done: Phase T3
 closed with WP-14b, WP-15 was CLOSED by the owner, and T4.1 shipped the version and the upgrade

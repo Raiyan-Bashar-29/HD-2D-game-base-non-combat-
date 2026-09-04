@@ -22,6 +22,22 @@ const OUT_DIR: String = "res://assets/placeholder"
 const CELL: Vector2i = Vector2i(32, 48)
 const DIRECTIONS: int = 8
 const FRAMES: int = 4
+## THREE BLOCKS SINCE T5.2: idle, walk, run. The sheet had ONE, because `animation_for` took a
+## boolean and there was nowhere for a third to be named - so the template shipped an art
+## CONTRACT that could not express the gaits its own controller already had.
+const ANIMATIONS: int = 3
+const IDLE_BLOCK: int = 0
+const WALK_BLOCK: int = 1
+const RUN_BLOCK: int = 2
+## How far the legs and arms travel in each block. Idle barely moves, a run overreaches -
+## these are the numbers that make the three cycles tell themselves apart in a capture.
+const BLOCK_SWING: Array[int] = [1, 2, 5]
+## And a cloth tint per block, on the ALT sheet's reasoning (gotcha 28): a running figure
+## drawn from the walk block is still a person mid-stride, so the BLOCK has to be readable
+## rather than judged. This is what turns a gait capture into a checkable prediction.
+const BLOCK_TINT: Array[Color] = [
+	Color(0.30, 0.45, 0.62), Color(0.24, 0.52, 0.44), Color(0.62, 0.34, 0.30),
+]
 
 # Facing order must match GameEnums.Facing exactly:
 # SOUTH, SOUTH_EAST, EAST, NORTH_EAST, NORTH, NORTH_WEST, WEST, SOUTH_WEST
@@ -47,8 +63,6 @@ const ALT_BLOCK_TINT: Array[Color] = [Color(0.28, 0.55, 0.42), Color(0.72, 0.38,
 const PIP: Color = Color(1.0, 0.95, 0.35)
 
 const SKIN: Color = Color(0.85, 0.68, 0.52)
-const CLOTH: Color = Color(0.30, 0.45, 0.62)
-const CLOTH_DARK: Color = Color(0.20, 0.31, 0.44)
 const BOOT: Color = Color(0.28, 0.22, 0.18)
 const HAIR: Color = Color(0.16, 0.12, 0.10)
 const EYE: Color = Color(0.09, 0.09, 0.12)
@@ -72,42 +86,52 @@ func _initialize() -> void:
 	quit(0)
 
 
-## A full walk sheet: 8 facings across, 4 frames down.
+## A full gait sheet: 8 facings across, and THREE 4-frame blocks down - idle, walk, run. Rows run
+## idle.0-3, walk.0-3, run.0-3, which is the order `frame_index` reads and `SpriteSheetLayout`
+## names through `idle_row`, `walk_row` and `run_row`.
 func _build_character_sheet() -> Image:
-	var sheet: Image = Image.create(CELL.x * DIRECTIONS, CELL.y * FRAMES, false, Image.FORMAT_RGBA8)
+	var rows: int = FRAMES * ANIMATIONS
+	var sheet: Image = Image.create(CELL.x * DIRECTIONS, CELL.y * rows, false, Image.FORMAT_RGBA8)
 	sheet.fill(Color(0, 0, 0, 0))
 	for facing: int in DIRECTIONS:
-		for frame: int in FRAMES:
-			_draw_figure(sheet, Vector2i(facing * CELL.x, frame * CELL.y), facing, frame)
+		for block: int in ANIMATIONS:
+			for frame: int in FRAMES:
+				var row: int = block * FRAMES + frame
+				_draw_figure(sheet, Vector2i(facing * CELL.x, row * CELL.y), facing, frame, block)
 	return sheet
 
 
 ## One 32x48 figure. Deliberately simple: a readable silhouette with an obvious front.
-func _draw_figure(image: Image, origin: Vector2i, facing: int, frame: int) -> void:
-	# A two-frame leg swing, held for two frames each, so the cycle reads at low framerates.
-	var swing: int = [0, 1, 0, -1][frame]
+func _draw_figure(image: Image, origin: Vector2i, facing: int, frame: int, block: int) -> void:
+	# A two-frame leg swing, held for two frames each, so the cycle reads at low framerates. The
+	# BLOCK scales how far it travels: a run overreaches, an idle barely shifts its weight.
+	var reach: int = BLOCK_SWING[clampi(block, 0, BLOCK_SWING.size() - 1)]
+	var swing: int = [0, 1, 0, -1][frame] * reach
+	var cloth: Color = BLOCK_TINT[clampi(block, 0, BLOCK_TINT.size() - 1)]
+	# A run leans into it, which reads at a glance even before the tint is noticed.
+	var lean: int = -1 if block == RUN_BLOCK else 0
 
 	# Legs
 	_rect(image, origin + Vector2i(11, 36 + swing), Vector2i(4, 11), BOOT)
 	_rect(image, origin + Vector2i(17, 36 - swing), Vector2i(4, 11), BOOT)
 
 	# Torso, slightly narrower at the shoulders than the hips for a bit of shape.
-	_rect(image, origin + Vector2i(10, 20), Vector2i(12, 17), CLOTH)
-	_rect(image, origin + Vector2i(10, 20), Vector2i(12, 3), CLOTH_DARK)
+	_rect(image, origin + Vector2i(10 + lean, 20), Vector2i(12, 17), cloth)
+	_rect(image, origin + Vector2i(10 + lean, 20), Vector2i(12, 3), cloth.darkened(0.35))
 
 	# Arms swing opposite the legs.
-	_rect(image, origin + Vector2i(7, 22 - swing), Vector2i(3, 12), CLOTH_DARK)
-	_rect(image, origin + Vector2i(22, 22 + swing), Vector2i(3, 12), CLOTH_DARK)
+	_rect(image, origin + Vector2i(7 + lean, 22 - swing), Vector2i(3, 12), cloth.darkened(0.35))
+	_rect(image, origin + Vector2i(22 + lean, 22 + swing), Vector2i(3, 12), cloth.darkened(0.35))
 
 	# Head and hair
-	_disc(image, origin + Vector2i(16, 13), 7, SKIN)
-	_disc(image, origin + Vector2i(16, 11), 7, HAIR)
-	_rect(image, origin + Vector2i(9, 6), Vector2i(14, 5), HAIR)
+	_disc(image, origin + Vector2i(16 + lean * 2, 13), 7, SKIN)
+	_disc(image, origin + Vector2i(16 + lean * 2, 11), 7, HAIR)
+	_rect(image, origin + Vector2i(9 + lean * 2, 6), Vector2i(14, 5), HAIR)
 
 	# Eyes only on the facings that show a face, which is what makes the direction readable.
 	if SHOWS_FACE[facing]:
-		_rect(image, origin + Vector2i(13, 14), Vector2i(2, 2), EYE)
-		_rect(image, origin + Vector2i(18, 14), Vector2i(2, 2), EYE)
+		_rect(image, origin + Vector2i(13 + lean * 2, 14), Vector2i(2, 2), EYE)
+		_rect(image, origin + Vector2i(18 + lean * 2, 14), Vector2i(2, 2), EYE)
 
 	# A bright shoulder flash on the character's left, so left and right facings differ.
 	var flash: Color = Color(0.92, 0.76, 0.35)

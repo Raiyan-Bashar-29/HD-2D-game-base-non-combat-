@@ -20,6 +20,58 @@ the exact rot this discipline exists to prevent.
 
 ---
 
+## 1.2.0
+
+*2026-09-04 — an animation block per GAIT, so a character's movement styles come from its sheet
+rather than from its code.*
+
+**A consuming game does:** nothing, unless it wants the new gaits. Every existing
+`SpriteSheetLayout` keeps drawing exactly what it drew — `run_row`, `sneak_row` and `climb_row`
+default to `-1`, which means "replay the walk block", and that is precisely what run and sneak did
+before this version. To add a run cycle: draw the block, set `animations`, name `run_row`. No code,
+in your project or in the base. **If you replaced `character_placeholder.png`** with your own
+sheet, nothing changes for you; if you were using the shipped one, it is now 256×576 with three
+blocks instead of 256×192 with one, and its layout names `walk_row = 1` and `run_row = 2`.
+
+**`animation_for` took a BOOLEAN, so a sheet could only ever hold an idle cycle and a walk
+cycle.** Run and sneak replayed the walk block faster and there was nowhere to put a distinct one —
+while `GameEnums.MoveState` had ten values and `Events.player_state_changed(state)` was declared,
+emitted by `PlayerController` and **listened to by nothing.** The information the sprite needed
+existed, was announced every time it changed, and had no route to the thing that would draw it.
+Sixth instance of this project's most expensive shape, after `Gate.locked_key`,
+`PathAction.refusal_key`, `ItemDb.reload`, `HD2DCameraRig`'s framing exports and 1.1.0's locale
+setting.
+
+It now takes a `GameEnums.MoveState`. `CharacterVisual` is TOLD the state by whoever drives it —
+never read from `player_state_changed`, because every NPC uses the same class and none of them is
+the player. `NpcBrain` passes `WALK` or `IDLE` from whether it is stepping, which is the honest
+extent of what a schedule-driven actor knows, and gets a game's walk block for free without
+knowing that animation blocks exist.
+
+**The fallback chain is the compatibility promise**, and it is asserted before the feature is:
+a gait row left at `-1` inherits `walk_row`, and states with no gait of their own (`JUMP`, `FALL`,
+`SWIM`, `BUSY`, `LOCKED`) fall to `idle_row` rather than to walk — something else driving the
+character looks like standing there, not walking on the spot. `-1` rather than `0` is load-bearing:
+row 0 is a real row, so a default of `0` would have drawn a standing character for anything running
+on every sheet not yet updated.
+
+**`problems()` now validates every named row, not just two.** A gait row past the end of the sheet
+is reported by field name — `names run_row row 9, past its 3 animation(s)` — because the draw call
+clamps to the last block, so an unreported typo animates plausibly and wrongly.
+
+**`PlayerController` computes its state BEFORE drawing.** `_update_state` ran after the visual
+update, which was invisible while nothing read the state and became a one-frame lag on every gait
+change the moment something did.
+
+**Also in this version:** the shipped placeholder sheet gains idle, walk and run blocks with a
+different cloth tint each and a forward lean on the run, so which gait is drawn can be READ off a
+capture instead of guessed at — proved by three captures in which the player walks in green and
+runs in rust while the keeper NPC stands beside them in blue, from the same sheet in the same
+frame. `art_contract_test.gd` gains 19 assertions over the mapping, the fallback and the clamp.
+Suite 1,653 → 1,676; stripped 1,579 → 1,602, its 25 skips unchanged.
+
+---
+
 ## 1.1.0
 
 *2026-09-04 — the skeleton's four open exit criteria closed, and one of them was a missing

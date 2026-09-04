@@ -78,6 +78,7 @@ original board rather than continuing it.
 | T4.3 | **`NEW_GAME.md` performed as a fork, and the release tag** | **DONE** — the last package of Phase T4, which it CLOSES. Landed the 26-PR stack on `main` as one 71-commit chain and tagged `v1.0.0` with the owner's authorisation, then performed `NEW_GAME.md` from a fresh clone. Two defects, one in the TEMPLATE: `core_test.gd` asserted an empty `first_area` was illegal when four other statements call it legal, so a fork had a red rung 4 before authoring its first area; and the prune list never learned about `quest.`, so a fork shipped this template's demo quest strings with every gate green. Bumped to `1.0.1`; see below |
 | T4.4 | **`TESTING.md` performed, the last document never walked** | **DONE** — five for five: every document performed has found a defect reading would not, and this is the third of the five where the defect was in the TEMPLATE. The test runner SKIPPED A LISTED CASE THAT DID NOT PARSE, in silence, for the life of the suite — `load()` returns a non-null uninstantiable `GDScript`, `script.new()` then raises a runtime error, and that aborts only `_run_case`, so the loop moved on and the suite reported `1608 passed, 0 failed` and exit 0 with a whole case never run. `error_watch.gd` had counted the error the whole time and nothing asked it. Also: the document's ONE worked example did not compile, and three documents gave three different gotcha counts. Bumped to `1.0.2`; see below |
 | T5.1 | **The skeleton's four open exit criteria, closed by proving them** | **DONE** — asked whether the base was actually finished, `ROADMAP.md` said no: **Phase 1 read COMPLETE with three unticked exit criteria and Phase 2 read IN PROGRESS with one.** All four proved rather than ticked, and **one was a missing FEATURE** — `Settings` stored a locale, the options screen cycled one, and nothing anywhere called `TranslationServer.set_locale`, with only one locale column in the CSV so there was nothing to switch to. Also: the eight-direction facing mapping had no assertions (21 now, camera-yaw independent), the save criterion needed TWO PROCESSES, and the 30-second session had never been run. Bumped to `1.1.0`; see below |
+| T5.2 | **An animation block per GAIT** | **DONE** — the first row of Phase T5, and the owner's reframing made concrete: a future game should inherit working characters and change only assets. `SpriteSheetLayout.animation_for` took a **boolean**, so a sheet could hold an idle cycle and a walk cycle and nothing else — run and sneak replayed the walk block faster — while `GameEnums.MoveState` had ten values and `Events.player_state_changed` was declared, emitted and **listened to by nothing.** Sixth instance of declared-validated-and-read-by-nothing. Now a `MoveState`, with `run_row`/`sneak_row`/`climb_row` defaulting to -1 = "replay the walk block" so no existing sheet changes behaviour. Bumped to `1.2.0`; see below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -3474,3 +3475,123 @@ by nothing**. Choose the animation block by `MoveState` instead, and one sheet c
 idle / walk / run / sneak / climb blocks that every future character — player or NPC, both use
 `CharacterVisual` unchanged — gets by asset swap with no code. Sixth instance of
 declared-validated-and-read-by-nothing.
+
+
+## T5.2 · An animation block per GAIT — **DONE**
+
+**The owner's reframing, made concrete.** After T5.1 closed the last roadmap criteria, the owner
+said what the base is actually FOR: reusable character infrastructure that future games inherit by
+swapping assets — several idle formats, several movement styles — so that a new game starts from
+something working rather than going in blind. That named this row, and the seam turned out to be
+half-built already.
+
+### `animation_for` took a BOOLEAN
+
+So a sheet could hold an idle cycle and a walk cycle, and that was the ceiling. Run and sneak
+replayed the walk block at a different rate; there was nowhere to name a third. Meanwhile:
+
+- `GameEnums.MoveState` has **ten** values — `IDLE, WALK, RUN, SNEAK, JUMP, FALL, CLIMB, SWIM,
+  BUSY, LOCKED` — and has since WP-01.
+- `Events.player_state_changed(state)` is declared **and emitted** by `PlayerController`.
+- **Nothing listened to it.** Grep found the declaration and the emit and no subscriber.
+
+So the information the sprite needed existed, was announced every time it changed, and had no
+route to the thing that would have drawn it. **Sixth instance of this project's most expensive
+shape** — declared, validated, read by nothing — after `Gate.locked_key`, `PathAction.refusal_key`,
+`ItemDb.reload`, `HD2DCameraRig`'s framing exports and T5.1's locale setting. The pattern is worth
+naming plainly: *this project's characteristic defect is not broken code, it is correct code with
+no consumer.*
+
+### What changed, and the fallback is the load-bearing part
+
+`animation_for(state: GameEnums.MoveState)`, with `run_row`, `sneak_row` and `climb_row` added as
+`@export`s defaulting to **-1**, meaning "replay the walk block".
+
+**`-1` rather than `0`, and this is the whole compatibility story.** Row 0 is a real row — normally
+the idle block — so a default of `0` would have drawn a *standing* character for anything running,
+on every sheet not yet updated. `-1` is the only value that can mean "I have not drawn this". The
+assertions are ordered to match: the fallback is asserted **before** the feature, because what must
+not break is that a two-block sheet keeps drawing exactly what it drew.
+
+States with no gait of their own fall to **idle**, not walk: there is no jumping and no swimming
+in this template, and `BUSY` / `LOCKED` mean something else is driving the character, which looks
+like standing there rather than walking on the spot.
+
+`problems()` now validates **every** named row by field name — `names run_row row 9, past its 3
+animation(s)` — because the draw call clamps to the last block, so an unreported typo animates
+plausibly and wrongly. That is gotcha 38's shape: a number the loader kept and nobody checked.
+
+### Who tells the visual what it is doing
+
+`CharacterVisual` is **told** its state and never reads `Events.player_state_changed` — every NPC
+uses the same class and none of them is the player, so a subscription would make every NPC in the
+world animate to the player's gait. The parameter defaults to `WALK`, so an un-updated caller
+behaves exactly as before: moving draws the walk block, standing draws the idle one.
+
+`NpcBrain` passes `WALK` or `IDLE` from whether it is stepping. It gets no `MoveState` field of its
+own — that would be a second state machine to keep in step with the brain — and it picks up a
+game's walk block for free without knowing that animation blocks exist.
+
+**And `PlayerController` now computes its state BEFORE drawing.** `_update_state(wish)` ran *after*
+`visual.update_from_velocity`, which was invisible for the life of the project because nothing read
+the state, and became a one-frame lag on every gait change the moment something did.
+
+### Proved three ways, because the claim is visual and the failure mode is plausible
+
+**Assertions (19).** The mapping, the fallback for all three unnamed gaits, the five states with no
+gait, the override when a row is named, the clamp, and that `-1` is not a reported problem while a
+row past the end is. Planted twice: removing the `>= 0` check gives
+`gait 2 with no row of its own inherits the walk block — expected 1, got 0`, which is the
+compatibility regression a consuming game would hit; dropping `run_row` from `problems()` gives
+`and it is a reported problem, not a silent clamp — expected true, got false`. Both exit 1, control
+`1676 passed, 0 failed`.
+
+**The asset, measured.** Sampling the generated sheet's own pixels: 256×576, and the torso of
+block 0/1/2 reads `(0.298, 0.447, 0.620)` blue, `(0.239, 0.518, 0.439)` green,
+`(0.620, 0.337, 0.298)` rust. This settled in one command what four captures had left ambiguous,
+and it is the lesson in gotcha 52: **a PNG on disk has no timing in it.**
+
+**The runtime, read off the real sprite.** A temporary probe reported `body.visual.sprite.frame` —
+what is actually being drawn, not a private counter — in the live courtyard:
+`idle: state=0 cell=0 block=0`, `walk: state=1 cell=38 block=1`, `run: state=2 cell=78 block=2`,
+each cycling within its own block. Probe removed; `git diff src/systems/debug/` clean.
+
+**Three captures, READ.** The placeholder sheet gained a cloth tint per block and a forward lean on
+the run, on the alt sheet's reasoning (gotcha 28): a running figure drawn from the walk block is
+still a person mid-stride, so the BLOCK has to be readable rather than judged. The walk capture is
+the decisive one — **the player is in green and the keeper NPC standing beside them is in blue, in
+the same frame, from the same sheet.** Two characters, two blocks. The run capture shows the player
+in rust with the NPC still blue.
+
+### What was deliberately NOT done
+
+No second idle, no turn-in-place, and no wholesale character swap — all three are now roadmap
+criteria under Phase T5 rather than notes, because the block seam is what they were waiting on and
+each is its own package. No `MoveState` field on `NpcBrain`. No subscription to
+`player_state_changed` from the visual, for the reason above — and it is worth recording that the
+signal STILL has no listener, which is correct: the visual is pushed to, and a listener would be a
+second path to the same fact.
+
+### Verification
+
+Rung 2 greps to zero `SCRIPT ERROR` / `Parse Error`; rung 3 ends `0 warnings, 0 errors`; rung 4 is
+`=== 1676 passed, 0 failed, 0 skipped ===`, exit 0 — up 23 from 1,653: 19 from the gait block in
+`art_contract_test.gd` and 4 more because `docs_test.gd` and `doc_counts_test.gd` compute their
+plans from the documents, and this package adds gait fields to `ART_CONTRACT.md` and a gotcha.
+All four checkers exit 0.
+
+**Stripped template:** `=== 1602 passed, 0 failed, 25 skipped ===`, exit 0, up 23 by the same
+arithmetic, **the 25 skips unchanged** — no new skip to name. All four checkers exit 0 with
+`--path`. Budgets: the layout went 34 → 62 of 250, `character_visual` 107 → 110,
+`gen_placeholders` 129 → 143, `npc_brain` 171 → 172.
+
+**One thing the suite caught that is worth quoting**, because it is the T4.4 guard earning its keep
+two packages later: changing the signature broke `art_contract_test.gd`, and the runner said
+`res://tests/unit/art_contract_test.gd is listed but does not parse, so it never ran` with the six
+parse errors quoted by file and line. Before T4.4 that would have been a green run with one case
+silently skipped.
+
+**Version bumped to 1.2.0 — MINOR, and untagged.** The base gained something a game may ignore.
+The *a consuming game does* line is honest about the one visible consequence: nothing changes unless
+you want the gaits, but if you were using the shipped placeholder it is now 256×576 with three
+blocks rather than 256×192 with one.

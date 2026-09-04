@@ -67,6 +67,12 @@ var _column: int = 0
 var _frame_time: float = 0.0
 var _frame: int = 0
 var _moving: bool = false
+## WHAT THE CHARACTER IS DOING, which decides which animation BLOCK is drawn while `_moving`
+## decides whether the block advances. The two were one boolean until T5.2, which is why a
+## running character replayed the walk cycle faster and a sheet had nowhere to put a run.
+## Pushed in by whoever drives this visual - never read from `Events.player_state_changed`,
+## because every NPC uses this class and none of them is the player.
+var _state: GameEnums.MoveState = GameEnums.MoveState.IDLE
 
 
 func _ready() -> void:
@@ -103,10 +109,18 @@ func _configure_sprite() -> void:
 
 ## Called every physics frame by whatever drives this character.
 ## `velocity` is world-space; only the horizontal part is used.
-func update_from_velocity(velocity: Vector3, delta: float) -> void:
+## `state` defaults to WALK so a caller that has not been updated behaves exactly as before:
+## moving draws the walk block, standing still draws the idle one.
+func update_from_velocity(velocity: Vector3, delta: float,
+		state: GameEnums.MoveState = GameEnums.MoveState.WALK) -> void:
 	var flat: Vector2 = Vector2(velocity.x, velocity.z)
 	var speed: float = flat.length()
 	_moving = speed > 0.05
+	# A state that is not moving is IDLE whatever the caller said, so a character held still by
+	# a dialogue box does not stand there playing its run cycle in place. CLIMB is the exception
+	# and is deliberate: an authored climb writes `global_position` and leaves velocity at zero,
+	# so it must be believed rather than derived.
+	_state = state if _moving or state == GameEnums.MoveState.CLIMB else GameEnums.MoveState.IDLE
 
 	if _moving:
 		_aim(flat)
@@ -192,7 +206,7 @@ func _camera_yaw() -> float:
 func _apply_frame() -> void:
 	if sprite == null or _layout == null:
 		return
-	sprite.frame = _layout.frame_index(_column, _frame, _layout.animation_for(_moving))
+	sprite.frame = _layout.frame_index(_column, _frame, _layout.animation_for(_state))
 
 
 ## Diagnostic for the dev capture tool. Cheap, and the first thing worth knowing when a

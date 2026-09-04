@@ -5170,7 +5170,7 @@ second unrelated one, because a count with no countable thing behind it belongs 
 suite total quoted in `TESTING.md` is such a number and is deliberately left ungated, with an
 instruction to re-measure instead.
 
-**CI green, run `33840155182`, job logs read rather than the tick (gotcha 26).** Both jobs report
+**CI green, runs `33840155182` and `33840636717` — the second on the final commit `91e2054`, because the closing doc commits change the suite total by changing what `docs_test.gd` computes its plan from. Job logs read rather than the tick (gotcha 26).** Both jobs report
 `success`. Full checkout `=== 1625 passed, 0 failed, 0 skipped ===`; stripped template
 `=== 1551 passed, 0 failed, 25 skipped ===` — byte-identical to the local measurements, and the
 25 skips unchanged from T4.3. All four checkers pass in both jobs. The only `error:` strings

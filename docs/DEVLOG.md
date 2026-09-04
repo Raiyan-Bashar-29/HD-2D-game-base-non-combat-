@@ -5361,6 +5361,11 @@ or at random), no turn-in-place, and the shipped placeholder declares `animation
 work, the default one does not use them. And `--locale=` persisting is correct but sharp: anything
 else that stages through a persisted setting will need the runner pin that gotcha 50 describes.
 
+**CI green, run `33847717732`, job logs read rather than the tick (gotcha 26).** Both jobs report
+`success`. Full checkout `=== 1653 passed, 0 failed, 0 skipped ===`; stripped template
+`=== 1579 passed, 0 failed, 25 skipped ===` — byte-identical to the local measurements, and the 25
+skips unchanged from T4.4.
+
 ## 2026-09-04 — T5.2 · An animation block per GAIT
 
 **Did.** Made the animation block a function of `GameEnums.MoveState` rather than of a boolean, so

@@ -3476,6 +3476,12 @@ idle / walk / run / sneak / climb blocks that every future character — player 
 `CharacterVisual` unchanged — gets by asset swap with no code. Sixth instance of
 declared-validated-and-read-by-nothing.
 
+**CI green, run `33847717732`, job logs read rather than the tick (gotcha 26).** Both jobs report
+`success`. Full checkout `=== 1653 passed, 0 failed, 0 skipped ===`; stripped template
+`=== 1579 passed, 0 failed, 25 skipped ===` — byte-identical to the local measurements, and the 25
+skips unchanged from T4.4.
+
+**Commit:** `a1e1da6` on `claude/t5-1-close-the-skeleton`, PR #30, targeting `main`.
 
 ## T5.2 · An animation block per GAIT — **DONE**
 

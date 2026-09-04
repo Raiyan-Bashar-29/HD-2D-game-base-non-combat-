@@ -20,9 +20,12 @@ const REFUSAL_SECONDS: float = 1.8
 ## were drawn to the player and translated in both languages the whole time.
 const HINTS_SETTING: String = "gameplay/show_interact_hints"
 const CONTRAST_SETTING: String = "accessibility/high_contrast_prompts"
-## Outline width in pixels when high contrast is on. Wide enough to survive the prompt sitting
-## over a lit stone floor, which is what the courtyard capture shows it against.
-const OUTLINE_PIXELS: int = 6
+## Outline width in pixels when high contrast is on. THREE VALUES WERE PHOTOGRAPHED and this is
+## the one that survived, which is the only way to pick a number like this: at 6 the outline
+## swamped the glyphs of an 18px font and the crop was HARDER to read than the plain prompt -
+## the opposite of what the setting is for - and at 2 it was invisible against the courtyard's
+## bright grass. At 4 the halo separates the text from the ground and the letterforms survive.
+const OUTLINE_PIXELS: int = 4
 ## The theme type the palette colours live under, spelled the same way the HUD spells it.
 const PALETTE: StringName = &"UiPalette"
 

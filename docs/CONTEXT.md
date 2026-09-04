@@ -3,7 +3,30 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-05 · **T5.4 (the three missing enforcement gates) complete — THE LADDER
+**Last updated:** 2026-09-05 · **T5.5 (the twelve settings with no consumer) complete — EVERY ONE
+OF THE TWENTY REMAINING SETTINGS IS NOW READ BY SOMETHING, and an assertion refuses a
+twenty-first that is not. Nine were wired; THREE WERE REMOVED, because honouring
+`gameplay/camera_shake`, `gameplay/autosave` and `accessibility/subtitles` would have meant
+inventing three features rather than connecting existing ones — there is no shake anywhere under
+`src/`, no autosave and no notion of the slot a run belongs to, and nothing is voiced. A row drawn
+to the player that cannot do anything is worse than a dead constant, because the player finds out.
+Each returns in one line plus one CSV row; `settings_screen.gd` is generated from `DEFAULTS` and
+needed no edit. **THE FIVE `accessibility/*` WERE A TEMPLATE DEFECT AND NOT A MISSING FEATURE OF A
+GAME**: the thing a text-size preference has to change is the project theme every screen in
+`src/ui/` draws from, so a fork could not honour it without editing `src/`. `UiAccessibility`
+under `UILayer` owns it now. Also fixed: `reset_to_defaults()` never called `_apply_locale()` (a
+live bug), `set_dof_enabled()` had no caller, `Actions.JUMP` is gone entirely, and
+`KeyBindings.rebind()` gates on `Actions.REBINDABLE` instead of `InputMap.has_action`.
+**THE SEVENTH GATE WAS DELIBERATELY NOT BUILT** — the consumer question is asked as an ASSERTION,
+because `Settings.DEFAULTS` is available at runtime and a `check_*` tool would have to parse
+`settings.gd` to get it; T5.4's three went to `tools/` for the mirror reason. Writing it found a
+third way to be a consumer (`audio_director.gd` handles a whole SECTION and computes its keys, so
+five appear nowhere as literals) and a defect in this row's own work, which is **gotcha 56: a text
+search for a wire stays green after the wire is cut, because an `[ext_resource]` line outlives
+every node that used it.** Suite 1,728 → 1,782. Eight plants, each exit 1; six settings
+photographed in pairs.**
+
+**T5.4 (the three missing enforcement gates) is the row before it — THE LADDER
 IS SIX CHECKERS NOW, and the two new ones ask the question the first four never did: does a
 declared thing have a CONSUMER? `check_signals.gd` requires every signal in the registry to have
 an emitter; `check_layers.gd` enforces `core -> content -> systems -> gameplay -> ui`;
@@ -35,17 +58,19 @@ undrawable while "more than one idle" sat on the exit criteria. Both fixed and b
 planting the revert: `1688 passed, 6 failed`, exit 1 without the fix; `1694 passed, 0 failed`
 with it.
 
-**WHAT THE AUDIT FOUND THAT IS STILL OPEN**, so nobody rediscovers it: `set_dof_enabled()` has no
-caller while the options screen offers `video/depth_of_field`; **12** of 23 settings have no
-consumer (not 17 — the figure was stale by five); music ducking is entirely dead
-(`stop_music`/`duck`/`unduck` have no callers anywhere); `Actions.JUMP` is offered in the rebind
-screen for a feature the template does not have; `KeyBindings.rebind()` gates on
-`InputMap.has_action` rather than `Actions.REBINDABLE`, so an override outside the rebindable set
-cannot be reset; `face_direction()` still has only test callers. Full write-up in T5.3's
-`DEVLOG.md` entry. **The three enforcement holes on that list are CLOSED by T5.4** — the layer
-direction, the signal registry's shape and `localization/` demo content all have gates now, and
-the row's corrected measurement is **51 of 218 CSV rows** in a content namespace, not 59: the
-audit counted the eight `item.category.*` rows, which are engine.
+**WHAT IS LEFT OF THE T5.3 AUDIT'S LIST, and it is two items.** **Music ducking is entirely dead**
+— `stop_music`, `duck` and `unduck` have no callers anywhere, and the only `duck` hit in the
+repository is the phrase "duck-typed" in a comment; that is candidate E, and `DialogueRunner` is
+the natural home. **`face_direction()` still has only test callers**, so nothing changes facing
+while stationary; that is candidate C, and WHO may ask for a turn is an owner's seam decision that
+T5.3 declined to pick silently.
+
+Everything else on it is closed. **T5.4 closed the three enforcement holes** — the layer direction,
+the signal registry's shape and `localization/` demo content all have gates now, and the corrected
+measurement is **51 of 214 CSV rows** in a content namespace, not 59: the audit counted the eight
+`item.category.*` rows, which are engine. **T5.5 closed the settings four** — `set_dof_enabled()`
+has a caller, the twelve consumerless settings are nine wired and three removed, `Actions.JUMP` is
+gone entirely, and `KeyBindings.rebind()` gates on `Actions.REBINDABLE`.
 
 **EVERY EXIT CRITERION IN PHASES 0 TO T4 IS TICKED, and each was PROVED rather than asserted** —
 T5.1 closed the last four, one of which (the locale) was a missing FEATURE rather than a missing
@@ -195,11 +220,11 @@ something declared, validated and read by nothing, after `Gate.locked_key`,
 T5.1 just fixed.
 
 
-140 files, 12,324 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
+146 files, 13,101 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
 three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
-3 tagged surfaces, 2 languages, 3 gait blocks, 1 shared area material. Template version **1.2.0**,
-and that version is deliberately UNTAGGED — `v1.0.0` and `v1.0.1` are the tags, each naming the
-tree that declares it.
+3 tagged surfaces, 2 languages, 3 gait blocks, 1 shared area material, **20 settings and 20
+consumers**. Template version **2.0.0**, and that version is deliberately UNTAGGED — `v1.0.0` and
+`v1.0.1` are the tags, each naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 
 **Works, and verified by running it:** logging with rotation · signal registry (`events.gd`) ·
@@ -213,6 +238,17 @@ NPC, both through the same `CharacterVisual` - picks up by asset swap with no co
 gait inherits the walk block, so no sheet authored before T5.2 changed behaviour. Proved by
 the asset's own pixels, by `sprite.frame` read live, and by a capture in which the player
 walks in GREEN while the NPC beside them stands in BLUE - same sheet, same frame ·
+**SETTINGS THAT ACTUALLY DO SOMETHING, ALL TWENTY OF THEM**: every key in `Settings.DEFAULTS` is
+read by something and `settings_consumers_test.gd` fails on one that is not. Nine were wired at
+T5.5 and three removed rather than faked. The placements are the lesson: bloom to
+`EnvironmentDriver` because the Environment is that node's, but `video/shadows` to the shadow
+ATLAS in `Settings` itself, because shadows are cast by lights an AREA AUTHOR placed and no node
+owns the set of them - so a game that adds a hundred lights gets that setting for free and writes
+no code. `UiAccessibility` under `UILayer` scales the project theme's font sizes from a cached
+base, which is the seam a fork previously could not reach without editing `src/`. Six settings
+photographed in pairs differing by one line of `settings.cfg` - text scale moved every font in the
+UI including the HUD clock, shadows removed every cast shadow in the frame, and `set_dof_enabled()`
+finally has a caller ·
 **A LANGUAGE YOU CAN ACTUALLY SWITCH**: `Settings._apply_locale` reaches `TranslationServer`
 on `_apply_display`'s reasoning — nothing else owns it — and `tools/gen_pseudolocale.gd`
 generates an `en_XA` column so a second language EXISTS without the template pretending to
@@ -224,7 +260,7 @@ which is `check_strings.gd`'s static rule made visible and including anything co
 **A SAVE THAT SURVIVES A REAL RELAUNCH**, proved in TWO PROCESSES rather than one reload:
 `--save-state` / `--load-state` in `dev_probes.gd`, with the fresh process's boot line as
 the control and the weather deliberately STORM because CLEAR is the boot default ·
-placeholder art generator · line-budget checker · a headless test suite (1,676 assertions) that
+placeholder art generator · line-budget checker · a headless test suite (1,782 assertions) that
 builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
 returns early, asserts nothing, or is not listed in the runner ·
 an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
@@ -522,17 +558,19 @@ three compiled cleanly and passed every static gate:**
   un-frozen screenshot is not reproducible.
 - The environment driver rebuilds a `Dictionary` every frame in `_sample()`. Measured as
   harmless at this scale; revisit if the frame budget tightens.
-- **12** of the 23 settings have no consumer yet, not 17 — the figure was stale by five and no
-  gate or assertion can catch that, because nothing reads `Settings.DEFAULTS` except the screen
-  that draws it. Counted at T5.3: applied are `video/window_mode`, `video/vsync`,
-  `video/max_fps` and `locale` (inside `settings.gd` itself), the five `audio/*` buses
-  (`audio_director.gd`), `gameplay/text_speed` (`dialogue_screen.gd`) and
-  `gameplay/run_is_toggle` (`player_controller.gd`) — eleven.
-  Unapplied: `video/resolution_scale`, `bloom`, `depth_of_field`, `shadows`;
-  `gameplay/autosave`, `show_interact_hints`, `camera_shake`; and all five `accessibility/*`.
-  They are declared so the settings screen has something to bind to, not because anything reads
-  them — **but the screen offers all twelve to a player**, and for the accessibility five a game
-  cannot wire them without editing `src/`. That is the settings package, not a deferral.
+- **`accessibility/reduce_motion` has ONE consumer where it should have three.** T5.5 gave it the
+  dialogue typewriter, which is this template's one piece of animated TEXT. `ScreenFade` and
+  `HD2DCameraRig.follow_lag` are also motion and both still ignore it. One consumer makes the
+  setting honest, not complete.
+- **`Settings._apply_shadows` restores the shadow atlas to a `2048` const rather than to whatever
+  the project authored.** A game that set a different atlas size in `project.godot` would have it
+  replaced by that constant the first time a player toggles shadows. Reading the authored value at
+  boot, the way `HD2DCameraRig` remembers `_authored_dof`, is the fix and costs two lines
+  `settings.gd` does not have — it is at 144 of its 150-line override.
+- **Three settings were REMOVED rather than wired, and each is a real feature a game will want.**
+  Screen shake, autosave and subtitles. Autosave is the largest: `SaveSystem` has no notion of the
+  slot a run belongs to, so it needs a slot POLICY before it needs a trigger, and picking one is a
+  design decision rather than a wiring. All three are candidate rows.
 
 ## Decisions already made — do not re-litigate
 
@@ -1091,7 +1129,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Fifty-five gotchas that each cost an hour
+## Fifty-six gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -1710,6 +1748,24 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     the tree is nearly clean and expensive once it is not — and you do not know which you have
     until you run it.
 
+56. **A TEXT SEARCH FOR A WIRE CAN STAY GREEN AFTER THE WIRE IS CUT, BECAUSE THE DECLARATION IT
+    FINDS IS NOT THE CONNECTION.** T5.5 built `UiAccessibility`, wired it into `game_root.tscn`,
+    and — mindful of gotcha 54 — added the assertion that gotcha 54 asks for: not just that the
+    class works, but that the running game instances one. It read the `.tscn` as text and
+    required the script path and `parent="UILayer"` to both appear. **Then the node was deleted
+    as a plant and the suite stayed green: `1782 passed, 0 failed`, byte-identical.** Both halves
+    were still in the file — a `[ext_resource]` line SURVIVES the removal of every node that used
+    it, and eight other nodes carry that parent — so the assertion was really checking that the
+    file still mentioned a script somewhere, which it always would. The fix was to stop reading
+    the scene as prose: `PackedScene.get_state()` gives `SceneState`, where a script is a
+    PROPERTY of a node and the node either exists or does not, and `get_node_path(i, true)`
+    answers `./UILayer`. Replanted: `expected ./UILayer, got ` — exit 1. **The transferable form
+    is narrower than gotcha 54 and sharper: an assertion about STRUCTURE must be made against a
+    parser, not a substring, because a file's declarations outlive the things that referenced
+    them.** And it says something about gotcha 54 itself — writing the wire assertion is not the
+    hard part, writing one that can actually fail is. Plant every assertion whose job is to
+    catch an absence; the ones that check for a presence tell you they work by passing, and the
+    ones that check for an absence never tell you anything at all.
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the

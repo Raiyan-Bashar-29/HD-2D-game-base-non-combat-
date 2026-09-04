@@ -29,7 +29,7 @@ previous project started as a system that was allowed to know one thing too many
 | Shared enums | Vocabulary two or more systems must agree on | nothing | anything used by only one system | DONE |
 | Safe data reads | Typed reads out of untyped JSON and save data | nothing | what the data means | DONE |
 | Collision layers | Named layer and mask constants | nothing | who uses them | DONE |
-| Settings | Player machine preferences, on disk | Log, Events | how to apply audio or gameplay settings; it announces, owners react | DONE |
+| Settings | Player machine preferences, on disk. **20 keys and 20 consumers as of T5.5** — every key in `DEFAULTS` is read by something, and `settings_consumers_test.gd` fails on one that is not. This file applies five itself (window mode, vsync, fps cap, render scale, shadow atlas) because nothing else owns the window, the viewport or the shadow atlas; everything else is announced and an owner reacts | Log, Events | how to apply audio, world or gameplay settings; it announces, owners react | DONE |
 | Save system | Slots, atomic writes, schema version, migration | Log, Events | what any save section contains | DONE |
 | Flag store | Plot and world state, one source of truth. A prefix may be declared DERIVED, so its keys are readable and announced but left out of the save file — one publisher re-derives them | Log, Events, Save | what any flag means, and how to derive anything | DONE |
 | Game root | Builds the persistent tree, spawns the player, asks for the main menu | Director | game logic of any kind. 60-code-line hard budget | DONE |
@@ -144,10 +144,11 @@ previous project started as a system that was allowed to know one thing too many
 | Pause menu | Resume, save, load, settings, controls, main menu, quit, over a stopped world | Actions, UiRoot, Save, Director | unloading an area or writing a save itself | DONE |
 | Main menu | New game, continue, load, settings, controls, quit. The boot path now stops here | Save, Director | loading an area or clearing a flag itself | DONE |
 | Save and load screen | Slot list with headers and playtime, in either direction | Save | the save format, or what a section holds | DONE |
-| Settings screen | Every entry in the Settings defaults table, generated from it | Settings | applying a setting; it writes and Settings announces | DONE |
-| Key rebinding | Rebind a key or a pad button per action; overrides persist in user://input.cfg | Actions, KeyBindings | naming an action or deciding a default | PART — no glyph swapping per device, and no duplicate-binding warning |
+| Settings screen | Every entry in the Settings defaults table, generated from it. **Generation is why it needed no edit at all when T5.5 removed three settings** | Settings | applying a setting; it writes and Settings announces | DONE |
+| Key rebinding | Rebind a key or a pad button per action; overrides persist in user://input.cfg. Since T5.5 `rebind()` gates on `Actions.REBINDABLE` rather than `InputMap.has_action`, so an override that `reset_bindings()` could never undo cannot be stored | Actions, KeyBindings | naming an action or deciding a default | PART — no glyph swapping per device, and no duplicate-binding warning |
 | World map | `WorldMap` under `GameRoot`, found by group. Discovery is the flag `map/<area id>` and there is NO store, so it is already saved, already announced and writable by anything. `travel_to` emits `area_change_requested` and stops | Director, Flags, Events, AreaDb | loading an area, fading, placing the player, or keeping a copy of what is discovered | DONE — WP-11 |
 | Controller navigation | Every screen fully usable on a gamepad | Actions | — | DONE — a VBoxContainer of Buttons answers ui_up/ui_down and ui_accept, so no screen owns a cursor; proved windowed with real events |
+| UI accessibility | `UiAccessibility` under `UILayer`, the consumer of `accessibility/text_scale`. Scales the project theme's nine `font_sizes` from a CACHED base, so the whole UI grows at once and stepping the row up and back returns to where it started. **This is where an accessibility setting GOES** — the thing such a setting has to change is the theme every screen draws from, which is why a fork could not wire one without editing `src/` | Settings, Events, ThemeDB | knowing which screens exist, or reaching into a Control. A theme change propagates on its own | DONE — T5.5, and its presence in `game_root.tscn` is asserted through `SceneState` rather than by text; see gotcha 56 |
 | Loading screen | Covers threaded area loads | Director | — | DONE — fade plus a progress readout drawn above it; the one node after ScreenFade |
 | Project UI theme | `assets/theme/ui_theme.tres`, wired as `gui/theme/custom`: every font size, colour and inset the UI draws with. Type variations carry sizes; a `UiPalette` and a `UiMetrics` carry the colours and insets once each, NOT copied into the variations | nothing | a localization key, or a size only one screen could want | DONE — T2.1. One edit to that file restyled the menu, the inventory screen and the HUD at once, demonstrated by captures before and after; a test case fails if a screen writes a colour or a font size down again |
 
@@ -196,12 +197,17 @@ rather than oversights.
 6. **Autosave indicator,** and never autosaving during a transition.
 7. **"Are you sure"** on overwriting a save and on quitting with unsaved progress.
 8. **First-run defaults** that are actually pleasant, since most players never open settings.
-9. **Reduced motion,** and a depth-of-field toggle. Heavy DOF causes real nausea for some
-   people, which is why `set_dof_enabled` exists on the camera rig from day one — **and it has
-   no caller anywhere, so the `video/depth_of_field` row the options screen draws does nothing.**
-   The applier and the setting were each built and never joined up. Not fixed by T5.3; it is one
-   of the twelve unconsumed settings and belongs to the settings package.
-10. **Subtitles and speaker names,** on by default.
+9. **Reduced motion,** and a depth-of-field toggle. **Both work as of T5.5.** `set_dof_enabled`
+   existed on the camera rig from day one and had no caller anywhere for the whole project; the
+   rig now listens for `video/depth_of_field` and remembers what the area author authored, so the
+   setting is the player's veto rather than a blanket yes. Photographed both ways.
+   `accessibility/reduce_motion` reaches the dialogue typewriter, which is this template's one
+   piece of animated text — but `ScreenFade` and the camera's `follow_lag` are motion too and
+   still ignore it, so the setting is honest and not yet complete.
+10. **Subtitles and speaker names,** on by default. Speaker names work. **The subtitle SETTING was
+    removed by T5.5** rather than left inert: nothing in this template is voiced, so there is
+    nothing to caption, and a row drawn to the player that cannot do anything is worse than a
+    dead constant. One line in `DEFAULTS` plus one CSV row brings it back with its feature.
 11. **Localization from the first string.** Retrofitting 200 hard-coded strings is exactly
     the debt the previous project logged.
 12. **A photo mode,** which costs little and is how players market the game for you.

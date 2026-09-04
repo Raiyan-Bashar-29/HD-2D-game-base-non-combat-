@@ -46,6 +46,7 @@ const SRC: String = "res://src"
 ## Where the running game gets its one `UiAccessibility` from. Asserted, because every other
 ## assertion in this file builds its own and would pass without it.
 const GAME_ROOT: String = "res://scenes/boot/game_root.tscn"
+const ACCESSIBILITY_SCRIPT: String = "res://src/ui/root/ui_accessibility.gd"
 
 
 func run() -> void:
@@ -181,9 +182,13 @@ func _text_scale_moves_the_theme_and_never_compounds() -> void:
 	# AND THE WIRE, not just the two ends of it. Everything above builds its own node, so all of
 	# it stays green in a checkout where nothing ever instances one - which is gotcha 54 exactly.
 	# `game_root.tscn` is the only place the running game gets one from.
-	var root: String = FileAccess.get_file_as_string(GAME_ROOT)
-	equal("and the running game actually has one, under UILayer",
-			root.contains("src/ui/root/ui_accessibility.gd") and root.contains("parent=\"UILayer\""), true)
+	#
+	# READ THROUGH `SceneState`, NOT AS TEXT. The first version of this assertion searched the
+	# .tscn for the script path and for `parent="UILayer"` - and it stayed GREEN when the node
+	# was deleted, because the `[ext_resource]` line survives a node's removal and eight other
+	# nodes carry that parent. Planted and measured. The engine's own parse cannot be fooled
+	# that way: a script is a PROPERTY of a node here, and the node either exists or does not.
+	equal("and the running game actually has one, under UILayer", _accessibility_parent(), "./UILayer")
 
 
 ## The gate was `InputMap.has_action`, so an action outside REBINDABLE could be overridden and
@@ -261,3 +266,21 @@ func _code_only(source: String) -> String:
 func _tear_down() -> void:
 	Settings.reset_to_defaults()
 	Actions.reset_bindings()
+
+
+## The parent of the node in `game_root.tscn` whose script is `ui_accessibility.gd`, or "" if
+## there is no such node. `get_node_path` returns the path relative to the scene root, so a node
+## under UILayer answers "./UILayer" and one that was deleted answers nothing at all.
+func _accessibility_parent() -> String:
+	var packed: PackedScene = load(GAME_ROOT)
+	if packed == null:
+		return ""
+	var state: SceneState = packed.get_state()
+	for node: int in state.get_node_count():
+		for property: int in state.get_node_property_count(node):
+			if state.get_node_property_name(node, property) != &"script":
+				continue
+			var script: Script = state.get_node_property_value(node, property) as Script
+			if script != null and script.resource_path == ACCESSIBILITY_SCRIPT:
+				return String(state.get_node_path(node, true))
+	return ""

@@ -652,6 +652,27 @@ because the first row exposed how much of it was declared and unread.
   in `DEVLOG.md`. Ladder: four checkers to six, rungs 9 and 10 in CI as their own steps. 1,728
   assertions.
 
+- **T5.5 The twelve settings with no consumer — DONE, 2026-09-05.** Also not a character row,
+  and the last of the T5.3 audit's structural findings. **Twelve of twenty-three settings were
+  declared, drawn to the player, translated in both languages, and inert.** Nine got a real
+  consumer, placed by who OWNS the thing that has to change: the viewport and the shadow atlas to
+  `Settings` itself, bloom to `EnvironmentDriver` because the Environment is that node's, DOF to
+  `HD2DCameraRig` — `set_dof_enabled()`'s first ever caller — the prompt's two to `InteractPrompt`,
+  the typewriter's to `DialogueScreen`, the hold floor to `InteractionSensor`, and
+  `accessibility/text_scale` to a new `UiAccessibility` under `UILayer`. **`video/shadows` is the
+  placement worth reading**: shadows are cast by lights an AREA AUTHOR placed, no node owns the
+  set of them, so it is applied at the shadow ATLAS and a game that adds a hundred lights gets it
+  free. **Three were REMOVED** — screen shake, autosave and subtitles have no machinery in this
+  template to reach, and a row drawn to the player that cannot do anything is worse than a dead
+  constant. **Five of the twelve were a TEMPLATE defect and not a missing game feature**: a fork
+  could not honour `accessibility/*` without editing `src/`, because the thing that changes is the
+  theme every screen in `src/ui/` draws from. Plus the audit's four one-liners:
+  `reset_to_defaults()` never re-applied the locale, `Actions.JUMP` is gone entirely, and
+  `rebind()` gates on `Actions.REBINDABLE`. **The seventh gate was deliberately NOT built** — the
+  consumer question is an ASSERTION, because `Settings.DEFAULTS` is a runtime fact and a `check_*`
+  tool would have to parse `settings.gd` to get it. Writing it found gotcha 56. Eight plants, each
+  exit 1; six settings photographed in pairs. 1,782 assertions. Version 2.0.0, untagged.
+
 **Exit criteria for the phase:**
 
 - [x] A character's movement styles come from its sheet, not its code: idle, walk, run, sneak and

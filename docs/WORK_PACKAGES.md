@@ -81,6 +81,7 @@ original board rather than continuing it.
 | T5.2 | **An animation block per GAIT** | **DONE** — the first row of Phase T5, and the owner's reframing made concrete: a future game should inherit working characters and change only assets. `SpriteSheetLayout.animation_for` took a **boolean**, so a sheet could hold an idle cycle and a walk cycle and nothing else — run and sneak replayed the walk block faster — while `GameEnums.MoveState` had ten values and `Events.player_state_changed` was declared, emitted and **listened to by nothing.** Sixth instance of declared-validated-and-read-by-nothing. Now a `MoveState`, with `run_row`/`sneak_row`/`climb_row` defaulting to -1 = "replay the walk block" so no existing sheet changes behaviour. Bumped to `1.2.0`; see below |
 | T5.3 | **Delivering the gaits that were already declared** | **DONE** — a full-base audit found the **seventh** instance of declared-validated-and-read-by-nothing, and **T5.2 one row above had created it**: `MoveState.CLIMB` never reached `CharacterVisual`, because `_physics_process` returns early while a climb owns the body and `climb_step` touched the visual only after resetting to IDLE. `climb_row` was exported, validated and asserted, and **undrawable** — a ticked exit criterion that was false, invisible in the demo because the shipped sheet leaves it at -1. Second defect in the same function: `_frame` was pinned to 0 whenever horizontal speed was zero, so **no idle block had ever advanced a cell** while "more than one idle" sat on the criteria. Both fixed, both proved by planting the revert (`1688 passed, 6 failed`, exit 1 → `1694 passed, 0 failed`). **Gotcha 54: a unit test at each end of a seam proves nothing about the wire between them.** See below |
 | T5.4 | **The three missing enforcement gates** | **DONE** — the T5.3 audit found the structural cause rather than another instance: **no gate anywhere asked whether a declared thing has a CONSUMER**, which is why the same defect arrived through a fully green ladder seven times. `check_signals.gd` requires every registry signal to have an emitter and resolves indirect `Signal`-value dispatch, so the three quest signals — **zero** direct `.emit` sites — are not false positives; it named `debug_command` at once. `check_layers.gd` enforces `core -> content -> systems -> gameplay -> ui` and **found a real violation on its first run: 55 upward references**, 13 of them the interaction sensor sitting in `systems/` while typed on `Interactable`. Moved to `src/gameplay/interaction/` — **gotcha 55: a rule with no gate is a rule already being broken.** `check_boundary.gd` gained the `localization/` half and closed gotcha 48. Every gate planted red and proved green. Four checkers to six; see below |
+| T5.5 | **The twelve settings with no consumer** | **DONE** — 12 of 23 settings were declared, drawn to the player, translated in both languages and read by nothing. **Nine wired**, each placed by who owns the thing that has to change: the viewport and the shadow ATLAS to `Settings` itself, bloom to `EnvironmentDriver`, DOF to `HD2DCameraRig` (**`set_dof_enabled()`'s first ever caller**), the prompt's two to `InteractPrompt`, the typewriter's to `DialogueScreen`, the hold floor to `InteractionSensor`, and `accessibility/text_scale` to a new `UiAccessibility`. **Three REMOVED** — screen shake, autosave and subtitles have no machinery here to reach, and a row drawn to the player that cannot do anything is worse than a dead constant. **Five of the twelve were a TEMPLATE defect**: a fork could not wire `accessibility/*` without editing `src/`. Plus the four one-liners — `reset_to_defaults()` never re-applied the locale, `Actions.JUMP` is gone, `rebind()` gates on `REBINDABLE`. **The seventh gate was deliberately not built**: the consumer question is an ASSERTION, because `Settings.DEFAULTS` is a runtime fact. Writing it found **gotcha 56: a text search for a wire stays green after the wire is cut.** Eight plants each exit 1; six settings photographed in pairs. 1,782 assertions; version 2.0.0. See below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -3737,15 +3738,155 @@ could not, as a list of engine prefixes; it can, by asking the opposite question
 - **It wrote no ADR.** Two tools and a file moved one directory is not an architecture decision;
   the layer rule was already decided in `ARCHITECTURE.md` and ADR-0001.
 
-## Candidate rows the T5.3 audit produced — ranked, and A IS DONE (T5.4)
+## T5.5 · The twelve settings with no consumer — **DONE**
+
+**The row exists because twelve of twenty-three settings were declared, drawn to the player,
+translated in both languages, and read by nothing** — and because five of those twelve were a
+defect in the TEMPLATE rather than a missing feature of a game, which is a different and worse
+thing than the six declared-and-dead instances before them.
+
+### What made the `accessibility/*` five sharper than the rest
+
+The thing a text-size preference has to change is the project theme — `assets/theme/ui_theme.tres`,
+wired as `gui/theme/custom`, holding nine `font_sizes` — and every screen that draws from it lives
+under `src/ui/`. So a game forked from this base **could not** honour that setting without editing
+`src/`, which is the exact failure this template exists to prevent. The other seven were merely
+unfinished; these five were unfinishable from outside.
+
+### Nine wired, and the placement was decided by ownership rather than by tidiness
+
+| Setting | Consumer |
+|---|---|
+| `video/resolution_scale` | `Settings._apply_render_scale` — `scaling_3d_scale` is the viewport's, and no system owns the viewport |
+| `video/shadows` | `Settings._apply_shadows` — the shadow ATLAS; see below |
+| `video/bloom` | `EnvironmentDriver` — the `Environment` is that node's and nothing else may touch it |
+| `video/depth_of_field` | `HD2DCameraRig._on_setting_changed` — **`set_dof_enabled()`'s first ever caller** |
+| `gameplay/show_interact_hints` | `InteractPrompt._redraw` |
+| `accessibility/text_scale` | new `UiAccessibility` under `UILayer` |
+| `accessibility/high_contrast_prompts` | `InteractPrompt._apply_contrast` |
+| `accessibility/reduce_motion` | `DialogueScreen._on_line_changed` — the typewriter |
+| `accessibility/hold_to_confirm` | `InteractionSensor.hold_needed` |
+
+**`video/bloom` and `video/shadows` look like the same kind of setting and are not, and that is
+the most transferable thing in the row.** Bloom is one property of one `Environment` that one node
+owns, so it went to that node. Shadows are cast by **lights an area author placed** — the courtyard
+has four, and the two demo areas carry eight `shadow_enabled = true` between them — and **no node
+owns the set of them.** A driver that walked the tree collecting lights would be wrong for every
+light added after it was written, which is the god object ADR-0001 refuses. So it is applied at the
+atlas: `positional_shadow_atlas_size = 0` and `directional_shadow_atlas_set_size(0, true)`, after
+which every light in the world casts nothing, whoever placed it and whenever. **A game that adds a
+hundred lights gets the setting for free and writes no code.** That is the test of a template seam,
+and it is why the placement is beside `_apply_display` rather than in a listener invented to hold
+it.
+
+`accessibility/text_scale` scales the theme's font sizes from a CACHED base, never from the live
+value — multiplying the current size compounds and rounds on the way, so walking the row to 1.5 and
+on to 2.0 would not land where going straight to 2.0 does. `Window.content_scale_factor` is the
+one-line alternative and is wrong: it magnifies the HUD's layout and the dialogue frame's margins
+too, so a player who asked for bigger text gets less of the world.
+
+### Three settings removed, and that is a decision rather than a shortcut
+
+`gameplay/camera_shake`, `gameplay/autosave` and `accessibility/subtitles` have no machinery in
+this template to reach. There is no screen shake anywhere under `src/`; there is no autosave, and
+`SaveSystem` has no notion of the slot a run belongs to; nothing is voiced. Wiring them would have
+meant inventing three features inside a row about connecting existing ones. **A row drawn to the
+player that cannot do anything is worse than a dead constant, because the player is the one who
+finds out.** They are gone from `DEFAULTS` and from the CSV, which is all it took —
+`settings_screen.gd` is generated from `DEFAULTS` and needed no edit at all, which is the payoff
+of a decision made when that screen was written. Each returns in one line plus one CSV row the day
+its feature exists, and the reason each was removed is recorded in the `DEFAULTS` block itself,
+where the next person considering re-adding one will be standing. Screen shake and autosave are
+candidate rows below.
+
+### The four folded-in fixes
+
+- **`reset_to_defaults()` never called `_apply_locale()`.** One line, and a live bug: Reset wrote
+  `locale = "en"` and left the UI in the old language. Invisible to every other rung, because the
+  file on disk was correct — only the screen could tell.
+- **`set_dof_enabled()` had no caller.** It has one, and the rig now remembers what the area author
+  authored, so the setting is the player's VETO rather than a blanket yes: a rig shipping with DOF
+  off stays off however the setting moves.
+- **`Actions.JUMP` is gone entirely** — const, Space/pad binding, `REBINDABLE` entry and CSV row.
+  It was a rebinding row for a verb `player_controller.gd` says three times over this template does
+  not have, and nothing polled it. `GameEnums.MoveState.JUMP` is a different symbol and stays.
+- **`KeyBindings.rebind()` gates on `Actions.REBINDABLE`.** It gated on `InputMap.has_action`, so
+  `debug_console` could be written into `input.cfg` and then never reset, because `reset_bindings()`
+  re-declares only the four rebindable groups. This spends that file's MUST NOT line in exactly one
+  expression and the header says so: the alternative was a second copy of the list, and two lists
+  that drift is the defect this project keeps finding.
+
+### The seventh gate was deliberately not built, and the reason is not effort
+
+T5.4's own closing note said its three gates do not catch this class, because a setting is a string
+key read through `DictRead` — not a `class_name`, a `signal` or a CSV row. So the question had to be
+asked somewhere new. **It is asked as an assertion in `tests/unit/settings_consumers_test.gd`, and
+the deciding factor was what the two places can REACH.** A `check_*` tool reads text off disk and
+would have to reconstruct the key list by parsing `settings.gd`; a test has `Settings.DEFAULTS` as
+the engine actually loaded it. Where the subject of a rule is a runtime fact, the assertion is the
+truer place — and T5.4's three went to `tools/` for the mirror reason: which layer a path is in,
+and what a `.tscn` contains, no running game can see. CI runs the suite as its own step, so the
+coverage is identical either way.
+
+**Writing it found a third way to be a consumer, and the first version failed on nine correct
+settings.** The obvious rule — *some file other than `settings.gd` and `settings_screen.gd` names
+this key* — reported `video/vsync`, `audio/music` and seven more as dead. Both exclusions were
+wrong, in opposite directions: `audio_director.gd` handles `section == "audio"` wholesale and then
+computes each key as `"audio/%s" % bus_name.to_lower()`, so the five volume keys **appear nowhere as
+literals**; and `settings.gd` genuinely IS the consumer for five of them, for the reason its header
+has given since WP-01. For that file alone two mentions are required, because the `DEFAULTS`
+declaration is a mention.
+
+### Proof
+
+Eight plants, each a real reversion rather than a broken assertion, and each exit 1 — the full
+table is in `DEVLOG.md`. The two that matter as a pair: a NEW setting declared with no reader
+(`something consumes 'video/planted_knob' — expected true, got false`) and an EXISTING consumer
+that stops reading its key (`something consumes 'video/bloom'`). The headline assertion catches a
+dead setting arriving from either direction.
+
+**The ninth plant found a defect in this package's own work.** Mindful of gotcha 54, the test
+asserted not only that `UiAccessibility` works but that the running game instances one. The first
+version read `game_root.tscn` as TEXT — and when the node was deleted as a plant the suite stayed
+**green, byte-identical**, because an `[ext_resource]` line survives the removal of every node that
+used it and eight other nodes carry `parent="UILayer"`. Rewritten against `PackedScene.get_state()`,
+where a script is a PROPERTY of a node: replanted, exit 1. **That is gotcha 56 — writing the wire
+assertion was not the hard part, writing one that can fail was.**
+
+Six settings photographed in pairs, each pair differing by exactly one line in
+`user://settings.cfg`: text scale (20.9% of pixels, every font in the UI including the HUD clock),
+shadows (97.6%, every cast shadow in the frame gone), depth of field (21.2% — and the first crop
+showed nothing because the crate sits inside the in-focus band, so a per-block diff located the
+region first), bloom (99.9% at 21:00), render scale (76.6%), and the prompt's two. The outline
+width is **the one number in this package chosen by photograph rather than by taste**: 6 swamped an
+18px font and read worse than no outline at all, 2 was invisible against the courtyard's grass, 4
+survived.
+
+### What this package deliberately did not do
+
+- **It did not wire the three it removed.** Screen shake, autosave and subtitles are features, and
+  autosave needs a slot POLICY before it needs a trigger.
+- **It did not finish `reduce_motion`.** `ScreenFade` and the camera's `follow_lag` are motion too
+  and still ignore it. One consumer makes the setting honest, not complete.
+- **It did not read the authored shadow atlas size.** `_apply_shadows` restores a `2048` const, so a
+  game that authored a different size in `project.godot` loses it the first time a player toggles
+  shadows. The fix is `HD2DCameraRig`'s `_authored_dof` pattern and costs two lines `settings.gd`
+  does not have — it is at 144 of its 150-line override.
+- **It wrote no ADR.** One node under `UILayer`, four settings applied where the thing they change
+  already lives, and one input list read instead of copied. `ARCHITECTURE.md` already says the
+  owning system reacts; this row only made that true for nine more settings.
+
+## Candidate rows the T5.3 audit produced — ranked, and A AND B ARE DONE (T5.4, T5.5)
 
 These are the audit's findings that are packages rather than one-line corrections. Ranked by value
 to a consuming game per unit of work. Each is sized to one chat.
 
 | # | Candidate | Why it is worth a row |
 |---|---|---|
-| B | **The settings package** | **12 of 23 settings have no consumer** (the docs said 17). Four are video settings `_apply_display()` could own — it already applies three siblings and has the headless guard. Five are `accessibility/*`, which a game **cannot** wire without editing `src/`, and all twelve are drawn to the player, translated, and inert. Fold in: `reset_to_defaults()` never calling `_apply_locale()` (one line, a live bug), `set_dof_enabled()` having no caller, and `Actions.JUMP` being offered in the rebind screen for a feature the template does not have |
 | C | **A turn in place** — but the seam decision first | `face_direction()` has only test callers, so nothing changes facing while stationary at all. The question is WHO may ask for a turn: the player facing an interaction target, or an NPC facing the player in dialogue. `Speaker` is 17 lines and deliberately knows only a conversation id, so it is probably `NpcBrain` or `InteractionSensor`. **Owner's call, not the assistant's** — T5.3 declined to pick one silently |
 | D | **A wholesale character swap, photographed** | Phase T5's remaining proof criterion, and the only one of the three that is a proof rather than a feature. `character_alt_layout.tres` already exists (4 facings, 24×40, 2 blocks) but has no gait set, so a sheet with a different cell size AND a full gait set does not exist anywhere. Would have caught T5.3's defect if it had included a climb |
 | E | **Music ducking, or delete it** | `stop_music`, `duck` and `unduck` have no callers anywhere — the only `duck` hit in the repository is the phrase "duck-typed" in a comment. Lowering music under dialogue is the obvious use and `DialogueRunner` is the home. Audio is honestly `PART` in the inventory, so this is small; the alternative is to delete three methods |
 | F | **The `Button` styleboxes** | The theme sets `font_sizes` on nine type variations and no `Button/styles/*`, so every menu row draws Godot's default StyleBox — already a declared known limitation, invisible against the shipped dark palette and immediately wrong against a light one |
+| G | **Autosave** | The largest of the three features T5.5 removed a setting for rather than fake. It needs a slot POLICY before it needs a trigger: `SaveSystem` has no notion of the slot a run belongs to, and `save_to_slot(slot)` is the only entry point. `Events.quit_requested` has exactly one performer (`GameRoot`) and `events.gd:199` already says an autosave policy will only ever need adding in one place, so the trigger is easy and the choice of slot is the design question. Bring the `gameplay/autosave` key back with it |
+| H | **Screen shake** | The second. No `shake` identifier exists anywhere under `src/`, so this is a feature and not a wiring — most naturally on `HD2DCameraRig`, which already owns placement and smoothing and has `follow_lag` to fight with. `gameplay/camera_shake` returns as its scale, and `accessibility/reduce_motion` should reach it in the same row, which is one of the two motions T5.5 left that setting missing |
+| I | **`reduce_motion` finished** | Small, and honest work rather than new surface. `ScreenFade` and `HD2DCameraRig.follow_lag` are both motion and both ignore the setting T5.5 wired to the typewriter. A fade that snaps and a camera that does not smooth are two more consumers of a `const` that already exists on `DialogueScreen`. Could fold into H |

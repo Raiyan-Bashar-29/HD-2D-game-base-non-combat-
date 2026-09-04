@@ -20,6 +20,90 @@ the exact rot this discipline exists to prevent.
 
 ---
 
+## 2.0.0
+
+*2026-09-05 — every setting the options screen draws is now read by something. Nine were wired to
+a consumer; three were removed, and `Actions.JUMP` went with them.*
+
+**A consuming game does:** two things, and both are greppable.
+
+1. **`grep -rn 'Actions.JUMP' your_src/`.** If it returns anything, that line will no longer parse:
+   the const is gone. There was never anything in the base polling it, so a game that used it wrote
+   the poller itself and knows where it is. Declare your own action if you need one — that is one
+   `_define` call in your own `Actions` subclass or one line in `project.godot`.
+2. **`grep -rn 'gameplay/autosave\|gameplay/camera_shake\|accessibility/subtitles' your_src/`.**
+   Those three keys are gone from `Settings.DEFAULTS`, so `get_bool` on one now logs
+   *"Unknown setting"* and returns `false`, and `set_value` refuses. If you had built a consumer
+   for one of them, re-add the key: one line in `DEFAULTS` and one row in
+   `localization/strings.csv`, and the settings screen picks it up with no edit, because it is
+   generated from `DEFAULTS`.
+
+Everything else in this version is additive. Nine settings that previously did nothing now do
+something — if you had been shipping them to players as inert rows, they will start working, which
+is the change and the point. No signal was added or removed, no autoload, no save version, no
+layer. `settings_screen.gd`, `menu_screen.gd` and the theme resource were not touched.
+
+**Why this is MAJOR for a change that only deleted four public names.** This file's own table says
+MAJOR means *a file the game wrote must change*, and both greps above can require exactly that.
+The first fails at parse time, which is the good kind; the second fails at runtime with a logged
+error and a `false`, which is the kind worth a version number.
+
+**What was wrong.** **Twelve of twenty-three settings had no consumer.** All twelve were declared
+in `settings.gd`, drawn to the player by `settings_screen.gd`, translated in both languages, and
+inert. Four were video settings, three gameplay, and five were the whole of `accessibility/*` —
+and those five were the sharpest, because **a game forked from this base could not wire them
+without editing `src/`.** The thing a text-size preference has to change is the project theme, and
+every screen that draws from it lives under `src/ui/`. That makes it a defect in the TEMPLATE
+rather than a missing feature of a game, which is the distinction this whole repository turns on.
+
+**What each of the nine reaches now**, and the placements are the interesting part because two
+identical-looking settings went to opposite places:
+
+| Setting | Consumer |
+|---|---|
+| `video/resolution_scale` | `Settings._apply_render_scale` — `scaling_3d_scale` is the viewport's and no system owns the viewport |
+| `video/shadows` | `Settings._apply_shadows` — the shadow ATLAS, so every light an area author placed obeys it |
+| `video/bloom` | `EnvironmentDriver` — the `Environment` is that node's and nothing else may touch it |
+| `video/depth_of_field` | `HD2DCameraRig` — `set_dof_enabled()` finally has a caller |
+| `gameplay/show_interact_hints` | `InteractPrompt` |
+| `accessibility/text_scale` | new `UiAccessibility`, under `UILayer` in `game_root.tscn` |
+| `accessibility/high_contrast_prompts` | `InteractPrompt` — a 4px outline, a value picked by photograph |
+| `accessibility/reduce_motion` | `DialogueScreen` — the typewriter reveal arrives whole |
+| `accessibility/hold_to_confirm` | `InteractionSensor` — a 0.4s floor under `Interactable.hold_seconds` |
+
+`video/bloom` and `video/shadows` look like the same kind of setting and are not. Bloom is one
+property of one `Environment` that one node owns, so it went to that node. Shadows are cast by
+**lights an area author placed** — the demo courtyard has four — and no node owns the set of them,
+so a driver enumerating lights would be wrong for every light added after it was written. Applying
+it at the atlas instead means **a game that adds a hundred lights gets the setting for free and
+writes no code.** If you author a different `positional_shadow_atlas_size` in `project.godot`, note
+that toggling this setting restores the base's `2048` rather than your value — recorded as a gap.
+
+**Three settings removed rather than wired**, because honouring them would have meant inventing a
+feature inside a row about connecting existing ones: there is no screen shake anywhere under
+`src/`, there is no autosave and `SaveSystem` has no notion of the slot a run belongs to, and
+nothing is voiced. **A row drawn to the player that cannot do anything is worse than a dead
+constant, because the player is the one who finds out.** The reason each was removed is written in
+the `DEFAULTS` block, where the next person to consider re-adding one will be standing.
+
+**Four defects fixed alongside**, each one line to a few:
+`Settings.reset_to_defaults()` never called `_apply_locale()`, so Reset wrote `locale = "en"` and
+left the UI in the old language · `set_dof_enabled()` had no caller · `Actions.JUMP` was offered as
+a rebinding row for a verb `player_controller.gd` says three times over this template does not have
+· `KeyBindings.rebind()` gated on `InputMap.has_action` rather than `Actions.REBINDABLE`, so
+`debug_console` could be overridden into `input.cfg` and then never reset, because
+`reset_bindings()` re-declares only the rebindable groups.
+
+**And the question the six checkers cannot ask is now asked, as an assertion rather than a seventh
+checker.** A setting is a string key read through `DictRead` — not a `class_name`, a `signal` or a
+CSV row — so none of T5.4's three gates can see it. `tests/unit/settings_consumers_test.gd` loops
+over `Settings.DEFAULTS` as the engine loaded it and requires every key to be consumed. It went to
+the suite rather than to `tools/` because that dictionary is available at runtime and a `check_*`
+tool would have to parse `settings.gd` to reconstruct it. **If you add a setting to a fork and
+nothing reads it, rung 4 goes red and names the key.**
+
+---
+
 ## 1.2.0
 
 *2026-09-04 — an animation block per GAIT, so a character's movement styles come from its sheet

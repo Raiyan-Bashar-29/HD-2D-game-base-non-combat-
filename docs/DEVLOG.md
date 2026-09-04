@@ -5545,6 +5545,16 @@ resource; the fix is entirely in the two files that were already wrong.
 - `check_budgets.gd`, `check_content.gd`, `check_boundary.gd`, `check_strings.gd` → all exit 0.
 - `traversal_test`'s `plan()` caught the stale count before I did: `56/50`, exit 1, *"planned 50
   outcomes and produced 56 — a crash, an early return or a stale plan"*. That mechanism works.
+- **CI green on `0b6ca1e`, PR #32** — all four jobs pass. Full checkout
+  `=== 1694 passed, 0 failed, 0 skipped ===`; **stripped template
+  `=== 1620 passed, 0 failed, 25 skipped ===`**, which is the number that matters for a new test
+  file: `gaits_test.gd` builds its own fixture layout and names no demo content, so all 18 new
+  assertions survive the strip. Before this row the stripped run was `1602 passed, 25 skipped`.
+- **Windowed capture** at 960x540, `--new-game --time=18:40 --freeze-time`: the courtyard renders
+  with both characters lit, depth-sorted and casting shadows, the HUD reading
+  `Day 1 | 18:40 | Dusk` and the prompt offering the notice. `0 warnings, 0 errors`, exit 0. Not a
+  proof of the climb cycle — that needs a staged climb no dev flag can set up — but it is the
+  regression check that matters after changing sprite code.
 
 **Unblocks:** a consuming game can now author a climb cycle and see it. The first T5 exit
 criterion is honest. `_advance` and `_rate_for` are the hooks a second idle block would use, so the

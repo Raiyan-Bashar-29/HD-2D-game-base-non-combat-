@@ -20,6 +20,72 @@ the exact rot this discipline exists to prevent.
 
 ---
 
+## 1.1.0
+
+*2026-09-04 — the skeleton's four open exit criteria closed, and one of them was a missing
+feature rather than a missing proof.*
+
+**A consuming game does:** two things, both small, and only if it wants the second language.
+`localization/strings.csv` gains an `en_XA` column, so **expect a conflict in that file** — it is
+the one that conflicts on every merge (see [`UPGRADING.md`](UPGRADING.md)). Resolve it by keeping
+your own rows, then run `godot --headless --script tools/gen_pseudolocale.gd` to refill the
+column and `--headless --import` to regenerate the translation. If you do **not** want a
+pseudolocale, delete the `en_XA` entry from `locale/translations` in `project.godot` and drop the
+column — nothing in `src/` names it. Everything else here is additive.
+
+**The locale setting was wired to nothing, and now it applies.** `settings_screen.gd` cycled a
+locale and stored it; `Settings` announced `setting_changed`; and **no system anywhere called
+`TranslationServer.set_locale`.** So changing the language did nothing at all, in a project whose
+first non-negotiable about text is that every string is a key. `Settings._apply_locale` now
+applies it, on `_apply_display`'s stated reasoning rather than by analogy with it — nothing else
+owns `TranslationServer` either, exactly as nothing else owns the window. It is deliberately
+**not** skipped under `--headless`, which is the one way it differs from the display: a
+translation has no window in it, so the suite asserts against `tr()` instead of taking a
+screenshot on trust.
+
+**And there was no second language to switch to.** The CSV had one locale column, so the
+criterion was unreachable however well the wiring worked.
+[`tools/gen_pseudolocale.gd`](../tools/gen_pseudolocale.gd) generates an `en_XA` column —
+`[~~English~~]` — which is the same argument that generates placeholder ART rather than shipping
+art: the stand-in exists so the system can be verified before the content is. It earns its keep
+afterwards too: a string that appears **unbracketed** on screen never went through the CSV, which
+is `check_strings.gd`'s static rule caught visually and including anything computed, and the
+padding makes every label longer than its English so a layout that only just fits fails here
+rather than in a translated build.
+
+**`check_content.gd`'s CSV rule is now the header width, not the literal two.** It failed any row
+parsing to more than two columns, which caught WP-01's unquoted comma and would have failed the
+second language outright. It compares against the header instead, and requires equality rather
+than a maximum so a half-added locale filling only some rows is caught too. Planted: the original
+WP-01 row, unquoted, gives *"object.lever.gate.on has 4 column(s) where the header has 3, so an
+unquoted comma has cut its text off at 'The lever gives with a heavy clack. Somewhere north'"* —
+the same bug, still caught, with three columns.
+
+**`save` and `load` join the console vocabulary**, so there are six verbs rather than four, with
+one body each as ADR-settled. Slots are zero-based because `SaveSystem` and the save screen both
+are — a verb that renumbered them for friendliness would make `save 1` and menu slot 1 two
+different files.
+
+**`--locale=<code>` is a new capture flag** in `dev_capture.gd`, routed through `Settings` rather
+than straight to `TranslationServer` so it exercises the path a player takes. **It PERSISTS**,
+because a language choice should — pass `--locale=en` to put it back.
+
+**The suite now pins its own language.** That persistence bit immediately: a `--locale=en_XA`
+capture left the setting on disk and the next suite run failed in four unrelated cases that
+compare `tr()` output. `test_runner.gd` pins the project's declared fallback locale for the same
+reason it pins `Clock.paused`, and reads it from `ProjectSettings` rather than hard-coding
+English — so a consuming game whose default is not English gets a deterministic suite too.
+
+**Also in this version:** `facing_test.gd` (21 assertions) covers the direction-of-travel to
+facing and column mapping, which `art_contract_test.gd`'s MUST NOT line forbade it from
+asserting; `dev_probes.gd` gains the `--save-state` / `--load-state` pair for a two-process save
+proof, and `--face-all` was a temporary probe that has been removed. The verb-count assertion
+gained a companion that cannot rot — every verb in `VERBS` must dispatch — because a count alone
+would pass on a seventh verb declared and forgotten. Suite 1,625 → 1,653; stripped 1,551 → 1,579
+with its 25 skips unchanged.
+
+---
+
 ## 1.0.2
 
 *2026-09-04 — one defect in the TEST RUNNER, found by performing [`TESTING.md`](TESTING.md).*

@@ -34,6 +34,8 @@ extends Node
 ## MUST NOT: contain assertions of its own, or any game logic.
 
 const CASE_DIR: String = "res://tests/unit"
+## The language the suite runs in, read from the project rather than assumed.
+const FALLBACK_LOCALE: String = "internationalization/locale/fallback"
 
 const CASES: Array[String] = [
 	"res://tests/unit/core_test.gd",
@@ -65,6 +67,7 @@ const CASES: Array[String] = [
 	"res://tests/unit/version_test.gd",
 	"res://tests/unit/docs_test.gd",
 	"res://tests/unit/bag_mirror_test.gd",
+	"res://tests/unit/facing_test.gd",
 	"res://tests/unit/doc_counts_test.gd",
 ]
 
@@ -90,6 +93,14 @@ func _ready() -> void:
 	Log.info("test", "=== test run starting ===")
 	# Determinism: a clock that advances mid-assertion makes time assertions flaky.
 	Clock.paused = true
+	# AND SO IS THE LANGUAGE, for the same reason one step further out. Several cases compare
+	# `tr()` output, so a developer who left the pseudolocale selected - or any consuming
+	# game whose default is not English - would fail assertions that have nothing to do with
+	# their change. T5.1 hit exactly that: a `--locale=en_XA` capture PERSISTS the setting,
+	# because a language choice should, and the next suite run failed in four unrelated cases.
+	# The fallback is read rather than hard-coded, so this pins the project's own language.
+	var declared: Dictionary = {"locale": ProjectSettings.get_setting(FALLBACK_LOCALE, "en")}
+	TranslationServer.set_locale(DictRead.get_string(declared, "locale", "en"))
 	if not Fixtures.has_demo_content():
 		Log.info("test", "no demo content in this checkout — demo-only cases will skip")
 

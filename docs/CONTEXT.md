@@ -3,10 +3,18 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-04 · **T4.4 (`TESTING.md` performed) complete. PHASE T4 REMAINS
-COMPLETE — it closed at T4.3 and T4.4 adds no exit criterion. The repository is tagged `v1.0.0`
-and `v1.0.1`, each on the tree that declares it; `main` now declares `1.0.2`, and THAT version is
+**Last updated:** 2026-09-04 · **T5.1 (the skeleton's four open exit criteria) complete.
+EVERY EXIT CRITERION IN EVERY PHASE IS NOW TICKED, and each was PROVED rather than asserted
+— Phase 2 closed with the last of them. `main` declares `1.1.0`; the repository is tagged
+`v1.0.0` and `v1.0.1`, each on the tree that declares it, and 1.0.2 and 1.1.0 are
 deliberately untagged.**
+
+**THE SKELETON WAS NOT FINISHED WHEN THE BOARD WAS CLOSED, AND ONE OF THE FOUR OPEN CRITERIA
+WAS A MISSING FEATURE.** `Settings` stored a locale, `settings_screen.gd` let you cycle one,
+and **nothing anywhere called `TranslationServer.set_locale`** — so the language could be
+chosen, was persisted, survived a relaunch and changed nothing. There was also only ONE
+locale column in the CSV, so there was nothing to switch to. Fixed, generated a second
+language, and proved by two captures that were READ. See gotchas 50 and 51.
 
 **ALL FIVE CONSUMER DOCUMENTS HAVE NOW BEEN PERFORMED, AND ALL FIVE FOUND A DEFECT. THREE OF THE
 FIVE WERE DEFECTS IN THE TEMPLATE.** T4.4 walked `TESTING.md`, the last one never walked, and
@@ -121,28 +129,45 @@ still the owner's** — T4.3 bumped `base/version` to `1.0.1` for its own fixes 
 NOT tag that, which is T4.1's precedent: stating a version is engineering, cutting a release is
 not.
 
-**THE BASE IS DONE. THE OWNER CLOSED IT ON 2026-09-04, AND THERE IS NO NEXT PACKAGE.** Put as a
-choice rather than a queue once T4.4 landed — every consumer document performed, every phase
-closed, nothing blocking — and the answer was *nothing at all*. **WP-10 crafting stays OPTIONAL
-and is not being built**, on the reasoning the board already carried for it: crafting belongs to a
-game that wants it, and a sixth catalogue is not something the template needs to prove anything.
-The five walks (T2.2, T4.1, T4.2, T4.3, T4.4) are finished and all five found defects reading
-would not have.
+**THE BOARD WAS CLOSED ON 2026-09-04 AND REOPENED THE SAME DAY, AND BOTH DECISIONS WERE RIGHT.**
+T4.4 put the choice to the owner — every phase closed, every document performed, nothing blocking
+— and the answer was *nothing at all*, so the board was closed and that closure was recorded. The
+very next question was whether the SKELETON was actually finished, and reading `ROADMAP.md`
+instead of the closing summary answered no: **Phase 1 read COMPLETE while carrying three unticked
+exit criteria, and Phase 2 read IN PROGRESS with one.** T5.1 closed all four by PROVING them, and
+one turned out to be a genuinely missing FEATURE — the locale setting was wired to nothing at all.
+**Every exit criterion in every phase is now ticked, and each was proved rather than asserted.**
 
-**So a new session's default is NOT to find work.** If you are here because something is actually
-broken, or because a game built on this base has hit a seam that is genuinely missing, that is a
-package and the board is where it goes. Adding one for its own sake is precisely how the previous
-project reached 3,983 lines in one file twenty reasonable lines at a time. **The version stays
-`1.0.2` and UNTAGGED** — the owner declined that tag on 2026-09-04. Note that 1.0.0 and 1.0.1
-WERE both tagged, each asked for separately after its bump had landed, which is T4.1's precedent
-working as intended rather than an inconsistency: the bump ships with the package and the tag is a
-separate request the owner answers. Here the answer was no.
+**So the base is v1.1-complete, and what it is FOR has been sharpened.** The owner's intent is
+reusable CHARACTER infrastructure that future games inherit by swapping assets — several idle
+formats, several movement styles — so that a new game starts from a working base rather than going
+in blind. That reframing names the next package rather than leaving it to taste, and the seam it
+needs is already half-built: see the first gap below.
+
+**A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
+or a seam the owner's reframing actually needs is a package. One invented so that there is one is
+how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
+**The version stays UNTAGGED at `1.1.0`** — 1.0.0 and 1.0.1 were each asked for separately and
+granted, 1.0.2 and 1.1.0 were not.
+
+**THE NEXT PACKAGE, and it is the owner's reframing made concrete.**
+`SpriteSheetLayout.animation_for(moving: bool)` takes a **BOOLEAN**, so a sheet can carry only an
+idle block and a walk block — run and sneak replay the walk row faster and nothing else. Meanwhile
+`GameEnums.MoveState` has ten values, and `Events.player_state_changed(state)` is declared **and
+emitted** by `PlayerController` and **listened to by nothing**. So the animation block should be
+chosen by `MoveState` rather than by a bool, and then one sheet carries separate idle / walk / run
+/ sneak / climb blocks and every future character — player or NPC, since both use `CharacterVisual`
+unchanged — gets them by asset swap with no code. That is the **sixth** instance in this project of
+something declared, validated and read by nothing, after `Gate.locked_key`,
+`PathAction.refusal_key`, `ItemDb.reload`, `HD2DCameraRig`'s framing exports and the locale setting
+T5.1 just fixed.
 
 
-138 files, 11,983 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
+140 files, 12,236 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
 three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
-3 tagged surfaces, 1 shared area material. Template version **1.0.2**, and that version is
-deliberately UNTAGGED — `v1.0.0` and `v1.0.1` are the tags, each naming the tree that declares it.
+3 tagged surfaces, 2 languages, 1 shared area material. Template version **1.1.0**, and that
+version is deliberately UNTAGGED — `v1.0.0` and `v1.0.1` are the tags, each naming the tree
+that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 
 **Works, and verified by running it:** logging with rotation · signal registry (`events.gd`) ·
@@ -150,7 +175,18 @@ input actions · settings · save/load with atomic writes and versioning · plot
 director with a re-entrancy guard and threaded loading · world clock · weather state · audio
 buses · HD-2D camera rig with tilt-shift DOF · billboarded lit shadow-casting 8-way character ·
 camera-relative walk/run/sneak · day/night lighting · screen fade · dev screenshot capture ·
-placeholder art generator · line-budget checker · a headless test suite (1,625 assertions) that
+**A LANGUAGE YOU CAN ACTUALLY SWITCH**: `Settings._apply_locale` reaches `TranslationServer`
+on `_apply_display`'s reasoning — nothing else owns it — and `tools/gen_pseudolocale.gd`
+generates an `en_XA` column so a second language EXISTS without the template pretending to
+ship a translation. Two captures of the satchel differing only in that setting were read:
+`Satchel / Key Items / Rose Key x1` against `[~~Satchel~~] / [~~Key Items~~] /
+`[~~[~~Rose Key~~] x1~~]`, the row double-wrapped because the row format AND the item name
+both come from the table. An unbracketed string on screen is therefore a hard-coded one,
+which is `check_strings.gd`'s static rule made visible and including anything computed ·
+**A SAVE THAT SURVIVES A REAL RELAUNCH**, proved in TWO PROCESSES rather than one reload:
+`--save-state` / `--load-state` in `dev_probes.gd`, with the fresh process's boot line as
+the control and the weather deliberately STORM because CLEAR is the boot default ·
+placeholder art generator · line-budget checker · a headless test suite (1,653 assertions) that
 builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
 returns early, asserts nothing, or is not listed in the runner ·
 an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
@@ -245,7 +281,7 @@ both rigs. A PNG a game drops in imports correctly first time, because `[importe
 T3.2 settled by MEASURING instead. Six windowed captures LOOKED AT and READ, each pair differing by
 one edit to one file, and six gates proved red with the real violation — one of which was the test
 itself, passing while the thing it checked was deleted ·
-**A CONSOLE YOU CAN TYPE IN AND AN OVERLAY YOU CAN READ WHILE THE GAME RUNS, AND THE FOUR COMMANDS
+**A CONSOLE YOU CAN TYPE IN AND AN OVERLAY YOU CAN READ WHILE THE GAME RUNS, AND THE SIX COMMANDS
 ARE THE COMMAND LINE'S OWN**: `goto`, `flag`, `time` and `give` have ONE body each in
 `src/systems/debug/dev_commands.gd`, which `dev_stage.gd`, `dev_capture.gd` and
 `DebugConsoleScreen` all call, so what you type in the console is exactly what you pass after the
@@ -467,13 +503,18 @@ three compiled cleanly and passed every static gate:**
   in writing, so shipping either would contradict the document. A table is a list of exceptions to
   the promise, and the promise is the product; `same_major_as()` and `compare_to()` are the whole
   surface. Git shows a diff and the game's author decides.
-- **THE BASE IS FINISHED, BY THE OWNER, 2026-09-04, AND "WHAT IS THE NEXT PACKAGE" NOW HAS THE
-  ANSWER "THERE ISN'T ONE".** Every phase is closed, every consumer document has been performed,
-  and the only two candidates left were WP-10 crafting and nothing. The owner chose nothing. This
-  is recorded rather than left implicit for the same reason WP-15's closure was: an un-recorded
-  decision to stop looks exactly like an oversight, and the next session would helpfully invent a
-  package. **WP-10 stays OPTIONAL and unbuilt.** A genuine defect, or a seam a game built on this
-  base actually finds missing, is still a package — a package invented to have one is not.
+- **"IS THE BASE DONE" IS A QUESTION ABOUT `ROADMAP.md`, NOT ABOUT THE CLOSING SUMMARY — AND ON
+  2026-09-04 THE TWO DISAGREED.** T4.4 closed the board on the owner's instruction and recorded
+  the closure; asked an hour later whether the skeleton was finished, the honest answer came from
+  the criteria and was **no**. Phase 1 read COMPLETE with three unticked exit criteria and Phase 2
+  read IN PROGRESS with one, and one of the four was a missing FEATURE rather than a missing proof.
+  T5.1 closed all four by proving them. **Two rules come out of it.** A phase marked complete "except
+  for the hard ones" is a phase whose hard parts nobody has the answer to — and here that hid a
+  system wired to nothing for the whole life of the project. And **a summary is not a state file**:
+  when they disagree, the file with the checkboxes wins, which is why `CONTEXT.md` says to read the
+  roadmap rather than the last package's write-up. WP-10 crafting is still OPTIONAL and unbuilt,
+  and the reasoning for closing the board still stands for work with no criterion behind it: a
+  package invented so that there is one is how the previous project reached 3,983 lines in one file.
 - **WP-15's REMNANT IS CLOSED, BY THE OWNER, 2026-09-02.** Credits name a team a template does not
   have, and an accessibility pass over placeholder art and a UI every game restyles is a pass over
   something designed to be thrown away. What the template owes accessibility is the SEAMS, and they
@@ -993,7 +1034,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,625 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,653 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content
@@ -1001,7 +1042,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Forty-nine gotchas that each cost an hour
+## Fifty-one gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -1486,6 +1527,45 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     document walked, and the fifth to find a defect; the third of the five where the defect was
     in the TEMPLATE rather than the prose.**
 
+
+50. **A STAGING FLAG THAT GOES THROUGH A PERSISTED SETTING BREAKS THE NEXT RUN OF SOMETHING ELSE.**
+    `--locale=<code>` is routed through `Settings.set_value` on purpose — a flag that set
+    `TranslationServer` directly would photograph a path no player can take — and `set_value`
+    calls `save()`, because a language choice should survive a relaunch. So one capture at
+    `--locale=en_XA` left the setting on disk, and the NEXT suite run failed four assertions in
+    `items_test` and `screens_test`: `expected fixture.fixture_stack.name x3, got
+    [~~fixture.fixture_stack.name x3~~]`. Four failures, in two files the package had never
+    touched, caused by a screenshot taken ten minutes earlier — and the suite had been green
+    immediately before, so the obvious reading was that the last edit broke it. **A suite whose
+    result depends on the developer's saved preferences is not deterministic**, and the fix is the
+    one the runner already applied to time: `test_runner.gd` pins `Clock.paused` because a clock
+    that advances mid-assertion makes time assertions flaky, and it now pins the locale for the
+    identical reason one step further out. The pin reads `internationalization/locale/fallback`
+    from `ProjectSettings` rather than hard-coding English, or a consuming game whose default is
+    another language would inherit the flakiness the pin exists to remove. Two rules generalise.
+    **Anything global that a dev flag can persist must be pinned by the harness, not trusted to be
+    put back** — the flag was correct, the capture was correct, and the failure was still real.
+    And **a failure in a file you did not touch is evidence about the ENVIRONMENT, not about your
+    change**; the ten minutes spent suspecting the edit were spent because that reflex is backwards.
+
+51. **`update_from_velocity` FROM A PROBE MEASURES NOTHING, AND `run` IS A TOGGLE.** Two facts,
+    one probe, and both cost a measurement that looked like data. Driving
+    `CharacterVisual.update_from_velocity` directly from `dev_probes.gd` reported the drawn cell
+    frozen at 0 through twelve frames at two different speeds — which reads as "the walk cycle is
+    broken" and is actually **`PlayerController._physics_process` overwriting the visual from its
+    own velocity every physics frame**, that velocity being zero because nothing was pressing
+    anything. A visual driven by a controller can only be measured THROUGH the controller: press
+    the real action with `Input.action_press` and let the body move. The second fact bit
+    immediately afterwards: `run` is a TOGGLE (`run_is_toggle`, polled through
+    `is_action_just_pressed`), so `Input.action_press(Actions.RUN)` toggles it rather than holding
+    it — the "running" trial covered **0.75m against walking's 2.30m**, having toggled off and
+    then walked into the dais, which is a number that looks like a finding and is an artefact
+    twice over. `sneak` is a hold and is what a speed comparison should use. Corrected, the
+    measurement is clean and matches the formula: `4.04m / 8 cell changes` walking against
+    `1.50m / 4` sneaking over 60 frames, against
+    `walk_fps 8.0 * clampf(speed / 3.2, 0.35, 2.0)`. **A probe that reads a value someone else
+    writes every frame is reading their answer, not yours.**
+
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the
@@ -1535,7 +1615,7 @@ you can press to travel back to once you have — and every one of those walks n
 depending on whether you are crossing grass, the wooden dais or stone. Every one of those changes
 survives a save and a
 reload, including from the far side of an area that is no longer loaded. All of it is covered
-by 1,625 headless assertions.
+by 1,653 headless assertions.
 
 **Next, and for the first time it is not an ordered queue.** Every blocking row is done: Phase T3
 closed with WP-14b, WP-15 was CLOSED by the owner, and T4.1 shipped the version and the upgrade

@@ -19,6 +19,9 @@ extends Node
 ##                        the fade-in to finish and for volumetric fog to converge, or the
 ##                        image will be darker than the real thing.
 ##   --time=HH:MM         force the clock before capturing.
+##   --locale=<code>      switch language before capturing. Goes through Settings, so it is
+##                        the same path the options screen takes - and it PERSISTS, because
+##                        a language choice does. Pass --locale=en to put it back.
 ##   --freeze-time        stop the clock, so a capture is reproducible to the pixel.
 ##   --skip-to-hour=<int> perform the same time skip a rest point does, after --time.
 ##   --weather=<KIND>     force weather. Any GameEnums.WeatherKind name.
@@ -112,6 +115,8 @@ func _parse_arguments() -> void:
 			_shot_frame = maxi(1, argument.trim_prefix("--shot-frame=").to_int())
 		elif argument.begins_with("--time="):
 			_force_time(argument.trim_prefix("--time="))
+		elif argument.begins_with("--locale="):
+			_force_locale(argument.trim_prefix("--locale="))
 		elif argument == "--freeze-time":
 			Clock.paused = true
 			Log.info("test", "Clock frozen by command line")
@@ -194,3 +199,13 @@ func _settled() -> void:
 		await get_tree().process_frame
 	for _i: int in 4:
 		await get_tree().process_frame
+
+
+## Switch language for a capture. Deliberately through `Settings.set_value` rather than straight
+## to `TranslationServer`: the criterion is that switching the SETTING changes what is on screen,
+## and a flag that set the translation server itself would photograph a path no player can take.
+func _force_locale(code: String) -> void:
+	if code == "":
+		return
+	Settings.set_value(Settings.LOCALE, code)
+	Log.info("capture", "Locale forced to %s" % TranslationServer.get_locale())

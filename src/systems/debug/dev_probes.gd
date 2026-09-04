@@ -69,6 +69,10 @@ func _parse_arguments() -> void:
 			_npc_day()
 		elif argument.begins_with("--npc-storm="):
 			_npc_storm(maxi(1, argument.trim_prefix("--npc-storm=").to_int()))
+		elif argument.begins_with("--save-state="):
+			_save_state(argument.trim_prefix("--save-state="))
+		elif argument.begins_with("--load-state="):
+			_load_state(argument.trim_prefix("--load-state="))
 
 
 func _round_trips(count: int) -> void:
@@ -294,3 +298,58 @@ func _dress_storm_npc(npc: Node, index: int) -> void:
 ## Give the NPCs time to reach their posts before the shutter opens. A capture taken on the
 ## default frame catches them mid-stride between the spawn point and wherever the clock says
 ## they belong, which photographs the transition rather than the schedule.
+
+
+## PHASE 1'S SAVE CRITERION NEEDS TWO PROCESSES, WHICH IS WHY IT IS A PAIR AND NOT A PROBE.
+## `--cross-area-save` already reloads IN PROCESS, and that cannot tell a value that was written
+## to disk and read back from one that was simply never cleared - the whole point of "quit and
+## relaunch" is that nothing is left in memory to be right by accident. So: run once with
+## `--save-state=<slot>`, which poses a state that is nothing like a fresh game and saves it,
+## then run AGAIN with `--load-state=<slot>` and compare the two reports line for line.
+func _save_state(slot_text: String) -> void:
+	while Director.current_area_id == &"":
+		await get_tree().process_frame
+	await _settled()
+	# Somewhere a new game is not, carrying something a new game does not, at a time it is not.
+	await _travel(&"lantern_hall", &"from_courtyard")
+	Inventory.of(Director.player).add(&"item/rose_key", 1)
+	Clock.set_time(3, 21, 45)
+	# STORM, not CLEAR. Weather's default IS CLEAR, so saving a clear day and reading a clear
+	# day back proves nothing at all - the control has to differ from the boot value.
+	Weather.force(GameEnums.WeatherKind.STORM)
+	Log.info("test", "--save-state %s" % DevCommands.save_to(slot_text))
+	Log.info("test", "--save-state before: %s" % _state_report())
+
+
+## The other half, run in a FRESH process. Boots to the main menu with no area loaded, so the
+## report afterwards cannot be describing anything this session set up.
+func _load_state(slot_text: String) -> void:
+	await _settled()
+	Log.info("test", "--load-state at boot: %s" % _state_report())
+	Log.info("test", "--load-state %s" % DevCommands.load_from(slot_text))
+	await _settled()
+	while Director.current_area_id == &"":
+		await get_tree().process_frame
+	await _settled()
+	Log.info("test", "--load-state after: %s" % _state_report())
+	# The pair owns the slot it used, the way `--cross-area-save` owns PROBE_SLOT: a probe
+	# that leaves a save behind turns the next `Continue` into somebody else's session.
+	var slot: int = slot_text.strip_edges().to_int()
+	if SaveSystem.has_slot(slot):
+		Log.info("test", "--load-state cleaned slot %d: %s" % [
+			slot, error_string(SaveSystem.delete_slot(slot)),
+		])
+
+
+## Everything the criterion names - position, time, weather and inventory - plus the area, since
+## a restored position in the wrong area is not a restored position.
+func _state_report() -> String:
+	var body: PlayerController = Director.player
+	var place: String = "none" if body == null else "%.2f,%.2f" % [
+		body.global_position.x, body.global_position.z,
+	]
+	var carried: int = 0 if body == null or Inventory.of(body) == null else Inventory.of(body).total_count()
+	return "area='%s' at=%s day=%d time=%02d:%02d weather=%d carrying=%d" % [
+		Director.current_area_id, place, Clock.day, Clock.hour, Clock.minute,
+		int(Weather.current()), carried,
+	]

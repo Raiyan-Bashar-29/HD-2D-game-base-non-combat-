@@ -47,8 +47,8 @@ const GATE_SITES: Array[Array] = [
 
 
 func run() -> void:
-	plan(36)
-	_the_four_verbs_are_the_command_lines_own()
+	plan(37)
+	_the_verbs_are_the_command_lines_own()
 	_a_malformed_argument_is_refused_whole()
 	_the_console_runs_a_line_and_keeps_a_transcript()
 	_the_overlay_reads_the_engines_own_counters()
@@ -58,8 +58,14 @@ func run() -> void:
 
 ## The vocabulary, and that a typed line reaches the verb it names. `run()` takes the SAME
 ## argument the matching `--verb=` takes, which is the whole reason there is one parser.
-func _the_four_verbs_are_the_command_lines_own() -> void:
-	equal("there are four verbs", DevCommands.VERBS.size(), 4)
+func _the_verbs_are_the_command_lines_own() -> void:
+	# A COUNT, and deliberately a number somebody has to edit: a verb added without a thought
+	# about testing it should fail here exactly once. T5.1 added `save` and `load`, and this
+	# is where that showed up - which is the assertion doing its job, not being in the way.
+	equal("the vocabulary is six verbs", DevCommands.VERBS.size(), 6)
+	# THE PART THAT CANNOT ROT. A count says how many there are; this says every one of them
+	# is wired, which is what a seventh verb declared in VERBS and forgotten in `run` breaks.
+	equal("every verb in the vocabulary dispatches", _every_verb_dispatches(), true)
 	equal("the usage line names every verb", _usage_names_all(), true)
 	equal("an empty line asks for nothing", DevCommands.run(""), "")
 	equal("an unknown verb is reported, not run",
@@ -225,3 +231,12 @@ func _function_body(path: String, signature: String) -> String:
 			continue
 		body += line + "\n"
 	return body
+
+
+## Every declared verb reaches a body. Called with no argument on purpose: each verb answers with
+## its own usage line and changes nothing, so this asks "is it wired" without posing any state.
+func _every_verb_dispatches() -> bool:
+	for verb: StringName in DevCommands.VERBS:
+		if DevCommands.run(String(verb)).begins_with("no such command"):
+			return false
+	return true

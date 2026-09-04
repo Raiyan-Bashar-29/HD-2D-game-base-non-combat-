@@ -70,20 +70,30 @@ func _load_keys() -> void:
 		_fail("cannot open %s" % CSV)
 		return
 	var first: bool = true
+	var columns: int = 0
 	while not file.eof_reached():
 		var row: PackedStringArray = file.get_csv_line()
 		if row.size() == 0 or row[0] == "":
 			continue
 		if first:
 			first = false
+			columns = row.size()
+			print("  localization columns: %d (%s)" % [columns, ", ".join(row)])
 			continue
 		_keys[row[0]] = true
-		# MORE THAN TWO COLUMNS MEANS AN UNQUOTED COMMA, and the value was silently cut short at
-		# it. Nothing else catches this: the key still resolves, tr() still returns a string, and
-		# the line just quietly loses its second half. WP-01 shipped a lever whose toast ended at
-		# "Somewhere north" for three packages before a capture showed it.
-		if row.size() > 2:
-			_fail("%s has an unquoted comma; its text is cut off at '%s'" % [row[0], row[1]])
+		# A ROW THAT DISAGREES WITH THE HEADER MEANS AN UNQUOTED COMMA, and the value was silently
+		# cut short at it. Nothing else catches this: the key still resolves, tr() still returns a
+		# string, and the line just quietly loses its second half. WP-01 shipped a lever whose
+		# toast ended at "Somewhere north" for three packages before a capture showed it.
+		#
+		# THE HEADER IS THE WIDTH, not the literal two this used to require. A game may add locale
+		# columns - the template itself now has two - and hard-coding two would have made the
+		# second language fail the gate that exists to protect the first. Equality rather than a
+		# maximum, so a half-added locale that fills only some rows is caught as well.
+		if row.size() != columns:
+			_fail("%s has %d column(s) where the header has %d, so an unquoted comma has cut its text off at \"%s\"" % [
+				row[0], row.size(), columns, row[1],
+			])
 	file.close()
 	print("  localization keys: %d" % _keys.size())
 

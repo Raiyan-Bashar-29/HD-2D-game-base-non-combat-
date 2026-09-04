@@ -62,7 +62,7 @@ world/first_spawn="default"
 ; when the base gains something a game may ignore, the patch when nothing a game wrote is
 ; affected. That promise is stated in full in docs/UPGRADING.md and encoded in
 ; src/core/util/template_version.gd, which reads this setting and is what the boot banner prints.
-base/version="1.0.2"
+base/version="1.1.0"
 
 [debug]
 
@@ -188,7 +188,7 @@ folder_colors={
 
 [internationalization]
 
-locale/translations=PackedStringArray("res://localization/strings.en.translation")
+locale/translations=PackedStringArray("res://localization/strings.en.translation", "res://localization/strings.en_XA.translation")
 
 [navigation]
 

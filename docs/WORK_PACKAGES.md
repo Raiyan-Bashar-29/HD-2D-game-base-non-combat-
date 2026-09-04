@@ -77,6 +77,7 @@ original board rather than continuing it.
 | T4.2 | **A second worked example, authored from `AUTHORING.md` alone** | **DONE** — the second package of Phase T4, and T2.2's mechanism applied to CONTENT. Five defects, two of them in the TEMPLATE rather than the prose: `check_boundary` matched SUBSTRINGS, so an item called `pear` collided with the word `appeared` and failed a gate its author could not fix; and `--stand-by` always resolved in the DEPARTURE area, so no object in an authored area could be photographed. Both gotcha 44's shape — found only by authoring content this repository does not have; see below |
 | T4.3 | **`NEW_GAME.md` performed as a fork, and the release tag** | **DONE** — the last package of Phase T4, which it CLOSES. Landed the 26-PR stack on `main` as one 71-commit chain and tagged `v1.0.0` with the owner's authorisation, then performed `NEW_GAME.md` from a fresh clone. Two defects, one in the TEMPLATE: `core_test.gd` asserted an empty `first_area` was illegal when four other statements call it legal, so a fork had a red rung 4 before authoring its first area; and the prune list never learned about `quest.`, so a fork shipped this template's demo quest strings with every gate green. Bumped to `1.0.1`; see below |
 | T4.4 | **`TESTING.md` performed, the last document never walked** | **DONE** — five for five: every document performed has found a defect reading would not, and this is the third of the five where the defect was in the TEMPLATE. The test runner SKIPPED A LISTED CASE THAT DID NOT PARSE, in silence, for the life of the suite — `load()` returns a non-null uninstantiable `GDScript`, `script.new()` then raises a runtime error, and that aborts only `_run_case`, so the loop moved on and the suite reported `1608 passed, 0 failed` and exit 0 with a whole case never run. `error_watch.gd` had counted the error the whole time and nothing asked it. Also: the document's ONE worked example did not compile, and three documents gave three different gotcha counts. Bumped to `1.0.2`; see below |
+| T5.1 | **The skeleton's four open exit criteria, closed by proving them** | **DONE** — asked whether the base was actually finished, `ROADMAP.md` said no: **Phase 1 read COMPLETE with three unticked exit criteria and Phase 2 read IN PROGRESS with one.** All four proved rather than ticked, and **one was a missing FEATURE** — `Settings` stored a locale, the options screen cycled one, and nothing anywhere called `TranslationServer.set_locale`, with only one locale column in the CSV so there was nothing to switch to. Also: the eight-direction facing mapping had no assertions (21 now, camera-yaw independent), the save criterion needed TWO PROCESSES, and the 30-second session had never been run. Bumped to `1.1.0`; see below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -3262,14 +3263,214 @@ where that content is deliberately deleted.
 
 **Commit:** `29ba248` on `claude/t4-4-testing-perform`, PR #29, targeting `main`.
 
-## The board is closed — 2026-09-04
+## The board was closed, then reopened the same day — 2026-09-04
 
-**There is no next row, and that is a decision rather than a gap.** T4.4 landed the last
-consumer document to be performed, every phase is complete, and the two remaining candidates —
-WP-10 crafting, and nothing — were put to the owner, who chose nothing. `CONTEXT.md`'s settled
-decisions carry the full reasoning, and the version stays `1.0.2` and untagged.
+**Closed by T4.4, on the owner's instruction:** the last consumer document had been performed,
+every phase was complete, and the two remaining candidates — WP-10 crafting, and nothing — were
+put to the owner, who chose nothing.
 
-**WP-10 remains OPTIONAL and unbuilt**, kept on the board as a record rather than a queue entry,
-the way WP-15's remnant is. A real defect is still a package. So is a seam that a game actually
-built on this base discovers is missing. A package invented so that there is one is how the
-previous project got a 3,983-line file, twenty reasonable lines at a time.
+**Reopened within the hour, and for a good reason.** Asked whether the SKELETON was actually
+finished, `ROADMAP.md` disagreed with the closing summary: **Phase 1 read COMPLETE while carrying
+three unticked exit criteria, and Phase 2 read IN PROGRESS with one.** T5.1 closed all four by
+proving them, and one was a missing FEATURE rather than a missing proof — the locale setting was
+wired to nothing at all. **When a summary and a state file disagree, the file with the checkboxes
+wins.** That is now a settled decision in `CONTEXT.md` rather than a lesson to relearn.
+
+**The board is a queue of criteria, not of ideas.** WP-10 remains OPTIONAL and unbuilt, kept as a
+record the way WP-15's remnant is. An unticked criterion is a row. A real defect is a row. A seam
+the owner's intent for the base actually needs is a row — which is what the next one is. A package
+invented so that there is one is how the previous project got a 3,983-line file, twenty reasonable
+lines at a time.
+
+## T5.1 · The skeleton's four open exit criteria, closed by proving them — **DONE**
+
+**The board had just been closed, and the base was not finished.** T4.4 put the choice to the
+owner and recorded the closure. The next question was whether the SKELETON was actually done, and
+the answer came from `ROADMAP.md` rather than from the closing summary: **Phase 1 read COMPLETE
+while carrying three unticked exit criteria, and Phase 2 read IN PROGRESS with one.** Nobody had
+lied — each criterion was ticked as it was proved, and the three awkward ones were left, then the
+phase was called done on the strength of everything else. **Every criterion in every phase is now
+ticked, and each of these four was proved rather than ticked.**
+
+### The one that was a missing FEATURE, not a missing proof
+
+Phase 2's *"switch language at runtime and see every visible string change"* could not pass, and
+reading the code would not have shown why, because `settings_screen.gd` does exactly the right
+thing: it offers `TranslationServer.get_loaded_locales()` and stores the choice through
+`Settings.set_value`. `Settings` then announces `setting_changed` — and **nothing anywhere calls
+`TranslationServer.set_locale`.** Grepped to be certain; the only hits were the settings screen
+reading the loaded list. So the language could be chosen, was validated, was persisted, survived a
+relaunch, and changed nothing at all. **Fifth instance of this project's most expensive shape** —
+declared, validated and read by nothing — after `Gate.locked_key`, `PathAction.refusal_key`,
+`ItemDb.reload` and `HD2DCameraRig`'s framing exports.
+
+**And there was nothing to switch to, which is why fixing the wiring alone would not have closed
+it.** The CSV had ONE locale column; `get_loaded_locales()` returned `["en"]`, measured. So the
+options screen's locale stepper had been cycling a list of one for as long as it had existed.
+
+Three changes, and the second is the one with teeth:
+
+- **`Settings._apply_locale`**, on `_apply_display`'s stated reasoning rather than by analogy with
+  it. That function's own comment says why it exists — *"nothing else owns the window"* — and the
+  identical sentence is true of `TranslationServer`. A consumer would have to be a system, and
+  "the language" is not one: every screen reads it, none owns it. **Not** skipped under headless,
+  which is the one way it differs from the display: a translation has no window in it, so the suite
+  asserts `tr()` instead of trusting a screenshot.
+- **`check_content.gd`'s CSV rule is now the header width.** It failed any row parsing to more than
+  TWO columns — the rule that catches WP-01's unquoted comma, which shipped a lever toast reading
+  *"Somewhere north"* for three packages — so **the second language would have failed the gate that
+  exists to protect the first.** It compares against the header now, and demands equality rather
+  than a maximum so a half-added locale filling only some rows is caught too. Planted with the
+  original bug: unquoting WP-01's own row gives `object.lever.gate.on has 4 column(s) where the
+  header has 3, so an unquoted comma has cut its text off at "The lever gives with a heavy clack.
+  Somewhere north"`, exit 1; restored, exit 0. The same defect, still caught, one column wider.
+- **`tools/gen_pseudolocale.gd`** generates an `en_XA` column, wrapping each English value as
+  `[~~English~~]`. A real second language is 218 rows the template has no business inventing and a
+  consuming game replaces anyway; a generated one proves the mechanism. **Same argument that
+  generates placeholder ART** rather than shipping art. It earns its keep afterwards: an
+  unbracketed string on screen never went through the CSV — `check_strings.gd`'s static rule made
+  visible, and covering anything computed — and the padding makes every label longer than its
+  English, so a layout that only just fits fails here rather than in a translated build. It writes
+  through `store_csv_line`, because that is what knows how to quote a comma and hand-writing the
+  file is how the WP-01 bug comes back.
+
+**Proved by two captures of the satchel at 12:00, differing only in that setting, and READ:**
+`Satchel / Key Items / Rose Key x1 / Enter to hold or stow · Escape to close` against
+`[~~Satchel~~] / [~~Key Items~~] / [~~[~~Rose Key~~] x1~~] / [~~Enter to hold or stow · Escape to
+close~~]`. The item row is **double-wrapped**, which is the interesting part: the row format and
+the item name are two separate table lookups, so both wrap. The HUD reads
+`[~~Day 1  |  12:00  |  [~~Midday~~]~~]` — one outer wrap with the phase wrapped inside and the
+numerals bare, which is correct: the CSV key is `Day {day}  |  {time}  |  {phase}`, a single format
+string with named placeholders, so the translator owns the separators and the order.
+
+### A capture flag that persists broke the suite in four unrelated files
+
+`--locale=` is routed through `Settings.set_value` deliberately, because a flag that set
+`TranslationServer` directly would photograph a path no player can take. `set_value` calls
+`save()`. So the `en_XA` capture left the setting on disk and the **next** suite run failed in
+`items_test` and `screens_test` — `expected fixture.fixture_stack.name x3, got
+[~~fixture.fixture_stack.name x3~~]` — four failures, in two files this package never touched,
+caused by a screenshot taken ten minutes earlier. `test_runner.gd` now pins the language for the
+same reason it already pins `Clock.paused`, reading
+`internationalization/locale/fallback` from `ProjectSettings` rather than hard-coding English so a
+consuming game whose default is another language gets a deterministic suite too. **Gotcha 50.**
+
+### Eight-direction facing: assertions, because a screenshot cannot judge it
+
+`art_contract_test.gd` proves the LAYOUT's quantisation for all eight sectors, but its MUST NOT
+line forbids asserting what a character looks like, and `character_depth_test.gd` owns attributes
+and surfaces — so nothing connected a direction of TRAVEL to a column, which is where an axis swap
+or a sign error lives. `tests/unit/facing_test.gd`, 21 assertions.
+
+**Every one is camera-yaw independent, on purpose.** `_screen_angle` subtracts the active camera's
+yaw so "towards the camera" is the front pose whatever angle an area frames from — a feature, and
+it makes "north-east is column 3" true for one camera only. So what is asserted is what holds for
+every camera: the eight directions stay DISTINCT, and one sector of turn advances the facing by
+exactly one.
+
+**Planted twice, and the second plant justifies the design.** Swapping the axes in `_screen_angle`
+(`atan2(y, x)` for `atan2(x, y)` — the actual slip) fails all eight with `expected 1, got 7`, the
+mirror — **and the distinctness and column-agreement assertions still PASS under it**, because a
+mirrored character is still eight distinct poses consistently drawn. Only the turn-direction
+assertion sees it, which is gotcha 28 in assertion form. Deleting the standing-still guard gives
+`expected 0, got 2`. Both exit 1; control `facing_test: 21/21`, exit 0.
+
+Then the walk-through, because the criterion says *walk*: a temporary `--face-all` probe drove the
+LIVE player through all eight directions in the courtyard against the real camera rig, reporting
+`facing=N column=N` for N in 0..7, with frame numbers logged so the shutter could be aimed —
+sector 3 spans frames 123-162, making a capture at 140 a checkable prediction. Read at 1920x1080:
+courtyard at midday, HUD `Day 1 | 12:00 | Midday`, prompt drawn, player drawn from BEHIND, which
+is what north-east should look like. Probe removed; `git diff src/systems/debug/` clean.
+
+**One thing the assertions deliberately do not claim.** The shipped placeholder sheet is the plain
+figure, not T2.1's pip-labelled one, so a column number cannot be read off this capture — that is
+what the labelled alt sheet and `frame_index()`'s own assertions are for. The capture shows the
+character rendering correctly in-area and facing away; the mapping is proved by the 21 assertions
+and the live probe, not by the screenshot.
+
+### The save criterion needed two processes
+
+`--cross-area-save` already saves and reloads IN PROCESS, and that cannot tell a value read back
+from disk from one that was never cleared — *quit and relaunch* is exactly the case where nothing
+is left in memory to be right by accident. `--save-state=<slot>` and `--load-state=<slot>` are
+that pair:
+
+```
+run 1  --save-state before: area='lantern_hall' at=0.00,-4.20 day=3 time=21:45 weather=4 carrying=1
+run 2  --load-state at boot: area=''            at=0.00,0.00  day=1 time=06:00 weather=0 carrying=0
+run 2  --load-state after:   area='lantern_hall' at=0.00,-4.20 day=3 time=21:45 weather=4 carrying=1
+```
+
+The middle line is the CONTROL and it is the whole point. **The weather is deliberately STORM (4)
+rather than CLEAR**, because CLEAR is the boot default: the first version of this probe reported
+`weather=0` on both sides and looked like a pass while proving nothing about weather at all.
+
+`save` and `load` joined `DevCommands` for this, since the settled decision is that the console and
+the command line are one implementation — six verbs now, zero-based slots matching `SaveSystem` and
+the save screen. **`dev_stage.gd` could not host the flag: it is at 248 of its 250 code lines**, so
+the pair went to `dev_probes.gd`, which owns scripted scenarios and already had `--cross-area-save`.
+
+The existing verb-count assertion caught the additions — `there are four verbs — expected 4, got 6`
+— which is it working rather than being in the way. It gained a companion that **cannot rot**: every
+verb in `VERBS` must dispatch. Planted with a seventh verb declared and unwired, and the dispatch
+assertion fails independently of the count, which is the case a dutifully bumped number hides.
+
+### The 30-second session had simply never been run
+
+The boot rung is 30 **frames** at the main menu (gotcha 31), so the criterion had been measuring
+nothing for the life of the project. A windowed **33.6-second** session that entered the courtyard,
+baked its navmesh (92 polygons), opened the satchel, cycled the sensor and interacted twice ended
+`0 warnings, 0 errors` with **zero** `SCRIPT ERROR`, `Parse Error` or leaked-RID lines across 53 log
+lines. An idle 30 seconds passed too, but a session in which nothing happens is not a play session
+and was not accepted as one.
+
+### Measured in passing, because the owner asked whether characters animate
+
+They do, and the numbers match the formula. Pressing the real movement action and reading the
+**Sprite3D cell being drawn** — not a private counter — gives `6 -> 14 -> 22 -> 30` for column 6
+(west), which is frames 0 to 3: `4.04m over 60 frames, 8 cell changes` walking against
+`1.50m, 4 changes` sneaking, and `standing still: drawn cell 6`, frame 0, the neutral pose. Two
+cycles per second walking, one sneaking, against
+`walk_fps 8.0 * clampf(speed / 3.2, 0.35, 2.0)`. **Two false starts are gotcha 51:** driving
+`update_from_velocity` from a probe measures nothing, because the controller overwrites the visual
+from its own velocity every physics frame; and `run` is a TOGGLE, so `action_press(RUN)` toggles it
+— the first "running" trial covered 0.75m against walking's 2.30m, having toggled off and walked
+into the dais.
+
+### What was deliberately NOT done
+
+No new autoload for the locale — that needs an ADR, and `Settings` already owned the value and had
+the precedent for applying one. No real second language: the template does not choose a game's
+languages, and 218 invented rows would be content masquerading as infrastructure. No pip-labelled
+sheet swapped onto the player to read a column off a capture; the assertions and the live probe
+answer that, and swapping the demo's art to test the engine would be the demo growing back.
+
+### Verification
+
+Rung 2 greps to zero `SCRIPT ERROR` / `Parse Error`. Rung 3 ends `0 warnings, 0 errors`. Rung 4 is
+`=== 1653 passed, 0 failed, 0 skipped ===`, exit 0 — up 28 from 1,625: 21 from `facing_test.gd`,
+6 from `core_test.gd`'s locale block, 1 from the new dispatch assertion. All four checkers exit 0.
+
+**Stripped template:** `=== 1579 passed, 0 failed, 25 skipped ===`, exit 0, up 28 by the same
+arithmetic, **the 25 skips unchanged** — no new skip to name, since `localization/` survives a strip
+and the locale block needs no demo content. All four checkers exit 0 with `--path`.
+
+**Version bumped to 1.1.0 — MINOR, and the tag not taken.** The base gained something a game may
+ignore, which is the CHANGELOG's own definition. Its *a consuming game does* line is actionable:
+`strings.csv` will conflict, as it always does, and after resolving it a game either reruns
+`gen_pseudolocale.gd` or deletes the `en_XA` entry from `project.godot` and drops the column —
+nothing under `src/` names it.
+
+### What this unblocks, and the next package
+
+The skeleton is complete in the sense the roadmap uses. The owner has since sharpened what the base
+is FOR: **reusable character infrastructure that future games inherit by swapping assets** — several
+idle formats, several movement styles — so a new game starts from something working rather than
+going in blind. That names the next package, and the seam is already half-built:
+**`SpriteSheetLayout.animation_for(moving: bool)` takes a BOOLEAN**, so a sheet can carry only idle
+and walk blocks and run/sneak just replay the walk row faster. Meanwhile `GameEnums.MoveState` has
+ten values and `Events.player_state_changed(state)` is declared **and emitted** and **listened to
+by nothing**. Choose the animation block by `MoveState` instead, and one sheet carries separate
+idle / walk / run / sneak / climb blocks that every future character — player or NPC, both use
+`CharacterVisual` unchanged — gets by asset swap with no code. Sixth instance of
+declared-validated-and-read-by-nothing.

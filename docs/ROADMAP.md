@@ -34,7 +34,18 @@ Exit criteria, all met:
       first actually executed on 2026-08-24 by the test suite, and passes.
 - [x] A frame can be captured to PNG and inspected
 
-## Phase 1 — One area, one character · **COMPLETE**
+## Phase 1 — One area, one character · **COMPLETE, and honestly so since 2026-09-04**
+
+> **This phase read COMPLETE for months while carrying three unticked exit criteria**, and
+> Phase 2 read IN PROGRESS with one. Nobody had lied: each was ticked as it was proved and
+> the three that were awkward to prove — an eight-direction walk-through, a save across a
+> real relaunch, and a 30-second session — were left, then the phase was called done on the
+> strength of everything else. That is the drift this project polices everywhere else, in
+> the one file that describes whether the project is finished. **T5.1 proved all four
+> rather than ticking them**, and one of the four turned out to be a genuinely missing
+> FEATURE rather than an unproved one: the locale setting was wired to nothing. The lesson
+> is the cheap half of gotcha 23 — a criterion nobody has run is a criterion nobody knows
+> the answer to, and "complete except for the hard ones" is how 409 passing checks happened.
 
 *Goal: a person can be walked around a lit, living space and touch things in it.*
 
@@ -57,8 +68,14 @@ Also done, ahead of Phase 2 because every screen needs it first:
   consumers, plus the one action-to-screen binding and keyboard/gamepad focus in a screen
 
 Exit criteria:
-- [ ] Walk the courtyard, and the character faces the direction of travel correctly in all
-      eight directions
+- [x] Walk the courtyard, and the character faces the direction of travel correctly in all
+      eight directions — done 2026-09-04 (T5.1). `facing_test.gd` asserts the mapping from a
+      direction of travel to a facing and a sheet column, in the form that holds for every
+      camera angle: the eight directions stay distinct, and one sector of turn advances the
+      facing by exactly one. Planted both ways — swapping the axes in `_screen_angle` gives
+      `expected 1, got 7`, and deleting the standing-still guard gives `expected 0, got 2`.
+      A live windowed probe then walked the real player through all eight in the courtyard,
+      reporting `facing=N column=N` for N in 0..7, and a capture at frame 140 was read.
 - [x] Approach three overlapping objects and select each one deliberately — ranking plus
       Tab cycling, done 2026-08-24
 - [x] Pick up an item; it appears in the inventory and no longer exists in the world —
@@ -70,7 +87,15 @@ Exit criteria:
 - [x] Rest on the bench and watch the light change — done 2026-08-26. Two windowed captures
       from the same 06:30 start, one with the same skip the bench performs, show warm dawn
       becoming cool night with the lantern pools lit
-- [ ] Save, quit, relaunch, continue — position, time, weather and inventory all restored
+- [x] Save, quit, relaunch, continue — position, time, weather and inventory all restored —
+      done 2026-09-04 (T5.1), and in TWO PROCESSES, which is the whole point: the existing
+      `--cross-area-save` reloads in process and cannot tell a value read back from disk
+      from one that was simply never cleared. Run one posed `lantern_hall / 0.00,-4.20 /
+      day 3 21:45 / STORM / carrying 1` and saved it; a fresh process reported that line
+      back identically after loading. The boot line before the load is the control —
+      `area='' at=0.00,0.00 day=1 time=06:00 weather=0 carrying=0` — and the weather is
+      deliberately STORM rather than CLEAR, because CLEAR is the boot default and would
+      have been right by accident.
 - [x] Test suite passes headless and exits non-zero on failure — 606 assertions
 - [x] A screen opens over the world, gameplay input stops, the fade still runs over the
       top of it, and Escape restores control — done 2026-08-26, windowed captures plus a
@@ -83,7 +108,11 @@ Exit criteria:
       assertion driving the real Clock
 - [x] Two overlapping input locks release correctly: lock A, lock B, release A, the player is
       still locked — done 2026-08-26, covered by the test suite
-- [ ] A 30-second play session produces **zero** warnings or errors in the log
+- [x] A 30-second play session produces **zero** warnings or errors in the log — done
+      2026-09-04 (T5.1), and it had simply never been run: the boot rung is 30 FRAMES at the
+      main menu (gotcha 31). A windowed 33.6-second session that entered the courtyard,
+      baked its navmesh, opened the satchel, cycled the sensor and interacted twice ended
+      `0 warnings, 0 errors` with zero `SCRIPT ERROR`, `Parse Error` or leaked-RID lines.
 - [x] The budget checker reports no file over its limit — a mandatory close-out gate for every
       package since WP-01; 73 files, 5,638 code lines, 0 violations at WP-06
 
@@ -91,7 +120,7 @@ Exit criteria:
 > document: fifteen packages, one chat each, in dependency order. When the two disagree, the
 > board is what is actually being worked and this file needs updating.
 
-## Phase 2 — Two areas and a reason to move · **IN PROGRESS**
+## Phase 2 — Two areas and a reason to move · **COMPLETE, 2026-09-04**
 
 *Goal: prove the world is a world, not a room.*
 
@@ -101,7 +130,8 @@ Exit criteria:
 - [x] Dialogue runner, dialogue UI, and an authorable conversation format (WP-05)
 - [x] The pause menu itself, and the other four menus with it (WP-12, taken early because
       Phase 3's controller-navigation criterion needed screens to navigate)
-- Localization wired for real: every string is already an ID
+- [x] Localization wired for real: every string is already an ID, and since T5.1 the locale
+      SETTING reaches `TranslationServer` and there is a second language to switch to
 - [x] Weather visuals: rain, snow and wind particles, wet surfaces, ambience layers (WP-13)
 
 Exit criteria:
@@ -121,7 +151,18 @@ Exit criteria:
 - [x] Hold a conversation that reads and sets a flag, and branches on it — done 2026-08-26,
       covered by the test suite, plus a windowed capture and a real-input probe that pressed
       the button, advanced a line and took a branch with the world still running
-- [ ] Switch language at runtime and see every visible string change
+- [x] Switch language at runtime and see every visible string change — done 2026-09-04
+      (T5.1). It was unmet for a reason no amount of wiring would have fixed: the CSV had
+      ONE locale column, so there was nothing to switch TO, and `settings_screen.gd`
+      cycled a locale, stored it, and nothing ever read it back — `TranslationServer` was
+      never told. `Settings._apply_locale` now applies it, on `_apply_display`'s stated
+      reasoning rather than by analogy: nothing else owns `TranslationServer` either.
+      `tools/gen_pseudolocale.gd` generates an `en_XA` column so a second language exists
+      without the template pretending to ship a translation — the same argument that
+      generates placeholder ART. Two captures of the satchel at 12:00, differing only in
+      that setting, were READ: `Satchel / Key Items / Rose Key x1` against
+      `[~~Satchel~~] / [~~Key Items~~] / [~~[~~Rose Key~~] x1~~]`, the item row
+      double-wrapped because the row format AND the name both come from the table.
 
 ## Phases 3 and 4 — RETIRED, out of scope
 

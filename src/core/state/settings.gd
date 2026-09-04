@@ -45,12 +45,16 @@ const DEFAULTS: Dictionary = {
 	"locale": "en",
 }
 
+## The one setting with no section, and the second this file applies without a system owning it.
+const LOCALE: String = "locale"
+
 var _config: ConfigFile = ConfigFile.new()
 
 
 func _ready() -> void:
 	_load_from_disk()
 	_apply_display()
+	_apply_locale()
 	Log.info("settings", "Loaded %d settings" % DEFAULTS.size())
 
 
@@ -110,6 +114,8 @@ func set_value(path: String, value: Variant) -> void:
 	Events.setting_changed.emit(parts[0], parts[1], value)
 	if parts[0] == "video":
 		_apply_display()
+	elif path == LOCALE:
+		_apply_locale()
 
 
 func save() -> void:
@@ -139,7 +145,7 @@ func _load_from_disk() -> void:
 		Log.warn("settings", "%s unreadable (%s) — using defaults" % [PATH, error_string(err)])
 
 
-## The only settings this file applies directly, because nothing else owns the window.
+## Applied here rather than announced, because nothing else owns the window.
 func _apply_display() -> void:
 	if DisplayServer.get_name() == "headless":
 		return
@@ -173,3 +179,22 @@ func _apply_vsync(mode: int) -> void:
 			DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_MAILBOX)
 		_:
 			DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED)
+
+
+## THE SECOND SETTING THIS FILE APPLIES ITSELF, and for `_apply_display`'s reason rather than by
+## analogy with it: nothing else owns `TranslationServer` either. A consumer would have to be a
+## system, and "the language" is not one - every screen reads it, none of them owns it.
+##
+## NOT skipped under headless, which is the one way this differs from the display. A translation
+## has no window in it, so the suite can and does assert against `tr()` - and the criterion this
+## closes ("switch language at runtime and see every visible string change") would otherwise be
+## provable only by eye.
+##
+## An empty or unknown locale is left alone rather than forced: `TranslationServer` falls back to
+## the project's default, and a settings file hand-edited to nonsense should not blank the UI.
+func _apply_locale() -> void:
+	var wanted: String = get_string(LOCALE)
+	if wanted == "":
+		return
+	TranslationServer.set_locale(wanted)
+	Log.info("settings", "Locale -> %s" % TranslationServer.get_locale())

@@ -120,13 +120,21 @@ still the owner's** — T4.3 bumped `base/version` to `1.0.1` for its own fixes 
 NOT tag that, which is T4.1's precedent: stating a version is engineering, cutting a release is
 not.
 
-**The template is v1.0-complete, EVERY CONSUMER DOCUMENT HAS BEEN PERFORMED, and the next package
-is a genuine choice rather than a queue.** There is no candidate that blocks anything and no
-document left to walk — the five walks (T2.2, T4.1, T4.2, T4.3, T4.4) are done and all five found
-defects that reading would not have. What is left: **WP-10 crafting**, still OPTIONAL, if a game
-wants it; or **nothing at all**, which is a legitimate and increasingly defensible answer for a
-base that has answered every question it set out to. **That is the owner's call and the next
-session should put it to them rather than pick.**
+**THE BASE IS DONE. THE OWNER CLOSED IT ON 2026-09-04, AND THERE IS NO NEXT PACKAGE.** Put as a
+choice rather than a queue once T4.4 landed — every consumer document performed, every phase
+closed, nothing blocking — and the answer was *nothing at all*. **WP-10 crafting stays OPTIONAL
+and is not being built**, on the reasoning the board already carried for it: crafting belongs to a
+game that wants it, and a sixth catalogue is not something the template needs to prove anything.
+The five walks (T2.2, T4.1, T4.2, T4.3, T4.4) are finished and all five found defects reading
+would not have.
+
+**So a new session's default is NOT to find work.** If you are here because something is actually
+broken, or because a game built on this base has hit a seam that is genuinely missing, that is a
+package and the board is where it goes. Adding one for its own sake is precisely how the previous
+project reached 3,983 lines in one file twenty reasonable lines at a time. **The version stays
+`1.0.2` and UNTAGGED** — the owner declined that tag on 2026-09-04 as well, consistent with 1.0.1
+and with T4.1's precedent.
+
 
 138 files, 11,983 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
 three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
@@ -456,6 +464,13 @@ three compiled cleanly and passed every static gate:**
   in writing, so shipping either would contradict the document. A table is a list of exceptions to
   the promise, and the promise is the product; `same_major_as()` and `compare_to()` are the whole
   surface. Git shows a diff and the game's author decides.
+- **THE BASE IS FINISHED, BY THE OWNER, 2026-09-04, AND "WHAT IS THE NEXT PACKAGE" NOW HAS THE
+  ANSWER "THERE ISN'T ONE".** Every phase is closed, every consumer document has been performed,
+  and the only two candidates left were WP-10 crafting and nothing. The owner chose nothing. This
+  is recorded rather than left implicit for the same reason WP-15's closure was: an un-recorded
+  decision to stop looks exactly like an oversight, and the next session would helpfully invent a
+  package. **WP-10 stays OPTIONAL and unbuilt.** A genuine defect, or a seam a game built on this
+  base actually finds missing, is still a package — a package invented to have one is not.
 - **WP-15's REMNANT IS CLOSED, BY THE OWNER, 2026-09-02.** Credits name a team a template does not
   have, and an accessibility pass over placeholder art and a UI every game restyles is a pass over
   something designed to be thrown away. What the template owes accessibility is the SEAMS, and they

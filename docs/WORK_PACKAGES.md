@@ -3258,3 +3258,15 @@ take, plus the expected "couldn't open directory" notices for the content roots 
 where that content is deliberately deleted.
 
 **Commit:** `29ba248` on `claude/t4-4-testing-perform`, PR #29, targeting `main`.
+
+## The board is closed — 2026-09-04
+
+**There is no next row, and that is a decision rather than a gap.** T4.4 landed the last
+consumer document to be performed, every phase is complete, and the two remaining candidates —
+WP-10 crafting, and nothing — were put to the owner, who chose nothing. `CONTEXT.md`'s settled
+decisions carry the full reasoning, and the version stays `1.0.2` and untagged.
+
+**WP-10 remains OPTIONAL and unbuilt**, kept on the board as a record rather than a queue entry,
+the way WP-15's remnant is. A real defect is still a package. So is a seam that a game actually
+built on this base discovers is missing. A package invented so that there is one is how the
+previous project got a 3,983-line file, twenty reasonable lines at a time.

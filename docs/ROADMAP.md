@@ -636,6 +636,21 @@ because the first row exposed how much of it was declared and unread.
   is the pre-T2.1 case and would otherwise walk on the spot). Proved by 18 new assertions and by
   planting the revert: the fix removed, the suite is `1688 passed, 6 failed`, exit 1, naming
   `a climb draws the climb block — expected 1, got 0`; restored, `1694 passed, 0 failed`, exit 0.
+- **T5.4 The three missing enforcement gates — DONE, 2026-09-05.** Not a character row, and it is
+  here because the T5.3 audit that produced it found the structural cause of seven packages'
+  worth of the same defect: **no gate anywhere asked whether a declared thing has a CONSUMER.**
+  Three gates close it. `tools/check_signals.gd` requires every signal in the registry to have an
+  emitter, resolving indirect `Signal`-value dispatch so the three quest signals — which have
+  **zero** direct `.emit` sites — are not false positives; it named `debug_command` on its first
+  run. `tools/check_layers.gd` enforces `core -> content -> systems -> gameplay -> ui`, the one
+  architectural rule with no gate, and **found a real violation immediately: 55 upward
+  references**, of which 13 were the interaction sensor sitting in `systems/` while typed on
+  `Interactable`. Moved to `src/gameplay/interaction/`; gotcha 55. `check_boundary.gd` gained the
+  `localization/` half, closing gotcha 48: an orphan CSV row fails, presence is reported, and the
+  stripped CI job now runs `NEW_GAME.md`'s prune `awk` before it, which checks the prune list
+  itself. Each gate proved red by planting a real violation and green by removing it — exit codes
+  in `DEVLOG.md`. Ladder: four checkers to six, rungs 9 and 10 in CI as their own steps. 1,728
+  assertions.
 
 **Exit criteria for the phase:**
 

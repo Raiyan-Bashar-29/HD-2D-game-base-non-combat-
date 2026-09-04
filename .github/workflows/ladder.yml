@@ -209,6 +209,22 @@ jobs:
       - name: Rung 8 - check_strings
         run: godot --headless --script tools/check_strings.gd
 
+      # RUNGS 9 AND 10, added by T5.4, AND THEY ARE SEPARATE STEPS FOR ONE REASON: a failure
+      # must name itself. "The ladder failed" sends a reader to six commands; "Rung 9 -
+      # check_layers" sends them to one rule.
+      #
+      # WHAT THESE TWO ADD THAT THE OTHER FOUR NEVER ASKED. Content, budgets, strings and the
+      # demo boundary all validate a thing that EXISTS. None of them asked whether a declared
+      # thing has a CONSUMER, which is why "correct code with no consumer" has been found seven
+      # times through a fully green ladder. Rung 10 asks it of every signal in the registry;
+      # rung 9 enforces the one architectural rule that had no gate at all, and found a real
+      # upward reference the day it was written.
+      - name: Rung 9 - check_layers
+        run: godot --headless --script tools/check_layers.gd
+
+      - name: Rung 10 - check_signals
+        run: godot --headless --script tools/check_signals.gd
+
       # A failing rung prints its own tail, but the full logs are what a diagnosis needs, and
       # the interesting ones are exactly the runs that failed. Hence `always()`.
       - name: Keep the logs
@@ -250,10 +266,28 @@ jobs:
           set -euo pipefail
           rm -rf data scenes/areas
           echo "data/ and scenes/areas/ deleted."
-      # NOT STRIPPED, and that boundary is deliberate: the demo half of localization/strings.csv
-      # (object.*, item.*, talk.*, action.*, area.*) stays. Pruning it is a judgement a game
-      # makes key by key, and a mechanical prune here would only be this job testing its own
-      # regex. TEMPLATE.md's table is the authority on which prefixes are which.
+
+      # THE CSV IS NOW PRUNED HERE TOO, AND THE OLD COMMENT SAYING IT SHOULD NOT BE WAS WRONG.
+      # It reasoned that "a mechanical prune here would only be this job testing its own regex",
+      # which was true while nothing could judge the result. T5.4 gave check_boundary.gd a gate
+      # that reads localization/ and fails on an ORPHAN row — a translation for content that is
+      # not there — so the prune is no longer self-referential: the command below is
+      # NEW_GAME.md's, verbatim, and rung 7 independently derives what content exists from the
+      # tree. One is the document's list of namespaces; the other is the actual data/ directory.
+      #
+      # THIS IS THE T4.3 DEFECT, CLOSED END TO END. That prune list was written at WP-08's
+      # birth, never learned the word `quest.`, and a real fork that followed it shipped
+      # "The Keeper's Errand" inside its own game with all four checkers green. If a namespace
+      # ever goes missing from the awk below again, rung 7 in THIS job goes red.
+      # Measured while writing it: strip alone, exit 1; strip then prune, exit 0 with
+      # "167 rows, of which 0 are content namespace".
+      - name: Prune the demo half of the CSV, exactly as NEW_GAME.md says
+        run: |
+          set -euo pipefail
+          awk '!/^(area|talk|action|object|quest)\./ && (!/^item\./ || /^item\.category\./)' \
+            localization/strings.csv > pruned.csv
+          mv pruned.csv localization/strings.csv
+          echo "rows kept: $(wc -l < localization/strings.csv)"
 
       - name: Rung 2 - import, zero SCRIPT ERROR / Parse Error
         run: |
@@ -324,6 +358,16 @@ jobs:
       # come to depend on a game being present.
       - name: Rung 8 - check_strings
         run: godot --headless --script tools/check_strings.gd
+
+      # Both new rungs read src/ and tests/ only, which the strip does not touch, so they must
+      # report exactly the same numbers here as in the full job. If they ever do not, the layer
+      # map or the signal registry has come to depend on a game being present — which is the
+      # one thing a template must never do.
+      - name: Rung 9 - check_layers
+        run: godot --headless --script tools/check_layers.gd
+
+      - name: Rung 10 - check_signals
+        run: godot --headless --script tools/check_signals.gd
 
       - name: Keep the logs
         if: always()

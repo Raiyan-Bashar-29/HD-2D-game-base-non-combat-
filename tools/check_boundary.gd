@@ -1,5 +1,6 @@
 extends SceneTree
-## Boundary gate: FAILS if any file under src/, tests/framework/ or tests/unit/ names demo content.
+## Boundary gate: FAILS if any file under src/, tests/framework/ or tests/unit/ names demo content,
+## or if localization/strings.csv translates content that does not exist.
 ##
 ## RUN:  godot_console --headless --script tools/check_boundary.gd
 ## Exit 0 if clean, 1 on any violation. Sits in the ladder next to check_content.gd.
@@ -20,6 +21,22 @@ extends SceneTree
 const SRC_ROOT: String = "res://src"
 const DATA_ROOT: String = "res://data"
 const AREA_ROOT: String = "res://scenes/areas"
+const CSV: String = "res://localization/strings.csv"
+
+## THE FOUR KEY NAMESPACES WHOSE SECOND SEGMENT IS A CONTENT ID. `area.courtyard.name` names an
+## area, `item.rose_key.name` an item, `talk.<id>` a conversation, `quest.<id>` a quest — every
+## one of them a name this file already derives from data/ and scenes/areas/. The other two
+## content namespaces, `object.` and `action.`, are NOT here and cannot be: an object's label
+## key is authored freely and its `object_id` in the area scene is a different string, so there
+## is nothing to compare. They are counted in the prune surface below and not gated. Stated so
+## nobody reads a green run as "the CSV holds no demo content".
+const ID_NAMESPACES: Array[String] = ["area", "item", "talk", "quest"]
+
+## Every content namespace, for the REPORT rather than the gate. `item.category.*` is the one
+## row family inside a content namespace that is engine: the eight item categories are an enum's
+## worth of labels, not content, and NEW_GAME.md already carves them out by name.
+const CONTENT_NAMESPACES: Array[String] = ["area", "item", "talk", "quest", "object", "action"]
+const ENGINE_ROWS: String = "item.category."
 ## The suite too, as of T1.3. It used to be exempt because a third of its assertions named demo
 ## content and unwelding it was T1.3's own job; now that the fixtures exist, scanning it is what
 ## stops the welding growing back one convenient literal at a time.
@@ -41,6 +58,7 @@ func _initialize() -> void:
 	print("=".repeat(78))
 	_check_boundary()
 	_check_debug_gate()
+	_check_localization()
 	print("=".repeat(78))
 	if _violations > 0:
 		print("FAIL — %d boundary violation(s)" % _violations)
@@ -225,3 +243,77 @@ func _check_debug_gate() -> void:
 			continue
 		if not source.contains("if not OS.is_debug_build():"):
 			_fail("%s parses command-line arguments with no OS.is_debug_build() guard" % path)
+
+
+## GOTCHA 48, CLOSED: UNTIL NOW NO GATE READ localization/ FOR DEMO CONTENT AT ALL.
+## check_content.gd and check_strings.gd both open this file, and both ask only whether a key
+## a script names has a row and whether the row has two columns. Neither asks the opposite
+## question — whether a ROW names content that exists — and the boundary gate above scans only
+## src/ and tests/. So a translation for deleted content is nobody's error: nothing loads it,
+## nothing complains, and it ships.
+##
+## THAT IS NOT HYPOTHETICAL. T4.3 forked this template, followed NEW_GAME.md's prune list, and
+## shipped `quest.keepers_errand.*` — "The Keeper's Errand", "three rose petals" — inside its
+## own game, with all four checkers and the whole suite green, because the list predated WP-08
+## and never learned the word `quest.`.
+##
+## WHY THIS ONE HALF FAILS AND THE OTHER HALF ONLY REPORTS, decided rather than defaulted.
+## The template legitimately ships its own demo rows: 51 of them, against 159 engine rows and
+## 8 `item.category.*` rows that only look like content. Failing on their PRESENCE would fail
+## this repository forever, which means the gate would have to be switched off here — and a
+## gate that is off where it lives is decoration. So presence is REPORTED, as a prune surface a
+## forker can read a number off.
+##
+## What FAILS is the ORPHAN: a row naming content that is not there. That is the actual defect
+## T4.3 found, it is wrong in the template and wrong in every game built on it, and it is the
+## exact state a half-finished prune leaves behind — delete data/quests/ and keep the rows, and
+## this goes red. A fork that authored its own quest keeps its own data, so it stays green.
+func _check_localization() -> void:
+	var demo: Dictionary[String, String] = _demo_names()
+	var file: FileAccess = FileAccess.open(CSV, FileAccess.READ)
+	if file == null:
+		print("  localization: no %s in this checkout" % CSV)
+		return
+	var counts: Dictionary[String, int] = {}
+	var rows: int = 0
+	## The first line is the column header, not a translation. Skipped by position rather than
+	## by matching its text, because the column names are check_content.gd's business.
+	var header: bool = true
+	while not file.eof_reached():
+		var key: String = file.get_line().get_slice(",", 0).strip_edges()
+		if key == "":
+			continue
+		if header:
+			header = false
+			continue
+		rows += 1
+		var space: String = key.get_slice(".", 0)
+		if not CONTENT_NAMESPACES.has(space) or key.begins_with(ENGINE_ROWS):
+			continue
+		counts[space] = counts.get(space, 0) + 1
+		_check_row(key, space, demo)
+	file.close()
+	print("  localization rows: %d, of which %d are content namespace — %s" % [
+		rows, _total(counts), str(counts),
+	])
+
+
+## The second segment IS the content id, and it is looked up in the same derived set the src/
+## scan uses. `item.rose_key.name` asks about `rose_key`, which `data/items/rose_key.tres`
+## put there as the last segment of `item/rose_key`.
+func _check_row(key: String, space: String, demo: Dictionary[String, String]) -> void:
+	if not ID_NAMESPACES.has(space):
+		return
+	var id: String = key.get_slice(".", 1)
+	if id == "" or demo.has(id):
+		return
+	_fail("%s translates %s '%s', which exists in neither data/ nor scenes/areas/" % [
+		CSV, space, id,
+	])
+
+
+static func _total(counts: Dictionary[String, int]) -> int:
+	var sum: int = 0
+	for space: String in counts:
+		sum += counts[space]
+	return sum

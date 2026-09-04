@@ -37,6 +37,18 @@ anything above it.
 The test for a violation is simple: **could you delete the layer above and still compile?**
 If `core` imports something from `gameplay`, that is a defect, not a shortcut.
 
+**Since T5.4 that test is a command, not a question.** `tools/check_layers.gd` runs it on every
+push: it derives each file's layer from its path, each `class_name` from the file that declares
+it and each autoload from `project.godot`, then fails on a `class_name` or a `res://src/<layer>/`
+path literal pointing upward. **It found a real violation the first time it ran** — the
+interaction sensor sat in `systems/` while typed on `Interactable`, which is `gameplay`, and was
+simply in the wrong layer: it is a component of the player, and `gameplay/` is where things that
+exist in the world live. It is now `src/gameplay/interaction/`. Two exemptions, both counted and
+printed: the composition root, which assembles the tree and must know what it assembles, and
+`src/systems/debug/`, the development harness, which `check_boundary.gd` already exempts on the
+same precondition. The five autoloads under `src/systems/` are NOT an exemption — they are
+layer 2, so a `gameplay` or `ui` file calling them is already downward.
+
 **Why `content` sits below `gameplay`, not above it.** It was above until 2026-08-25. That was
 wrong: `pickup.gd` in `gameplay` must reference `ItemDefinition` in `content`, which under the
 old order was an **upward** dependency and failed the very test above. Content is *data*, not a
@@ -235,12 +247,14 @@ Every rung is proven working on this machine. Nothing here is aspirational.
 | 1. Parse and type gate | `--headless --check-only --script <file>` | Type errors, unknown functions, with file and line |
 | 2. Import gate | `--headless --import` | Broken scenes, resources, asset references |
 | 3. Headless run | `--headless --quit-after 30` | Boot order, null references, real `_process` frames |
-| 4. Tests | `--headless res://tests/test_runner.tscn --quit-after 400` | Logic, save round-trips. 1,574 assertions, exit 1 on failure |
+| 4. Tests | `--headless res://tests/test_runner.tscn --quit-after 400` | Logic, save round-trips. 1,728 assertions, exit 1 on failure |
 | 5. check_budgets | `--headless --script tools/check_budgets.gd` | File and function line budgets, stray `print()` |
 | 6. check_content | `--headless --script tools/check_content.gd` | Broken items, duplicate object ids, missing CSV keys, a missing `[editable]` |
-| 7. check_boundary | `--headless --script tools/check_boundary.gd` | Any demo name in a code line under `src/` or `tests/` |
+| 7. check_boundary | `--headless --script tools/check_boundary.gd` | Any demo name in a code line under `src/` or `tests/`; a CSV row translating content that is not there |
 | 8. check_strings | `--headless --script tools/check_strings.gd` | A literal reaching a text sink, a `*_KEY` const with no CSV row |
-| 9. Visual capture | `--quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=HH:MM` | The actual look, at any hour, on demand |
+| 9. check_layers | `--headless --script tools/check_layers.gd` | A dependency pointing UP the layer list — the rule below, enforced since T5.4 |
+| 10. check_signals | `--headless --script tools/check_signals.gd` | A signal declared in the registry that nothing ever emits |
+| 11. Visual capture | `--quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=HH:MM` | The actual look, at any hour, on demand |
 
 **Rung 1 gotcha:** autoload identifiers such as `Log` do not resolve under `--check-only`,
 because a standalone script check does not create them. Filter

@@ -5590,3 +5590,170 @@ a seam decision rather than a defect.
   through the whole path, which is stronger than a screenshot for this defect (gotcha 28: a sprite
   drawn from the wrong cell is still a person), but the T2.1-standard photograph of a climb cycle
   belongs to the wholesale-character-swap criterion and is not claimed here.
+
+## 2026-09-05 — T5.4 · The three missing enforcement gates
+
+**Did.** Built the three gates the T5.3 audit named, wired both new ones into CI as their own
+steps, and fixed the one real violation the layer gate found on its first run.
+
+The audit's structural finding was that this project has gates for content, budgets, strings and
+the demo boundary, and **not one of them asks whether a declared thing has a consumer** — which
+is why "correct code with no consumer" has now been found seven times, every time through a fully
+green ladder. Three gates close it, and each was proved red by planting a real violation and green
+by removing it. Every result below is a measured exit code, not a claim.
+
+**1. `tools/check_signals.gd` — signal liveness.** Every `signal` in the registry must have at
+least one emitter. On its first run it named `debug_command`: declared, typed, documented, and
+never emitted anywhere. `item_used` passed, because its doc block already said so in words.
+
+The escape hatch is a phrase — `NO EMITTER` — written in the signal's own `##` block rather than
+a list inside the tool, so the next reader of the declaration sees the decision without opening
+anything, and a signal that carries the phrase AND has an emitter fails too, because a stale
+exemption is how a gate rots into decoration. `debug_command`'s block now carries it and says why.
+
+**The method trap is the reason this is not a grep.** Three quest signals are dispatched
+INDIRECTLY, as first-class `Signal` values handed to a helper that calls `fact.emit.callv(args)`.
+Measured control: a grep for `quest_started.emit` returns **0** sites, and the same for
+`quest_advanced` and `quest_completed` — so a naive scan reports three false positives on a
+correct registry. The gate resolves a bare `Events.<name>` by what its FILE does with a
+`Signal`-typed identifier: `.emit` on one makes the file an emitter, `.connect` makes it a
+listener, neither makes the reference count as nothing, which is the conservative direction
+(it can only over-report, never miss). Result: **88 emit references over 40 of 42 signals**,
+the other two exempt and both explaining themselves.
+
+It also checks its OWN preconditions rather than assuming them: zero `[connection]` blocks in any
+`.tscn` and zero `emit_signal(` string calls, either of which would let a signal be wired without
+the text this tool searches for. Same shape as `check_boundary.gd`'s debug-gate precondition.
+
+| Plant | Result |
+|---|---|
+| a new `signal planted_fact(value: int)` nobody emits | `!! planted_fact is declared and never emitted`, **exit 1** |
+| `NO EMITTER` added to `hour_passed`, which has two | `!! hour_passed is marked 'NO EMITTER' and has 2 — the exemption is stale`, **exit 1** |
+| an `emit_signal("flag_changed", ...)` call in the quest tracker | `!! ...calls emit_signal() by name — this gate cannot see that`, **exit 1** |
+| all three removed | **exit 0** |
+
+**2. `tools/check_layers.gd` — layer direction. THE TREE WAS NOT CLEAN.** The package brief said
+it was, and the first run said otherwise: **55 upward references, exit 1.** `ARCHITECTURE.md:24`
+states `core -> content -> systems -> gameplay -> ui, downward only` and gives the test —
+*could you delete the layer above and still compile?* — and nothing had ever run it.
+
+Forty-two of the fifty-five were `src/systems/debug/`, which is the development harness and
+already carries exactly this exemption in `check_boundary.gd`, for the same reason and on the same
+precondition: those files exist to drive every layer from outside, there is no layer above `ui` to
+put them in, and their argument parsing is behind `OS.is_debug_build()`. Exemption granted,
+counted and reported — **49 exempted references today**, so it cannot quietly grow.
+
+**The other thirteen were real.** `src/systems/interaction/interaction_sensor.gd` was typed on
+`Interactable`, which is `gameplay`. Delete `gameplay/` and `systems/` does not compile — the
+document's own test, failed. And the file was in the wrong layer to begin with: its second line
+says *"Lives as a child of the player"*, and `ARCHITECTURE.md` defines `gameplay/` as *things that
+exist in the world — player, camera, areas, interactables* and `systems/` as *game-agnostic
+services*. A player component is not a service. Moved to `src/gameplay/interaction/`, one
+`ext_resource` path updated in `scenes/characters/player.tscn`, and the reference became downward
+and legal with no exemption. **This is the eighth instance of the characteristic defect in a new
+guise: not a declaration with no consumer, but a RULE with no gate** — the same shape as
+`const FIRST_AREA := &"courtyard"` sitting in `core` before T1.2. It is gotcha 55.
+
+The gate sees two kinds of coupling, because there are two: a `class_name` global, and a
+`res://src/<layer>/` path literal, which is how `preload()` couples without naming a class. Both
+planted separately, in `src/core/state/flags.gd`:
+
+| Plant | Result |
+|---|---|
+| `var screen: UiScreen = null` | `!! ...(core) names UiScreen, which is ui`, **exit 1** |
+| a `load()` of a `res://src/ui/screens/` path | **exit 1** |
+| both removed | **exit 0** |
+
+Nothing is listed that can be derived. Layers come from the path, `class_name` symbols from the
+files that declare them, and the autoloads from `project.godot`'s `[autoload]` block — which is
+what makes "the five autoloads under `src/systems/` are globals, so `gameplay` and `ui` may call
+them" automatic rather than a carve-out somebody has to maintain: they are layer 2, so those
+calls are already downward.
+
+**3. `localization/` demo content, folded into `check_boundary.gd`** — which already derives the
+forbidden-name set this needs, and was at 127 of its 250 lines. Gotcha 48 closed: `check_content`
+and `check_strings` both open the CSV and both ask only whether a key a script names has a row.
+Neither asks the opposite question, whether a ROW names content that exists.
+
+**The two halves are deliberately asymmetric, and the header says why.** Presence is REPORTED:
+the template legitimately ships its own demo rows, so failing on their existence would fail this
+repository forever, and a gate switched off where it lives is decoration. Measured, and the
+audit's figure of 59 corrected: **218 rows, of which 51 are content namespace** — `object` 24,
+`talk` 10, `action` 6, `quest` 5, `item` 4, `area` 2. The audit counted 59 by including the eight
+`item.category.*` rows, which are an enum's worth of labels and engine, not content.
+
+What FAILS is the ORPHAN — a row naming content that is not there. That is the actual T4.3 defect,
+it is wrong in the template and wrong in every game built on it, and it is the exact state a
+half-finished prune leaves behind. Only the four namespaces whose second segment IS a content id
+are gated (`area`, `item`, `talk`, `quest`); `object.` and `action.` cannot be, because an
+object's label key is authored freely and its `object_id` is a different string, and the header
+says so rather than letting a green run be read as more than it is.
+
+| Plant | Result |
+|---|---|
+| delete the quest resource, keep its rows — literally T4.3's fork | five `!! ...translates quest 'keepers_errand', which exists in neither data/ nor scenes/areas/`, **exit 1** |
+| restored | **exit 0** |
+
+**The stripped CI job now prunes the CSV, and its old comment was wrong.** It said a mechanical
+prune "would only be this job testing its own regex" — true while nothing could judge the result,
+false now. The job runs `NEW_GAME.md`'s `awk` verbatim and rung 7 independently derives what
+content exists from the tree, so the two sides come from different places: the document's list of
+namespaces, and the actual `data/` directory. **T4.3's defect is now closed end to end** — if a
+namespace ever goes missing from that prune list again, the stripped job goes red. Measured:
+strip alone → **exit 1**; strip then prune → **exit 0**, `167 rows, of which 0 are content
+namespace`.
+
+**Why.** Seven instances of the same defect through seven green ladders is not seven mistakes, it
+is one missing question. Each gate here asks it in a different place.
+
+**Connects.** `check_boundary.gd` gained the localization half and lends `names_whole_word` to the
+layer gate, so both spell "names this identifier" the same way. `check_signals.gd` deliberately
+does NOT borrow it — it spells its own alphabet out, because a gate that depends on another gate
+loading has a way to be silently switched off. `tests/unit/gates_test.gd` asserts the three
+classifiers (33 assertions), and its last four assert that CI names every one of the six checkers
+as its own step — the assertion that would have caught a gate written, committed and never wired,
+which is this package's own failure mode applied to itself.
+
+**Verified.**
+
+```
+--headless --import                                        exit 0, 0 SCRIPT ERROR / Parse Error
+--headless --quit-after 30                                 0 warnings, 0 errors
+--headless res://tests/test_runner.tscn --quit-after 400   === 1728 passed, 0 failed, 0 skipped ===, exit 0
+tools/check_budgets.gd    exit 0   143 files, 12762 code lines, 0 violations
+tools/check_content.gd    exit 0
+tools/check_boundary.gd   exit 0   218 rows, 51 content namespace
+tools/check_strings.gd    exit 0
+tools/check_layers.gd     exit 0   88 symbols over 97 scripts, 49 exempted references
+tools/check_signals.gd    exit 0   42 signals declared, 88 emit references over 40
+--resolution 960x540 --quit-after 90 -- --new-game --shot=... --time=18:40 --freeze-time
+                          courtyard at dusk, lit, "Read Weathered Notice" prompt on screen
+```
+
+The windowed capture is not decoration here: `player.tscn` changed, and the prompt in the frame is
+the moved sensor doing its job. Gotcha 2 — headless shades nothing, so the move had to be
+photographed and not merely compiled. Suite: 1,694 → 1,728 (+34): 33 from `gates_test.gd`, and one from `doc_counts_test.gd`, which counts the gotcha list and every document restating its length — gotcha 55 made that 55 in four places.
+
+Budgets after: `check_boundary.gd` 172/250, `check_layers.gd` 140/250, `check_signals.gd` 142/250,
+`gates_test.gd` 73/250. Nothing near a limit, nothing split to make a number.
+
+**Unblocks.** Candidate B (the settings package) is next and is the largest remaining consumer
+gap: **12 of 23 settings have no consumer**, five of them `accessibility/*` that a game cannot
+wire without editing `src/`. The gates built here do not catch it — a setting is data read through
+`DictRead`, not a declared symbol — which is worth saying plainly rather than assuming three gates
+covered the class.
+
+**Gaps, stated rather than left to be rediscovered.**
+- **The consumer question is now asked of signals and of CSV rows, and of nothing else.** Settings,
+  `@export` properties, enum values and public methods are all still declarable-and-dead. The
+  audio director's `stop_music`/`duck`/`unduck` and `set_dof_enabled()` remain uncalled and no
+  gate says so.
+- **`object.` and `action.` CSV rows are reported and not gated**, because nothing derives their
+  ids. A fork can still ship a demo `object.*` row for an object it deleted.
+- **The layer gate scans `src/` only.** `tests/` legitimately reaches everywhere, and `.tscn`
+  files reference scripts by path and are not read for direction.
+- **The debug exemption is now granted twice**, by `check_boundary.gd` and by `check_layers.gd`,
+  on the same precondition. Only the first of them fails if that precondition is removed.
+- **No ADR was written.** Two new tools and a file moved one directory is not an architecture
+  decision — the layer rule was already decided in `ARCHITECTURE.md` and ADR-0001; this package
+  only made it enforceable.

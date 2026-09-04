@@ -210,8 +210,9 @@ signal ui_mode_changed(mode: GameEnums.UiMode)
 
 ## A user setting changed at runtime, so systems can re-read it. Emitted by Settings.
 signal setting_changed(section: String, key: String, value: Variant)
-## A developer console command was entered. Debug tooling only, and NOT the path the template's
-## own console takes: `debug_console_screen.gd` calls `DevCommands.run()` directly, because the
-## verbs live in the one directory allowed to name demo content and routing them over the bus
-## would carry those names out of it. Kept as the hook a game's own tooling can listen on.
+## A developer console command was entered. NO EMITTER in the template, deliberately, and this
+## is not the path the template's own console takes: `debug_console_screen.gd` calls
+## `DevCommands.run()` directly, because the verbs live in the one directory allowed to name
+## demo content and routing them over the bus would carry those names out of it. Kept as the
+## hook a game's own tooling emits on and listens to. `tools/check_signals.gd` reads that phrase.
 signal debug_command(command: String, args: PackedStringArray)

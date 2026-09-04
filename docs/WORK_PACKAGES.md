@@ -80,6 +80,7 @@ original board rather than continuing it.
 | T5.1 | **The skeleton's four open exit criteria, closed by proving them** | **DONE** — asked whether the base was actually finished, `ROADMAP.md` said no: **Phase 1 read COMPLETE with three unticked exit criteria and Phase 2 read IN PROGRESS with one.** All four proved rather than ticked, and **one was a missing FEATURE** — `Settings` stored a locale, the options screen cycled one, and nothing anywhere called `TranslationServer.set_locale`, with only one locale column in the CSV so there was nothing to switch to. Also: the eight-direction facing mapping had no assertions (21 now, camera-yaw independent), the save criterion needed TWO PROCESSES, and the 30-second session had never been run. Bumped to `1.1.0`; see below |
 | T5.2 | **An animation block per GAIT** | **DONE** — the first row of Phase T5, and the owner's reframing made concrete: a future game should inherit working characters and change only assets. `SpriteSheetLayout.animation_for` took a **boolean**, so a sheet could hold an idle cycle and a walk cycle and nothing else — run and sneak replayed the walk block faster — while `GameEnums.MoveState` had ten values and `Events.player_state_changed` was declared, emitted and **listened to by nothing.** Sixth instance of declared-validated-and-read-by-nothing. Now a `MoveState`, with `run_row`/`sneak_row`/`climb_row` defaulting to -1 = "replay the walk block" so no existing sheet changes behaviour. Bumped to `1.2.0`; see below |
 | T5.3 | **Delivering the gaits that were already declared** | **DONE** — a full-base audit found the **seventh** instance of declared-validated-and-read-by-nothing, and **T5.2 one row above had created it**: `MoveState.CLIMB` never reached `CharacterVisual`, because `_physics_process` returns early while a climb owns the body and `climb_step` touched the visual only after resetting to IDLE. `climb_row` was exported, validated and asserted, and **undrawable** — a ticked exit criterion that was false, invisible in the demo because the shipped sheet leaves it at -1. Second defect in the same function: `_frame` was pinned to 0 whenever horizontal speed was zero, so **no idle block had ever advanced a cell** while "more than one idle" sat on the criteria. Both fixed, both proved by planting the revert (`1688 passed, 6 failed`, exit 1 → `1694 passed, 0 failed`). **Gotcha 54: a unit test at each end of a seam proves nothing about the wire between them.** See below |
+| T5.4 | **The three missing enforcement gates** | **DONE** — the T5.3 audit found the structural cause rather than another instance: **no gate anywhere asked whether a declared thing has a CONSUMER**, which is why the same defect arrived through a fully green ladder seven times. `check_signals.gd` requires every registry signal to have an emitter and resolves indirect `Signal`-value dispatch, so the three quest signals — **zero** direct `.emit` sites — are not false positives; it named `debug_command` at once. `check_layers.gd` enforces `core -> content -> systems -> gameplay -> ui` and **found a real violation on its first run: 55 upward references**, 13 of them the interaction sensor sitting in `systems/` while typed on `Interactable`. Moved to `src/gameplay/interaction/` — **gotcha 55: a rule with no gate is a rule already being broken.** `check_boundary.gd` gained the `localization/` half and closed gotcha 48. Every gate planted red and proved green. Four checkers to six; see below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -170,7 +171,7 @@ input every physics frame with no notion of an open screen, and the only hand-ov
 and you get one boolean per screen, forever.
 
 **Read:** `src/ui/` (all three files), `scenes/boot/game_root.tscn`, `src/core/boot/game_root.gd`,
-`src/systems/interaction/interaction_sensor.gd`, `src/gameplay/character/player_controller.gd`,
+`src/gameplay/interaction/interaction_sensor.gd`, `src/gameplay/character/player_controller.gd`,
 `src/systems/input/actions.gd`, `src/core/events/events.gd`.
 
 **Write:** `src/ui/root/ui_root.gd` — a screen stack, one `is_gameplay_input_allowed()` truth,
@@ -3655,14 +3656,94 @@ exit 1, naming `a climb draws the climb block — expected 1, got 0`. Restored:
 
 ---
 
-## Candidate rows the T5.3 audit produced — NOT STARTED, and ranked
+
+---
+
+## T5.4 · The three missing enforcement gates — **DONE**
+
+**The row exists because the T5.3 audit found the structural cause rather than another instance.**
+Seven times this project has shipped correct code with no consumer through a fully green ladder.
+That is not seven mistakes. It is one missing question: **no gate anywhere asked whether a
+declared thing has a consumer.** Four gates stood — content, budgets, strings, the demo boundary —
+and every one of them validates a thing that EXISTS.
+
+Three gates close it, in three different places. Each was proved red by planting a real violation
+and green by removing it; the exit codes are in `DEVLOG.md` and are not repeated here.
+
+### 1. `tools/check_signals.gd` — every declared signal has an emitter
+
+Named `debug_command` on its first run: declared, typed, documented, never emitted. `item_used`
+passed because its doc block already said so. The exemption is the phrase `NO EMITTER` in the
+signal's own `##` block, not a list in the tool — the next reader of the declaration sees the
+decision without opening anything — and a signal carrying the phrase that DOES have an emitter
+fails too, because a stale exemption is how a gate rots into decoration.
+
+**The method trap is why this is not a grep.** `quest_started`, `quest_advanced` and
+`quest_completed` have **zero** direct `.emit` sites: they are handed as first-class `Signal`
+values to a helper that calls `fact.emit.callv(args)`. A naive scan reports three false positives
+on a correct registry. The gate reads a bare `Events.<name>` by what its FILE does with a
+`Signal`-typed identifier — `.emit` makes the file an emitter, `.connect` a listener, neither
+makes the reference count as nothing, which is the direction that can only over-report.
+
+It checks its own preconditions rather than assuming them: zero `[connection]` blocks in any
+`.tscn`, zero `emit_signal(` string calls. Either would let a signal be wired without the text
+this tool searches for, and a green run would then mean nothing.
+
+### 2. `tools/check_layers.gd` — the invariant that had no gate
+
+**The tree was not clean.** The brief for this package said it was; the first run said 55 upward
+references, exit 1. `ARCHITECTURE.md` has stated `core -> content -> systems -> gameplay -> ui`
+since Phase 0, gives the test in the next sentence — *could you delete the layer above and still
+compile?* — and nothing had ever run it.
+
+Forty-two were `src/systems/debug/`, the development harness, which `check_boundary.gd` already
+exempts on the same precondition. **Thirteen were real:** `interaction_sensor.gd` sat in
+`systems/` while typed on `Interactable`, which is `gameplay`. It was in the wrong layer — its
+own second line says it *"lives as a child of the player"*, and a player component is not a
+game-agnostic service — so the fix was to move it to `src/gameplay/interaction/`, not to grant an
+exemption. **The same shape as `const FIRST_AREA := &"courtyard"` in `core` before T1.2, with the
+roles reversed: there the gate existed and the rule did not; here the rule existed and the gate
+did not.** Gotcha 55.
+
+Nothing is listed that can be derived: layers from the path, `class_name` symbols from the files
+declaring them, autoloads from `project.godot`. That is what makes "the five autoloads under
+`src/systems/` are globals" automatic — they are layer 2, so `gameplay` and `ui` calling them is
+already downward, and no carve-out is needed or written.
+
+### 3. `localization/` demo content, in `check_boundary.gd` — gotcha 48 closed
+
+`check_content` and `check_strings` both open the CSV and both ask only whether a key a script
+names has a row. Neither asks whether a ROW names content that exists.
+
+**The two halves are asymmetric on purpose.** Presence is REPORTED — 218 rows, 51 in a content
+namespace (`object` 24, `talk` 10, `action` 6, `quest` 5, `item` 4, `area` 2; the audit's 59
+included the eight engine `item.category.*` rows) — because the template legitimately ships its
+own demo rows and a gate switched off where it lives is decoration. What FAILS is the ORPHAN: a
+row naming content that is not there, which is the actual T4.3 defect and is wrong in the
+template and in every game built on it.
+
+**The stripped CI job now performs `NEW_GAME.md`'s prune and then runs this gate**, so the prune
+list is itself checked by something derived from a different place. If a namespace goes missing
+from it again, CI goes red — which is the expiry story gotcha 48 said a tool could not have. It
+could not, as a list of engine prefixes; it can, by asking the opposite question.
+
+### What this package deliberately did not do
+
+- **It did not widen the consumer question past signals and CSV rows.** Settings, `@export`
+  properties, enum values and public methods are all still declarable-and-dead, and candidate B
+  is the largest of those by a distance.
+- **It did not gate `object.` and `action.` rows.** Nothing derives their ids, and the header
+  says so rather than letting a green run be read as more than it is.
+- **It wrote no ADR.** Two tools and a file moved one directory is not an architecture decision;
+  the layer rule was already decided in `ARCHITECTURE.md` and ADR-0001.
+
+## Candidate rows the T5.3 audit produced — ranked, and A IS DONE (T5.4)
 
 These are the audit's findings that are packages rather than one-line corrections. Ranked by value
 to a consuming game per unit of work. Each is sized to one chat.
 
 | # | Candidate | Why it is worth a row |
 |---|---|---|
-| A | **Three enforcement gates: layer direction, signal liveness, and `localization/` demo content** | The audit's structural finding: **no gate asks whether a declared thing has a consumer**, which is why the same defect keeps arriving green. A test asserting every declared signal has at least one emitter would have caught `item_used` and `debug_command` on day one. No checker reads dependency direction, so the project's central invariant is the one architectural rule with no gate — the same shape as `const FIRST_AREA := &"courtyard"` before T1.2. And gotcha 48 is measurable: **59 of 218 CSV rows are demo namespace**, and T4.3 already recorded a fork shipping them green. `check_boundary.gd` already computes the forbidden-name set this needs |
 | B | **The settings package** | **12 of 23 settings have no consumer** (the docs said 17). Four are video settings `_apply_display()` could own — it already applies three siblings and has the headless guard. Five are `accessibility/*`, which a game **cannot** wire without editing `src/`, and all twelve are drawn to the player, translated, and inert. Fold in: `reset_to_defaults()` never calling `_apply_locale()` (one line, a live bug), `set_dof_enabled()` having no caller, and `Actions.JUMP` being offered in the rebind screen for a feature the template does not have |
 | C | **A turn in place** — but the seam decision first | `face_direction()` has only test callers, so nothing changes facing while stationary at all. The question is WHO may ask for a turn: the player facing an interaction target, or an NPC facing the player in dialogue. `Speaker` is 17 lines and deliberately knows only a conversation id, so it is probably `NpcBrain` or `InteractionSensor`. **Owner's call, not the assistant's** — T5.3 declined to pick one silently |
 | D | **A wholesale character swap, photographed** | Phase T5's remaining proof criterion, and the only one of the three that is a proof rather than a feature. `character_alt_layout.tres` already exists (4 facings, 24×40, 2 blocks) but has no gait set, so a sheet with a different cell size AND a full gait set does not exist anywhere. Would have caught T5.3's defect if it had included a climb |

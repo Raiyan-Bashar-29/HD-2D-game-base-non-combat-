@@ -3,7 +3,20 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-04 · **T5.3 (delivering the gaits that were already declared) complete.
+**Last updated:** 2026-09-05 · **T5.4 (the three missing enforcement gates) complete — THE LADDER
+IS SIX CHECKERS NOW, and the two new ones ask the question the first four never did: does a
+declared thing have a CONSUMER? `check_signals.gd` requires every signal in the registry to have
+an emitter; `check_layers.gd` enforces `core -> content -> systems -> gameplay -> ui`;
+`check_boundary.gd` now fails a CSV row translating content that is not there, which closes
+gotcha 48. Each was proved red by planting a real violation and green by removing it — the
+exit codes are in the DEVLOG. THE LAYER GATE FOUND A REAL VIOLATION ON ITS FIRST RUN: 55 upward
+references, of which 13 were `interaction_sensor.gd` sitting in `systems/` while typed on
+`Interactable`, which is `gameplay`. It was in the wrong layer — a player component is not a
+game-agnostic service — and is now `src/gameplay/interaction/`. That is gotcha 55, and it is the
+same shape as `FIRST_AREA` in `core` before T1.2 with the roles reversed: the rule existed and
+the enforcement did not. Suite 1,694 → 1,728.**
+
+**T5.3 (delivering the gaits that were already declared) is the row before it.
 PHASE T5 IS OPEN — the base as a reusable CHARACTER kit, which is what the owner says it is FOR:
 a future game inherits working characters and changes only assets. `main` declares `1.2.0`;
 `v1.0.0` and `v1.0.1` are the tags, and 1.0.2, 1.1.0 and 1.2.0 are deliberately untagged.**
@@ -28,9 +41,11 @@ consumer (not 17 — the figure was stale by five); music ducking is entirely de
 (`stop_music`/`duck`/`unduck` have no callers anywhere); `Actions.JUMP` is offered in the rebind
 screen for a feature the template does not have; `KeyBindings.rebind()` gates on
 `InputMap.has_action` rather than `Actions.REBINDABLE`, so an override outside the rebindable set
-cannot be reset; **no gate enforces the layer direction, knows the signal registry's shape, or
-reads `localization/` for demo content** (59 of 218 CSV rows are demo namespace). `face_direction()`
-still has only test callers. Full write-up in T5.3's `DEVLOG.md` entry.
+cannot be reset; `face_direction()` still has only test callers. Full write-up in T5.3's
+`DEVLOG.md` entry. **The three enforcement holes on that list are CLOSED by T5.4** — the layer
+direction, the signal registry's shape and `localization/` demo content all have gates now, and
+the row's corrected measurement is **51 of 218 CSV rows** in a content namespace, not 59: the
+audit counted the eight `item.category.*` rows, which are engine.
 
 **EVERY EXIT CRITERION IN PHASES 0 TO T4 IS TICKED, and each was PROVED rather than asserted** —
 T5.1 closed the last four, one of which (the locale) was a missing FEATURE rather than a missing
@@ -1066,15 +1081,17 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,676 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,728 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
-"$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content
+"$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content, and no orphan CSV row
 "$G" --headless --script tools/check_strings.gd            # must exit 0 — no player-facing literal, every *_KEY exists
+"$G" --headless --script tools/check_layers.gd             # must exit 0 — core -> content -> systems -> gameplay -> ui
+"$G" --headless --script tools/check_signals.gd            # must exit 0 — every declared signal has an emitter
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Fifty-four gotchas that each cost an hour
+## Fifty-five gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -1518,7 +1535,9 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     document that states an output must state the command that produced it**, which is the same
     rule as non-negotiable #1 aimed at prose.
 
-48. **NO GATE READS `localization/` FOR DEMO CONTENT, SO A MISSING PRUNE PREFIX SHIPS SILENTLY.**
+48. **A MISSING PRUNE PREFIX SHIPPED SILENTLY, BECAUSE NO GATE READ `localization/` AT ALL.**
+    **CLOSED BY T5.4**, and the closing is at the end of the entry — the diagnosis below is kept
+    because it is the reasoning, and because half of it is still true.
     `check_boundary.gd` guards `src/`, `tests/framework/` and `tests/unit/` — the places where a
     demo id would be a LEAK. A demo row in `localization/strings.csv` is not a leak and not an
     error: it is a translation for content that was deleted, so nothing loads it, nothing resolves
@@ -1528,9 +1547,19 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     the artefact that rots: written at T1.2, it never learned about `quest.` when WP-08 added
     quests, so a fork shipped *"The Keeper's Errand"* and *"three rose petals"* inside its own game
     with all four checkers and 1,539 assertions green. **A checklist item with no gate behind it
-    needs an expiry story**, and here it is a grep the document tells the author to run and read,
-    not a rule in a tool — a tool would need to know which prefixes are engine, which is the same
-    list rotting one directory further away.
+    needs an expiry story**, and the story written here — "a grep the document tells the author to
+    run" — was not one, because it rested on the author choosing to run it.
+    **T5.4 found the expiry story the paragraph above says a tool cannot have, by asking the
+    opposite question.** A tool that lists which prefixes are engine does rot; a tool that asks
+    whether a ROW NAMES CONTENT THAT EXISTS derives everything and cannot. `check_boundary.gd`
+    already computed the demo-name set from `data/` and `scenes/areas/`, so the orphan check was
+    forty lines: a `quest.keepers_errand.*` row with no quest resource behind it is now **exit 1**,
+    in the template and in every game built on it. Presence is still only REPORTED — 218 rows, 51
+    in a content namespace — because the template legitimately ships its own demo rows and a gate
+    switched off where it lives is decoration. **The stripped CI job now runs `NEW_GAME.md`'s
+    `awk` verbatim and then this gate**, so the prune list is itself checked, by something derived
+    from a different place. Two namespaces are still ungated and said so in the header: `object.`
+    and `action.` keys are authored freely and match no id, so nothing can derive them.
 
 
 49. **A SCRIPT THAT DOES NOT PARSE IS NOT `null`, SO THE TEST RUNNER SKIPPED A LISTED CASE IN
@@ -1661,6 +1690,25 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     GDScript runtime error aborts only the innermost frame) in a third place: **a green signal
     that was never wired to the thing it claims to describe.** Found by an audit that swept for
     declared-and-unread values rather than by any gate, because no gate looks for one.
+55. **A RULE WITH NO GATE IS A RULE THAT IS ALREADY BEING BROKEN, AND YOU WILL NOT FIND OUT FROM
+    A GREEN LADDER.** `ARCHITECTURE.md` has stated `core -> content -> systems -> gameplay -> ui,
+    downward only` since Phase 0, gives the test in the next sentence — *could you delete the
+    layer above and still compile?* — and nothing had ever run it. T5.4 wrote the four-line
+    checker, expecting to confirm a clean tree because the package brief said the tree was clean.
+    **First run: 55 upward references, exit 1.** Forty-two were the debug harness, which is the
+    same exemption `check_boundary.gd` already grants for the same reason. Thirteen were real:
+    `interaction_sensor.gd` sat in `systems/` and was typed on `Interactable`, which is
+    `gameplay` — delete `gameplay/` and `systems/` does not compile, the document's own test,
+    failed. The file was simply in the wrong layer: its second line says it *"lives as a child of
+    the player"*, and a player component is not a game-agnostic service. Moved to
+    `src/gameplay/interaction/` and the reference became legal with no exemption. **This is the
+    same shape as `const FIRST_AREA := &"courtyard"` sitting in `core` before T1.2 — it passed
+    eight verification rungs because no rule forbade it — with the roles reversed: here the rule
+    existed and the enforcement did not.** The transferable form: for every invariant a document
+    states, ask which command fails when it is violated. If the answer is none, the invariant is
+    a wish, and the cost of discovering that grows with the tree. Writing the gate is cheap while
+    the tree is nearly clean and expensive once it is not — and you do not know which you have
+    until you run it.
 
 ## How work is sliced
 

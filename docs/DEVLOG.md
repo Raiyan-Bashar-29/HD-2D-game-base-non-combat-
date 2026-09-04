@@ -6142,3 +6142,16 @@ one command.
 - **One run in ten printed `1 errors` with no `[ERROR]` line in the captured output**, and it did
   not reproduce across four subsequent runs of the identical command. Recorded rather than
   claimed as clean: it was not chased, and it is the only unexplained thing in this row.
+
+**CI green on `f44e71b`, PR #35** — all four jobs pass. Full checkout
+`=== 1798 passed, 0 failed, 0 skipped ===`; **stripped template
+`=== 1724 passed, 0 failed, 25 skipped ===`**, up from 1,708, which is the number that matters
+for a new test file: `character_swap_test.gd` asserts only the base's own placeholder sheet and
+names no demo content, so all 14 of its assertions survive the strip. The 25 skips are unchanged.
+
+**Captures are not committed, on this project's standing practice** — no row in the repository's
+history has ever committed a screenshot, and 5.8MB of PNG per row inside `res://` would also be
+texture-imported on every fresh clone. The record is the decoded numbers quoted above plus a
+permanent tool that re-takes the whole run in one command, which is strictly better than a PNG:
+a committed image proves what one tree once looked like, and `--gait-shots` proves what this one
+looks like now.

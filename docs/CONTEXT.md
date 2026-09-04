@@ -1050,7 +1050,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Fifty-two gotchas that each cost an hour
+## Fifty-three gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -1599,6 +1599,25 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     and duly reported the player falling from -0.30 to -20.54 with `is_on_floor()` false, which is
     gotcha 9 seen from a probe that arrived too early and reads as "the player falls through the
     world".
+
+
+53. **THE `.godot` IMPORT CACHE IS GITIGNORED, SO SWITCHING BRANCHES LEAVES THE OTHER BRANCH'S
+    ASSETS IMPORTED AND THE SUITE FAILS ON A MISMATCH THAT EXISTS IN NEITHER BRANCH.** Measured
+    while recording T5.2's CI run: `git checkout` back to the previous branch, run rung 4, and
+    `the default layout fits its sheet — expected 0, got 1`. Both branches were green in CI.
+    Nothing was wrong with either. `assets/placeholder/character_placeholder.png` had been
+    regenerated at 256x576 on one branch and the checkout correctly restored the 256x192 file — but
+    the IMPORTED texture lives in `.godot/`, which is gitignored and therefore not part of what a
+    checkout changes, so the layout resource from one branch was being validated against the
+    imported texture of the other. **`--headless --import` after the checkout, and it is
+    `1653 passed, 0 failed`.** This is the fresh-clone rule (`--headless --import` FIRST, because
+    `class_name` globals live in that cache) with a second and less obvious consequence: the cache
+    holds IMPORTED ASSETS as well as script globals, so it goes stale on a branch switch and not
+    only on a clone. Two rules. **Re-import after any checkout that touches an asset or a
+    `.import` file**, and treat a rung-4 failure immediately after a branch switch as a cache
+    question before a code question. And **a failure that contradicts a green CI run on the same
+    tree is evidence about the local environment**, not about the tree — the same reflex gotcha 50
+    asks for, one layer down: there, a leftover setting; here, a leftover import.
 
 ## How work is sliced
 

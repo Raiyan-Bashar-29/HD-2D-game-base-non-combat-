@@ -13,7 +13,7 @@ situation; [`docs/TEMPLATE.md`](docs/TEMPLATE.md) is the framing both assume.
 | starting any session | `docs/CONTEXT.md`, then your package on the board |
 | confused about what this project IS | `docs/TEMPLATE.md` |
 | picking the next package | `docs/WORK_PACKAGES.md` (the board) and `docs/ROADMAP.md` |
-| surprised by the engine | the gotcha list in `docs/CONTEXT.md` — fifty-two, each cost an hour |
+| surprised by the engine | the gotcha list in `docs/CONTEXT.md` — fifty-three, each cost an hour |
 | wondering why a file is shaped that way | its own `##` header first, then `docs/ARCHITECTURE.md` and `docs/decisions/` |
 | about to write a player-facing string | `localization/strings.csv`, and quote any value containing a comma |
 | starting a new game on this base | `docs/NEW_GAME.md` |
@@ -77,6 +77,12 @@ memory; 4.7 is newer than most training data. Module classes (`GridMap`, `CSGBox
 gitignored `.godot/` cache; without it every script referencing `GameEnums` or `DictRead`
 fails to parse and the autoloads never load.
 
+**And after any `git checkout` that touches an asset, run it again.** That cache holds
+IMPORTED ASSETS as well as `class_name` globals, and it is gitignored — so a branch switch
+leaves the other branch's texture imported and rung 4 fails on a mismatch that exists in
+neither branch. Gotcha 53: a rung-4 failure straight after a checkout is a cache question
+before it is a code question.
+
 ```bash
 G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe
 "$G" --headless --check-only --script <file>   # type gate; filter "Identifier not found: <Autoload>"
@@ -133,7 +139,7 @@ same reasoning as the file budgets: a package that outgrows one chat gets half-f
 | You want to | Read |
 |---|---|
 | know what to work on now | [`docs/WORK_PACKAGES.md`](docs/WORK_PACKAGES.md) — the board |
-| know where things stand | [`docs/CONTEXT.md`](docs/CONTEXT.md) — state, settled decisions, fifty-two gotchas |
+| know where things stand | [`docs/CONTEXT.md`](docs/CONTEXT.md) — state, settled decisions, fifty-three gotchas |
 | understand why this is a template and not a game | [`docs/TEMPLATE.md`](docs/TEMPLATE.md) |
 | **add an area, an NPC, a conversation, an item, an object, a quest, equipment, a place on the world map** | **[`docs/AUTHORING.md`](docs/AUTHORING.md)** |
 | **make art that drops into this** | **[`docs/ART_CONTRACT.md`](docs/ART_CONTRACT.md)** |

@@ -4986,6 +4986,15 @@ and `check_strings` all PASS in both jobs. Committed as `4ec29fb` on
 `claude/t4-3-new-game-perform`, PR #27 — targeting `main` directly, because the stack it would
 have been stacked onto is now merged.
 
+**PR #27 merged and `v1.0.1` tagged, 2026-09-03.** Merge commit `a291691`; `main` verified to
+carry `base/version="1.0.1"` and a matching `## 1.0.1` heading before the tag was cut. Asked for
+separately from the bump and authorised, which is T4.1's precedent held to: the bump ships with the
+package, the tag is a release action and is the owner's. Two tags now stand and each names the tree
+that declares it — `v1.0.0` on `648bac1`, `v1.0.1` on `a291691`. The claims in `CONTEXT.md`,
+`SYSTEMS_INVENTORY.md` and the board that said the 1.0.1 tag had NOT been taken were corrected in
+the same breath, because a state file that is stale about a release is the drift this project
+polices.
+
 ## 2026-09-04 — T4.4 · `TESTING.md` performed, the last document never walked
 
 **Did.** Performed `docs/TESTING.md` as a consumer adding assertions to a suite they did not
@@ -5145,8 +5154,10 @@ engine file — `git diff src/` is empty and `git diff src/systems/debug/` is cl
 capture would photograph something it did not touch, which is ceremony that later reads as
 evidence.
 
-**Version bumped to 1.0.2, and the tag for it NOT taken.** T4.1's precedent, reaffirmed by T4.3:
-stating a version is engineering and is assertable, cutting a release is the owner's.
+**Version bumped to 1.0.2, and the tag for it ASKED FOR AND DECLINED.** T4.1's precedent working
+rather than suspended — the bump ships with the package and the tag is a separate request the
+owner answers. `v1.0.0` and `v1.0.1` were each asked for that way and granted; this one was
+declined on 2026-09-04, so `main` declares `1.0.2` with no tag naming it.
 `docs/CHANGELOG.md` gains a `## 1.0.2` entry whose *a consuming game does* line is honest about
 the one visible consequence — a game whose suite holds a case that does not compile will see rung
 4 fail where it previously passed, and that is the bug being fixed rather than a new restriction,

@@ -4,8 +4,9 @@ A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has t
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
 **Last updated:** 2026-09-04 · **T4.4 (`TESTING.md` performed) complete. PHASE T4 REMAINS
-COMPLETE — it closed at T4.3 and T4.4 adds no exit criterion. `main` declares `1.0.2`; the
-repository is tagged `v1.0.0` and 1.0.2 is deliberately untagged.**
+COMPLETE — it closed at T4.3 and T4.4 adds no exit criterion. The repository is tagged `v1.0.0`
+and `v1.0.1`, each on the tree that declares it; `main` now declares `1.0.2`, and THAT version is
+deliberately untagged.**
 
 **ALL FIVE CONSUMER DOCUMENTS HAVE NOW BEEN PERFORMED, AND ALL FIVE FOUND A DEFECT. THREE OF THE
 FIVE WERE DEFECTS IN THE TEMPLATE.** T4.4 walked `TESTING.md`, the last one never walked, and
@@ -132,14 +133,16 @@ would not have.
 broken, or because a game built on this base has hit a seam that is genuinely missing, that is a
 package and the board is where it goes. Adding one for its own sake is precisely how the previous
 project reached 3,983 lines in one file twenty reasonable lines at a time. **The version stays
-`1.0.2` and UNTAGGED** — the owner declined that tag on 2026-09-04 as well, consistent with 1.0.1
-and with T4.1's precedent.
+`1.0.2` and UNTAGGED** — the owner declined that tag on 2026-09-04. Note that 1.0.0 and 1.0.1
+WERE both tagged, each asked for separately after its bump had landed, which is T4.1's precedent
+working as intended rather than an inconsistency: the bump ships with the package and the tag is a
+separate request the owner answers. Here the answer was no.
 
 
 138 files, 11,983 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
 three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
-3 tagged surfaces, 1 shared area material. Template version **1.0.2**, tagged `v1.0.0` —
-and 1.0.2 is deliberately untagged.
+3 tagged surfaces, 1 shared area material. Template version **1.0.2**, and that version is
+deliberately UNTAGGED — `v1.0.0` and `v1.0.1` are the tags, each naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 
 **Works, and verified by running it:** logging with rotation · signal registry (`events.gd`) ·

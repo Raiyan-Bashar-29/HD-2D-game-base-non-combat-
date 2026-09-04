@@ -3075,8 +3075,8 @@ that followed sections 1 to 4 with `first_area` empty reports `1539 passed, 0 fa
 across fifteen named cases, and the harsher stripped variant CI runs reports `1534 passed, 0
 failed, 25 skipped`. The banner line quoted in section 6 was copied out of the fork's own run.
 
-**Version bumped to 1.0.1; the tag for THAT was not taken.** T4.1's precedent decides it — stating
-a version is engineering and assertable, cutting a release is the owner's. Leaving `main` saying
+**Version bumped to 1.0.1, and the tag for it taken separately.** T4.1's precedent decides it — stating
+a version is engineering and assertable, cutting a release is the owner's — so the bump landed with the package and the tag was asked for on its own, and authorised (`v1.0.1` on `a291691`). Leaving `main` saying
 `1.0.0` after changing it would have made one version name two trees, which is the rot
 `version_test.gd` exists to prevent. `docs/CHANGELOG.md` gains a `## 1.0.1` PATCH entry whose *a
 consuming game does* line is actionable: a fork made at 1.0.0 that followed `NEW_GAME.md` should
@@ -3243,7 +3243,10 @@ up 17 by the same arithmetic, and **the 25 skips are unchanged** — neither new
 since fixtures work in a stripped checkout and the documents are still there. All four checkers
 exit 0 against `--path` as well.
 
-**Version bumped to 1.0.2; the tag for it was NOT taken.** T4.1's precedent, reaffirmed by T4.3.
+**Version bumped to 1.0.2; the tag for it was ASKED FOR AND DECLINED, 2026-09-04.** That is
+T4.1's precedent working rather than being suspended: the bump ships with the package, the tag
+is a separate request, and the owner answers it. `v1.0.0` and `v1.0.1` were both asked for the
+same way and both granted; this one was not, so `main` declares `1.0.2` with no tag naming it.
 The `## 1.0.2` CHANGELOG entry's *a consuming game does* line is honest about the one visible
 consequence: a game whose suite contains a case that does not compile will see rung 4 fail where
 it previously passed, and that is the bug being fixed rather than a new restriction — the case was

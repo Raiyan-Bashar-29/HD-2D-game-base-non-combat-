@@ -5481,3 +5481,102 @@ nothing yet proves the GAITS do, which is the T2.1-standard proof this row did n
 still true: `Actions.DEBUG_FREECAM` is bound to nothing, and the default placeholder now has three
 blocks but the ALT sheet still has two, so a sheet with a different cell size AND a full gait set
 does not yet exist anywhere.
+
+---
+
+## 2026-09-04 — T5.3 · Delivering the gaits that were already declared
+
+**Did:** an audit of the whole base, then fixed the two defects it found in the function T5.2 had
+just touched. **`MoveState.CLIMB` never reached `CharacterVisual` at all.**
+`PlayerController._physics_process` opens with `if _climbing: climb_step(delta); return`, so the
+one line that hands a state to the visual (line 124) is unreachable for the whole duration of a
+climb, and `climb_step` touched the visual only after `_enter_state(IDLE)`. There are exactly
+three callers of `update_from_velocity` in the project — those two and `npc_brain.gd:108`, which
+passes `WALK` or `IDLE` — so **nothing could ever pass CLIMB.** `SpriteSheetLayout.climb_row` was
+exported, defaulted to -1, range-limited, matched in `animation_for`, counted by
+`distinct_gaits()`, validated by `problems()` and asserted by `art_contract_test.gd`, and was
+**impossible to draw.** `climb_step` now derives a velocity from the move it just applied and
+drives the visual on both legs of the climb (`_drive_visual`), and `update_from_velocity` treats a
+climb as moving even when the horizontal component is zero — which it always is on a ladder.
+Second defect, same function: the `else` branch pinned `_frame = 0` whenever horizontal speed was
+zero, so **no idle block had ever advanced a single cell.** Three of the shipped sheet's four idle
+cells were undrawable. An idle block that DIFFERS from the walk block now advances at a new
+`idle_fps` export (3.0, slower than a walk on purpose); a sheet whose idle *is* its walk block
+still holds cell 0, because that is every sheet authored before T2.1 and animating it would be
+walking on the spot. `_rate_for`, `_advance` and `_idle_animates` split out of what would
+otherwise have been one function over the 40-line budget. New `tests/unit/gaits_test.gd`
+(12 assertions) plus 6 in `traversal_test.gd`. Corrected four false docstrings in `events.gd` and
+four stale document claims; added **gotcha 54**.
+
+**Why:** because a ticked exit criterion was false, and on a project whose spine is "nothing is
+done until the engine has run it" that outranks new work. The roadmap said "idle, walk, run, sneak
+and climb each addressable" and climb reached nothing. The reason it survived is worth more than
+the fix: **both ends of the seam were asserted and the wire between them was not.**
+`traversal_test.gd:132` asserted `_mover.state == CLIMB` — the controller's own field.
+`art_contract_test.gd:267` asserted `animation_for(CLIMB)` — a pure function on a fixture. Two
+green assertions that between them look like coverage of the path, over a path that did not exist.
+And it was invisible in the demo: the shipped sheet leaves `climb_row` at -1, so the fallback drew
+the walk block and looked correct. The first observer would have been the first consuming game to
+draw a climb cycle — exactly the audience Phase T5 exists to serve, which is what makes it worth a
+row rather than a footnote. The idle defect is the same shape from the other side: "more than one
+idle" was on the exit criteria while ONE idle had never animated, so the criterion as written
+would have added a second static pose and left a held pose.
+
+**Connects:** `PlayerController.climb_step` ↔ `CharacterVisual.update_from_velocity` ↔
+`SpriteSheetLayout.animation_for` — the seam T5.2 built, now with its middle joined up and
+asserted. Whether a standing character breathes is decided by the SHEET
+(`animation_for(IDLE) != animation_for(WALK)`), which is the same fallback reasoning as
+`run_row = -1`: the data answers, no flag is added, and no sheet authored earlier changes
+behaviour. `idle_fps` sits beside `walk_fps` as a per-character export, so a game tunes a
+character's idle without touching code. Nothing was added to `GameEnums`, `Events` or the layout
+resource; the fix is entirely in the two files that were already wrong.
+
+**Verified:**
+- `--headless --import` → exit 0, **zero** `SCRIPT ERROR` / `Parse Error` lines.
+- `--headless --quit-after 30` → `Session ended after 0.4s — 0 warnings, 0 errors`, exit 0.
+- **The gate was proved by planting the real defect, not by watching it pass.** With the fix
+  reverted (`git checkout --` on the two `src/` files, tests kept):
+  `=== 1688 passed, 6 failed, 0 skipped ===`, **exit 1**, naming
+  `a climb draws the climb block — expected 1, got 0` (twice, once per direction of the climb),
+  `and its cycle actually advanced — expected true, got false` (twice),
+  `and its cycle advances over a second — expected true, got false`, and
+  `a distinct idle block advances while standing still — expected true, got false`.
+  Fix restored: `=== 1694 passed, 0 failed, 0 skipped ===`, exit 0.
+- `check_budgets.gd`, `check_content.gd`, `check_boundary.gd`, `check_strings.gd` → all exit 0.
+- `traversal_test`'s `plan()` caught the stale count before I did: `56/50`, exit 1, *"planned 50
+  outcomes and produced 56 — a crash, an early return or a stale plan"*. That mechanism works.
+
+**Unblocks:** a consuming game can now author a climb cycle and see it. The first T5 exit
+criterion is honest. `_advance` and `_rate_for` are the hooks a second idle block would use, so the
+remaining "more than one idle" is now a chooser on top of working machinery rather than a rewrite.
+
+**Known gaps:** deliberately not fixed here, because each is a different package and one of them is
+a seam decision rather than a defect.
+- **`face_direction()` still has only test callers**, so nothing changes facing while stationary at
+  all — the "turn in place" criterion assumes a snap that does not happen. WHO may ask for a turn
+  (the player facing an interaction target? an NPC facing the player in dialogue?) is a seam
+  decision and was left to the owner rather than picked silently.
+- **`HD2DCameraRig.set_dof_enabled()` has no caller** while the options screen offers
+  `video/depth_of_field`. Documented in `SYSTEMS_INVENTORY.md` rather than fixed.
+- **12 of 23 settings have no consumer** (the documented figure was 17, stale by five). Five are
+  `accessibility/*`, which a game cannot wire without editing `src/`, and all twelve are drawn to
+  the player. That is the settings package.
+- **Music ducking is entirely dead** — `stop_music`, `duck` and `unduck` have no callers anywhere;
+  the only `duck` hit in the repository is the phrase "duck-typed" in a comment. The natural home
+  is `DialogueRunner`.
+- **`Actions.JUMP` is in `REBINDABLE`**, so the rebind screen draws a Jump row for a feature the
+  template states it does not have; `CAM_ZOOM_IN`/`OUT` and `DEBUG_FREECAM` are also polled by
+  nothing. And `KeyBindings.rebind()` gates on `InputMap.has_action` rather than
+  `Actions.REBINDABLE`, so an override installed outside the rebindable set cannot be reset —
+  `reset_bindings()` re-declares only the four rebindable groups.
+- **`Settings.reset_to_defaults()` never calls `_apply_locale()`**, so Reset writes `locale = "en"`
+  and leaves the UI in the old language. One missing line, left with the settings package.
+- **No gate enforces the layer direction, knows the signal registry's shape, or reads
+  `localization/` for demo content.** The last is gotcha 48 and is measurable: 59 of 218 CSV rows
+  are demo namespace, and T4.3 already recorded a fork shipping them green. These three are the
+  enforcement holes that let this class of defect keep arriving through a green ladder, and a
+  registry-liveness assertion would have caught `item_used` and `debug_command` on day one.
+- **No windowed capture was taken for this row.** The fix is proved by decoding `sprite.frame`
+  through the whole path, which is stronger than a screenshot for this defect (gotcha 28: a sprite
+  drawn from the wrong cell is still a person), but the T2.1-standard photograph of a climb cycle
+  belongs to the wholesale-character-swap criterion and is not claimed here.

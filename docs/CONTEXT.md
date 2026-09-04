@@ -3,19 +3,34 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-04 · **T5.2 (an animation block per GAIT) complete. PHASE T5 IS OPEN —
-the base as a reusable CHARACTER kit, which is what the owner says it is FOR: a future game
-inherits working characters and changes only assets. `main` declares `1.2.0`; `v1.0.0` and
-`v1.0.1` are the tags, and 1.0.2, 1.1.0 and 1.2.0 are deliberately untagged.**
+**Last updated:** 2026-09-04 · **T5.3 (delivering the gaits that were already declared) complete.
+PHASE T5 IS OPEN — the base as a reusable CHARACTER kit, which is what the owner says it is FOR:
+a future game inherits working characters and changes only assets. `main` declares `1.2.0`;
+`v1.0.0` and `v1.0.1` are the tags, and 1.0.2, 1.1.0 and 1.2.0 are deliberately untagged.**
 
-**A CHARACTER'S MOVEMENT STYLES NOW COME FROM ITS SHEET, NOT ITS CODE.**
-`SpriteSheetLayout.animation_for` took a **boolean**, so a sheet could hold an idle cycle and a
-walk cycle and nothing else — run and sneak replayed the walk block faster. Meanwhile
-`GameEnums.MoveState` has had ten values since WP-01 and `Events.player_state_changed` was
-declared, emitted and **listened to by nothing.** It now takes a `MoveState`, and
-`run_row`/`sneak_row`/`climb_row` default to `-1` = "replay the walk block", so no sheet authored
-before it changes behaviour and a game adds a run cycle by drawing one. **Sixth instance of this
-project's characteristic defect: not broken code, but correct code with no consumer.**
+**A FULL-BASE AUDIT FOUND THE SEVENTH INSTANCE OF THE CHARACTERISTIC DEFECT, AND T5.2 HAD CREATED
+IT TWO COMMITS EARLIER.** `MoveState.CLIMB` never reached `CharacterVisual` at all.
+`_physics_process` returns early while a climb owns the body, and `climb_step` touched the visual
+only after resetting the state to IDLE — so of the three callers of `update_from_velocity` none
+could ever pass CLIMB, and `climb_row` was exported, defaulted, range-limited, validated by
+`problems()` and asserted by `art_contract_test.gd` while being **impossible to draw.** A ticked
+exit criterion was false. **Both ends of the seam were asserted and the wire was not** — that is
+now gotcha 54, and it is the most transferable thing the audit produced. Second defect in the
+same function: `update_from_velocity` pinned `_frame = 0` whenever horizontal speed was zero, so
+**no idle block had ever advanced a cell** — three of the shipped sheet's four idle cells were
+undrawable while "more than one idle" sat on the exit criteria. Both fixed and both proved by
+planting the revert: `1688 passed, 6 failed`, exit 1 without the fix; `1694 passed, 0 failed`
+with it.
+
+**WHAT THE AUDIT FOUND THAT IS STILL OPEN**, so nobody rediscovers it: `set_dof_enabled()` has no
+caller while the options screen offers `video/depth_of_field`; **12** of 23 settings have no
+consumer (not 17 — the figure was stale by five); music ducking is entirely dead
+(`stop_music`/`duck`/`unduck` have no callers anywhere); `Actions.JUMP` is offered in the rebind
+screen for a feature the template does not have; `KeyBindings.rebind()` gates on
+`InputMap.has_action` rather than `Actions.REBINDABLE`, so an override outside the rebindable set
+cannot be reset; **no gate enforces the layer direction, knows the signal registry's shape, or
+reads `localization/` for demo content** (59 of 218 CSV rows are demo namespace). `face_direction()`
+still has only test callers. Full write-up in T5.3's `DEVLOG.md` entry.
 
 **EVERY EXIT CRITERION IN PHASES 0 TO T4 IS TICKED, and each was PROVED rather than asserted** —
 T5.1 closed the last four, one of which (the locale) was a missing FEATURE rather than a missing
@@ -492,8 +507,17 @@ three compiled cleanly and passed every static gate:**
   un-frozen screenshot is not reproducible.
 - The environment driver rebuilds a `Dictionary` every frame in `_sample()`. Measured as
   harmless at this scale; revisit if the frame budget tightens.
-- 17 of the 23 settings have no consumer yet. They are declared so the settings screen has
-  something to bind to, not because anything reads them.
+- **12** of the 23 settings have no consumer yet, not 17 — the figure was stale by five and no
+  gate or assertion can catch that, because nothing reads `Settings.DEFAULTS` except the screen
+  that draws it. Counted at T5.3: applied are `video/window_mode`, `video/vsync`,
+  `video/max_fps` and `locale` (inside `settings.gd` itself), the five `audio/*` buses
+  (`audio_director.gd`), `gameplay/text_speed` (`dialogue_screen.gd`) and
+  `gameplay/run_is_toggle` (`player_controller.gd`) — eleven.
+  Unapplied: `video/resolution_scale`, `bloom`, `depth_of_field`, `shadows`;
+  `gameplay/autosave`, `show_interact_hints`, `camera_shake`; and all five `accessibility/*`.
+  They are declared so the settings screen has something to bind to, not because anything reads
+  them — **but the screen offers all twelve to a player**, and for the accessibility five a game
+  cannot wire them without editing `src/`. That is the settings package, not a deferral.
 
 ## Decisions already made — do not re-litigate
 
@@ -1050,7 +1074,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Fifty-three gotchas that each cost an hour
+## Fifty-four gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -1618,6 +1642,25 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     question before a code question. And **a failure that contradicts a green CI run on the same
     tree is evidence about the local environment**, not about the tree — the same reflex gotcha 50
     asks for, one layer down: there, a leftover setting; here, a leftover import.
+54. **A UNIT TEST AT EACH END OF A SEAM PROVES NOTHING ABOUT THE WIRE BETWEEN THEM, AND TWO GREEN
+    ASSERTIONS READ AS COVERAGE OF THE WHOLE PATH.** T5.2 shipped `MoveState.CLIMB` as an
+    addressable animation block. `traversal_test.gd` asserted a climbing body reports
+    `state == CLIMB`; `art_contract_test.gd` asserted `animation_for(CLIMB)` returns the climb
+    row. Both passed. **CLIMB never reached the sprite at all** — `_physics_process` returns
+    early while a climb owns the body, so the one line that hands the state to the visual was
+    unreachable, and `climb_step` touched the visual only after resetting the state to IDLE. The
+    exit criterion was ticked, 1,676 assertions were green, and `climb_row` was undrawable. The
+    defect is invisible in the demo because the shipped sheet leaves `climb_row` at -1 and the
+    fallback draws the walk block, so the first observer would have been the first game to draw
+    a climb cycle. **The assertion that catches this class asserts the OUTPUT of the whole path,
+    not the state at either end**: decode the block out of `sprite.frame` after driving a real
+    climb, which fails with `expected 1, got 0` the moment the wire is cut. Ask of any seam:
+    which assertion fails if the middle is deleted? If the answer is none, the middle is
+    unverified however many assertions surround it. This is the same lesson as gotcha 22 (`0
+    warnings, 0 errors` counts the game's own logging, not compile errors) and gotcha 24 (a
+    GDScript runtime error aborts only the innermost frame) in a third place: **a green signal
+    that was never wired to the thing it claims to describe.** Found by an audit that swept for
+    declared-and-unread values rather than by any gate, because no gate looks for one.
 
 ## How work is sliced
 

@@ -45,7 +45,7 @@ previous project started as a system that was allowed to know one thing too many
 | Area root | The uniform contract every area scene satisfies | Weather, Audio, Log | gameplay logic | DONE — the ten required children are asserted, not just documented, and authored in `docs/AUTHORING.md` |
 | Area doors | The one object that asks to travel. Names an id and a spawn, nothing else | Interactable, Director | loading, fading, or moving the player | DONE |
 | HD-2D camera rig | Long-lens diorama framing, tilt-shift depth of field, every framing value an `@export` set PER AREA in the area scene | Events, Director | input; what it follows beyond a Node3D; any framing number of its own | DONE — the exports were always there; T3.2 gave the interior its own 36-degree / 9.5 m framing so the seam is USED, and a test fails if no area authors one |
-| Character visual | Billboarded, lit, correctly-sorted sprite; facing and column quantised from the sheet layout, camera-relative; and since T5.2 the animation BLOCK chosen by `GameEnums.MoveState`, so idle, walk, run, sneak and climb are separate cycles the SHEET names | Events, SpriteSheetLayout | input, movement, game rules, any sheet dimension of its own, or knowing whether it drives a player or an NPC — it is TOLD its state, never reading `player_state_changed` | DONE — T2.1 moved every dimension out to a resource; T5.2 made the block a state rather than a bool |
+| Character visual | Billboarded, lit, correctly-sorted sprite; facing and column quantised from the sheet layout, camera-relative; and since T5.2 the animation BLOCK chosen by `GameEnums.MoveState`, so idle, walk, run, sneak and climb are separate cycles the SHEET names. Since T5.3 a climb is MOVING even with no horizontal velocity, and an idle block that differs from the walk block advances at `idle_fps` instead of holding cell 0 | Events, SpriteSheetLayout | input, movement, game rules, any sheet dimension of its own, or knowing whether it drives a player or an NPC — it is TOLD its state, never reading `player_state_changed` | DONE — T2.1 moved every dimension out to a resource; T5.2 made the block a state rather than a bool; T5.3 made CLIMB and a cycling idle actually reach the sprite, which until then they did not |
 | Sprite sheet layout | The art CONTRACT: facings, frames, cell size, animation blocks and a row PER GAIT, as authored data. The sector width is derived from the facing count, so the two cannot disagree; a gait row left at -1 inherits the walk block, so every sheet authored before T5.2 draws what it always did | nothing — it is a data shape | a texture, a node, or what animation is playing | DONE — T2.1, and a sheet with a different cell and frame count was swapped in with no code change. T5.2 added run/sneak/climb rows and made `problems()` validate every one of them by field name |
 | Player controller | Movement, gait, movement state, authored climb, token input lock | Actions, Settings, Events, Layers | dialogue, inventory, interaction rules, the camera | DONE |
 | World clock | Day, hour, minute, time-of-day phase | Log, Events, Save | what time *means* to anything | DONE |
@@ -108,7 +108,7 @@ previous project started as a system that was allowed to know one thing too many
 | Path actions | Non-combat NPC verbs. One Interactable per action, selected with the cycle key | Interactable, Flags, Standing | performing itself, or what a standing level means | DONE — 2 of 5 verbs authored |
 | Standing | What one person thinks of the player. A clamped namespace over Flags, not a store | Flags | what any level means, or what changes it | DONE |
 | Followers | A companion that trails the player | Navigation | — | LATER — leave a seam, build nothing |
-| Animation state machine | Drives sprite animation from movement and actions | Character visual | — | PART — the BLOCK is now chosen by `MoveState` (T5.2) and the frame rate scales with speed, so gaits are data. Still missing: more than one idle, and a turn in place. See Phase T5 |
+| Animation state machine | Drives sprite animation from movement and actions | Character visual | — | PART — the BLOCK is now chosen by `MoveState` (T5.2) and the frame rate scales with speed, so gaits are data. T5.3 closed the two that were declared and undrawn: CLIMB reaches the sprite, and one idle animates. Still missing: a SECOND idle and a chooser between them, and a turn in place — for which `face_direction()` still has no production caller, so nothing changes facing while stationary at all. See Phase T5 |
 
 ## 4. Narrative
 
@@ -195,7 +195,10 @@ rather than oversights.
 7. **"Are you sure"** on overwriting a save and on quitting with unsaved progress.
 8. **First-run defaults** that are actually pleasant, since most players never open settings.
 9. **Reduced motion,** and a depth-of-field toggle. Heavy DOF causes real nausea for some
-   people, which is why `set_dof_enabled` exists on the camera rig from day one.
+   people, which is why `set_dof_enabled` exists on the camera rig from day one — **and it has
+   no caller anywhere, so the `video/depth_of_field` row the options screen draws does nothing.**
+   The applier and the setting were each built and never joined up. Not fixed by T5.3; it is one
+   of the twelve unconsumed settings and belongs to the settings package.
 10. **Subtitles and speaker names,** on by default.
 11. **Localization from the first string.** Retrofitting 200 hard-coded strings is exactly
     the debt the previous project logged.

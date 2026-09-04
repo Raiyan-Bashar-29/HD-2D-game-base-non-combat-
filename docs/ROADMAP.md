@@ -616,16 +616,49 @@ because the first row exposed how much of it was declared and unread.
   player walks in green and runs in rust while the NPC beside them stands in blue — same sheet,
   same frame, different blocks.
 
+- **T5.3 Delivering the gaits that were already declared — DONE, 2026-09-04.** An audit of the
+  whole base went looking for more of this project's characteristic defect and found the
+  **seventh instance, created by T5.2 two rows above.** `MoveState.CLIMB` never reached
+  `CharacterVisual` at all: `_physics_process` returns early while a climb owns the body, and
+  `climb_step` touched the visual only after resetting the state to IDLE — so across all three
+  callers of `update_from_velocity` nothing could ever pass CLIMB, and `climb_row` was exported,
+  defaulted, range-limited, validated by `problems()` and asserted by `art_contract_test.gd`
+  while being **impossible to draw**. Invisible in the demo because the shipped sheet leaves
+  `climb_row` at -1, so the fallback drew the walk block and looked right; the first person to
+  see it would have been the first game that drew a climb cycle. **Both ends were asserted and
+  the wire was not** — `traversal_test` proved the body reports CLIMB, `art_contract_test`
+  proved the layout maps it, and nothing proved it arrived. Second defect in the same function:
+  `update_from_velocity` pinned `_frame = 0` whenever horizontal speed was zero, so **no idle
+  block had ever advanced a single cell** — three of the shipped sheet's four idle cells were
+  undrawable, while "more than one idle" sat on the exit criteria below. Fixed: a climb counts
+  as moving without turning the character, and an idle block that DIFFERS from the walk block
+  advances at a new `idle_fps` (a sheet whose idle *is* its walk block still holds cell 0, which
+  is the pre-T2.1 case and would otherwise walk on the spot). Proved by 18 new assertions and by
+  planting the revert: the fix removed, the suite is `1688 passed, 6 failed`, exit 1, naming
+  `a climb draws the climb block — expected 1, got 0`; restored, `1694 passed, 0 failed`, exit 0.
+
 **Exit criteria for the phase:**
 
 - [x] A character's movement styles come from its sheet, not its code: idle, walk, run, sneak and
-      climb each addressable, and an unnamed one falling back rather than breaking. — T5.2
+      climb each addressable, and an unnamed one falling back rather than breaking. — T5.2 for
+      the addressing, **T5.3 for climb actually arriving.** This box was ticked while CLIMB
+      reached nothing; it is honest now, and the lesson is that "addressable" was asserted at
+      both ends of a seam whose middle had no assertion.
 - [x] The same seam serves NPCs, with no NPC-specific animation code. — T5.2, `NpcBrain` passes a
-      gait and knows nothing about animation blocks
+      gait and knows nothing about animation blocks. Worth knowing: `NpcBrain` only ever passes
+      WALK or IDLE, so RUN, SNEAK and CLIMB are exercised by the player alone.
 - [ ] **More than one idle.** A second idle block chosen over time or at random, so a standing
-      character is not a held pose. The block seam now exists; what is missing is the chooser, and
-      it is the smallest remaining piece of "characters feel alive".
-- [ ] **A turn in place.** Changing facing while stationary currently snaps between columns.
+      character is not a held pose. **Reworded by T5.3's finding rather than closed:** the reason
+      a standing character was a held pose was that the idle block never advanced at all, which
+      is now fixed. What remains is genuinely a SECOND block and a chooser between them, and it
+      is a smaller and more optional thing than this line implied.
+- [ ] **A turn in place.** Changing facing while stationary currently snaps between columns —
+      except that **nothing changes facing while stationary at all.** `_aim()` is called only
+      when the character is moving, and the one public API for it, `face_direction()`, has only
+      test callers. So the first question is not how to animate a turn but WHO is allowed to ask
+      for one: the player turning to face an interaction target, or an NPC turning to face the
+      player in dialogue. That is a seam decision and T5.3 deliberately left it to the owner
+      rather than picking one silently.
 - [ ] **A worked example of swapping a character wholesale** — a second sheet with a different
       cell size, facing count and gait set, dropped in and photographed, to the standard T2.1 set
       for the layout swap. The alt sheet proves the GRID swaps; nothing yet proves the GAITS do.

@@ -303,6 +303,7 @@ func climb_step(delta: float) -> void:
 	if not _climbing:
 		return
 	var step: float = climb_speed * delta
+	var before: Vector3 = global_position
 	# The corner has to LATCH. Without the flag, the frame after arriving at the waypoint
 	# steps off it towards the target, the next frame sees the body is no longer AT the
 	# waypoint and steers back, and the climb oscillates on the corner forever - which is
@@ -310,8 +311,10 @@ func climb_step(delta: float) -> void:
 	if not _climb_turned:
 		global_position = global_position.move_toward(_climb_waypoint, step)
 		_climb_turned = global_position.is_equal_approx(_climb_waypoint)
+		_drive_visual(before, delta)
 		return
 	global_position = global_position.move_toward(_climb_target, step)
+	_drive_visual(before, delta)
 	if not global_position.is_equal_approx(_climb_target):
 		return
 	_climbing = false
@@ -319,3 +322,15 @@ func climb_step(delta: float) -> void:
 	_enter_state(GameEnums.MoveState.IDLE)
 	if visual != null:
 		visual.update_from_velocity(Vector3.ZERO, delta, state)
+
+
+## THE CLIMB'S OWN ANIMATION TICK, and the reason it has to exist here: `_physics_process`
+## returns before the per-frame update while a climb owns the body, so the visual never heard
+## about a climb AT ALL. `MoveState.CLIMB` was entered, announced on the bus and passed to
+## nothing, which left `SpriteSheetLayout.climb_row` - exported, defaulted, validated by
+## `problems()` and asserted since T5.2 - impossible to draw. The velocity is DERIVED from the
+## move just applied rather than read off `velocity`, which an authored climb leaves at zero.
+func _drive_visual(before: Vector3, delta: float) -> void:
+	if visual == null:
+		return
+	visual.update_from_velocity((global_position - before) / maxf(delta, 0.0001), delta, state)

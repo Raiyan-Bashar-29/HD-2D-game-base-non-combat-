@@ -51,6 +51,10 @@ const DEFAULT_CELL: Vector2i = Vector2i(32, 48)
 @export var pixel_size: float = 0.035
 ## How many sheet frames per second at full walking speed.
 @export var walk_fps: float = 8.0
+## How many sheet frames per second while STANDING STILL, for sheets whose idle is a real cycle
+## rather than a pose. Slower than a walk on purpose: an idle at walking pace reads as marching.
+## Only used when the sheet's idle block differs from its walk block - see `_idle_animates`.
+@export var idle_fps: float = 3.0
 ## Movement speed treated as "full walk" for animation timing.
 @export var reference_speed: float = 3.2
 ## Lifts the sprite so its feet sit on the ground rather than its centre.
@@ -108,32 +112,62 @@ func _configure_sprite() -> void:
 
 
 ## Called every physics frame by whatever drives this character.
-## `velocity` is world-space; only the horizontal part is used.
+## `velocity` is world-space; only the horizontal part decides FACING and pace.
 ## `state` defaults to WALK so a caller that has not been updated behaves exactly as before:
 ## moving draws the walk block, standing still draws the idle one.
 func update_from_velocity(velocity: Vector3, delta: float,
 		state: GameEnums.MoveState = GameEnums.MoveState.WALK) -> void:
 	var flat: Vector2 = Vector2(velocity.x, velocity.z)
 	var speed: float = flat.length()
-	_moving = speed > 0.05
+	# A CLIMB IS MOVING EVEN WHEN `flat` IS ZERO. Going up a ladder is entirely vertical, so
+	# deriving "moving" from horizontal speed alone pinned the frame at 0 and left `climb_row`
+	# undrawable for the whole of T5.2: the block was addressable and nothing ever advanced it.
+	var climbing: bool = state == GameEnums.MoveState.CLIMB
+	_moving = speed > 0.05 or climbing
 	# A state that is not moving is IDLE whatever the caller said, so a character held still by
-	# a dialogue box does not stand there playing its run cycle in place. CLIMB is the exception
-	# and is deliberate: an authored climb writes `global_position` and leaves velocity at zero,
-	# so it must be believed rather than derived.
-	_state = state if _moving or state == GameEnums.MoveState.CLIMB else GameEnums.MoveState.IDLE
+	# a dialogue box does not stand there playing its run cycle in place.
+	_state = state if _moving else GameEnums.MoveState.IDLE
 
-	if _moving:
+	# Only a HORIZONTAL move turns anybody. Aiming on a vertical climb would quantise a zero
+	# vector and swing the character round to face south halfway up a ladder.
+	if speed > 0.05:
 		_aim(flat)
-		var rate: float = walk_fps * clampf(speed / maxf(0.01, reference_speed), 0.35, 2.0)
-		_frame_time += delta * rate
-		while _frame_time >= 1.0:
-			_frame_time -= 1.0
-			_frame = (_frame + 1) % _layout.frames
+	if _moving:
+		_advance(delta, _rate_for(speed))
+	elif _idle_animates():
+		_advance(delta, idle_fps)
 	else:
-		# Settle on the neutral pose rather than freezing mid-stride.
+		# Settle on the neutral pose rather than freezing mid-stride. A sheet with no idle
+		# block of its own has nothing to play here, so holding frame 0 is the honest answer.
 		_frame = 0
 		_frame_time = 0.0
 	_apply_frame()
+
+
+## Frames per second for a gait at `speed`. Clamped at both ends: a crawl still animates, and
+## a sprint does not strobe.
+func _rate_for(speed: float) -> float:
+	return walk_fps * clampf(speed / maxf(0.01, reference_speed), 0.35, 2.0)
+
+
+## Step the cycle. WITHIN the current block only - which block is drawn is `_state`'s business
+## and `_apply_frame` reads both.
+func _advance(delta: float, fps: float) -> void:
+	_frame_time += delta * fps
+	while _frame_time >= 1.0:
+		_frame_time -= 1.0
+		_frame = (_frame + 1) % _layout.frames
+
+
+## MAY A STANDING CHARACTER BREATHE? Only if its sheet actually has an idle block of its own.
+## `idle_row == walk_row` is legal and was the only possibility before T2.1, and animating that
+## case would replay the WALK cycle on the spot - which is the bug T5.2 fixed for run and sneak,
+## arriving from the other direction. So the SHEET decides, exactly as it decides the gaits.
+func _idle_animates() -> bool:
+	if _layout == null or _layout.frames <= 1:
+		return false
+	return _layout.animation_for(GameEnums.MoveState.IDLE) \
+			!= _layout.animation_for(GameEnums.MoveState.WALK)
 
 
 ## Face a direction without moving, for dialogue and scripted moments.

@@ -182,9 +182,10 @@ are template bugs. `tools/check_boundary.gd` exists to make the *other* directio
 file under `src/` may name your content — and a game editing `src/` is the failure this whole
 boundary was written to prevent.
 
-**How a game already forked from the template receives a later fix to the base is not yet
-described.** That is Phase T4's job and it is open work, stated here so nobody assumes an answer
-exists.
+**How a game already forked from the template receives a later fix to the base is
+[`UPGRADING.md`](UPGRADING.md)**, and it was performed against a real fork rather than written
+from intent. This paragraph said that answer did not exist yet and named Phase T4 as the open
+work; T4 is complete and the document has been there since T4.1.
 
 ## Data, not code
 

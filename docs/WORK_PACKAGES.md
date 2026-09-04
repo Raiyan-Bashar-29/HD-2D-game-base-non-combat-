@@ -79,6 +79,7 @@ original board rather than continuing it.
 | T4.4 | **`TESTING.md` performed, the last document never walked** | **DONE** — five for five: every document performed has found a defect reading would not, and this is the third of the five where the defect was in the TEMPLATE. The test runner SKIPPED A LISTED CASE THAT DID NOT PARSE, in silence, for the life of the suite — `load()` returns a non-null uninstantiable `GDScript`, `script.new()` then raises a runtime error, and that aborts only `_run_case`, so the loop moved on and the suite reported `1608 passed, 0 failed` and exit 0 with a whole case never run. `error_watch.gd` had counted the error the whole time and nothing asked it. Also: the document's ONE worked example did not compile, and three documents gave three different gotcha counts. Bumped to `1.0.2`; see below |
 | T5.1 | **The skeleton's four open exit criteria, closed by proving them** | **DONE** — asked whether the base was actually finished, `ROADMAP.md` said no: **Phase 1 read COMPLETE with three unticked exit criteria and Phase 2 read IN PROGRESS with one.** All four proved rather than ticked, and **one was a missing FEATURE** — `Settings` stored a locale, the options screen cycled one, and nothing anywhere called `TranslationServer.set_locale`, with only one locale column in the CSV so there was nothing to switch to. Also: the eight-direction facing mapping had no assertions (21 now, camera-yaw independent), the save criterion needed TWO PROCESSES, and the 30-second session had never been run. Bumped to `1.1.0`; see below |
 | T5.2 | **An animation block per GAIT** | **DONE** — the first row of Phase T5, and the owner's reframing made concrete: a future game should inherit working characters and change only assets. `SpriteSheetLayout.animation_for` took a **boolean**, so a sheet could hold an idle cycle and a walk cycle and nothing else — run and sneak replayed the walk block faster — while `GameEnums.MoveState` had ten values and `Events.player_state_changed` was declared, emitted and **listened to by nothing.** Sixth instance of declared-validated-and-read-by-nothing. Now a `MoveState`, with `run_row`/`sneak_row`/`climb_row` defaulting to -1 = "replay the walk block" so no existing sheet changes behaviour. Bumped to `1.2.0`; see below |
+| T5.3 | **Delivering the gaits that were already declared** | **DONE** — a full-base audit found the **seventh** instance of declared-validated-and-read-by-nothing, and **T5.2 one row above had created it**: `MoveState.CLIMB` never reached `CharacterVisual`, because `_physics_process` returns early while a climb owns the body and `climb_step` touched the visual only after resetting to IDLE. `climb_row` was exported, validated and asserted, and **undrawable** — a ticked exit criterion that was false, invisible in the demo because the shipped sheet leaves it at -1. Second defect in the same function: `_frame` was pinned to 0 whenever horizontal speed was zero, so **no idle block had ever advanced a cell** while "more than one idle" sat on the criteria. Both fixed, both proved by planting the revert (`1688 passed, 6 failed`, exit 1 → `1694 passed, 0 failed`). **Gotcha 54: a unit test at each end of a seam proves nothing about the wire between them.** See below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -3601,3 +3602,69 @@ silently skipped.
 The *a consuming game does* line is honest about the one visible consequence: nothing changes unless
 you want the gaits, but if you were using the shipped placeholder it is now 256×576 with three
 blocks rather than 256×192 with one.
+
+---
+
+## T5.3 · Delivering the gaits that were already declared — **DONE**
+
+**The row exists because an audit went looking for this project's characteristic defect across the
+whole base and found the seventh instance in the package one row above.** T5.2 made
+`SpriteSheetLayout.animation_for` take a `MoveState` and shipped `run_row`, `sneak_row` and
+`climb_row` as authored data. Run and sneak work. **Climb never arrived.**
+
+`PlayerController._physics_process` opens with `if _climbing: climb_step(delta); return`, so the
+line that hands the state to the visual is unreachable for the duration of a climb, and
+`climb_step` touched the visual only after `_enter_state(IDLE)`. All three callers of
+`update_from_velocity` were checked: those two, plus `npc_brain.gd:108`, which passes `WALK` or
+`IDLE`. **No call site in the project could pass `CLIMB`**, so `climb_row` — exported, defaulted
+to -1, range-limited, matched in `animation_for`, counted by `distinct_gaits()`, validated by
+`problems()`, asserted by `art_contract_test.gd`, documented in `ART_CONTRACT.md` — could not be
+drawn by anything.
+
+**Why every gate stayed green, which is the transferable part and is now gotcha 54.** Both ends of
+the seam were asserted and the wire was not: `traversal_test.gd` asserted the body reports
+`state == CLIMB`, `art_contract_test.gd` asserted `animation_for(CLIMB)` returns the right row.
+Two green assertions that together read as coverage of a path that did not exist. And it was
+invisible in the demo, because the shipped sheet leaves `climb_row` at -1 and the fallback draws
+the walk block, which looks correct. The first observer would have been the first consuming game
+to draw a climb cycle — the exact audience Phase T5 exists for.
+
+**The second defect, same function.** The `else` branch pinned `_frame = 0` whenever horizontal
+speed was zero, so **no idle block had ever advanced a single cell**: three of the shipped sheet's
+four idle cells were undrawable, while *"more than one idle"* sat on the phase's exit criteria. The
+criterion as written would have added a second static pose and left a held pose. It has been
+reworded rather than closed.
+
+**What changed.** `climb_step` derives a velocity from the move it just applied and drives the
+visual on both legs (`_drive_visual`); `update_from_velocity` treats a climb as moving even with
+zero horizontal component, and does not re-aim on a vertical move so facing survives a ladder. An
+idle block that DIFFERS from the walk block advances at a new `idle_fps` export; a sheet whose idle
+*is* its walk block still holds cell 0, which is every sheet authored before T2.1 and is the same
+fallback reasoning as `run_row = -1` — the data answers and no flag is added. `_rate_for`,
+`_advance` and `_idle_animates` split out to stay inside the 40-line function budget.
+
+**Files:** `src/gameplay/character/character_visual.gd`,
+`src/gameplay/character/player_controller.gd`, `src/core/events/events.gd` (four false docstrings),
+`tests/unit/gaits_test.gd` (new, 12 assertions), `tests/unit/traversal_test.gd` (+6),
+`tests/test_runner.gd` (the CASES row), and the documents. No version bump: no game's files change,
+and a game that authored a climb cycle was already getting nothing.
+
+**Proved by planting the defect.** Fix reverted, tests kept: `=== 1688 passed, 6 failed ===`,
+exit 1, naming `a climb draws the climb block — expected 1, got 0`. Restored:
+`=== 1694 passed, 0 failed, 0 skipped ===`, exit 0. All four checkers exit 0.
+
+---
+
+## Candidate rows the T5.3 audit produced — NOT STARTED, and ranked
+
+These are the audit's findings that are packages rather than one-line corrections. Ranked by value
+to a consuming game per unit of work. Each is sized to one chat.
+
+| # | Candidate | Why it is worth a row |
+|---|---|---|
+| A | **Three enforcement gates: layer direction, signal liveness, and `localization/` demo content** | The audit's structural finding: **no gate asks whether a declared thing has a consumer**, which is why the same defect keeps arriving green. A test asserting every declared signal has at least one emitter would have caught `item_used` and `debug_command` on day one. No checker reads dependency direction, so the project's central invariant is the one architectural rule with no gate — the same shape as `const FIRST_AREA := &"courtyard"` before T1.2. And gotcha 48 is measurable: **59 of 218 CSV rows are demo namespace**, and T4.3 already recorded a fork shipping them green. `check_boundary.gd` already computes the forbidden-name set this needs |
+| B | **The settings package** | **12 of 23 settings have no consumer** (the docs said 17). Four are video settings `_apply_display()` could own — it already applies three siblings and has the headless guard. Five are `accessibility/*`, which a game **cannot** wire without editing `src/`, and all twelve are drawn to the player, translated, and inert. Fold in: `reset_to_defaults()` never calling `_apply_locale()` (one line, a live bug), `set_dof_enabled()` having no caller, and `Actions.JUMP` being offered in the rebind screen for a feature the template does not have |
+| C | **A turn in place** — but the seam decision first | `face_direction()` has only test callers, so nothing changes facing while stationary at all. The question is WHO may ask for a turn: the player facing an interaction target, or an NPC facing the player in dialogue. `Speaker` is 17 lines and deliberately knows only a conversation id, so it is probably `NpcBrain` or `InteractionSensor`. **Owner's call, not the assistant's** — T5.3 declined to pick one silently |
+| D | **A wholesale character swap, photographed** | Phase T5's remaining proof criterion, and the only one of the three that is a proof rather than a feature. `character_alt_layout.tres` already exists (4 facings, 24×40, 2 blocks) but has no gait set, so a sheet with a different cell size AND a full gait set does not exist anywhere. Would have caught T5.3's defect if it had included a climb |
+| E | **Music ducking, or delete it** | `stop_music`, `duck` and `unduck` have no callers anywhere — the only `duck` hit in the repository is the phrase "duck-typed" in a comment. Lowering music under dialogue is the obvious use and `DialogueRunner` is the home. Audio is honestly `PART` in the inventory, so this is small; the alternative is to delete three methods |
+| F | **The `Button` styleboxes** | The theme sets `font_sizes` on nine type variations and no `Button/styles/*`, so every menu row draws Godot's default StyleBox — already a declared known limitation, invisible against the shipped dark palette and immediately wrong against a light one |

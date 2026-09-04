@@ -237,6 +237,6 @@ Stated so nobody reads a green run as more than it is:
 ## Read next
 
 [`AUTHORING.md`](AUTHORING.md) · [`ARCHITECTURE.md`](ARCHITECTURE.md#the-extension-surface) ·
-[`CONTEXT.md`](CONTEXT.md) — the fifty-three gotchas, several of which are the long form of the rules
+[`CONTEXT.md`](CONTEXT.md) — the fifty-four gotchas, several of which are the long form of the rules
 above · `tests/framework/test_case.gd` and `tests/test_runner.gd`, whose headers carry the
 reasoning in full.

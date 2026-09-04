@@ -24,16 +24,20 @@ extends Node
 ## the god object that a singleton called "GameManager" always eventually becomes.
 
 # ---------------------------------------------------------------------------------------
-# Application flow. Emitted by Director and SaveSystem.
+# Application flow. Emitted by Director, SaveSystem and GameRoot.
 # ---------------------------------------------------------------------------------------
 
 ## A brand-new game began. Fired after flags are cleared, before the first area loads.
 signal game_started()
 ## A save was restored. Listeners should re-read any state they cache.
 signal game_loaded(slot: int)
-## A save finished writing successfully.
+## A save finished writing successfully. No listener in the template; a game that wants a
+## "saved" toast connects here.
 signal game_saved(slot: int)
-## Returning to the main menu. Gameplay systems should tear down.
+## THE APPLICATION IS SHUTTING DOWN. Emitted by `GameRoot` one statement before
+## `get_tree().quit()`, so a handler MUST be synchronous - anything that awaits a frame or
+## waits on a file write is killed mid-flight. It used to say "returning to the main menu",
+## which it has never done: menu return goes through `main_menu_requested`.
 signal game_ending()
 
 # ---------------------------------------------------------------------------------------
@@ -67,7 +71,12 @@ signal area_discovered(area_id: StringName)
 signal player_spawned(player: Node3D)
 ## The player is leaving the tree. Drop any cached reference; it is about to be invalid.
 signal player_despawned()
-## Movement state changed. Used by animation, audio and the HUD.
+## Movement state changed. ANNOUNCED FOR A CONSUMING GAME, and listened to by nothing in the
+## template - which is deliberate and worth stating, because this line used to claim animation,
+## audio and the HUD all read it and none of them did. The sprite is TOLD its state by whoever
+## drives it (`CharacterVisual.update_from_velocity`) rather than subscribing here, because
+## every NPC uses that class and none of them is the player. A game wiring footstep volume or a
+## stamina bar to the player's gait connects here and gets a correct value.
 signal player_state_changed(state: GameEnums.MoveState)
 
 # ---------------------------------------------------------------------------------------
@@ -98,7 +107,11 @@ signal interaction_refused(target: Node3D, reason: GameEnums.RefusalReason, args
 signal item_gained(item_id: StringName, count: int)
 ## An item left the inventory, for any reason.
 signal item_lost(item_id: StringName, count: int)
-## An item was consumed or activated by the player.
+## An item was consumed or activated by the player. A RESERVED NAME WITH NO EMITTER IN THE
+## TEMPLATE: `Inventory` can add and remove, and nothing in it "uses" anything, because what
+## using an item does is a game's decision. A game that wants consumables emits this from its
+## own `Interactable` subclass or item script - that is Tier 2 in docs/ARCHITECTURE.md and needs
+## no change under src/. Stated plainly because a listener alone would be silent forever.
 signal item_used(item_id: StringName)
 ## Something about the inventory changed. The UI redraws on this and ignores the specifics.
 signal inventory_changed()
@@ -135,7 +148,11 @@ signal minute_passed(day: int, hour: int, minute: int)
 signal hour_passed(day: int, hour: int)
 ## A new in-game day began.
 signal day_passed(day: int)
-## The time-of-day band changed. Lighting and ambience cross-fade on this.
+## The time-of-day band changed. FOR GAMEPLAY REACTIONS - a shop that shuts at dusk - and NOT
+## for lighting: `EnvironmentDriver` interpolates continuously from `Clock.day_fraction()` every
+## frame, so a listener here that tinted the environment would be overwritten on the next one.
+## This line used to say lighting and ambience cross-fade on it, which is the documentation
+## residue of the day/night system that ran correctly and lit nothing.
 signal day_phase_changed(phase: GameEnums.DayPhase)
 ## Weather has begun changing. `seconds` is how long the blend will take.
 signal weather_changing(to: GameEnums.WeatherKind, seconds: float)
@@ -193,5 +210,8 @@ signal ui_mode_changed(mode: GameEnums.UiMode)
 
 ## A user setting changed at runtime, so systems can re-read it. Emitted by Settings.
 signal setting_changed(section: String, key: String, value: Variant)
-## A developer console command was entered. Debug tooling only.
+## A developer console command was entered. Debug tooling only, and NOT the path the template's
+## own console takes: `debug_console_screen.gd` calls `DevCommands.run()` directly, because the
+## verbs live in the one directory allowed to name demo content and routing them over the bus
+## would carry those names out of it. Kept as the hook a game's own tooling can listen on.
 signal debug_command(command: String, args: PackedStringArray)

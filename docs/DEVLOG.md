@@ -5905,6 +5905,15 @@ tens-number on a line mentioning gotchas is that gate's definition of a claim. W
 23` it is a record rather than a claim, which is the convention that file's header sets out. A
 number gate written two rows ago, catching prose written today, on its author.
 
+**CI GREEN ON `31fea16`, PR #34** — all four jobs pass. Full checkout
+`=== 1782 passed, 0 failed, 0 skipped ===`; **stripped template
+`=== 1708 passed, 0 failed, 25 skipped ===`**, and that is the number that matters for a new test
+file: T5.4 left the stripped run at 1,654, so **all 64 of this row's assertions survive the strip**
+and the 10 lost from `options_test.gd` are lost there too. `settings_consumers_test.gd` derives
+everything it needs from `Settings.DEFAULTS`, `ThemeDB` and the tree, and names no demo content —
+which `check_boundary.gd` confirms independently: stripped, `163 rows, of which 0 are content
+namespace`.
+
 **EVERY FIX WAS PROVED BY PLANTING THE DEFECT, WATCHING IT FAIL, AND REMOVING IT.** Eight plants,
 each a real reversion rather than a broken assertion:
 

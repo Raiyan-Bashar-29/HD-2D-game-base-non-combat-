@@ -671,7 +671,8 @@ because the first row exposed how much of it was declared and unread.
   `rebind()` gates on `Actions.REBINDABLE`. **The seventh gate was deliberately NOT built** — the
   consumer question is an ASSERTION, because `Settings.DEFAULTS` is a runtime fact and a `check_*`
   tool would have to parse `settings.gd` to get it. Writing it found gotcha 56. Eight plants, each
-  exit 1; six settings photographed in pairs. 1,782 assertions. Version 2.0.0, untagged.
+  exit 1; six settings photographed in pairs. 1,782 assertions, stripped 1,708. Version 2.0.0,
+  untagged. CI green on `31fea16`, PR #34.
 
 **Exit criteria for the phase:**
 

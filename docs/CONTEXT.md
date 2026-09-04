@@ -23,8 +23,9 @@ because `Settings.DEFAULTS` is available at runtime and a `check_*` tool would h
 third way to be a consumer (`audio_director.gd` handles a whole SECTION and computes its keys, so
 five appear nowhere as literals) and a defect in this row's own work, which is **gotcha 56: a text
 search for a wire stays green after the wire is cut, because an `[ext_resource]` line outlives
-every node that used it.** Suite 1,728 → 1,782. Eight plants, each exit 1; six settings
-photographed in pairs.**
+every node that used it.** Suite 1,728 → 1,782, and the STRIPPED run 1,654 → 1,708, so all 64
+new assertions survive the demo strip. Eight plants, each exit 1; six settings photographed in
+pairs. CI green on `31fea16`, PR #34.**
 
 **T5.4 (the three missing enforcement gates) is the row before it — THE LADDER
 IS SIX CHECKERS NOW, and the two new ones ask the question the first four never did: does a

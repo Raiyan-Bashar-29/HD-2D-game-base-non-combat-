@@ -7273,3 +7273,7 @@ the feature happen rather than to read that it does.
 - **Nothing here is in CI**, and cannot be: both probes need a display server, which is the one
   rung a GPU-less runner has never been able to do.
 - **No ADR.** One file, one node, three flags, no new signal, no new layer, no new seam concept.
+
+**PR #41, on `ed9421b`**, based on `claude/t5-11-music-duck` (#40). The two windowed rungs are not
+in CI and cannot be — both probes need a display server, which is the one rung a GPU-less runner
+has never been able to do, and it is the rung this row exists for.

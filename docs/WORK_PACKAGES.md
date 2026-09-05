@@ -4163,6 +4163,7 @@ Six checkers exit 0, `1848 -> 1898` assertions, `0 warnings, 0 errors` on boot a
 captures. Four plants, each a real reversion, each exit 1 — the synchronous area handler
 (1 failed), the autosave reserving a manual slot (5 failed), `latest_slot()` blind to the autosave
 (1 failed), and the transition guard deleted (3 failed) — all removed, `1898 passed, 0 failed`.
+CI green on `0e99c86`, PR #39; stripped template 1,824, so all 50 new assertions survive the strip.
 **The layer gate caught this row's own trailing comment**: a `core` file naming `Autosave`, which
 is `systems`.
 

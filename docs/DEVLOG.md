@@ -6864,3 +6864,11 @@ rows is now made twice.
   the log rather than saves, and the log line says so.
 - **No ADR.** One node, two connections, one decision, and a slot number on the file that already
   owns slot numbers. No autoload, no new signal, no new layer, no new seam concept.
+
+**CI GREEN ON `0e99c86`, PR #39** — both jobs pass. Full checkout
+`=== 1898 passed, 0 failed, 0 skipped ===`; **stripped template
+`=== 1824 passed, 0 failed, 25 skipped ===`**, and that is the number that matters here: T5.9 left
+the stripped run at 1,774, so **all 50 of this row's assertions survive the demo strip**. Nothing
+added by this package names demo content — the autosave assertions stand a run up with
+`&"fixture_area"`, because the policy asks whether a run EXISTS and never which area it is in, and
+`check_boundary.gd` confirms that independently.

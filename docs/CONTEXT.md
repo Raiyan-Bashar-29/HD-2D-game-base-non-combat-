@@ -52,7 +52,9 @@ command differing by one line of `settings.cfg` — with defaults, `[save] Slot 
 `autosave.json` on disk and `Autosaved.` on the toast; with `autosave=false`, no log line, an EMPTY
 saves directory and no toast, over an otherwise identical frame. **The standing dusk capture now
 carries that toast**, which is the feature and not a regression. Version 2.5.0, untagged.
-`gen_placeholders.gd` is still at 230 of its 250 and is still the next file to split.
+`gen_placeholders.gd` is still at 230 of its 250 and is still the next file to split. **CI green on
+`0e99c86`, PR #39** — full checkout 1,898, stripped template 1,824, so all 50 of this row's
+assertions survive the demo strip.
 
 **T5.9 (screen shake, and the setting that scales it) is the row before it —
 `accessibility/reduce_motion` NOW REACHES FOUR MOTIONS AND THERE IS NO FIFTH TO FIND, and

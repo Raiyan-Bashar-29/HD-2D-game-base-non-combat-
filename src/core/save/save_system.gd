@@ -12,11 +12,27 @@ extends Node
 ##     func _collect_save() -> Dictionary: return {"day": day, "minute": minute}
 ##     func _apply_save(data: Dictionary, _from: int) -> void: day = DictRead.get_int(data, "day", 1)
 ##
-## OWNS: slot files on disk, the file format, the schema version, atomic writes, migration.
-## MUST NOT: know what any section contains. Adding a saveable system never edits this file.
+## OWNS: slot files on disk, the file format, the schema version, atomic writes, migration, and
+## which slot NUMBERS exist — including the autosave's, because a number's legality and its path
+## are facts about the store.
+## MUST NOT: know what any section contains, or decide WHEN a save happens. Adding a saveable
+## system never edits this file, and neither does adding an occasion to save on: the autosave
+## POLICY lives in `Autosave`, which calls `save_to_slot` like every other caller does.
 
 const SAVE_DIR: String = "user://saves"
+## How many slots the PLAYER may write. Every manual list iterates this, so the autosave slot
+## below is outside all of them by construction rather than by a filter somebody has to
+## remember to write in each screen.
 const MAX_SLOTS: int = 6
+## The autosave's slot, ONE PAST the manual six, and one past rather than one OF them so that
+## slots 0..5 keep the numbers a player already knows and no save written before this existed
+## changes meaning. An autosave that can overwrite a save the player made on purpose is the one
+## thing an autosave must never be. This file owns only the fact that the number is legal and
+## where it lands on disk; `Autosave` owns when it is written. See src/systems/autosave/.
+const AUTOSAVE_SLOT: int = MAX_SLOTS
+## Named rather than numbered: `slot_07.json` sitting beside six `slot_NN.json` files would read
+## as a seventh manual slot to anyone who opened the folder, which is exactly what it is not.
+const AUTOSAVE_FILE: String = "autosave.json"
 ## Bump when the envelope changes shape. Section contents are each system's own business.
 const SCHEMA_VERSION: int = 1
 
@@ -58,7 +74,15 @@ func unregister(id: StringName) -> void:
 
 
 func slot_path(slot: int) -> String:
+	if slot == AUTOSAVE_SLOT:
+		return "%s/%s" % [SAVE_DIR, AUTOSAVE_FILE]
 	return "%s/slot_%02d.json" % [SAVE_DIR, slot]
+
+
+## Whether a slot number is the autosave's. Public so a screen can label a row and a policy can
+## name its own slot without either of them re-deriving the arithmetic.
+func is_autosave(slot: int) -> bool:
+	return slot == AUTOSAVE_SLOT
 
 
 func has_slot(slot: int) -> bool:
@@ -85,7 +109,10 @@ func slot_info(slot: int) -> Dictionary:
 func latest_slot() -> int:
 	var best: int = -1
 	var newest: String = ""
-	for slot: int in MAX_SLOTS:
+	# AUTOSAVE_SLOT + 1, not MAX_SLOTS. Continue means "the most recent save", and an autosave
+	# the player cannot come back to is not an autosave. This is the one place the two ranges
+	# differ, and the asymmetry is the policy: writing is manual-only, reading is everything.
+	for slot: int in AUTOSAVE_SLOT + 1:
 		var info: Dictionary = slot_info(slot)
 		if info.is_empty():
 			continue
@@ -100,7 +127,7 @@ func save_to_slot(slot: int) -> Error:
 	if _busy:
 		Log.warn("save", "Save to slot %d ignored: another save is in flight" % slot)
 		return ERR_BUSY
-	if slot < 0 or slot >= MAX_SLOTS:
+	if slot < 0 or slot > AUTOSAVE_SLOT:
 		Log.error("save", "Slot %d out of range" % slot)
 		return ERR_INVALID_PARAMETER
 	_busy = true

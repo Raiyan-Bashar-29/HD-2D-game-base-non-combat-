@@ -51,11 +51,18 @@ const ACCESSIBILITY_SCRIPT: String = "res://src/ui/root/ui_accessibility.gd"
 ## its setting with is reached through the script itself, and `new()` builds the ColorRect.
 const FADE_SCRIPT: String = "res://src/ui/hud/screen_fade.gd"
 const FADE: GDScript = preload("res://src/ui/hud/screen_fade.gd")
+## Where the running game gets its one autosave policy from, for `_parent_of_script`. Same
+## reason as `ACCESSIBILITY_SCRIPT`: every other autosave assertion builds its own.
+const AUTOSAVE_SCRIPT: String = "res://src/systems/autosave/autosave.gd"
+## An area id that stands a run up without naming any content. The policy asks whether a run
+## EXISTS, never which area it is in, so any id at all does the job.
+const FIXTURE_AREA: StringName = &"fixture_area"
 
 
 func run() -> void:
-	plan(72)
+	plan(78)
 	_every_setting_has_a_consumer()
+	_the_autosave_policy_is_in_the_running_game_and_subscribed_to_both_occasions()
 	_reset_puts_the_language_back()
 	_the_setting_vetoes_depth_of_field_and_the_author_still_decides()
 	_a_hold_floor_applies_to_an_object_that_asked_for_none()
@@ -324,3 +331,43 @@ func _reduce_motion_reaches_every_motion_this_template_has() -> void:
 			Events.camera_shake_requested.is_connected(rig.shake), true)
 	rig.queue_free()
 
+
+
+## GOTCHA 54, AIMED AT DELIBERATELY FOR THE THIRD TIME. `settings_effects_test.gd` builds its own
+## `Autosave` and drives `request()` directly, so every one of its assertions stays green in a
+## checkout where the running game instances none and nothing is ever connected to either
+## occasion — the policy would be perfect and would never once fire. Only these four can notice.
+##
+## READ THROUGH `SceneState`, NOT AS TEXT, which is gotcha 56: an `[ext_resource]` line survives
+## the deletion of every node that used it, so a search of the .tscn would stay green after the
+## node was removed. `_parent_of_script` asks the engine's own parse instead, where a script is a
+## property of a node and the node either exists or does not.
+func _the_autosave_policy_is_in_the_running_game_and_subscribed_to_both_occasions() -> void:
+	equal("the setting is declared", Settings.DEFAULTS.has(Autosave.AUTOSAVE_SETTING), true)
+	equal("and the running game has an Autosave under the root",
+			_parent_of_script(AUTOSAVE_SCRIPT), ".")
+	var policy := Autosave.new()
+	attach(policy)
+	equal("a policy in the tree is listening for the quit that ends a session",
+			Events.game_ending.is_connected(policy._on_game_ending), true)
+	equal("and for arrival in a new area",
+			Events.area_entered.is_connected(policy._on_area_entered), true)
+	# NOT A DIRECT CALL, and this is the assertion that pins the one-frame deferral in place.
+	# `Director` emits `area_entered` two statements BEFORE it clears `_transitioning`, so a
+	# synchronous handler would hit the transition refusal every time and the feature would never
+	# fire once. `run()` is synchronous, so no frame ever arrives here — an arrival therefore
+	# writes NOTHING inside this call, and a handler that had been "simplified" to call
+	# `request()` on the spot would write a file and fail this.
+	_clear_autosave()
+	Settings.set_value(Autosave.AUTOSAVE_SETTING, true)
+	Director.current_area_id = FIXTURE_AREA
+	Events.area_entered.emit(FIXTURE_AREA)
+	equal("and an arrival does not write inside the emit, because the transition is not over yet",
+			SaveSystem.has_slot(SaveSystem.AUTOSAVE_SLOT), false)
+	Director.current_area_id = &""
+	_clear_autosave()
+	policy.queue_free()
+
+
+func _clear_autosave() -> void:
+	SaveSystem.delete_slot(SaveSystem.AUTOSAVE_SLOT)

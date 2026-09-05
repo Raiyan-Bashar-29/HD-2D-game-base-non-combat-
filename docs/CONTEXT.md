@@ -3,7 +3,58 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-05 · **T5.9 (screen shake, and the setting that scales it) complete —
+**Last updated:** 2026-09-05 · **T5.10 (autosave, and the slot policy it needed first) complete —
+THE BASE AUTOSAVES, and `gameplay/autosave` is the SECOND of the three settings 2.0.0 removed to
+come back with the feature it was waiting for.** Only `accessibility/subtitles` is left out, and it
+still has nothing to caption. T5.5 refused to fake this one for a stated reason — `SaveSystem` had
+no notion of the slot a run belongs to, so there was nothing for `true` to mean — which is why
+**the SLOT was this row's design question and the trigger was the easy half.**
+
+**THE ANSWER IS A DEDICATED SLOT ONE PAST THE MANUAL SIX.** `SaveSystem.AUTOSAVE_SLOT` is
+`MAX_SLOTS`, written to `user://saves/autosave.json` — a name rather than a number, because
+`slot_07.json` beside six `slot_NN.json` files reads as a seventh manual slot. **No manual list can
+reach it, because every manual list iterates `MAX_SLOTS` and simply never counts that high** — no
+filter anyone has to remember. Reserving slot 5 of the existing six was rejected twice over: an
+autosave that can destroy a save the player made on purpose is the one thing an autosave must never
+be, and it would have changed what slot 5 MEANS in every save file already on disk. Nothing on disk
+changes meaning and `SCHEMA_VERSION` is still 1, which is why this is **2.5.0 and not 3.0.0**.
+**Reading is deliberately wider than writing**: `latest_slot()` iterates `AUTOSAVE_SLOT + 1`, so
+Continue resumes the autosave and the load list offers it as a row of its own, while the save list
+— built over the identical files — cannot name it.
+
+**THE POLICY IS A NODE, AND `game_root.gd` GAINED NOTHING.** `Autosave` lives under `GameRoot` in
+`src/systems/autosave/`: not in `SaveSystem`, which owns the format and not the occasion and whose
+header refuses exactly that second job; not an autoload, which would need an ADR. Both occasions —
+`Events.game_ending` (so the window's close button is covered) and `Events.area_entered` — were
+already on the bus, so **no signal was added**, and the WP-00 comment saying an autosave would go
+in `game_root.gd` is gone because it did not have to. Three refusals, each proved by the ABSENCE of
+a file and not only by a return code: the player's veto, a transition in flight, and no run in
+progress. `request()` is public, so a consuming game's own occasion is one call and no edit to
+`src/`.
+
+**GOTCHA 65 CAME OUT OF THE TRANSITION GUARD AND IS THE HALF THAT TRANSFERS.**
+`SYSTEMS_INVENTORY.md` item 6 has asked since WP-00 for "never autosaving during a transition", and
+`Director.is_transitioning()` is obviously the guard — but `_run_transition` emits `area_entered`
+and clears `_transitioning` **two statements later**, correctly. So reading the guard on the spot
+would have refused **every arrival** and the feature would never have fired once, with nothing red
+anywhere: no error, no warning, both ends of the wire correct, the guard behaving exactly as
+specified. Gotcha 54's family with the unwired middle made of ORDERING. One
+`await get_tree().process_frame` fixes it, and the assertion that pins it emits `area_entered`
+inside a synchronous `run()` and requires that nothing was written.
+
+**A SAVE IS A FILE, SO MOST OF THIS ROW IS PROVED IN THE SUITE** in a way T5.7's and T5.9's camera
+work was not — including the policy's whole promise driven end to end: write the autosave, then
+write into all six slots the save screen offers, and its header is still `equal` to what it was.
+Suite 1,848 -> 1,898; four plants, each a real reversion, each exit 1. **The layer gate caught this
+row's own trailing comment** — a `core` file naming `Autosave`, which is `systems`. **What the
+capture carries is the INDICATOR**, which no assertion can: two runs of the standing regression
+command differing by one line of `settings.cfg` — with defaults, `[save] Slot 6 written`,
+`autosave.json` on disk and `Autosaved.` on the toast; with `autosave=false`, no log line, an EMPTY
+saves directory and no toast, over an otherwise identical frame. **The standing dusk capture now
+carries that toast**, which is the feature and not a regression. Version 2.5.0, untagged.
+`gen_placeholders.gd` is still at 230 of its 250 and is still the next file to split.
+
+**T5.9 (screen shake, and the setting that scales it) is the row before it —
 `accessibility/reduce_motion` NOW REACHES FOUR MOTIONS AND THERE IS NO FIFTH TO FIND, and
 `gameplay/camera_shake` is the FIRST of the three settings 2.0.0 removed to come back with the
 feature it was waiting for.** T5.5 refused to fake it, T5.7 wrote down as its own gap that a shake
@@ -1237,7 +1288,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Sixty-four gotchas that each cost an hour
+## Sixty-five gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -1973,6 +2024,20 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     the same offset, that carries the claim. Do not quote the pixel count as a measurement of the
     displacement; the metres in the log are the measurement, and the search is the corroboration.
 
+65. **A SIGNAL THAT ANNOUNCES THE END OF A THING IS EMITTED BEFORE THE FLAG SAYING IT ENDED IS
+    CLEARED, AND A GUARD READ ON THE SPOT REFUSES EVERY TIME — SILENTLY, BECAUSE EACH REFUSAL IS
+    CORRECT.** `Director._run_transition` emits `area_entered` and clears `_transitioning` **two
+    statements later**, which is right: the signal's contract is "the area is in the tree and the
+    player is placed", and the transition is not formally over until the curtain has been asked to
+    lift. So `Autosave`, connected to `area_entered` and guarded by `is_transitioning()`, would
+    have hit its own guard on every single arrival and never once written a file. Nothing would
+    be red anywhere: no error, no warning, both ends of the wire correct, the guard behaving
+    exactly as specified, and a feature that does nothing at all. It is gotcha 54's family with
+    the unwired middle made of ORDERING rather than of a missing connection. The fix is one
+    `await get_tree().process_frame` before the guard, and the assertion that pins it emits
+    `area_entered` inside a synchronous `run()` — where no frame ever comes — and requires that
+    **nothing was written**. Before trusting any guard on a `_entered` / `_finished` / `_changed`
+    signal, read the emitter and find out what is still true at the moment it fires.
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the
@@ -1982,27 +2047,34 @@ names the exact files that chat should read, so a session loads a few hundred li
 package never has to read upward.
 
 
-**Next package: NOTHING IS BLOCKING. Phase T5 has two boxes left and ONE OF THEM IS A QUESTION
-FOR THE OWNER.** T5.6 met the phase's last proof criterion, so what remains is a second idle
-block (a chooser on top of machinery that works) and a turn in place — and the turn is a seam
-decision three rows in a row have declined to make silently. **Putting that question to the owner
-is itself the next action, and it is cheaper than any package below.** What follows is a real
-choice, not a queue:
+**Next package: NOTHING IS BLOCKING, AND THE STRONGEST CANDIDATE IS A QUESTION FOR THE OWNER.**
+Candidates D, G, H, I and J are all done (T5.6 to T5.10), and what is left of Phase T5 is a second
+idle block — a chooser on top of machinery that already works — and **candidate C, a turn in
+place, which is a SEAM decision three rows in a row have declined to make silently.** T5.8 changed
+the case for it: a turn in place was not worth animating while every facing drew the same picture,
+and now that every facing draws a different figure, it is. **Putting that question to the owner is
+itself the next action, and it is cheaper than any package below.** What follows is a real choice,
+not a queue:
 
-- **Candidate J — a placeholder sheet whose facings are distinguishable.** NEW, and it comes from
-  the owner looking at the game on 2026-09-05: sideways movement reads as a slide because all
-  eight facings draw the same front-on figure, measured at 0.5% difference between the front view
-  and the back. It is the cheapest row on this list, it touches `tools/gen_placeholders.gd` and
-  the two placeholder PNGs and nothing under `src/`, and it would make the facing machinery
-  visible in a capture for the first time. **Recommended next.**
-- **Candidate E — music ducking, or delete it.** `stop_music`, `duck` and `unduck` have no
-  callers anywhere. Lowering music under dialogue is the obvious use and `DialogueRunner` is the
-  home; the honest alternative is deleting three methods.
-- **Perform `docs/TESTING.md`** — the last document never walked. T2.2, T4.1, T4.2 and T4.3 are
-  **four for four**: every walk found a defect no amount of reading would have, and two of the
-  four were defects in the TEMPLATE rather than the prose.
-- **F, G, H** — the `Button` styleboxes, autosave (which needs a slot POLICY before it needs a
-  trigger) and screen shake, in that order of cost.
+- **Candidate C — a turn in place, but the seam decision FIRST. Recommended, as a question.**
+  `face_direction()` has only test callers, so nothing in this game changes facing while
+  stationary. The question is WHO may ask for a turn: the player facing an interaction target, or
+  an NPC facing the player in dialogue. `Speaker` is 17 lines and deliberately knows only a
+  conversation id, so it is probably `NpcBrain` or `InteractionSensor` — **but that is the owner's
+  call and must not be picked silently.**
+- **Candidate E — music ducking, or delete it.** `stop_music`, `duck` and `unduck` have no callers
+  anywhere. Lowering music under dialogue is the obvious use and `DialogueRunner` is the home; the
+  honest alternative is deleting three methods.
+- **Candidate F — the `Button` styleboxes.** The theme sets `font_sizes` on nine type variations
+  and no `Button/styles/*`, so every menu row draws Godot's default StyleBox — already a declared
+  known limitation, invisible against the shipped dark palette and immediately wrong against a
+  light one.
+- **A `dev_probes.gd` row for the two capture gaps that are now written down twice.** T5.9 wants a
+  probe that unlocks the gate, hands over the key and photographs a gate opening; T5.10 wants one
+  that boots, autosaves, quits, relaunches and continues into the autosave. Both are the same
+  shape — a scripted scenario no assertion can run — and one row could close both.
+- **Split `tools/gen_placeholders.gd`**, at 230 of its 250, character sheets against flat textures.
+  It has been the next file to split for three rows and no row has touched it.
 - **WP-10 crafting**, if a game wants it. Still OPTIONAL, still a genre choice per `TEMPLATE.md`.
 - **Nothing at all**, which stays a legitimate answer for a base that has answered every question
   it set out to.

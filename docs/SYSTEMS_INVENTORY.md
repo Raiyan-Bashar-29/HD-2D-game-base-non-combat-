@@ -30,7 +30,8 @@ previous project started as a system that was allowed to know one thing too many
 | Safe data reads | Typed reads out of untyped JSON and save data | nothing | what the data means | DONE |
 | Collision layers | Named layer and mask constants | nothing | who uses them | DONE |
 | Settings | Player machine preferences, on disk. **20 keys and 20 consumers as of T5.5** — every key in `DEFAULTS` is read by something, and `settings_consumers_test.gd` fails on one that is not. This file applies five itself (window mode, vsync, fps cap, render scale, shadow atlas) because nothing else owns the window, the viewport or the shadow atlas; everything else is announced and an owner reacts | Log, Events | how to apply audio, world or gameplay settings; it announces, owners react | DONE |
-| Save system | Slots, atomic writes, schema version, migration | Log, Events | what any save section contains | DONE |
+| Save system | Slots, atomic writes, schema version, migration, and which slot NUMBERS exist — six manual plus a DEDICATED autosave slot one past them, stored under a name rather than a number | Log, Events | what any save section contains, or WHEN a save happens | DONE |
+| Autosave policy | `Autosave` under `GameRoot`. When a save is written unasked, whether it may be, and the toast that says it did. Two occasions — `game_ending`, and one frame after `area_entered` — and three refusals: the player's veto `gameplay/autosave`, a transition in flight, and no run in progress. `request()` is public, so a game's own occasion is one call and no edit to `src/` | SaveSystem, Director, Settings, Events | what a save contains, writing a file itself, or naming an area | **DONE — T5.10.** The SLOT was the design question, not the trigger: one past the manual six, so no manual save can reach it and no save already on disk changes meaning |
 | Flag store | Plot and world state, one source of truth. A prefix may be declared DERIVED, so its keys are readable and announced but left out of the save file — one publisher re-derives them | Log, Events, Save | what any flag means, and how to derive anything | DONE |
 | Game root | Builds the persistent tree, spawns the player, asks for the main menu | Director | game logic of any kind. 60-code-line hard budget | DONE |
 | Input actions | Action names and default bindings, declared in code | Log | what an action means; it names, never interprets | DONE |
@@ -190,13 +191,22 @@ rather than oversights.
 1. **Pause semantics.** Pausing needs `process_mode` set deliberately per node. Music must
    keep playing, animations must stop, and the fade must still work. Already handled for
    audio and the screen fade.
-2. **Save on quit,** and the window close button. `set_auto_accept_quit(false)` is already
-   wired so this can be added without restructuring.
+2. **Save on quit,** and the window close button. **DONE — T5.10.** `set_auto_accept_quit(false)`
+   was wired from WP-00 so this could be added without restructuring, and it was: `Autosave`
+   listens for `Events.game_ending`, which `GameRoot` emits on both the menu path and the close
+   button one statement before `quit()`. Nothing in `game_root.gd` changed to allow it — the note
+   that said an autosave would go there is gone, because it did not have to.
 3. **Window focus loss.** Unfocused should not mean the character keeps walking because a
    key was held when focus went away.
 4. **Controller hotplug** mid-session, and switching glyphs when it happens.
 5. **Text speed and instant skip.** A player who reads fast will hate the game without it.
-6. **Autosave indicator,** and never autosaving during a transition.
+6. **Autosave indicator,** and never autosaving during a transition. **BOTH DONE — T5.10, and
+   the transition half turned out to be the sharp one.** The indicator is `notify.autosaved` on
+   the toast that already existed, photographed on arrival in the first area; on the quit path it
+   is emitted and never seen, because the window is gone the same frame, and that is recorded
+   rather than special-cased. The guard is `Director.is_transitioning()` — but `area_entered` is
+   emitted TWO STATEMENTS BEFORE that flag is cleared, so reading it on the spot would have
+   refused every arrival and the feature would never have fired once. See gotcha 65.
 7. **"Are you sure"** on overwriting a save and on quitting with unsaved progress.
 8. **First-run defaults** that are actually pleasant, since most players never open settings.
 9. **Reduced motion,** and a depth-of-field toggle. **Both work as of T5.5.** `set_dof_enabled`

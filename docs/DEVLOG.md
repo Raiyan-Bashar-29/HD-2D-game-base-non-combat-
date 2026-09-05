@@ -6675,3 +6675,192 @@ is candidate G and still needs a slot POLICY before it needs a trigger, and
   additive path. It is four lines in `shake()` and no seam moves.
 - **No ADR.** One signal, one method and two exports on a node that already owned the camera. No
   autoload, no new layer, no new seam concept.
+
+## 2026-09-05 — T5.10 · Autosave, and the slot policy it needed first
+
+**Did.** Gave the base an autosave, brought `gameplay/autosave` back to `Settings.DEFAULTS` as the
+player's veto over it, and answered the design question this row was actually about — **the SLOT,
+not the trigger.** New `Autosave` node under `GameRoot`, one new slot on `SaveSystem`, two new
+consts, one new public method, five new CSV rows, 50 new assertions across three test files, one
+new gotcha. No new signal, no autoload, no ADR, **and no save-format change** — `SCHEMA_VERSION`
+is still 1 and slots 0..5 still mean exactly what they meant, which is what makes this 2.5.0 and
+not 3.0.0.
+
+**Why this row.** T5.5 removed three settings rather than fake them, and said plainly why each:
+there was no shake, there was no autosave and `SaveSystem` had no notion of the slot a run belongs
+to, and nothing is voiced. T5.9 brought the first one back **with** its feature, which was the
+whole argument for removing them instead of leaving inert rows on the options screen. This is the
+second and the larger of the two that were left. Only `accessibility/subtitles` is still out, and
+it still has nothing to caption.
+
+**THE SLOT WAS THE QUESTION, AND THE ANSWER IS A DEDICATED ONE PAST THE MANUAL SIX.**
+`SaveSystem.AUTOSAVE_SLOT` is `MAX_SLOTS`, written to `user://saves/autosave.json` — a name rather
+than a number, because `slot_07.json` beside six `slot_NN.json` files reads as a seventh manual
+slot to anyone who opens the folder, which is what it is not. Two alternatives were considered and
+both are worse:
+
+| Candidate | Why not |
+|---|---|
+| rotate through the manual slots | an autosave can then destroy a save the player made on purpose, which is the one thing an autosave must never do |
+| reserve slot 5 of the six | same objection, **plus** it changes what slot 5 MEANS in every save file already on disk — a MAJOR bump, paid for nothing |
+| **one past the six** | no manual list can reach it, because every manual list iterates `MAX_SLOTS` and simply never counts that high. No filter to remember, no existing save touched |
+
+**AND THE READ RANGE IS DELIBERATELY NOT THE WRITE RANGE.** `latest_slot()` now iterates
+`AUTOSAVE_SLOT + 1` and the save screen's writing half still iterates `MAX_SLOTS`. That asymmetry
+IS the policy: **writing is manual-only, reading is everything.** An autosave the player cannot
+come back to is not an autosave, so Continue resumes it and the load list offers it as a row of its
+own — while the save list, built over the identical files, cannot name it. Both halves are asserted
+against the same on-disk state in `menus_test.gd`, so the only thing that can produce different
+lists is the direction each faces.
+
+**WHERE THE POLICY LIVES, AND THE ONE JOB `SaveSystem` DID NOT GET.** `Autosave` is a node under
+`GameRoot`, in `src/systems/autosave/`. It is not in `SaveSystem`, whose header has said since
+WP-01 that it knows nothing about game content — "not while the world is mid-transition" is a fact
+about the running game, and putting it there would be the second job that file explicitly refuses.
+It is not an autoload either, because an autoload needs an ADR and this is a node with two
+connections and one decision, which is exactly what `UiAccessibility` is and where T5.5 put that.
+And **it is not in `game_root.gd`**, which is the part worth reading: that file carried a comment
+since WP-00 saying *"Autosave on quit goes here once there is a save slot policy"*, and `events.gd`
+says on `quit_requested` that an autosave policy will only ever need adding in one place. Both
+turned out to be true in a better way than they meant — `Autosave` listens for `game_ending` like
+any other participant, so the policy needed adding in **no** place under that roof, and
+`game_root.gd` still does only the four things its header allows. The comment is gone.
+
+**THREE REFUSALS, EACH A REAL FAILURE MODE.** The player's veto (`gameplay/autosave`, which can
+only ever take an occasion away and never add one); a transition in flight; and no run in
+progress — that last one because quitting from the main menu on a cold boot would otherwise write
+an autosave of nothing over the autosave of a real run, which is the same destruction the slot
+policy exists to prevent.
+
+**GOTCHA 65 CAME OUT OF THE TRANSITION GUARD, AND IT IS THE THING IN THIS ROW THAT WILL COST THE
+NEXT PERSON AN HOUR.** `SYSTEMS_INVENTORY.md` item 6 has asked since WP-00 for "never autosaving
+during a transition", and `Director.is_transitioning()` is obviously the guard. But
+`_run_transition` emits `area_entered` and clears `_transitioning` **two statements later** — which
+is correct, because that signal's contract is "the area is in the tree and the player is placed"
+and the transition is not formally over until the curtain has been asked to lift. So a handler that
+read the guard on the spot would have been refused on **every single arrival**, and the feature
+would never have fired once. Nothing would have been red: no error, no warning, both ends of the
+wire correct, the guard behaving exactly as specified, and a feature that does nothing. That is
+gotcha 54's family with the unwired middle made of **ordering**. The fix is one
+`await get_tree().process_frame` before the guard, and the assertion that pins it emits
+`area_entered` inside a synchronous `run()` — where no frame ever comes — and requires that
+**nothing was written**.
+
+**Connects.** `Events.game_ending` (GameRoot, one statement before `quit()`, so the window's close
+button is covered by the same path) and `Events.area_entered` (Director) -> `Autosave.request()`
+-> `SaveSystem.save_to_slot(AUTOSAVE_SLOT)` -> `Events.notify_requested` -> the toast that already
+existed. Nothing was added to `Events`, and that is the point: both occasions are facts already on
+the bus, and `notify_requested` is the indicator item 6 asks for, already built. `AUTOSAVE_SETTING`
+is a `const` on the consumer, which is what keeps `settings_consumers_test._is_consumed` decidable
+rather than heuristic. `request()` is public so a consuming game's own occasion — a chapter break,
+a bed slept in — is one call and no edit to `src/`.
+
+**Verified.** Every line is a measured exit code.
+
+```
+--headless --import                                        exit 0 (run first; gotcha 53)
+--headless --quit-after 30                                 Session ended after 0.6s — 0 warnings, 0 errors
+--headless res://tests/test_runner.tscn --quit-after 400   === 1898 passed, 0 failed, 0 skipped ===, exit 0
+tools/check_budgets.gd    exit 0   152 files, 13884 code lines, 0 violations
+tools/check_content.gd    exit 0
+tools/check_boundary.gd   exit 0
+tools/check_strings.gd    exit 0
+tools/check_layers.gd     exit 0   91 symbols over 101 scripts
+tools/check_signals.gd    exit 0
+```
+
+Suite 1,848 -> 1,898. `save_system.gd` 160 -> 172 of its 180, `save_screen.gd` 57 -> 68,
+`settings.gd` 140 -> 141, `autosave.gd` is new, and `game_root.gd` stayed at 26 of its 60 because
+nothing was added to it.
+
+**THE LAYER GATE CAUGHT THIS ROW'S OWN PROSE, ON ITS AUTHOR, MINUTES AFTER IT WAS WRITTEN.**
+`check_layers.gd` failed with *"res://src/core/state/settings.gd:58 (core) names Autosave, which is
+systems"* — and line 58 was a **trailing comment** on the new `DEFAULTS` row reading
+`# a veto on Autosave's own occasions`. Whole-line `##` comments are stripped by that tool and
+trailing ones are not, which is the same decision `settings_consumers_test._code_only` documents
+for the mirror reason: removing a trailing comment would mean deciding whether the `#` sits inside
+a string literal. The gate is right either way — a `core` file should not be teaching its reader to
+reach for a `systems` class by name — and the fix was to say "the policy" instead. A gate written
+two phases ago, reading a comment written today.
+
+**PROVED BY PLANTING THE REVERSION, WATCHING IT FAIL, REMOVING IT AND WATCHING IT PASS. BOTH exit
+codes for all four plants.** Each is a real reversion of this row's own work, not a broken
+assertion.
+
+| Plant | Result |
+|---|---|
+| the area handler calls `request()` synchronously — the shape gotcha 65 is about | `and an arrival does not write inside the emit, because the transition is not over yet — expected false, got true`. **1897 passed, 1 failed, exit 1** |
+| `AUTOSAVE_SLOT = MAX_SLOTS - 1` — the autosave reserves a manual slot, the design this row rejected | `the autosave slot is outside the manual range`, `manual slot 5 is not the autosave`, `no slot the save screen offers lands on that same file`, `the autosave is now pressable, not a note — expected 2, got 3`. **1893 passed, 5 failed, exit 1** |
+| `latest_slot()` iterates `MAX_SLOTS` again — Continue cannot see the autosave | `and Continue sees it, because an autosave nobody can come back to is not one — expected 6, got -1`. **1897 passed, 1 failed, exit 1** |
+| the transition guard is deleted from `request()` | `and mid-transition it refuses — expected 45, got 0`, `so a world that exists in neither area is never written`, `with nothing on disk to show for it`. **1895 passed, 3 failed, exit 1** |
+| all four removed | **1898 passed, 0 failed, exit 0** |
+
+**A SAVE IS A FILE, SO MOST OF THIS ROW IS GENUINELY PROVABLE IN THE SUITE — which T5.7's and
+T5.9's camera work was not, and saying so plainly beats promising a photograph that adds nothing.**
+There is a real artefact on disk to assert against rather than a picture to be looked at. The
+strongest assertion here is the policy's own promise, driven end to end: write an autosave, then
+write into **all six** slots the save screen offers, and the autosave file is still present and its
+header still `equal` to the Dictionary read before — the same save, unmoved. The three refusals are
+each proved by the **absence of a file** as well as by the return code, because a policy that
+returned `ERR_SKIP` and wrote anyway would pass half of it, and that pair of ways to be wrong is
+exactly what T5.7 found.
+
+**WHAT THE CAPTURE CARRIES IS THE INDICATOR, WHICH IS THE HALF NO ASSERTION CAN SHOW.** The row was
+told to think about what a still frame can prove before promising one, and the answer here is not
+"nothing": `SYSTEMS_INVENTORY.md` item 6 asks for an autosave INDICATOR, and an indicator is by
+definition a thing the player is shown. Two windowed runs of the standing regression command
+(`--resolution 960x540 --new-game --shot-frame=70 --time=18:40 --freeze-time`), differing only by
+one line in `user://settings.cfg`, each `0 warnings, 0 errors`:
+
+| run | log | `user://saves/` afterwards | the frame |
+|---|---|---|---|
+| defaults | `[save] Slot 6 written (6 sections)` | **`autosave.json`** | **`Autosaved.` on the toast**, HUD `Day 1 \| 18:40 \| Dusk`, prompt `Read Weathered Notice` |
+| `autosave=false` | nothing | **empty** | identical frame, **no toast** |
+
+**The saves directory is the decisive column and the photograph is the one that matters**, and they
+are read together on this project's standing rule. Looked at rather than only measured: the world,
+the HUD clock and the interaction prompt sit at identical pixels between the two, and the only
+thing that differs is one line of white text at the top of the frame — the autosave happening in
+the real running game, through the real signal, on arrival in the first area of a new run, with the
+player's veto measured on disk rather than in an assertion. Measured for the record, the toast band
+`y[16..36]` differs at **1.266%** against a floor of **0.401%** and **0.286%** in two world bands of
+the same pair; the pixel count is corroboration and the file on disk is the measurement, which is
+gotcha 64's discipline applied to a different kind of picture.
+
+**THE STANDING REGRESSION CAPTURE NOW CARRIES A TOAST**, and that is a deliberate change to a
+reference image this project has taken at every phase since WP-05. `--new-game` enters an area,
+which is an autosave occasion, so the dusk frame at `--shot-frame=70` has `Autosaved.` on it. That
+is the feature working rather than a regression, and it is written down here so the next person
+comparing against an older capture does not spend an hour on it.
+
+**Unblocks.** A consuming game inherits an autosave with a slot policy it does not have to design,
+and adds its own occasions with one call to `request()` and no edit under `src/`. `SaveSystem` now
+has the notion of a slot a run belongs to that T5.5 said it lacked, so anything else that wants to
+save without the player asking has somewhere to put it. Two of the three settings 2.0.0 removed
+have come back with their features, so the argument for removing them rather than shipping inert
+rows is now made twice.
+
+**Gaps, stated rather than left to be rediscovered.**
+- **THE AUTOSAVE IS WRITTEN AND NEVER SHOWN TO BE LOADED IN A CAPTURE.** `load_from_slot` is the
+  same call the load list already makes for any slot, and the load list's autosave row is asserted,
+  but no probe boots, autosaves, quits, relaunches and continues into it. That is a `dev_probes.gd`
+  row — the same shape as T5.9's gate-opening gap — and it is the only claim in this row that rests
+  on "it is the same code path" rather than on a measurement.
+- **The quit-path toast is emitted and never seen.** One code path with one honest note beat a
+  branch that exists only to suppress a label nobody can read, but it does mean the `game_ending`
+  occasion is proved by assertion and by the log line and never by a photograph. A capture of it
+  would be a photograph of a closing window.
+- **Two occasions is a judgement, not a derivation.** Quit and area arrival are the two this
+  template can see; a game with chapters, beds or checkpoints will want more, and `request()` is
+  public precisely so it needs no edit here. Nothing asserts that these two are the RIGHT two,
+  because nothing could.
+- **There is no "are you sure" on quitting with unsaved progress**, which is `SYSTEMS_INVENTORY.md`
+  item 7 and is now half-obsolete: with the autosave on by default there is less unsaved progress
+  to warn about, and with it off there is exactly as much as before. Item 7's other half — the
+  overwrite confirmation on a manual save — is untouched.
+- **A second autosave landing while the first is in flight is refused by `_busy`, not queued.** That
+  is `save_to_slot`'s existing behaviour and it is correct for the two occasions here, which are a
+  frame or a session apart; a game that autosaves on a fast-firing occasion would see refusals in
+  the log rather than saves, and the log line says so.
+- **No ADR.** One node, two connections, one decision, and a slot number on the file that already
+  owns slot numbers. No autoload, no new signal, no new layer, no new seam concept.

@@ -776,6 +776,29 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   **gotcha 64**, version 2.4.0.
 
 
+
+- **T5.10 Autosave, and the slot policy it needed first — DONE, 2026-09-05.** Candidate G, and the
+  **second** of the three settings 2.0.0 removed to come back with the feature it was waiting for;
+  only `accessibility/subtitles` is left, and it still has nothing to caption. T5.5 refused to fake
+  this one because `SaveSystem` had no notion of the slot a run belongs to, so **the slot was the
+  design question and the trigger was the easy half**. The answer is a DEDICATED slot one past the
+  manual six — `SaveSystem.AUTOSAVE_SLOT`, written to `user://saves/autosave.json` — which no
+  manual list can reach, because every manual list iterates `MAX_SLOTS` and never counts that high.
+  Reserving slot 5 instead would have changed what slot 5 MEANS in every save already on disk, a
+  MAJOR bump paid for nothing; the format is untouched and `SCHEMA_VERSION` is still 1, so this is
+  **2.5.0**. Reading is deliberately wider than writing: `latest_slot()` sees the autosave, so
+  Continue resumes it and the load list offers it, while the save list cannot name it. The policy
+  is a node under `GameRoot` — not a second job for `SaveSystem`, which owns the format and not the
+  occasion, and not an autoload, which would need an ADR. Both occasions (`game_ending`,
+  `area_entered`) were already on the bus, so **no signal was added and `game_root.gd` gained
+  nothing but lost the stale comment that said an autosave would go there.** Three refusals, each
+  proved by the absence of a file: the player's veto, a transition in flight, and no run in
+  progress. **Gotcha 65** came out of the transition guard and is the transferable half:
+  `area_entered` is emitted TWO STATEMENTS BEFORE `_transitioning` is cleared, so the obvious guard
+  would have refused every arrival and the feature would never have fired once — with nothing red
+  anywhere. Suite 1,848 -> 1,898, four plants each exit 1, and the indicator photographed: the same
+  command with the setting on writes `autosave.json` and shows `Autosaved.` on the toast, and with
+  it off writes nothing and shows nothing, over an otherwise identical frame.
 ## Sequencing rules
 
 1. **Breadth of systems, one shallow proof each.** This *replaces* "depth before breadth", which

@@ -25,18 +25,19 @@ const PATH: String = "user://settings.cfg"
 ## consumer worse than a dead constant: the player is shown a control that does nothing. Twelve
 ## of twenty-three were in that state until T5.5. Nine were wired; three were REMOVED, because
 ## honouring them would have meant inventing a feature rather than connecting one - and ONE OF
-## THE THREE HAS NOW COME BACK WITH ITS FEATURE, which is what that decision was for:
-##   `gameplay/camera_shake`   - RESTORED at T5.9, and the only one so far. It had no shake to
-##                               scale; `HD2DCameraRig` has one now, names this key as
-##                               `SHAKE_SETTING`, and reads it as a 0..1 veto on the amplitude
-##                               the area author gave that rig.
-##   `gameplay/autosave`       - there is no autosave, and `SaveSystem` has no notion of the slot
-##                               a run belongs to, so there is nothing for `true` to mean.
-##   `accessibility/subtitles` - nothing is voiced, so there is nothing to caption.
-## Each of the two left is one line here plus one CSV row to bring back the day its feature
-## exists; the screen needs no edit at all, and the shake proves that literally rather than by
-## claim. `tests/unit/settings_consumers_test.gd` is what refuses a key with no reader, so do
-## not re-add one before its consumer.
+## THREE HAVE NOW COME BACK WITH THEIR FEATURE, which is what that decision was for:
+##   `gameplay/camera_shake`   - RESTORED at T5.9. It had no shake to scale; `HD2DCameraRig` has
+##                               one now, names this key as `SHAKE_SETTING`, and reads it as a
+##                               0..1 veto on the amplitude the area author gave that rig.
+##   `gameplay/autosave`       - RESTORED at T5.10. There was no autosave and `SaveSystem` had no
+##                               notion of the slot a run belongs to, so `true` meant nothing.
+##                               `SaveSystem.AUTOSAVE_SLOT` is that notion and `Autosave` is the
+##                               policy; this key is the player's veto over it and nothing more.
+##   `accessibility/subtitles` - still out. Nothing is voiced, so there is nothing to caption.
+## The one left is one line here plus one CSV row to bring back the day its feature exists; the
+## screen needs no edit at all, which the shake and the autosave have now both proved literally
+## rather than by claim. `tests/unit/settings_consumers_test.gd` is what refuses a key with no
+## reader, so do not re-add one before its consumer.
 const DEFAULTS: Dictionary = {
 	"video/window_mode": 0,          # 0 windowed, 1 borderless fullscreen, 2 exclusive
 	"video/vsync": 1,                # matches DisplayServer.VSyncMode
@@ -54,6 +55,7 @@ const DEFAULTS: Dictionary = {
 	"gameplay/run_is_toggle": false, # hold to run by default
 	"gameplay/show_interact_hints": true,
 	"gameplay/camera_shake": 1.0,    # 0..1 scale on whatever amplitude a rig authored
+	"gameplay/autosave": true,       # a veto on the policy's occasions, never a new one
 	"accessibility/text_scale": 1.0,
 	"accessibility/reduce_motion": false,
 	"accessibility/high_contrast_prompts": false,

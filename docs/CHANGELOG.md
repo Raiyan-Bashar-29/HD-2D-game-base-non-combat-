@@ -20,6 +20,65 @@ the exact rot this discipline exists to prevent.
 
 ---
 
+## 2.5.0
+
+*2026-09-05 — the base autosaves, and `gameplay/autosave` is back in `Settings.DEFAULTS` as the
+player's veto over it. It is the second of the three settings version 2.0.0 removed to come back
+with the feature it was waiting for; only `accessibility/subtitles` is still out.*
+
+**A consuming game does:** nothing, unless one grep says otherwise. **No save file already on
+disk changes meaning, and the format is untouched** — `SCHEMA_VERSION` is still 1, slots 0..5
+still hold what they held and still carry the numbers your players know. That is why this is a
+MINOR bump and not a MAJOR one, and it was the deciding factor in the slot design below.
+
+**`grep -rn 'gameplay/autosave' your_game/`.** If it returns nothing, this version is additive
+for you and you can stop here. If it returns something, you re-added the key yourself after 2.0.0
+removed it — which that entry explicitly invited — and you now have **two declarations of the
+same key** in a merged `settings.gd`. Keep the base's and delete yours: it is the same key with
+the same boolean meaning and the same row in `settings_screen.gd`, and `Autosave.AUTOSAVE_SETTING`
+is now the const that names it. If your own consumer wrote into a slot of its own choosing, that
+consumer is the thing to delete, and it is yours — see the slot warning below before you do.
+
+**What you gained**, all of it opt-in except the two occasions:
+
+| Thing | Where | Default |
+|---|---|---|
+| `SaveSystem.AUTOSAVE_SLOT` | one past the six manual slots | 6 |
+| `SaveSystem.AUTOSAVE_FILE` | `user://saves/autosave.json` | — |
+| `SaveSystem.is_autosave(slot)` | anywhere | — |
+| `Autosave.request()` | the `Autosave` node in `game_root.tscn` | — |
+| `gameplay/autosave` | the options screen | **true** |
+| `notify.autosaved`, `ui.save.autosave`, `ui.save.autosave_empty` | `localization/strings.csv` | — |
+
+**THE ONE THING TO READ IF YOU ALREADY WROTE AN AUTOSAVE OF YOUR OWN.** The base's autosave slot
+is `MAX_SLOTS`, i.e. **one past** the six the save screen offers, stored under a NAME rather than
+a number. It was placed there and not at slot 5 precisely so that no save any player already has
+changes meaning. If your own autosave reserved one of the manual slots, you now have two autosave
+mechanisms and one of them can overwrite a save your player made on purpose — delete yours and
+call `Autosave.request()`, or keep yours and set `gameplay/autosave` to false in your defaults.
+Do not do both.
+
+**Two occasions fire automatically, and both are refusable.** The base autosaves when the
+application is ending (`Events.game_ending`, so the window's close button is covered too) and one
+frame after arriving in a new area (`Events.area_entered`). Your own occasions — a chapter break,
+a bed slept in — are one call to `request()` on the node, with no edit to `src/`. Every occasion,
+yours included, is refused when the player has turned the setting off, when `Director` is
+mid-transition, and when there is no run in progress at all.
+
+**`SaveSystem.latest_slot()` now sees the autosave slot**, which is the one behaviour change to a
+method you may already call: Continue resumes the autosave when it is the most recent save. The
+save screen's writing half still counts to `MAX_SLOTS` and therefore still cannot name the
+autosave; its reading half now lists it as a row of its own. If you subclassed `SaveScreen` or
+wrote your own slot list, check which range you iterate: `MAX_SLOTS` is the manual range and
+`AUTOSAVE_SLOT + 1` is everything.
+
+**A save is a FILE, so this row is proved in the suite rather than in a photograph** — 50 new
+assertions, including that six manual writes leave the autosave byte-identical. What the windowed
+capture adds is the indicator: `notify.autosaved` on the toast that already existed, which is what
+`SYSTEMS_INVENTORY.md` item 6 has asked for since WP-00. On the quit path that toast is emitted
+and never seen, because the window is gone the same frame, and that is recorded rather than
+special-cased.
+
 ## 2.4.0
 
 *2026-09-05 — the base has a screen shake, and `gameplay/camera_shake` is back in

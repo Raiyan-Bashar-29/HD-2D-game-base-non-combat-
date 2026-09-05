@@ -67,7 +67,10 @@ func _notification(what: int) -> void:
 
 func _shutdown() -> void:
 	Log.info("boot", "Shutdown requested")
+	# THE AUTOSAVE IS NOT HERE, and the note that used to say it would be is why. `Autosave`
+	# listens for `game_ending` like any other participant, so the policy that once had to be
+	# added "in one place" turned out to need adding in NO place under this roof: this file
+	# still does only the four things its header allows. The emit MUST come before quit(), and
+	# every handler on it must be synchronous — that signal's comment in `events.gd` says so.
 	Events.game_ending.emit()
-	# Autosave on quit goes here once there is a save slot policy. Deliberately not yet:
-	# writing a save before the save format is settled would create migration debt on day one.
 	get_tree().quit()

@@ -28,7 +28,7 @@ extends TestCase
 ##
 ## OWNS: assertions that reduce-motion reaches every motion the template draws, that the screen
 ## shake is the player scale on the area author's amplitude, and that the shadow atlas comes back
-## at the authored size.
+## at the authored size, and that the autosave lands in a slot no manual save can reach.
 ## MUST NOT: ask whether a setting has a consumer at all - `settings_consumers_test.gd` owns that,
 ## and duplicating its scan here would give two answers to one question.
 
@@ -58,15 +58,21 @@ const OLD_CONST: int = 2048
 ## A size no project setting has, so a `ShadowAtlas` that answered it can only have read this
 ## viewport.
 const SCRATCH_ATLAS: int = 1024
+## An area id for the autosave assertions to stand a run up with. It names no content, which is
+## the whole point: the policy asks whether a run EXISTS, never which area it is in.
+const FIXTURE_AREA: StringName = &"fixture_area"
 
 
 func run() -> void:
-	plan(31)
+	plan(63)
 	_the_fade_cuts_instead_of_dissolving()
 	_the_camera_stops_smoothing_and_the_author_still_decides()
 	_shadows_come_back_at_the_size_the_project_authored()
 	_the_shake_is_the_players_scale_on_the_authors_amplitude()
 	_a_shake_ends_itself_and_never_starts_where_the_author_refused()
+	_the_autosave_has_a_slot_no_manual_save_can_reach()
+	_an_autosave_is_a_file_and_six_manual_saves_leave_it_alone()
+	_the_policy_refuses_three_things_and_says_so_when_it_does_not()
 	Settings.reset_to_defaults()
 
 
@@ -286,3 +292,98 @@ func _shaken_by(rig: HD2DCameraRig, rest: Vector3) -> float:
 	rig.shake(1.0, SHAKE_SECONDS)
 	rig._physics_process(PHYSICS_DELTA)
 	return rig.camera.global_position.distance_to(rest)
+
+
+## THE SLOT POLICY, WHICH WAS THIS ROW'S DESIGN QUESTION AND NOT ITS TRIGGER. An autosave that
+## can overwrite a save the player made on purpose is the one thing an autosave must never be,
+## so the promise is structural: the autosave's slot number is outside the range every manual
+## list iterates, and it is not one of the six renamed.
+func _the_autosave_has_a_slot_no_manual_save_can_reach() -> void:
+	equal("the autosave slot is outside the manual range",
+			SaveSystem.AUTOSAVE_SLOT >= SaveSystem.MAX_SLOTS, true)
+	var shares_a_path: bool = false
+	for slot: int in SaveSystem.MAX_SLOTS:
+		equal("manual slot %d is not the autosave" % slot, SaveSystem.is_autosave(slot), false)
+		if SaveSystem.slot_path(slot) == SaveSystem.slot_path(SaveSystem.AUTOSAVE_SLOT):
+			shares_a_path = true
+	equal("while the autosave slot is", SaveSystem.is_autosave(SaveSystem.AUTOSAVE_SLOT), true)
+	equal("it is a file with a name rather than a seventh slot_NN.json",
+			SaveSystem.slot_path(SaveSystem.AUTOSAVE_SLOT).ends_with(SaveSystem.AUTOSAVE_FILE), true)
+	equal("and no slot the save screen offers lands on that same file", shares_a_path, false)
+
+
+## A SAVE IS A FILE, which is why most of this row is provable here and the camera work of T5.7
+## and T5.9 was not: there is a real artefact on disk to assert against rather than a picture to
+## be looked at. The claim is the one the policy makes to the player - write into all six slots
+## the save screen offers and the autosave is still exactly the autosave.
+func _an_autosave_is_a_file_and_six_manual_saves_leave_it_alone() -> void:
+	_clear_every_slot()
+	var auto: int = SaveSystem.AUTOSAVE_SLOT
+	equal("the autosave slot accepts a write", SaveSystem.save_to_slot(auto), OK)
+	equal("and there is a file on disk afterwards",
+			FileAccess.file_exists(SaveSystem.slot_path(auto)), true)
+	var before: Dictionary = SaveSystem.slot_info(auto)
+	equal("with a header the load list can read without applying anything",
+			DictRead.get_string(before, "saved_utc", "") != "", true)
+	equal("and Continue sees it, because an autosave nobody can come back to is not one",
+			SaveSystem.latest_slot(), auto)
+
+	for slot: int in SaveSystem.MAX_SLOTS:
+		equal("manual slot %d writes" % slot, SaveSystem.save_to_slot(slot), OK)
+	equal("and after all six the autosave file is still there",
+			FileAccess.file_exists(SaveSystem.slot_path(auto)), true)
+	equal("carrying the header it was written with",
+			SaveSystem.slot_info(auto), before)
+	_clear_every_slot()
+
+
+## THE THREE REFUSALS, EACH DRIVEN THROUGH THE REAL PREDICATE `request()` READS, and each proved
+## by the absence of a file rather than by the return code alone - a policy that returned ERR_SKIP
+## and wrote anyway would pass half of this and is exactly the pair of ways to be wrong that
+## T5.7 found. The transition state is set on `Director` itself, not modelled here: this asserts
+## the guard the running game consults, and a copy of it would assert nothing.
+func _the_policy_refuses_three_things_and_says_so_when_it_does_not() -> void:
+	var policy := Autosave.new()
+	attach(policy)
+	_clear_every_slot()
+	var auto: int = SaveSystem.AUTOSAVE_SLOT
+	var was_area: StringName = Director.current_area_id
+	Settings.set_value(Autosave.AUTOSAVE_SETTING, true)
+
+	Director.current_area_id = &""
+	equal("with no run in progress there is nothing to autosave", policy.request(), ERR_SKIP)
+	equal("so quitting from the main menu cannot flatten a real run's autosave",
+			SaveSystem.has_slot(auto), false)
+
+	Director.current_area_id = FIXTURE_AREA
+	Director._transitioning = true
+	equal("and mid-transition it refuses", policy.request(), ERR_SKIP)
+	equal("so a world that exists in neither area is never written", SaveSystem.has_slot(auto), false)
+	Director._transitioning = false
+
+	Settings.set_value(Autosave.AUTOSAVE_SETTING, false)
+	equal("and the player's veto refuses it", policy.request(), ERR_SKIP)
+	equal("with nothing on disk to show for it", SaveSystem.has_slot(auto), false)
+
+	var announced: Array[String] = []
+	var listener: Callable = func(key: String, _seconds: float, _args: Dictionary) -> void:
+		announced.append(key)
+	Events.notify_requested.connect(listener)
+	equal("nothing has been announced by three refusals", announced.size(), 0)
+	Settings.set_value(Autosave.AUTOSAVE_SETTING, true)
+	equal("and with a run, no transition and the setting on, it writes", policy.request(), OK)
+	equal("into the autosave slot and no other", SaveSystem.has_slot(auto), true)
+	equal("and the player is told it happened, which is the indicator item 6 asks for",
+			announced, [Autosave.NOTIFY_KEY] as Array[String])
+	Events.notify_requested.disconnect(listener)
+
+	Director.current_area_id = was_area
+	_clear_every_slot()
+	policy.queue_free()
+
+
+## Every slot INCLUDING the autosave's. A file left behind here is a save the next test file
+## sees, and `menus_test.gd` asserts that a first run has none.
+func _clear_every_slot() -> void:
+	for slot: int in SaveSystem.AUTOSAVE_SLOT + 1:
+		SaveSystem.delete_slot(slot)

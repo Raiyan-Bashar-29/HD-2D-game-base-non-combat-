@@ -1,4 +1,4 @@
-| G | **Autosave** | The larger of the TWO features T5.5 removed a setting for that are still missing — the screen shake came back at T5.9 and this is next.# Work Packages
+# Work Packages
 
 **One package, one chat.** A chat context window is the binding constraint on this project, so
 work is sliced into packages that each fit in one. Every package names the exact files to read,
@@ -4114,7 +4114,84 @@ ends of the wire green -> `1847 passed, 1 failed`, **exit 1**; both removed -> `
 - **It wrote no ADR.** One signal, one method, two exports on the node that already owned the
   camera.
 
-## Candidate rows — ranked. A, B, D, H, I AND J ARE DONE (T5.4-T5.9). C, E, F and G remain
+## T5.10 · Autosave, and the slot policy it needed first — **DONE**
+
+Candidate G, and the SECOND of the three settings version 2.0.0 removed to come back with the
+feature it was waiting for. Only `accessibility/subtitles` is still out. Version 2.5.0.
+
+### The design question was the SLOT, and the answer
+
+| Candidate | Verdict |
+|---|---|
+| rotate through the manual slots | **rejected** — an autosave can then destroy a save the player made on purpose |
+| reserve slot 5 of the six | **rejected** — same objection, plus it changes what slot 5 MEANS in every save file already on disk. A MAJOR bump paid for nothing |
+| **one past the six** (`AUTOSAVE_SLOT = MAX_SLOTS`, `user://saves/autosave.json`) | **taken.** No manual list can reach it, because every manual list iterates `MAX_SLOTS` and never counts that high — no filter to remember, no existing save touched, MINOR bump |
+
+**The read range is deliberately not the write range.** `latest_slot()` iterates
+`AUTOSAVE_SLOT + 1` and the save screen's writing half still iterates `MAX_SLOTS`: writing is
+manual-only, reading is everything. Continue resumes the autosave and the load list offers it as a
+row of its own, while the save list — built over the identical files — cannot name it.
+
+### What it built, and where each piece went
+
+| Piece | Where | Note |
+|---|---|---|
+| the policy | `Autosave` under `GameRoot`, `src/systems/autosave/` | a node, not an autoload — an autoload needs an ADR, and this is two connections and one decision |
+| the slot | `SaveSystem.AUTOSAVE_SLOT`, `AUTOSAVE_FILE`, `is_autosave()` | a slot number's legality and its path are facts about the store, so they belong to the store |
+| the occasions | `Events.game_ending`, `Events.area_entered` | both already on the bus. **No signal was added** |
+| the trigger for quit | `game_ending`, synchronous | the close button comes through the same path; `game_root.gd` gained nothing but lost a stale comment |
+| the trigger for arrival | `area_entered`, **one frame late** | see gotcha 65 — on the spot it would have been refused every time |
+| the player's veto | `gameplay/autosave`, back in `DEFAULTS`, default `true` | takes an occasion away, never adds one |
+| the indicator | `notify.autosaved` on the existing toast | `SYSTEMS_INVENTORY.md` item 6, photographed |
+| a game's own occasion | `Autosave.request()` | public, so a chapter break or a bed is one call and no edit to `src/` |
+
+### Gotcha 65, which is the thing here that will cost the next person an hour
+
+`Director._run_transition` emits `area_entered` and clears `_transitioning` **two statements
+later** — correctly, because that signal means "the area is in the tree and the player is placed"
+and the transition is not over until the curtain has been asked to lift. A handler reading
+`is_transitioning()` on the spot is therefore refused on **every arrival**, and the feature never
+fires once, with nothing red anywhere: both ends of the wire correct, the guard behaving exactly as
+specified, and a feature that does nothing. Gotcha 54's family with the unwired middle made of
+ORDERING. Fixed with one `await get_tree().process_frame`; the assertion that pins it emits
+`area_entered` inside a synchronous `run()`, where no frame ever comes, and requires that nothing
+was written.
+
+### Verified
+
+Six checkers exit 0, `1848 -> 1898` assertions, `0 warnings, 0 errors` on boot and on both
+captures. Four plants, each a real reversion, each exit 1 — the synchronous area handler
+(1 failed), the autosave reserving a manual slot (5 failed), `latest_slot()` blind to the autosave
+(1 failed), and the transition guard deleted (3 failed) — all removed, `1898 passed, 0 failed`.
+**The layer gate caught this row's own trailing comment**: a `core` file naming `Autosave`, which
+is `systems`.
+
+**A save is a FILE, so most of this row is provable in the suite** in a way T5.7's and T5.9's
+camera work was not — including the policy's whole promise, driven end to end: write the autosave,
+then write into all six slots the save screen offers, and the autosave header is still `equal` to
+what it was. **What the capture carries is the INDICATOR.** Two runs of the standing regression
+command differing by one line of `settings.cfg`: with defaults, `[save] Slot 6 written`,
+`user://saves/autosave.json` on disk, and `Autosaved.` on the toast over an otherwise identical
+frame; with `autosave=false`, no log line, an **empty** saves directory, and no toast. The standing
+dusk capture now carries that toast, which is the feature and not a regression.
+
+### What it did NOT do, deliberately
+
+- **It did not photograph a LOAD of the autosave.** `load_from_slot` is the same call the load list
+  already makes and the autosave's row in that list is asserted, but no probe boots, autosaves,
+  quits, relaunches and continues into it. A `dev_probes.gd` row, the same shape as T5.9's
+  gate-opening gap, and the one claim here resting on "same code path" rather than a measurement.
+- **It did not add an "are you sure" on quitting**, `SYSTEMS_INVENTORY.md` item 7, now half
+  obsolete: with the autosave on there is less unsaved progress to warn about, and with it off
+  there is exactly as much as before.
+- **It did not make autosaves queue.** A second landing while the first is in flight is refused by
+  `_busy`, which is right for two occasions a frame or a session apart.
+- **It did not split `gen_placeholders.gd`**, still at 230 of its 250 and still next, because it
+  touched no character sheet.
+- **It wrote no ADR.** One node, two connections, one decision, and a slot number on the file that
+  already owns slot numbers.
+
+## Candidate rows — ranked. A, B, D, G, H, I AND J ARE DONE (T5.4-T5.10). C, E and F remain
 
 These are the audit's findings that are packages rather than one-line corrections. Ranked by value
 to a consuming game per unit of work. Each is sized to one chat.
@@ -4125,7 +4202,7 @@ to a consuming game per unit of work. Each is sized to one chat.
 | ~~D~~ | ~~**A wholesale character swap, photographed**~~ | **DONE — T5.6, 2026-09-05.** The alt sheet gained its gait set, the player was pointed at it and all five gaits were photographed with nothing under `src/` changed. Phase T5's third exit criterion is ticked and the phase is closable at the owner's word — the two boxes that remain are a second idle block and candidate C, which is the owner's seam decision |
 | E | **Music ducking, or delete it** | `stop_music`, `duck` and `unduck` have no callers anywhere — the only `duck` hit in the repository is the phrase "duck-typed" in a comment. Lowering music under dialogue is the obvious use and `DialogueRunner` is the home. Audio is honestly `PART` in the inventory, so this is small; the alternative is to delete three methods |
 | F | **The `Button` styleboxes** | The theme sets `font_sizes` on nine type variations and no `Button/styles/*`, so every menu row draws Godot's default StyleBox — already a declared known limitation, invisible against the shipped dark palette and immediately wrong against a light one |
-| G | **Autosave** | The larger of the TWO features T5.5 removed a setting for that are still missing — the screen shake came back at T5.9 with its setting, and this is next. It needs a slot POLICY before it needs a trigger: `SaveSystem` has no notion of the slot a run belongs to, and `save_to_slot(slot)` is the only entry point. `Events.quit_requested` has exactly one performer (`GameRoot`) and `events.gd` already says on `quit_requested` an autosave policy will only ever need adding in one place, so the trigger is easy and the choice of slot is the design question. Bring the `gameplay/autosave` key back with it |
+| ~~G~~ | ~~**Autosave**~~ | **DONE — T5.10, 2026-09-05.** The SLOT was the design question and it is answered: a dedicated slot ONE PAST the manual six (`SaveSystem.AUTOSAVE_SLOT`, `user://saves/autosave.json`), so no manual save can reach it and no save already on disk changes meaning — a MINOR bump, where reserving slot 5 would have been a MAJOR one for nothing. The policy is a node under `GameRoot`, not a second job for `SaveSystem` and not an autoload; the occasions are `game_ending` and one frame after `area_entered`, both already on the bus, so **no signal was added and `game_root.gd` gained nothing**. Three refusals — the player's veto, a transition in flight, no run in progress — each proved by the absence of a file. `gameplay/camera_shake` and `gameplay/autosave` have both now come back with their features; only `accessibility/subtitles` is left. **Gotcha 65**: `area_entered` is emitted two statements before `_transitioning` is cleared, so the obvious guard would have refused every arrival, silently |
 | ~~H~~ | ~~**Screen shake**~~ | **DONE — T5.9, 2026-09-05.** Built on `HD2DCameraRig` as a decaying sine, asked for through `Events.camera_shake_requested` with `Gate.open_shake` as the template's own asker, and `gameplay/camera_shake` is back in `DEFAULTS` as its 0..1 scale — the FIRST of the three settings 2.0.0 removed to return with the feature it was waiting for. `accessibility/reduce_motion` reaches it in the same row, which is the obligation T5.7 recorded. Photographed: the same command at scale 1.0 / 0.5 / 0.0 moves the camera 0.302357 / 0.151178 / 0.000000 m and the picture (+14,-12) / (+8,-6) / (0,0) px, with the HUD unmoved throughout |
 | ~~I~~ | ~~**`reduce_motion` finished**~~ | **DONE — T5.7, 2026-09-05.** Both halves landed. The setting reaches all three motions, and the shadow atlas turned out to be a live defect rather than a portability worry: the `2048` const halved this repository's own atlas on every windowed boot, because the engine's default is 4096. Gotcha 61 |
 | ~~J~~ | ~~**A placeholder sheet whose facings are distinguishable**~~ | **DONE — T5.8, 2026-09-05.** Both sheets now draw five poses and a mirror instead of one pose repeated. The worst facing pair went from 0.0000 — facings 2 and 3 were byte-identical — to 0.0747 on the default sheet and 0.2188 on the alt one, and the same character was photographed walking north, east, south and west, which nothing here had ever captured. The code was correct throughout, which is **gotcha 62**: gotcha 54 with the unwired middle made of pixels. No file under `src/` changed except the debug capture tool |

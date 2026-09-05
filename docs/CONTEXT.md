@@ -3,7 +3,53 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-05 · **T5.10 (autosave, and the slot policy it needed first) complete —
+**Last updated:** 2026-09-05 · **T5.11 (music ducking, built — and the alias beside it deleted)
+complete — THE MUSIC DUCKS UNDER DIALOGUE, AND `AudioDirector` IS NOW THE ONE FILE IN THIS
+REPOSITORY WITH NO PUBLIC METHOD THAT NOTHING CALLS.** The row was "build it or delete it" and the
+answer is BOTH, split on one line: `duck()` and `unduck()` were built, because the occasion already
+existed on the bus and lowering music under dialogue is what ducking IS; `stop_music()` was
+DELETED, because it was two lines of alias over `play_music(null, fade)` with no caller in three
+phases and no occasion that the surviving spelling does not already serve. **Deleting a public
+method is a MAJOR bump, so the base is 3.0.0**, and that was not a reason to keep it — the entry
+names the replacement and the fix at a call site is one line.
+
+**AND IT WAS NOT MERELY UNCALLED, IT WAS WRONG — WHICH ONLY WIRING IT COULD REVEAL.** `duck()`
+tweened the buses to an ABSOLUTE −8 dB, which is not a duck but "set the music to −8 dB". Against a
+player who had moved `audio/music` to 0.25 (−12 dB) **the same call made the music four decibels
+LOUDER every time somebody spoke**, and at the default it ducked by six. `target_db(bus)` is the
+fix and the file's new answer to where a bus belongs: the level the player's own setting puts it
+at, plus whatever duck is in force, with a muted bus staying muted. Three smaller defects came out
+of the same wiring — a settings change lifted the duck, two ducks raced because no call cancelled
+the last, and a POSITIVE duck would have worked. **Code with no consumer is not merely unused, it
+is unverified**, and eight instances have now said so.
+
+**THE COUNT IS THE DESIGN DECISION.** `DialogueDuck` is a node under `GameRoot` that holds the
+music down while ANY conversation runs and releases after the LAST — because two overlapping
+conversations (an NPC talking to an NPC while the player reads a sign) make a plain duck/unduck
+pair lift the music underneath a conversation still running, with nothing red anywhere. It is a
+node and not a `connect` line in the mixer for T5.10's reason exactly: the mixer owns how far down
+a duck goes, this owns what makes it happen, and a game that wants none deletes ONE NODE from
+`game_root.tscn`. **No new signal** — `dialogue_started` and `dialogue_finished` have been on the
+bus since Phase 0 — **and no new setting**, deliberately: nothing was owed one, and the player
+already owns the outcome through `audio/music` and `audio/ambience`, which the duck is now measured
+FROM.
+
+**A BUS VOLUME IS A NUMBER, SO ESSENTIALLY ALL OF THIS ROW IS PROVED IN THE SUITE** — the level,
+the relativity, the timing, the balance, and the wire from a real `DialogueRunner.begin()` through
+the real signal to the real mixer — which T5.7's and T5.9's camera work could not be. Suite
+1,898 -> 1,935; five plants, each a real reversion, each exit 1. **Gotcha 66 retires an honest
+limit T5.7 wrote down**: a fade and a cut read the same in a synchronous `run()`, and
+`SceneTree.get_processed_tweens()` plus `Tween.custom_step()` give the frames back, so "the bus has
+NOT moved yet" and "half the fade is half the drop" are both assertable. A windowed run adds
+nothing — a still frame cannot show a decibel — and the standing dusk capture was taken only as a
+regression check and is unchanged. **What is genuinely unproved is whether any of it can be HEARD,
+and nothing here can prove that: there is no audio in the project at all**, which is why the
+inventory row stays `PART`. **The fourth consumer gate was considered and deliberately NOT built**
+— a public-method liveness gate is a package, not a paragraph, and it is on the board as candidate
+K. Version 3.0.0, untagged. `gen_placeholders.gd` is still at 230 of its 250 and is still the next
+file to split.
+
+**T5.10 (autosave, and the slot policy it needed first) is the row before it —
 THE BASE AUTOSAVES, and `gameplay/autosave` is the SECOND of the three settings 2.0.0 removed to
 come back with the feature it was waiting for.** Only `accessibility/subtitles` is left out, and it
 still has nothing to caption. T5.5 refused to fake this one for a stated reason — `SaveSystem` had
@@ -1290,7 +1336,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Sixty-five gotchas that each cost an hour
+## Sixty-six gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -2040,6 +2086,22 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     `area_entered` inside a synchronous `run()` — where no frame ever comes — and requires that
     **nothing was written**. Before trusting any guard on a `_entered` / `_finished` / `_changed`
     signal, read the emitter and find out what is still true at the moment it fires.
+
+66. **A FADE AND A CUT READ IDENTICALLY IN A SYNCHRONOUS TEST, AND THE FIX IS TO STEP THE TWEEN
+    BY HAND RATHER THAN TO GIVE UP ON THE CLAIM.** `TestCase.run()` is synchronous, so no idle
+    frame ever arrives and a tween created inside it never moves at all — which means an
+    assertion taken after the call sees the value the fade STARTED from, and an assertion taken
+    after a `custom_step` long enough to finish sees the value it was heading for. Neither
+    distinguishes a 0.4-second fade from an instant jump, and T5.7 wrote that down as a limit
+    assertions could not reach. They can. `SceneTree.get_processed_tweens()` returns the live
+    tweens and `Tween.custom_step(delta)` advances one by exactly `delta` — so "the bus has NOT
+    moved yet", "half the fade is half the drop" and "the whole fade lands exactly on target" are
+    three separate measurements, and a fade rewritten as a cut fails all three (measured, T5.11
+    plant 2, exit 1). **Snapshot the tween list BEFORE the call under test and step only what is
+    new**: stepping every processed tween would advance a screen fade or a music cross-fade some
+    other case owns and is mid-flight. The default transition is linear, which is what makes the
+    midpoint assertion exact rather than approximate — a tween authored with an ease would need
+    the curve, not the fraction.
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the

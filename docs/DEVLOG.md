@@ -6872,3 +6872,176 @@ the stripped run at 1,774, so **all 50 of this row's assertions survive the demo
 added by this package names demo content — the autosave assertions stand a run up with
 `&"fixture_area"`, because the policy asks whether a run EXISTS and never which area it is in, and
 `check_boundary.gd` confirms that independently.
+
+## 2026-09-05 — T5.11 · Music ducking, built — and the alias beside it deleted
+
+**Did.** Gave `AudioDirector.duck()` and `unduck()` the consumer they never had, fixed what they
+did when called, and **deleted `stop_music()`**, which is why this is 3.0.0 and not 2.6.0. New
+`DialogueDuck` node under `GameRoot`, one new public method and four new consts on the mixer, one
+helper moved into `TestCase`, 37 new assertions in a new case, one new gotcha. **No new signal, no
+new setting, no autoload, no ADR, and no CSV row** — this row added nothing a player can see on the
+options screen and nothing a translator has to translate.
+
+**THE ROW WAS "BUILD IT OR DELETE IT", AND THE ANSWER IS BOTH, SPLIT ON A CLEAN LINE.** T5.5 faced
+the same choice about twelve settings and removed three of them, with a reason each time: there was
+nothing for `true` to mean. The line that decided this row is the same one:
+
+| Method | Verdict | Why |
+|---|---|---|
+| `duck()` / `unduck()` | **built** | The occasion already existed. `Events.dialogue_started` and `dialogue_finished` have been on the bus since Phase 0 with one emitter each, and lowering music under dialogue is what ducking IS. Wiring it cost one node and no new signal — the same shape T5.10 used for the autosave |
+| `stop_music()` | **deleted** | Two lines of alias over `play_music(null, fade)`, with no caller in three phases and no occasion in this template that `play_music(null)` does not already serve — `area_root.gd` takes exactly that path whenever an area has no music, so the surviving spelling is the tested one. Two ways to say one thing in a file with a hard 150-line budget is a cost with nothing on the other side of it |
+
+Deleting a public method is a MAJOR bump, and it is worth saying that the bump was NOT a reason to
+keep it. A version number is free; the `CHANGELOG` entry names the replacement, the fix at a call
+site is one line, and this repository has taken a MAJOR for an honest removal before (2.0.0, three
+settings).
+
+**AND THE FEATURE WAS NOT MERELY UNCALLED — IT WAS WRONG, WHICH ONLY WIRING IT COULD REVEAL.**
+`duck()` tweened the buses to an **absolute** −8 dB. That is not a duck; it is "set the music to
+−8 dB". `audio/music` defaults to 0.8, which is −1.9 dB, so at the default it ducked by six. Against
+a player who had moved that slider to 0.25 — −12 dB — **the same call made the music four decibels
+LOUDER every time somebody spoke.** One method, opposite effects, chosen by a slider on the options
+screen. So `target_db(bus)` is now the file's answer to "where should this bus be right now": the
+level the player's own setting puts it at, plus whatever duck is in force, and a bus the player
+muted stays muted because nothing here may raise a level set to zero. This is the eighth instance
+of declared-and-dead teaching the same lesson from a new angle: **code with no consumer is not
+merely unused, it is unverified**, and three phases of green ladders had no opinion about it.
+
+**THREE MORE THINGS THE WIRING FOUND, EACH SMALL AND EACH REAL.**
+- **A settings change lifted the duck.** `_apply_all_volumes` re-applies every bus on any `audio/*`
+  change, so a slider moved mid-conversation put the music straight back to full. It goes through
+  `target_db` now; `_duck_db` is held as STATE and not only as a tween target for exactly this.
+- **Two ducks raced.** Each call created a fresh tween and never cancelled the last, so a
+  duck immediately followed by an unduck resolved to whichever finished later. `_move_buses` kills
+  the previous fades first.
+- **A positive "duck" would have worked.** It is clamped at zero: no caller gets to make the music
+  louder than the player asked through a door named `duck`.
+
+**THE COUNT IS THE DESIGN DECISION, AND IT IS WHY THIS IS A NODE AND NOT A `connect` LINE IN THE
+MIXER.** The brief warned that a `duck()` one caller uses and an `unduck()` nobody balances is worse
+than either, and the way that happens is not carelessness — it is two conversations overlapping. An
+NPC talking to another NPC while the player reads a sign emits `dialogue_started` twice and
+`dialogue_finished` twice, and a plain pair lifts the music on the FIRST ending, underneath a
+conversation still running. Nothing would be red: both handlers correct, both signals correct,
+music back at full volume over dialogue. So `DialogueDuck` counts, ducks on the first hold and
+releases after the last, floors the count at zero so a stray end cannot strand the music down, and
+publishes `held()` so the balance is assertable as a COUNT and not only as a decibel.
+
+**WHERE IT LIVES, AND THE JOB `AudioDirector` DID NOT GET.** `DialogueDuck` is a node under
+`GameRoot`, in `src/systems/audio/`. It is not a second `connect` inside `audio_director.gd`, on
+T5.10's reasoning exactly: `SaveSystem` owns the save format and `Autosave` owns the occasion to
+write one; the mixer owns how far down a duck goes and this owns what makes it happen. That seam is
+what lets a consuming game delete ONE NODE from `game_root.tscn` to have no ducking under dialogue,
+or add a node beside it for a cutscene, with no edit under `src/`. It is not an autoload — that
+needs an ADR, and this is a node with two connections and one decision, which is what
+`UiAccessibility` and `Autosave` already are.
+
+**NO NEW SETTING, DELIBERATELY, AND THE ROW WAS TOLD TO CHECK BEFORE ADDING ONE.** T5.9's
+`gameplay/camera_shake` and T5.10's `gameplay/autosave` were both settings version 2.0.0 had
+REMOVED and owed a return; nothing is owed here. A duck is a mix decision rather than a comfort
+hazard — `accessibility/reduce_motion` is about motion and there is none — and the player already
+owns the outcome twice over, through `audio/music` and `audio/ambience`, both of which the duck is
+now measured FROM rather than against. Inventing `audio/dialogue_duck` would have put a row on the
+options screen that nobody asked for, in two languages, to switch off eight decibels.
+
+**GOTCHA 66 IS HOW A FADE IS PROVED IN A SYNCHRONOUS TEST, AND IT RETIRES AN "HONEST LIMIT" T5.7
+WROTE DOWN.** `run()` is synchronous, no idle frame ever arrives, and a tween left alone never
+moves — so a finished fade and an instant cut read identically, and T5.7 recorded that as something
+assertions simply could not reach. They can: `SceneTree.get_processed_tweens()` hands back the
+tweens and `Tween.custom_step(delta)` advances one by hand. Snapshot the list BEFORE the call under
+test and step only what is new, so the case moves nothing it does not own. That turns three claims
+into measurements — the bus has NOT moved yet, half the fade is half the drop, and the whole fade
+lands exactly on target — and plant 2 below is a duck rewritten as a cut, which fails all three.
+
+**Connects.** `Events.dialogue_started` / `dialogue_finished` (DialogueRunner, one emitter each) ->
+`DialogueDuck` -> `Audio.duck()` / `Audio.unduck()` -> `AudioServer` bus volumes. `Events` gained
+nothing. `_apply_all_volumes` now reads `target_db`, so the volume settings and the duck compose
+instead of fighting. `TestCase.parent_of_script(scene, script)` is `settings_consumers_test.gd`'s
+private `SceneState` walk, moved out on its SECOND caller the way `FlagQuery` moved out of
+`dialogue_runner.gd` — that file's three call sites now go through it and nothing was copied.
+
+**Verified.** Every line is a measured exit code.
+
+```
+--headless --import                                        exit 0 (run first; gotcha 53)
+--headless --quit-after 30                                 Session ended after 0.6s — 0 warnings, 0 errors
+--headless res://tests/test_runner.tscn --quit-after 400   === 1935 passed, 0 failed, 0 skipped ===, exit 0
+tools/check_budgets.gd    exit 0   154 files, 14076 code lines, 0 violations
+tools/check_content.gd    exit 0
+tools/check_boundary.gd   exit 0   219 rows, 51 content namespace
+tools/check_strings.gd    exit 0
+tools/check_layers.gd     exit 0   92 symbols over 102 scripts
+tools/check_signals.gd    exit 0   43 declared, 100 emit references over 41
+--resolution 960x540 --quit-after 90 -- --new-game --shot=... --time=18:40 --freeze-time
+                          0 warnings, 0 errors; the standing dusk frame, unchanged
+```
+
+Suite 1,898 -> 1,935. `audio_director.gd` 105 -> 118 of its 150, `dialogue_duck.gd` is new at 16,
+`test_case.gd` 41 -> 52, `settings_consumers_test.gd` 211 -> 200 because the walk left it.
+
+**PROVED BY PLANTING THE REVERSION, WATCHING IT FAIL, REMOVING IT AND WATCHING IT PASS. BOTH exit
+codes for all five plants.** Each is a real reversion of this row's own work, and each names a way
+this feature could have been shipped looking correct.
+
+| Plant | Result |
+|---|---|
+| `target_db` returns the offset ABSOLUTELY — the behaviour `duck()` actually had | `a quieter setting carries the ducked level down with it`, `AND THE DUCK IS STILL DOWNWARD, which an absolute target was not`, `moving the slider mid-duck lands on the DUCKED level`. **1932 passed, 3 failed, exit 1** |
+| `_move_buses` sets the bus before tweening — a cut wearing a fade's clothes | `the bus has NOT moved yet, because a duck is a fade and not a cut`, `half the fade is half the drop`, `and it comes back up over time too`. **1932 passed, 3 failed, exit 1** |
+| the count is dropped: duck on every start, unduck on every finish | `a second conversation holds it too — expected 2, got 1`, `and one of them ending releases only its own hold`, `SO THE MUSIC IS STILL DOWN, with somebody still talking`. **1932 passed, 3 failed, exit 1** |
+| the `DialogueDuck` node is deleted from `game_root.tscn` — gotcha 54, aimed | `the running game has a DialogueDuck under the root — expected ., got `. **1934 passed, 1 failed, exit 1.** The `[ext_resource]` line was still in the file, which is gotcha 56 measured rather than restated |
+| `_apply_all_volumes` reads `_db_for_bus` again — a slider lifts the duck | `moving the slider mid-duck lands on the DUCKED level`, `and not on the un-ducked one`. **1933 passed, 2 failed, exit 1** |
+| all five removed | **1935 passed, 0 failed, exit 0** |
+
+**WHICH HALF IS PROVED BY ASSERTION, AND WHICH IS NOT PROVED AT ALL.** A bus volume in dB is a
+number the audio server hands back **even under the dummy driver**, so unlike T5.7's and T5.9's
+camera work, essentially all of this is a measurement here rather than a photograph: the level, the
+relativity, the timing, the balance, and the wire from a real `DialogueRunner.begin()` through the
+real signal to the real mixer. **A windowed run adds nothing to it** — a still frame cannot show a
+decibel, and there is no dialogue in the standing capture to duck under. The capture was taken
+anyway, because `game_root.tscn` and an autoload changed, and it is a regression check and nothing
+more: the dusk courtyard, the `Autosaved.` toast T5.10 added, `Day 1 | 18:40 | Dusk` and
+`Read Weathered Notice`, all unchanged, 0 warnings and 0 errors. **What is genuinely unproved is
+whether any of it can be HEARD, and nothing in this repository can prove that**, because there is
+no audio in the project at all — art is deferred, so the buses have always carried silence. That is
+why the inventory row stays `PART`.
+
+**THE FOURTH CONSUMER GATE WAS CONSIDERED AND DELIBERATELY NOT BUILT, which the row asked to be
+told either way.** T5.4 built three gates for the "declared and read by nothing" class — signals,
+CSV rows — and T5.5 asked it of settings in the suite; T5.5 then wrote down that **public methods
+are still declarable-and-dead and nothing says so**, which is how this row's subject survived three
+phases. A gate for it is not the same size as those three. A method is called by name on a variable
+whose static type a text scan does not know, through `Callable` and `.bind`, from `.tscn` property
+values, from `tools/` and from `tests/` — and "has a caller in the suite" is not the same question
+as "has a caller in the game", which is the distinction that matters and the one a scan cannot
+make. It would need an exemption phrase like `check_signals.gd`'s `NO EMITTER` and a large,
+argued exemption list on day one, and a gate that starts out mostly exemptions is decoration. **It
+is a package, not a paragraph, and it is on the board as candidate K.** Saying so is the point:
+this row closed the instance and not the class, and the next instance will again be found by
+reading.
+
+**Unblocks.** A consuming game inherits ducking it does not have to write and can remove with one
+node, and a `duck()` whose argument means the same thing at every volume the player might choose.
+`AudioDirector` now has no public method without a consumer, which is a thing that can be said of
+exactly one file in this repository and was true of none before. `TestCase.parent_of_script` makes
+"is this node really in the running game's scene" a one-line question for every case that comes
+after, which is the assertion gotcha 54 keeps asking for.
+
+**Gaps, stated rather than left to be rediscovered.**
+- **Nothing here has been heard.** There is no audio in the project, so every claim in this row is
+  about a number on a bus. When the first `.ogg` lands, the thing to check by ear is whether −8 dB
+  and 0.4 s are the right two numbers; they are consts on the mixer precisely so that is one edit.
+- **The duck is proved in the suite and never in a running session.** A `dev_probes.gd` probe that
+  walks the demo's garden-keeper, opens the conversation and logs the Music bus in dB would close
+  it, and it belongs with the two probes already wanted — T5.9's gate shake and T5.10's
+  autosave-and-continue. It is the same row, now with three reasons.
+- **One occasion is a judgement, not a derivation.** Dialogue is the occasion this template can
+  see. A cutscene, a codec call or a boss door are all `Audio.duck()` from somewhere else, and
+  nothing asserts that dialogue is the RIGHT one, because nothing could.
+- **`held()` counts conversations, not speakers.** A game that emits `dialogue_started` per LINE
+  rather than per conversation would duck once and never release until the last line — correct
+  behaviour for a wrong emitter, and the signal's own comment says which it is.
+- **The ducked bus set is a const, not a policy.** `DUCKED_BUSES` is Music and Ambience. A game
+  with a separate Voice bus would add it to `BUSES` and would want it OUT of `DUCKED_BUSES`, and
+  nothing enforces that pairing.
+- **No ADR.** One node, two connections, one decision, and a method on the file that already owns
+  bus decibels. No autoload, no new signal, no new layer, no new seam concept.

@@ -51,7 +51,7 @@ const ACCESSIBILITY_SCRIPT: String = "res://src/ui/root/ui_accessibility.gd"
 ## its setting with is reached through the script itself, and `new()` builds the ColorRect.
 const FADE_SCRIPT: String = "res://src/ui/hud/screen_fade.gd"
 const FADE: GDScript = preload("res://src/ui/hud/screen_fade.gd")
-## Where the running game gets its one autosave policy from, for `_parent_of_script`. Same
+## Where the running game gets its one autosave policy from, for `TestCase.parent_of_script`. Same
 ## reason as `ACCESSIBILITY_SCRIPT`: every other autosave assertion builds its own.
 const AUTOSAVE_SCRIPT: String = "res://src/systems/autosave/autosave.gd"
 ## An area id that stands a run up without naming any content. The policy asks whether a run
@@ -200,7 +200,8 @@ func _text_scale_moves_the_theme_and_never_compounds() -> void:
 	# was deleted, because the `[ext_resource]` line survives a node's removal and eight other
 	# nodes carry that parent. Planted and measured. The engine's own parse cannot be fooled
 	# that way: a script is a PROPERTY of a node here, and the node either exists or does not.
-	equal("and the running game actually has one, under UILayer", _parent_of_script(ACCESSIBILITY_SCRIPT), "./UILayer")
+	equal("and the running game actually has one, under UILayer",
+			parent_of_script(GAME_ROOT, ACCESSIBILITY_SCRIPT), "./UILayer")
 
 
 ## The gate was `InputMap.has_action`, so an action outside REBINDABLE could be overridden and
@@ -280,27 +281,6 @@ func _tear_down() -> void:
 	Actions.reset_bindings()
 
 
-## The parent of the node in `game_root.tscn` carrying `script_path`, or "" if there is no such
-## node. `get_node_path` returns the path relative to the scene root, so a node under UILayer
-## answers "./UILayer" and one that was deleted answers nothing at all.
-##
-## TAKES THE SCRIPT AS AN ARGUMENT because T5.7 needed the same question asked of `ScreenFade`,
-## and a second copy of this walk is a second thing to get wrong.
-func _parent_of_script(script_path: String) -> String:
-	var packed: PackedScene = load(GAME_ROOT)
-	if packed == null:
-		return ""
-	var state: SceneState = packed.get_state()
-	for node: int in state.get_node_count():
-		for property: int in state.get_node_property_count(node):
-			if state.get_node_property_name(node, property) != &"script":
-				continue
-			var script: Script = state.get_node_property_value(node, property) as Script
-			if script != null and script.resource_path == script_path:
-				return String(state.get_node_path(node, true))
-	return ""
-
-
 ## THE THREE MOTIONS, NAMED IN ONE PLACE. T5.5 wired `accessibility/reduce_motion` to the
 ## typewriter and said in its own DEVLOG that one consumer makes a setting honest and not
 ## complete. A screen fade and a lagging camera are the other two motions this template draws,
@@ -319,7 +299,7 @@ func _reduce_motion_reaches_every_motion_this_template_has() -> void:
 	# assertion below builds its own ColorRect and would stay green in a checkout where the
 	# running game instances none.
 	equal("and the running game has a fade, under UILayer",
-			_parent_of_script(FADE_SCRIPT), "./UILayer")
+			parent_of_script(GAME_ROOT, FADE_SCRIPT), "./UILayer")
 	equal("the shake scale is a setting in its own right", Settings.DEFAULTS.has(HD2DCameraRig.SHAKE_SETTING), true)
 	# AND THE ASK HAS A LISTENER, which is the one half `tools/check_signals.gd` deliberately
 	# will not fail on: that gate requires an EMITTER and only REPORTS a signal nothing hears.
@@ -340,12 +320,12 @@ func _reduce_motion_reaches_every_motion_this_template_has() -> void:
 ##
 ## READ THROUGH `SceneState`, NOT AS TEXT, which is gotcha 56: an `[ext_resource]` line survives
 ## the deletion of every node that used it, so a search of the .tscn would stay green after the
-## node was removed. `_parent_of_script` asks the engine's own parse instead, where a script is a
+## node was removed. `TestCase.parent_of_script` asks the engine's own parse instead, where a script is a
 ## property of a node and the node either exists or does not.
 func _the_autosave_policy_is_in_the_running_game_and_subscribed_to_both_occasions() -> void:
 	equal("the setting is declared", Settings.DEFAULTS.has(Autosave.AUTOSAVE_SETTING), true)
 	equal("and the running game has an Autosave under the root",
-			_parent_of_script(AUTOSAVE_SCRIPT), ".")
+			parent_of_script(GAME_ROOT, AUTOSAVE_SCRIPT), ".")
 	var policy := Autosave.new()
 	attach(policy)
 	equal("a policy in the tree is listening for the quit that ends a session",

@@ -20,6 +20,63 @@ the exact rot this discipline exists to prevent.
 
 ---
 
+## 3.0.0
+
+*2026-09-05 — the music ducks under dialogue, the duck is measured from the player's own volume
+instead of from an absolute decibel, and `Audio.stop_music()` is deleted. The deletion is
+the whole reason this is a MAJOR bump; everything else here is additive.*
+
+**A consuming game does: `grep -rn 'stop_music' your_game/`.** If it returns nothing — and it
+almost certainly does, because it returned nothing in this repository either, which is why the
+method went — this version is additive for you and you can stop at the next paragraph. If it
+returns something, **replace `Audio.stop_music(fade)` with `Audio.play_music(null, fade)`**, which
+is the same operation and always was: `stop_music` was a two-line alias over exactly that call.
+There is no other break in this version.
+
+**The second thing to check, and it is a behaviour change rather than a compile error.**
+`Audio.duck()` no longer moves the buses to the decibel you pass it — it moves them that far
+BELOW wherever the player's own volume settings have put them. If you were calling `duck()` with
+a hand-tuned absolute figure, that figure is now an offset and you want a small negative number
+(the default is `Audio.DUCK_DB`, −8 dB). Nothing warns you, because both readings are
+valid floats. The old behaviour was a defect and not a choice: against a player who had turned
+music down to 0.25 linear (−12 dB), a "duck" to −8 dB made the music four decibels LOUDER every
+time somebody spoke, and against the default it ducked by eight. One call, opposite effects,
+chosen by a slider on the options screen.
+
+**What you gained**, none of which needs an edit under `src/`:
+
+| Thing | Where | Default |
+|---|---|---|
+| `DialogueDuck` | the `DialogueDuck` node in `game_root.tscn` | on |
+| `Audio.target_db(bus)` | anywhere | — |
+| `Audio.DUCK_DB` / `DUCK_SECONDS` / `RESTORE_SECONDS` / `DUCKED_BUSES` | anywhere | −8 dB / 0.4 s / 0.6 s / Music + Ambience |
+| `TestCase.parent_of_script(scene, script)` | any test case | — |
+
+**The music now ducks while anybody is talking, and comes back when the last one stops.** The
+occasion is `Events.dialogue_started` and `dialogue_finished`, which have been on the bus since
+Phase 0 with one emitter each — **no signal was added**, and no new setting either. The buses it
+moves are Music and Ambience; SFX and UI are deliberately untouched, since ducking exists so that
+those can be heard. If your game wants ducking somewhere else — a cutscene, a codec call, a boss
+door — call `Audio.duck()` and `Audio.unduck()` from your own occasion, or add a node beside
+`DialogueDuck`; if it wants no ducking under dialogue at all, delete that one node from
+`game_root.tscn` and nothing else changes.
+
+**A duck holds while ANY conversation is running, counted.** Two overlapping conversations mean
+two holds, and the music comes up after the second ends rather than the first. `DialogueDuck.held()`
+is the count.
+
+**A volume slider moved mid-duck no longer lifts the duck.** `_apply_all_volumes` re-applies every
+bus on any `audio/*` change and now goes through `target_db`, so the slider lands on the ducked
+level and the duck survives it. A bus the player has muted stays muted while ducked: nothing may
+raise a level set to zero.
+
+**If you subclassed or copied `tests/framework/test_case.gd`,** it gained one method,
+`parent_of_script(scene_path, script_path)` — the `SceneState` walk that asks whether a scene
+really carries a node with a given script. It moved out of `settings_consumers_test.gd` on its
+second caller. A game that copied that private helper into its own case can keep it; nothing
+forces the change.
+
+---
 ## 2.5.0
 
 *2026-09-05 — the base autosaves, and `gameplay/autosave` is back in `Settings.DEFAULTS` as the

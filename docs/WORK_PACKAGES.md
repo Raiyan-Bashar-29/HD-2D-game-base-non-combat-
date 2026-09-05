@@ -4192,7 +4192,54 @@ dusk capture now carries that toast, which is the feature and not a regression.
 - **It wrote no ADR.** One node, two connections, one decision, and a slot number on the file that
   already owns slot numbers.
 
-## Candidate rows — ranked. A, B, D, G, H, I AND J ARE DONE (T5.4-T5.10). C, E and F remain
+## T5.11 · Music ducking, built — and the alias beside it deleted — **DONE**
+
+Candidate E, and the row was explicitly "build it or delete it". **The answer is both**, split on
+one line. Version 3.0.0 — a MAJOR bump, because a public method was deleted.
+
+### The three dead methods, and what each got
+
+| Method | Verdict | Why |
+|---|---|---|
+| `duck()` / `unduck()` | **built** | The occasion already existed. `Events.dialogue_started` / `dialogue_finished` have been on the bus since Phase 0 with one emitter each, and lowering music under dialogue is what ducking IS. One node, no new signal — T5.10's shape exactly |
+| `stop_music()` | **deleted** | Two lines of alias over `play_music(null, fade)`, no caller in three phases, and no occasion this template has that the surviving spelling does not already serve. Two ways to say one thing in a file with a hard 150-line budget is a cost with nothing on the other side |
+
+**And it was not merely uncalled — it was WRONG, which only wiring it could reveal.** `duck()`
+tweened to an ABSOLUTE −8 dB, so against a player who had moved `audio/music` to 0.25 (−12 dB) it
+made the music four decibels LOUDER every time somebody spoke. `target_db(bus)` is the fix: the
+player's own level plus whatever duck is in force, with a muted bus staying muted. Three smaller
+defects fell out of the same wiring — a settings change lifted the duck, two ducks raced, and a
+positive "duck" would have worked.
+
+**The count is the design decision.** `DialogueDuck` holds while ANY conversation runs and releases
+after the LAST, because two overlapping conversations make a plain duck/unduck pair lift the music
+underneath one still running, with nothing red anywhere. `held()` is public so the balance is
+assertable as a count and not only as a decibel.
+
+**No new setting, deliberately.** Nothing was owed one — T5.9's and T5.10's keys were both settings
+2.0.0 had removed — and the player already owns the outcome through `audio/music` and
+`audio/ambience`, which the duck is now measured FROM rather than against.
+
+**Essentially all of it is proved in the suite**, because a bus volume in dB is a number the audio
+server hands back even under the dummy driver. Suite 1,898 → 1,935; five plants, each a real
+reversion, each exit 1. **Gotcha 66** retires an honest limit T5.7 recorded: `get_processed_tweens()`
+plus `Tween.custom_step()` make a fade distinguishable from a cut inside a synchronous `run()`.
+
+### What it did NOT do
+
+- **It did not build the fourth consumer gate**, and said so in writing. A public-method liveness
+  gate cannot be a text scan the way `check_signals.gd` is — methods are called through
+  `Callable`, `.bind`, `.tscn` properties and typed variables, and "has a caller in the suite" is
+  not "has a caller in the game". It is candidate K, a package rather than a paragraph.
+- **It did not prove anything can be HEARD.** There is no audio in the project at all, which is why
+  the inventory row stays `PART`.
+- **It did not add a `dev_probes.gd` probe.** One that opens the demo conversation and logs the
+  Music bus would close the last gap here, and it is the same probe row T5.9 and T5.10 both want.
+- **It did not split `gen_placeholders.gd`**, still at 230 of its 250 and still next.
+- **It wrote no ADR.** One node, two connections, one decision, and a method on the file that
+  already owns bus decibels.
+
+## Candidate rows — ranked. A, B, D, E, G, H, I AND J ARE DONE (T5.4-T5.11). C and F remain
 
 These are the audit's findings that are packages rather than one-line corrections. Ranked by value
 to a consuming game per unit of work. Each is sized to one chat.
@@ -4201,9 +4248,10 @@ to a consuming game per unit of work. Each is sized to one chat.
 |---|---|---|
 | C | **A turn in place** — but the seam decision first | `face_direction()` has only test callers, so nothing changes facing while stationary at all. The question is WHO may ask for a turn: the player facing an interaction target, or an NPC facing the player in dialogue. `Speaker` is 17 lines and deliberately knows only a conversation id, so it is probably `NpcBrain` or `InteractionSensor`. **Owner's call, not the assistant's** — T5.3 declined to pick one silently |
 | ~~D~~ | ~~**A wholesale character swap, photographed**~~ | **DONE — T5.6, 2026-09-05.** The alt sheet gained its gait set, the player was pointed at it and all five gaits were photographed with nothing under `src/` changed. Phase T5's third exit criterion is ticked and the phase is closable at the owner's word — the two boxes that remain are a second idle block and candidate C, which is the owner's seam decision |
-| E | **Music ducking, or delete it** | `stop_music`, `duck` and `unduck` have no callers anywhere — the only `duck` hit in the repository is the phrase "duck-typed" in a comment. Lowering music under dialogue is the obvious use and `DialogueRunner` is the home. Audio is honestly `PART` in the inventory, so this is small; the alternative is to delete three methods |
+| ~~E~~ | ~~**Music ducking, or delete it**~~ | **DONE — T5.11, 2026-09-05.** Both halves of the either/or, split on one line: `duck()` and `unduck()` were BUILT, because `Events.dialogue_started` / `dialogue_finished` were already on the bus with one emitter each and no signal had to be added; `stop_music()` was DELETED, being two lines of alias over `play_music(null, fade)` with no caller and no occasion. A MAJOR bump, 3.0.0, and the entry names the one-line replacement. **The methods were not merely uncalled, they were wrong** — `duck()` tweened to an ABSOLUTE −8 dB, so at `audio/music` 0.25 it made the music LOUDER; `target_db()` measures the duck from the player’s own level instead. `DialogueDuck` COUNTS conversations, because a plain pair lifts the music underneath a second one still running. **Gotcha 66**: `get_processed_tweens()` + `Tween.custom_step()` tell a fade from a cut inside a synchronous `run()` |
 | F | **The `Button` styleboxes** | The theme sets `font_sizes` on nine type variations and no `Button/styles/*`, so every menu row draws Godot's default StyleBox — already a declared known limitation, invisible against the shipped dark palette and immediately wrong against a light one |
 | ~~G~~ | ~~**Autosave**~~ | **DONE — T5.10, 2026-09-05.** The SLOT was the design question and it is answered: a dedicated slot ONE PAST the manual six (`SaveSystem.AUTOSAVE_SLOT`, `user://saves/autosave.json`), so no manual save can reach it and no save already on disk changes meaning — a MINOR bump, where reserving slot 5 would have been a MAJOR one for nothing. The policy is a node under `GameRoot`, not a second job for `SaveSystem` and not an autoload; the occasions are `game_ending` and one frame after `area_entered`, both already on the bus, so **no signal was added and `game_root.gd` gained nothing**. Three refusals — the player's veto, a transition in flight, no run in progress — each proved by the absence of a file. `gameplay/camera_shake` and `gameplay/autosave` have both now come back with their features; only `accessibility/subtitles` is left. **Gotcha 65**: `area_entered` is emitted two statements before `_transitioning` is cleared, so the obvious guard would have refused every arrival, silently |
 | ~~H~~ | ~~**Screen shake**~~ | **DONE — T5.9, 2026-09-05.** Built on `HD2DCameraRig` as a decaying sine, asked for through `Events.camera_shake_requested` with `Gate.open_shake` as the template's own asker, and `gameplay/camera_shake` is back in `DEFAULTS` as its 0..1 scale — the FIRST of the three settings 2.0.0 removed to return with the feature it was waiting for. `accessibility/reduce_motion` reaches it in the same row, which is the obligation T5.7 recorded. Photographed: the same command at scale 1.0 / 0.5 / 0.0 moves the camera 0.302357 / 0.151178 / 0.000000 m and the picture (+14,-12) / (+8,-6) / (0,0) px, with the HUD unmoved throughout |
 | ~~I~~ | ~~**`reduce_motion` finished**~~ | **DONE — T5.7, 2026-09-05.** Both halves landed. The setting reaches all three motions, and the shadow atlas turned out to be a live defect rather than a portability worry: the `2048` const halved this repository's own atlas on every windowed boot, because the engine's default is 4096. Gotcha 61 |
 | ~~J~~ | ~~**A placeholder sheet whose facings are distinguishable**~~ | **DONE — T5.8, 2026-09-05.** Both sheets now draw five poses and a mirror instead of one pose repeated. The worst facing pair went from 0.0000 — facings 2 and 3 were byte-identical — to 0.0747 on the default sheet and 0.2188 on the alt one, and the same character was photographed walking north, east, south and west, which nothing here had ever captured. The code was correct throughout, which is **gotcha 62**: gotcha 54 with the unwired middle made of pixels. No file under `src/` changed except the debug capture tool |
+| K | **A public-method liveness gate — the fourth consumer question** | T5.4 built three gates for the "declared and read by nothing" class and T5.5 asked it of settings in the suite; **a public method is still declarable-and-dead and nothing says so**, which is how T5.11's subject survived three phases and eight instances. It is not the same size as those three: a method is called by name on a variable whose static type a text scan does not know, through `Callable` and `.bind`, from `.tscn` property values, from `tools/` and from `tests/` — and **"has a caller in the suite" is not "has a caller in the game"**, which is the distinction that matters and the one the scan cannot make. Needs an exemption phrase like `check_signals.gd`'s `NO EMITTER`, an argued exemption list on day one, and a decision about whether a template's deliberately-public seams (`Autosave.request()`, `DialogueDuck.held()`) count. **A gate that starts out mostly exemptions is decoration**, so the design question is which methods it is even asked of |

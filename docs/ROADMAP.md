@@ -799,6 +799,29 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   anywhere. Suite 1,848 -> 1,898, four plants each exit 1, and the indicator photographed: the same
   command with the setting on writes `autosave.json` and shows `Autosaved.` on the toast, and with
   it off writes nothing and shows nothing, over an otherwise identical frame.
+- **T5.11 Music ducking, built — and the alias beside it deleted — DONE, 2026-09-05.** Candidate E,
+  which was explicitly "build it or delete it", and **the answer is both**, split on one line.
+  `duck()` and `unduck()` were BUILT, because the occasion already existed:
+  `Events.dialogue_started` and `dialogue_finished` have been on the bus since Phase 0 with one
+  emitter each, so a `DialogueDuck` node under `GameRoot` was the whole wiring and **no signal and
+  no setting were added**. `stop_music()` was DELETED — two lines of alias over
+  `play_music(null, fade)`, no caller in three phases, no occasion this template has that the
+  surviving spelling does not serve — and deleting a public method is a MAJOR bump, so the base is
+  **3.0.0**. **The methods were not merely uncalled, they were WRONG, which only wiring them could
+  reveal:** `duck()` tweened to an ABSOLUTE −8 dB, so against a player who had moved `audio/music`
+  to 0.25 (−12 dB) it made the music four decibels LOUDER every time somebody spoke. `target_db()`
+  measures a duck from the player's own level instead, and a muted bus stays muted. Three smaller
+  defects came out of the same wiring — a settings change lifted the duck, two ducks raced, and a
+  positive "duck" would have worked. The duck COUNTS conversations and releases after the last,
+  because a plain pair lifts the music underneath a second one still running with nothing red
+  anywhere. **A bus volume in dB is a number the audio server hands back even under the dummy
+  driver, so essentially all of this row is proved in the suite** in a way T5.7's and T5.9's camera
+  work was not: suite 1,898 -> 1,935, five plants each exit 1, and the windowed capture is a
+  regression check only, because a still frame cannot show a decibel. **Gotcha 66** retires an
+  honest limit T5.7 wrote down: `SceneTree.get_processed_tweens()` and `Tween.custom_step()` tell a
+  fade from a cut inside a synchronous `run()`. **The fourth consumer gate was considered and
+  deliberately not built** — public-method liveness is a package, not a paragraph, and it is
+  candidate K.
 ## Sequencing rules
 
 1. **Breadth of systems, one shallow proof each.** This *replaces* "depth before breadth", which

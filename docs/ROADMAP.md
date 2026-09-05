@@ -743,13 +743,23 @@ T5.5 both declined to pick one silently and T5.6 and T5.7 decline too. If the ow
 question the phase has one small row left; if the owner says the two remaining boxes belong to a
 consuming game rather than to the base, the phase closes today.
 
-**AND A THIRD THING THE OWNER SAW THAT NO EXIT CRITERION ASKS FOR.** On 2026-09-05 the owner
-reported that sideways movement "just slides to the side". It does, and **the code is not the
-reason**: `character_placeholder.png` draws one pose eight times, measured at 0.5% pixel
-difference between the front view and the back and under 4% between any two facings. Both boxes
-above are about a character's BLOCKS; nothing on this list ever asked whether a facing is
-distinguishable, and every capture in T5.2, T5.3 and T5.6 was taken without noticing. It is
-candidate J and it lives entirely in `tools/gen_placeholders.gd`.
+**AND A THIRD THING THE OWNER SAW THAT NO EXIT CRITERION ASKS FOR — FIXED, T5.8, 2026-09-05.** On
+2026-09-05 the owner reported that sideways movement "just slides to the side". It did, and **the
+code was not the reason**: `character_placeholder.png` drew one pose eight times, measured at 0.7%
+pixel difference between the front view and the back, with facings 2 and 3 byte-identical. Both
+boxes above are about a character's BLOCKS; nothing on this list ever asked whether a facing is
+distinguishable, and every capture in T5.2, T5.3 and T5.6 was taken without noticing.
+**T5.8 gave both sheets five poses and a mirror** — front, three-quarter, side, three-quarter
+back, back — took the worst facing pair from 0.0% to 7.5% (default) and 21.9% (alt), added
+`sheet_facings_test.gd` with a floor picked by measurement, and photographed the same character
+walking north, east, south and west through `--facing-shots`, which nothing in this repository had
+ever captured. It touched no file under `src/` except the debug capture tool. That is gotcha 62.
+
+- **T5.8 A placeholder sheet whose facings are distinguishable — DONE, 2026-09-05.** Candidate J,
+  and the only row on this board that came from the owner playing the game rather than from an
+  audit. Suite 1,821 -> 1,829, one plant at exit 1, version 2.3.0. **It does not tick either box
+  above** — it is about the SHEET, not the blocks — but it changes the case for one of them: a
+  turn in place was not worth animating while every facing drew the same picture, and now it is.
 
 
 ## Sequencing rules

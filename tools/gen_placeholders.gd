@@ -8,6 +8,13 @@ extends SceneTree
 ## written blind and verified later, which is how a rendering bug survives to month three.
 ## These files are ugly on purpose so nobody mistakes them for finished work.
 ##
+## AND A PLACEHOLDER THAT CANNOT SHOW A SYSTEM WORKING IS NOT DOING ITS JOB, which is what T5.8
+## found. Both sheets drew ONE POSE PER GAIT and repeated it across every facing, so the facing
+## system - quantised correctly, asserted at both ends, driven through the real input path - was
+## invisible on screen from Phase 1 until an owner played the game and said that sideways
+## movement "just slides to the side". Improving this tool is not a retraction of "art is
+## deferred": the deferred thing is ART, and this is the instrument the systems are read with.
+##
 ## RUN:  godot_console --headless --script tools/gen_placeholders.gd
 ## OUT:  assets/placeholder/*.png  (committed, small, regenerable at any time)
 ##
@@ -39,9 +46,37 @@ const BLOCK_TINT: Array[Color] = [
 	Color(0.30, 0.45, 0.62), Color(0.24, 0.52, 0.44), Color(0.62, 0.34, 0.30),
 ]
 
-# Facing order must match GameEnums.Facing exactly:
-# SOUTH, SOUTH_EAST, EAST, NORTH_EAST, NORTH, NORTH_WEST, WEST, SOUTH_WEST
-const SHOWS_FACE: Array[bool] = [true, true, false, false, false, false, false, true]
+# THE EIGHT FACINGS ARE EIGHT POSES, AND UNTIL T5.8 THEY WERE ONE POSE DRAWN EIGHT TIMES.
+# Measured on the sheet this replaces, over the figure band: facing 4 - the BACK, 180 degrees
+# from the front - differed from facing 0 by 0.7% of the cell, which was the two eyes and
+# nothing else, and facings 2 and 3 were BYTE-IDENTICAL. The code was never wrong. `_aim`
+# quantises the facing and `update_from_velocity` advances the cycle, both asserted since
+# Phase 1; the sheet had nothing different to draw, so every capture this project ever took
+# showed a facing system that appeared to do nothing.
+#
+# FIVE POSES AND A MIRROR. Facing 0 is towards the camera and the facings run clockwise, so
+# facings 1-3 turn towards screen right and 5-7 are their mirror images. Drawing the right half
+# and flipping it is what makes east differ from west by a whole asymmetric figure rather than
+# by which shoulder a flash sits on - and it is why a cell is now drawn into a CELL-sized image
+# and blitted, which turns gotcha 57's cell bleed from an assertion into an impossibility.
+const TURN_FRONT: int = 0
+const TURN_SIDE: int = 2
+const TURN_AWAY: int = 3
+const TURN_BACK: int = 4
+const FACING_TURN: Array[int] = [0, 1, 2, 3, 4, 3, 2, 1]
+const FACING_MIRROR: Array[bool] = [false, false, false, false, false, true, true, true]
+## Per turn - front, three-quarter, side, three-quarter back, back. The torso narrows and steps
+## forward as the figure turns away, the legs close up into a front-to-back stride, the hair
+## wraps further round the head, and the eyes go 2, 2, 1, 0, 0.
+const TORSO_W: Array[int] = [12, 10, 7, 10, 12]
+const TORSO_X: Array[int] = [10, 12, 13, 12, 10]
+const HEAD_X: Array[int] = [16, 17, 18, 17, 16]
+const LEG_GAP: Array[int] = [3, 3, 1, 3, 3]
+const HAIR_WRAP: Array[int] = [0, 4, 8, 12, 15]
+const EYE_COUNT: Array[int] = [2, 2, 1, 0, 0]
+## A bright shoulder flash on the turned facings, kept from the sheet this replaces: it is the
+## one mark that says "not square on" before the pose has been read at all.
+const FLASH: Color = Color(0.92, 0.76, 0.35)
 
 # THE SECOND SHEET, and it exists to be a DIFFERENT SHAPE rather than a second character.
 # T2.1's headline claim is that a game swaps in a sheet with another cell and frame count and
@@ -49,12 +84,16 @@ const SHOWS_FACE: Array[bool] = [true, true, false, false, false, false, false, 
 # 4 facings not 8, a 24x40 cell not 32x48, and 3 frames in each of FIVE animation blocks rather
 # than 4 frames in three. Its layout is assets/placeholder/character_alt_layout.tres.
 #
-# IT HAD TWO BLOCKS UNTIL T5.6, and that gap is the reason this row exists. T5.2 gave the
+# IT HAD TWO BLOCKS UNTIL T5.6, and that gap is the reason that row existed. T5.2 gave the
 # DEFAULT sheet three blocks and left this one at idle and walk, so a sheet with a different
 # cell size AND a full gait set existed nowhere in the repository - while the phase's whole
 # claim is that a future game inherits working characters and changes only assets. A swap that
 # proves only the GRID moves proves half of it. This sheet now names all five gaits
 # SpriteSheetLayout can address: idle, walk, run, sneak, climb.
+#
+# AND ITS FOUR COLUMNS WERE THE SAME FIGURE UNTIL T5.8, exactly as the default sheet's eight
+# were - three of them differed only by the column tally. Its three poses come from the same
+# table: column 0 is the front, columns 1 and 3 are a profile and its mirror, column 2 the back.
 #
 # EVERY CELL IS SELF-LABELLING, which is the point. A character drawn from the wrong cell still
 # looks like a character (gotcha 2, in the one form headless cannot answer), so each cell carries
@@ -74,13 +113,25 @@ const ALT_SNEAK_BLOCK: int = 3
 const ALT_CLIMB_BLOCK: int = 4
 ## A colour per block, so which one is playing reads at a glance before the pips are counted.
 const ALT_BLOCK_TINT: Array[Color] = [
-    Color(0.28, 0.55, 0.42), Color(0.72, 0.38, 0.22), Color(0.78, 0.24, 0.30),
-    Color(0.42, 0.30, 0.62), Color(0.20, 0.58, 0.68),
+	Color(0.28, 0.55, 0.42), Color(0.72, 0.38, 0.22), Color(0.78, 0.24, 0.30),
+	Color(0.42, 0.30, 0.62), Color(0.20, 0.58, 0.68),
 ]
 ## How far the legs travel per block, and how far the body tips into it. A run overreaches and
 ## leans; a sneak barely shifts its weight; a climb does not stride at all.
 const ALT_SWING: Array[int] = [0, 2, 4, 1, 0]
 const ALT_LEAN: Array[int] = [0, 0, -1, 0, 0]
+## Three poses on a four-facing sheet - front, side, back - and the west column is the east
+## column mirrored, on the default sheet's reasoning above.
+const ALT_SIDE: int = 1
+const ALT_BACK: int = 2
+const ALT_FACING_POSE: Array[int] = [0, 1, 2, 1]
+const ALT_FACING_MIRROR: Array[bool] = [false, false, false, true]
+const ALT_TORSO_W: Array[int] = [9, 6, 9]
+const ALT_TORSO_X: Array[int] = [8, 10, 8]
+const ALT_HEAD_X: Array[int] = [12, 13, 12]
+const ALT_LEG_GAP: Array[int] = [2, 1, 2]
+const ALT_HAIR_WRAP: Array[int] = [0, 6, 11]
+const ALT_EYE_COUNT: Array[int] = [2, 1, 0]
 const PIP: Color = Color(1.0, 0.95, 0.35)
 ## The block tally is WHITE against the column and frame tallies' yellow, so a capture read at a
 ## glance cannot mistake one edge's count for another's.
@@ -113,6 +164,11 @@ func _initialize() -> void:
 ## A full gait sheet: 8 facings across, and THREE 4-frame blocks down - idle, walk, run. Rows run
 ## idle.0-3, walk.0-3, run.0-3, which is the order `frame_index` reads and `SpriteSheetLayout`
 ## names through `idle_row`, `walk_row` and `run_row`.
+##
+## EACH CELL IS DRAWN INTO A CELL-SIZED IMAGE AND BLITTED, for two reasons. The mirror is then
+## free - `flip_x` on a cell is the whole west half of the sheet - and `_plot`'s bounds check
+## becomes a check against the CELL rather than against the sheet, which is gotcha 57 answered
+## by construction instead of by an assertion that notices afterwards.
 func _build_character_sheet() -> Image:
 	var rows: int = FRAMES * ANIMATIONS
 	var sheet: Image = Image.create(CELL.x * DIRECTIONS, CELL.y * rows, false, Image.FORMAT_RGBA8)
@@ -120,49 +176,72 @@ func _build_character_sheet() -> Image:
 	for facing: int in DIRECTIONS:
 		for block: int in ANIMATIONS:
 			for frame: int in FRAMES:
+				var cell: Image = _character_cell(FACING_TURN[facing], frame, block)
+				if FACING_MIRROR[facing]:
+					cell.flip_x()
 				var row: int = block * FRAMES + frame
-				_draw_figure(sheet, Vector2i(facing * CELL.x, row * CELL.y), facing, frame, block)
+				sheet.blit_rect(cell, Rect2i(Vector2i.ZERO, CELL),
+					Vector2i(facing * CELL.x, row * CELL.y))
 	return sheet
 
 
-## One 32x48 figure. Deliberately simple: a readable silhouette with an obvious front.
-func _draw_figure(image: Image, origin: Vector2i, facing: int, frame: int, block: int) -> void:
+## One 32x48 figure, drawn facing screen-right for every turn that is not square on. Deliberately
+## simple: a readable silhouette whose front, three-quarter, side and back tell themselves apart
+## at a glance, which is the whole of this sheet's job.
+func _character_cell(turn: int, frame: int, block: int) -> Image:
+	var cell: Image = Image.create(CELL.x, CELL.y, false, Image.FORMAT_RGBA8)
+	cell.fill(Color(0, 0, 0, 0))
 	# A two-frame leg swing, held for two frames each, so the cycle reads at low framerates. The
 	# BLOCK scales how far it travels: a run overreaches, an idle barely shifts its weight.
-	var reach: int = BLOCK_SWING[clampi(block, 0, BLOCK_SWING.size() - 1)]
-	var swing: int = [0, 1, 0, -1][frame] * reach
-	var cloth: Color = BLOCK_TINT[clampi(block, 0, BLOCK_TINT.size() - 1)]
+	var swing: int = [0, 1, 0, -1][frame] * BLOCK_SWING[block]
 	# A run leans into it, which reads at a glance even before the tint is noticed.
 	var lean: int = -1 if block == RUN_BLOCK else 0
+	# A back is a back because it is in its own shadow, not only because it has no face.
+	var body: Color = BLOCK_TINT[block].darkened(0.30) if turn >= TURN_AWAY else BLOCK_TINT[block]
+	var sleeve: Color = body.darkened(0.35)
+	var width: int = TORSO_W[turn]
+	var left: int = TORSO_X[turn] + lean
+	var centre: int = left + width / 2
 
-	# Legs
-	_rect(image, origin + Vector2i(11, 36 + swing), Vector2i(4, 11), BOOT)
-	_rect(image, origin + Vector2i(17, 36 - swing), Vector2i(4, 11), BOOT)
+	_rect(cell, Vector2i(centre - LEG_GAP[turn] - 2, 36 + swing), Vector2i(4, 11), BOOT)
+	_rect(cell, Vector2i(centre + LEG_GAP[turn] - 2, 36 - swing), Vector2i(4, 11), BOOT)
+	_rect(cell, Vector2i(left, 20), Vector2i(width, 17), body)
+	_rect(cell, Vector2i(left, 20), Vector2i(width, 3), sleeve)
+	# A profile shows the NEAR arm only. Drawing the far one anyway is part of what made every
+	# facing on the old sheet the same width and the same silhouette.
+	if turn != TURN_SIDE:
+		_rect(cell, Vector2i(left - 3, 22 - swing), Vector2i(3, 12), sleeve)
+	_rect(cell, Vector2i(left + width, 22 + swing), Vector2i(3, 12), sleeve)
+	_draw_head(cell, turn, HEAD_X[turn] + lean * 2, 13, 7)
+	if turn != TURN_FRONT and turn != TURN_BACK:
+		_rect(cell, Vector2i(left + width - 4, 21), Vector2i(4, 4), FLASH)
+	return cell
 
-	# Torso, slightly narrower at the shoulders than the hips for a bit of shape.
-	_rect(image, origin + Vector2i(10 + lean, 20), Vector2i(12, 17), cloth)
-	_rect(image, origin + Vector2i(10 + lean, 20), Vector2i(12, 3), cloth.darkened(0.35))
 
-	# Arms swing opposite the legs.
-	_rect(image, origin + Vector2i(7 + lean, 22 - swing), Vector2i(3, 12), cloth.darkened(0.35))
-	_rect(image, origin + Vector2i(22 + lean, 22 + swing), Vector2i(3, 12), cloth.darkened(0.35))
-
-	# Head and hair
-	_disc(image, origin + Vector2i(16 + lean * 2, 13), 7, SKIN)
-	_disc(image, origin + Vector2i(16 + lean * 2, 11), 7, HAIR)
-	_rect(image, origin + Vector2i(9 + lean * 2, 6), Vector2i(14, 5), HAIR)
-
-	# Eyes only on the facings that show a face, which is what makes the direction readable.
-	if SHOWS_FACE[facing]:
-		_rect(image, origin + Vector2i(13 + lean * 2, 14), Vector2i(2, 2), EYE)
-		_rect(image, origin + Vector2i(18 + lean * 2, 14), Vector2i(2, 2), EYE)
-
-	# A bright shoulder flash on the character's left, so left and right facings differ.
-	var flash: Color = Color(0.92, 0.76, 0.35)
-	if facing >= 1 and facing <= 3:
-		_rect(image, origin + Vector2i(21, 21), Vector2i(4, 4), flash)
-	elif facing >= 5 and facing <= 7:
-		_rect(image, origin + Vector2i(7, 21), Vector2i(4, 4), flash)
+## Head, hair and face - the half of a facing a player actually reads, and shared by both sheets
+## because both need exactly the same five answers from it.
+##
+## THE HAIR WRAPS RATHER THAN MOVES. It is painted OVER the skin, so a back view is a head of
+## hair with the same round silhouette rather than a box, and `wrap` reaching the full width of
+## the head is what makes it faceless. `big` picks which sheet's tables to read: the default
+## sheet has five turns and the alt sheet three, and they are the same question at two sizes.
+func _draw_head(cell: Image, turn: int, head_x: int, at_y: int, radius: int) -> void:
+	var big: bool = radius > 5
+	var wrap: int = HAIR_WRAP[turn] if big else ALT_HAIR_WRAP[turn]
+	var eyes: int = EYE_COUNT[turn] if big else ALT_EYE_COUNT[turn]
+	var cap: Vector2i = Vector2i(head_x - radius, at_y - radius)
+	_disc(cell, Vector2i(head_x, at_y), radius, SKIN)
+	_rect(cell, cap, Vector2i(radius * 2 + 1, radius - 1), HAIR)
+	_recolour(cell, cap, Vector2i(wrap, radius * 2 + 2), SKIN, HAIR)
+	if eyes == 0:
+		return
+	_rect(cell, Vector2i(head_x + radius - 4, at_y + 1), Vector2i(2, 2), EYE)
+	if eyes == 1:
+		# A nose past the edge of the face. On a front view it would be a smudge; on a profile
+		# it is the mark that says which way the head is pointing.
+		_rect(cell, Vector2i(head_x + radius, at_y + 1), Vector2i(2, 2), SKIN)
+		return
+	_rect(cell, Vector2i(head_x - radius + 2, at_y + 1), Vector2i(2, 2), EYE)
 
 
 ## A grid texture. Reads scale and motion instantly, which is what a placeholder is for.
@@ -211,6 +290,23 @@ func _disc(image: Image, centre: Vector2i, radius: int, color: Color) -> void:
 				_plot(image, centre.x + x, centre.y + y, color)
 
 
+## Repaint one colour as another inside a box, and nothing else. This is how the hair gets round
+## a head without becoming a rectangle: it can only take pixels the skin already owns.
+func _recolour(image: Image, at: Vector2i, size: Vector2i, from: Color, to: Color) -> void:
+	for y: int in size.y:
+		for x: int in size.x:
+			var point: Vector2i = at + Vector2i(x, y)
+			if point.x < 0 or point.y < 0 \
+					or point.x >= image.get_width() or point.y >= image.get_height():
+				continue
+			var found: Color = image.get_pixelv(point)
+			# QUANTISED, so this cannot be is_equal_approx. An RGBA8 image stores 0.68 as 173/255,
+			# which reads back as 0.6784 - near enough to see and far enough to fail an epsilon
+			# compare, which is how the first run of this drew five bald heads.
+			if absf(found.r - from.r) + absf(found.g - from.g) + absf(found.b - from.b) < 0.02:
+				image.set_pixelv(point, to)
+
+
 func _plot(image: Image, x: int, y: int, color: Color) -> void:
 	if x < 0 or y < 0 or x >= image.get_width() or y >= image.get_height():
 		return
@@ -228,6 +324,10 @@ func _save(image: Image, file_name: String) -> void:
 
 ## The second sheet: 4 facings across, and 3 frames down in each of 5 animation blocks, so the
 ## rows run idle.0-2, walk.0-2, run.0-2, sneak.0-2, climb.0-2. See ALT_CELL for why it exists.
+##
+## THE PIPS GO ON AFTER THE MIRROR. A tally that flipped with the figure would put the column
+## count down the right edge for half the sheet, and a reader counting pips off a capture has no
+## way to know which half they are looking at - which would undo the one thing this sheet is for.
 func _build_alt_sheet() -> Image:
 	var rows: int = ALT_FRAMES * ALT_ANIMATIONS
 	var sheet: Image = Image.create(
@@ -236,20 +336,28 @@ func _build_alt_sheet() -> Image:
 	sheet.fill(Color(0, 0, 0, 0))
 	for column: int in ALT_DIRECTIONS:
 		for row: int in rows:
-			var origin: Vector2i = Vector2i(column * ALT_CELL.x, row * ALT_CELL.y)
-			_draw_alt_cell(sheet, origin, column, row / ALT_FRAMES, row % ALT_FRAMES)
+			var cell: Image = _alt_cell(ALT_FACING_POSE[column], row / ALT_FRAMES,
+				row % ALT_FRAMES)
+			if ALT_FACING_MIRROR[column]:
+				cell.flip_x()
+			_draw_alt_pips(cell, column, row / ALT_FRAMES, row % ALT_FRAMES)
+			sheet.blit_rect(cell, Rect2i(Vector2i.ZERO, ALT_CELL),
+				Vector2i(column * ALT_CELL.x, row * ALT_CELL.y))
 	return sheet
 
 
-## One labelled figure. Simple on purpose: a readable body, a tint and a posture per gait, and
-## the three pip tallies that let a capture be read rather than believed.
+## One labelled figure. Simple on purpose: a readable body, a tint and a posture per gait, a pose
+## per facing, and the three pip tallies that let a capture be read rather than believed.
 ##
 ## EACH GAIT DIFFERS IN SILHOUETTE AND NOT ONLY IN TINT. A capture whose only difference is a
 ## colour is still a judgement, and a sneak that merely wore purple would photograph as a walk
 ## in the wrong shirt: the crouch, the run's lean and the climb's raised arms are what make the
 ## five blocks tell themselves apart at a glance, with the pips there to settle it exactly.
-func _draw_alt_cell(image: Image, origin: Vector2i, column: int, block: int, frame: int) -> void:
-	var tint: Color = ALT_BLOCK_TINT[block]
+func _alt_cell(pose: int, block: int, frame: int) -> Image:
+	var cell: Image = Image.create(ALT_CELL.x, ALT_CELL.y, false, Image.FORMAT_RGBA8)
+	cell.fill(Color(0, 0, 0, 0))
+	var body: Color = ALT_BLOCK_TINT[block].darkened(0.30) if pose == ALT_BACK \
+		else ALT_BLOCK_TINT[block]
 	var swing: int = [0, 1, -1][frame] * ALT_SWING[block]
 	# Only the idle block shifts its weight vertically; the moving blocks say it with the legs.
 	var bob: int = [0, 1, 0][frame] if block == 0 else 0
@@ -258,42 +366,39 @@ func _draw_alt_cell(image: Image, origin: Vector2i, column: int, block: int, fra
 	# the character's HEIGHT, which is what makes it unmistakable beside a walk.
 	var crouch: int = 4 if block == ALT_SNEAK_BLOCK else 0
 	var top: int = 14 + bob + crouch
-	var head: int = 9 + bob + crouch
+	var width: int = ALT_TORSO_W[pose]
+	var left: int = ALT_TORSO_X[pose] + lean
+	var centre: int = left + width / 2
 
-	# THE HIP SITS AT 27 AND NOT 28, and one pixel is the whole reason. `_plot` clips to the
-	# IMAGE, not to the cell, so a run's four-pixel overreach at 28 put the trailing boot's last
-	# row at y=40 - one row into the cell BELOW, where it drew a stray foot above the next
-	# block's head. Every rung stayed green and the sheet looked right until the assertion
-	# counted it. That is gotcha 28's lesson from the generator's side: a sheet that bleeds is
-	# still a picture of a person.
-	_rect(image, origin + Vector2i(9, 27 + swing + crouch), Vector2i(3, 9 - crouch), BOOT)
-	_rect(image, origin + Vector2i(13, 27 - swing + crouch), Vector2i(3, 9 - crouch), BOOT)
-	_rect(image, origin + Vector2i(8 + lean, top), Vector2i(9, 15 - crouch), tint)
-	_draw_alt_arms(image, origin, block, frame, tint, top, lean)
-	_disc(image, origin + Vector2i(12 + lean, head), 5, SKIN)
-	_rect(image, origin + Vector2i(7 + lean, head - 6), Vector2i(11, 4), HAIR)
-	# Eyes only on column 0, which is towards the camera in a four-facing sheet.
-	if column == 0:
-		_rect(image, origin + Vector2i(10 + lean, head), Vector2i(2, 2), EYE)
-		_rect(image, origin + Vector2i(14 + lean, head), Vector2i(2, 2), EYE)
-	_draw_alt_pips(image, origin, column, block, frame)
+	_rect(cell, Vector2i(centre - ALT_LEG_GAP[pose] - 1, 27 + swing + crouch),
+		Vector2i(3, 9 - crouch), BOOT)
+	_rect(cell, Vector2i(centre + ALT_LEG_GAP[pose] - 1, 27 - swing + crouch),
+		Vector2i(3, 9 - crouch), BOOT)
+	_rect(cell, Vector2i(left, top), Vector2i(width, 15 - crouch), body)
+	_draw_alt_arms(cell, pose, block, frame, body, top, left)
+	_draw_head(cell, pose, ALT_HEAD_X[pose] + lean, 9 + bob + crouch, 5)
+	return cell
 
 
 ## Arms, and the climb is the one that matters. A ladder is the only gait in this template whose
 ## POSE differs rather than its pace, and it is also the gait T5.3 found undrawable for two
-## rows - so it gets the silhouette that cannot be mistaken for anything else on the sheet.
-func _draw_alt_arms(image: Image, origin: Vector2i, block: int, frame: int, tint: Color,
-		top: int, lean: int) -> void:
-	var sleeve: Color = tint.darkened(0.35)
+## rows - so it gets the silhouette that cannot be mistaken for anything else on the sheet. A
+## profile hides its far arm, exactly as the default sheet's does.
+func _draw_alt_arms(image: Image, pose: int, block: int, frame: int, body: Color,
+		top: int, left: int) -> void:
+	var sleeve: Color = body.darkened(0.35)
+	var width: int = ALT_TORSO_W[pose]
 	if block == ALT_CLIMB_BLOCK:
 		var reach: int = [0, 3, 6][frame]
-		_rect(image, origin + Vector2i(4, top - 6 - reach), Vector2i(3, 10 + reach), sleeve)
-		_rect(image, origin + Vector2i(18, top - reach), Vector2i(3, 4 + reach), sleeve)
+		if pose != ALT_SIDE:
+			_rect(image, Vector2i(left - 4, top - 6 - reach), Vector2i(3, 10 + reach), sleeve)
+		_rect(image, Vector2i(left + width + 1, top - reach), Vector2i(3, 4 + reach), sleeve)
 		return
 	# Everything else swings its arms opposite its legs, by the same reach as the block's stride.
 	var swing: int = [0, 1, -1][frame] * ALT_SWING[block]
-	_rect(image, origin + Vector2i(5 + lean, top - swing), Vector2i(3, 10), sleeve)
-	_rect(image, origin + Vector2i(17 + lean, top + swing), Vector2i(3, 10), sleeve)
+	if pose != ALT_SIDE:
+		_rect(image, Vector2i(left - 3, top - swing), Vector2i(3, 10), sleeve)
+	_rect(image, Vector2i(left + width, top + swing), Vector2i(3, 10), sleeve)
 
 
 ## The three tallies. column + 1 down the left edge, frame + 1 across the foot, block + 1 down
@@ -302,14 +407,14 @@ func _draw_alt_arms(image: Image, origin: Vector2i, block: int, frame: int, tint
 ##
 ## THE FOOT TALLY SITS AT y - 7 AND NOT AT y - 3, because at y - 3 IT COULD NOT BE READ IN THE
 ## GAME. The sprite is anchored by its feet, so its last few rows meet the ground plane and are
-## occluded by it: the first gait capture of this row showed one foot pip where the decoded
-## frame said three. The tally was correct, the sheet was correct, and the photograph was
-## unreadable - which is a capture standard failing rather than a drawing failing, and exactly
-## the kind of thing only a windowed run finds.
-func _draw_alt_pips(image: Image, origin: Vector2i, column: int, block: int, frame: int) -> void:
+## occluded by it: the first gait capture of T5.6 showed one foot pip where the decoded frame
+## said three. The tally was correct, the sheet was correct, and the photograph was unreadable -
+## which is a capture standard failing rather than a drawing failing, and exactly the kind of
+## thing only a windowed run finds.
+func _draw_alt_pips(cell: Image, column: int, block: int, frame: int) -> void:
 	for pip: int in column + 1:
-		_rect(image, origin + Vector2i(1, 2 + pip * 4), Vector2i(2, 2), PIP)
+		_rect(cell, Vector2i(1, 2 + pip * 4), Vector2i(2, 2), PIP)
 	for pip: int in frame + 1:
-		_rect(image, origin + Vector2i(2 + pip * 4, ALT_CELL.y - 7), Vector2i(2, 2), PIP)
+		_rect(cell, Vector2i(2 + pip * 4, ALT_CELL.y - 7), Vector2i(2, 2), PIP)
 	for pip: int in block + 1:
-		_rect(image, origin + Vector2i(ALT_CELL.x - 3, 2 + pip * 4), Vector2i(2, 2), BLOCK_PIP)
+		_rect(cell, Vector2i(ALT_CELL.x - 3, 2 + pip * 4), Vector2i(2, 2), BLOCK_PIP)

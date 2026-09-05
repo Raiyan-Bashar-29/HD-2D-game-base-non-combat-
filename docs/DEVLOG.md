@@ -6327,3 +6327,158 @@ consuming game that authors its own shadow atlas size in `project.godot` now kee
   that, and no row has needed one badly enough yet.
 - **No ADR.** One `RefCounted` in `core`, two settings applied where the thing they change already
   lives. No autoload, no new layer, no new seam concept.
+
+## 2026-09-05 — T5.8 · A placeholder sheet whose facings are distinguishable
+
+**Did.** Rewrote the character half of `tools/gen_placeholders.gd` so that both placeholder sheets
+draw a DIFFERENT FIGURE for every facing, regenerated both PNGs, added
+`tests/unit/sheet_facings_test.gd` (8 assertions) and a `--facing-shots=<dir>` pass on the
+existing capture tool, and photographed the same character walking north, east, south and west —
+which nothing in this repository had ever done. Candidate J, and the only row on the board that
+came from the owner playing the game rather than from an audit. **No file under `src/` changed
+except the debug capture tool**, and no layout, no `.import` and no cell dimension moved.
+
+**Why. The owner said sideways movement "just slides to the side", and it did.**
+`character_placeholder.png` drew **one pose eight times**. Measured as the fraction of differing
+pixels in a cell, walk block, over the figure band (four columns ignored down each edge):
+
+| pair | before | after |
+|---|---|---|
+| default sheet, least alike facings | **0.0000** — facings 2 and 3 byte-identical | 0.0747 |
+| default sheet, front against back | 0.0070 — the two eyes and nothing else | 0.3213 |
+| default sheet, most alike facings ever got | 0.0347 | 0.4627 |
+| alt sheet, least alike facings | **0.0000** — three columns differed only by the pip tally | 0.2188 |
+| alt sheet, most alike facings ever got | 0.0125 | 0.4813 |
+
+**THE CODE WAS NEVER WRONG, WHICH IS THE WHOLE POINT.** `_aim` quantises the direction into a
+facing and a column, `facing_test.gd` asserts it, `art_contract_test.gd` asserts the layout's
+sector maths, `update_from_velocity` advances the cycle and `gaits_test.gd` asserts that. Every
+one of those was green and correct. The SHEET had nothing different to draw, so the facing system
+was invisible in every capture ever taken — T5.2's, T5.3's and T5.6's included — and nobody found
+out until somebody played it. **That is gotcha 62**: gotcha 54 with the unwired middle made of
+pixels rather than of code, and harder to see, because no rung reads a placeholder's pixels and a
+sheet that looks like people passes every glance a capture gets.
+
+**IT IS NOT A RETRACTION OF "ART IS DEFERRED", and `ART_CONTRACT.md` was checked before starting
+rather than argued with afterwards.** That document's own framing is that the placeholders exist
+so every visual system can be verified rather than written blind, and it ends the placeholder
+section with *"Regenerate both sheets with `tools/gen_placeholders.gd`"*. A placeholder that
+cannot show a system working is not doing the job the document gives it. Nothing about the art
+CONTRACT changed: same facings, same frames, same blocks, same cells, same two `.tres` files.
+
+**Five poses and a mirror.** Front, three-quarter, side, three-quarter back, back — the torso
+narrows and steps forward as the figure turns, the legs close into a front-to-back stride, the
+hair wraps further round the head, the eyes go 2, 2, 1, 0, 0, a profile grows a nose past the edge
+of the face and hides its far arm, and a back is drawn in its own shadow. Facings 5-7 are 1-3
+**flipped**, which is what makes east differ from west by a whole asymmetric figure rather than by
+which shoulder a flash sits on. The four-facing sheet gets three of the same five poses.
+
+**AND A CELL IS NOW DRAWN INTO A CELL-SIZED IMAGE AND BLITTED**, which the mirror needed and which
+pays for itself twice: `_plot`'s bounds check becomes a check against the CELL, so **gotcha 57 is
+now structurally impossible rather than asserted**. `character_swap_test`'s bleed assertion is
+kept — it guards anything that goes back to drawing straight into the sheet — but it can no longer
+fail from this generator.
+
+**Connects.** `tools/gen_placeholders.gd` -> both PNGs -> `SpriteSheetLayout` -> `CharacterVisual`
+-> the column `_aim` picked, and nothing between them is code this row touched. `_draw_head` is
+shared by both sheets because both need the same five answers from it at two sizes.
+`--facing-shots` went onto `dev_gait_shots.gd` rather than into a fifth debug file: it is the same
+shutter problem with the other axis substituted, and everything it needs — `SETTLE_FRAMES`,
+`HOLD_FRAMES`, the post-draw await of gotcha 59, the logical-size crop of gotcha 60 — was already
+there and would have been copied verbatim. What a split would have bought is a more accurate file
+NAME, which is not worth four duplicated gotchas. `_shoot`, `_wait_for_player` and `_hold` are the
+extraction that made the second pass six lines long.
+
+**Verified.** Every line is a measured exit code.
+
+```
+--headless --import                                        exit 0 (run first; gotcha 53)
+--headless --quit-after 30                                 Session ended after 0.7s — 0 warnings, 0 errors
+--headless res://tests/test_runner.tscn --quit-after 400   === 1829 passed, 0 failed, 0 skipped ===, exit 0
+tools/check_budgets.gd    exit 0   151 files, 13595 code lines, 0 violations
+tools/check_content.gd    exit 0
+tools/check_boundary.gd   exit 0   214 rows, 51 content namespace
+tools/check_strings.gd    exit 0
+tools/check_layers.gd     exit 0   90 symbols over 100 scripts
+tools/check_signals.gd    exit 0   91 emit references over 40 signals
+```
+
+Suite 1,821 -> 1,829. Budgets: `gen_placeholders.gd` 171 -> **230 of 250**,
+`dev_gait_shots.gd` 75 -> 109, `sheet_facings_test.gd` 82 (new).
+
+**THE GATE PROVED BY PLANTING THE DEFECT, AND BOTH EXIT CODES ARE HERE.** The plant is the real
+reversion rather than a broken assertion: `FACING_TURN` back to all zeros and `FACING_MIRROR` back
+to all false in both tables, which is exactly the sheet this row replaced.
+
+| Run | Result |
+|---|---|
+| planted — one pose per facing, both sheets regenerated and re-imported | `the default sheet draws its least alike pair of facings 0.0% apart, over the 5.0% floor — expected true, got false`, plus five more. **`=== 1823 passed, 6 failed ===`, exit 1** |
+| plant removed, both sheets regenerated and re-imported | **`=== 1829 passed, 0 failed ===`, exit 0** |
+
+**THE FLOOR WAS PICKED BY MEASUREMENT, NOT BY TASTE**, on T5.5's precedent for the prompt outline
+width. 0.05 is above the largest difference EITHER old sheet could reach between any two facings
+(0.0347) and below the smallest either new one reaches (0.0747), so it separates the two states
+with margin on both sides rather than sitting wherever a guess landed.
+
+**WINDOWED CAPTURE, WHICH FOR THIS ROW IS THE PROOF** (gotcha 2), and it is the capture T5.6
+recorded as its own gap: every picture this project had ever taken was of column 0 or column 1.
+`--resolution 960x540 --quit-after 600 -- --new-game --time=13:00 --freeze-time
+--facing-shots=user://shots/facings`, `0 warnings, 0 errors`:
+
+| key held | decoded | the picture |
+|---|---|---|
+| north | `frame=44` -> block 1, **column 4**, cell 1 | a head of hair, no face, cloth in its own shadow |
+| east | `frame=58` -> block 1, **column 2**, cell 3 | right profile: one eye, a nose past the face, one arm, one leg column |
+| south | `frame=48` -> block 1, **column 0**, cell 2 | square on: two eyes, both arms, both legs |
+| west | `frame=38` -> block 1, **column 6**, cell 0 | the same profile mirrored |
+
+Read together, which is the standard: the number says which cell, the picture says it reached a
+screen and that the cell is a different pose. **On the sheet this replaces the four pictures would
+have been indistinguishable and all four numbers would have been just as right.** The dusk
+regression capture (`--time=18:40 --freeze-time`) is unchanged apart from the figures: courtyard,
+both characters lit and depth-sorted and casting shadows, HUD reading `Day 1 | 18:40 | Dusk`,
+prompt on screen, `0 warnings, 0 errors`.
+
+**Gotcha 63 came out of writing this, and both halves are the same lesson.** A colour written into
+an `Image` is not the colour that comes back. On the WRITE side, `FORMAT_RGBA8` quantises `0.68`
+to `173/255 = 0.6784`, so the pass that repaints "every SKIN pixel" as hair matched nothing under
+`is_equal_approx` and the first regeneration drew five bald heads. On the READ side, **the
+imported texture is not the PNG**: `process/fix_alpha_border=true` rewrites the RGB of TRANSPARENT
+pixels across the whole image, so the alt sheet's pip tallies bleed into the transparent margin of
+the cell next door and the mirror assertion failed over pixels `ALPHA_CUT_DISCARD` throws away
+before drawing. The fix is not a bigger margin: it is to say which pixels are VISIBLE before
+saying whether they agree.
+
+**Unblocks.** **A turn in place — candidate C, the owner's seam decision — is now worth animating.**
+It was not before: turning a character that draws the same picture in all eight directions changes
+nothing on screen, so the seam question would have bought a feature nobody could see. That is not
+a vote for building it; the question of WHO may ask for a turn is still the owner's, and three
+rows have now declined to answer it silently. It is a note that the argument against it just went
+away. **Phase T5's two remaining boxes are untouched by this row** — it is about the SHEET, not
+the blocks — and the phase is still closable at the owner's word.
+
+**Gaps, stated rather than left to be rediscovered.**
+- **`gen_placeholders.gd` is at 230 of its 250 and is the next file in the tree to split.** The
+  seam is already visible: the two character sheets are one concern and the four flat textures
+  (grid, noise, marker) are another, and the second has not changed since Phase 0. This row did
+  not split it, because a split plus a rewrite in one diff makes the rewrite unreviewable — but
+  the next row that adds anything to a character sheet has to.
+- **The DEFAULT sheet still carries no pip tallies**, so a facing capture on it is read by POSE
+  and not counted. That is deliberate — the tallies exist on the alt sheet because that sheet is
+  the swap demonstration, and putting them on the sheet the demo ships would put them in every
+  screenshot this project takes. It does mean the four captures above are judged in the one way
+  gotcha 28 warns about, with the decoded column beside them as the check. A sheet whose facings
+  are genuinely distinct makes that judgement safe in a way it was not last week, which is the
+  argument, but it is an argument and not a tally.
+- **Nothing asserts that the pose matches the DIRECTION.** The suite now requires the eight cells
+  to be eight different pictures and requires the mirror halves to be real mirrors; it does not
+  and cannot require that column 2 is a profile facing screen-RIGHT rather than left. That is a
+  judgement about art, it belongs to a person looking at the four captures above, and inventing a
+  pixel test for "this looks like it faces right" would be a rule with no owner.
+- **The alt sheet's back column now wears a darkened tint**, which is a second thing a reader
+  could confuse with the block tint. The block tally settles it exactly and
+  `character_swap_test.gd` samples column 0, so no assertion moved — but a capture of column 2
+  read at a glance is one shade off its block colour, and that is worth knowing before it costs
+  somebody an hour.
+- **Captures are not committed**, on this project's standing practice. The record is the decoded
+  numbers above plus a permanent flag that re-takes the whole run in one command.

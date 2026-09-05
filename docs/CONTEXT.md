@@ -3,7 +3,30 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-05 · **T5.7 (`reduce_motion` finished, and the shadow atlas) complete —
+**Last updated:** 2026-09-05 · **T5.8 (a placeholder sheet whose facings are distinguishable)
+complete — BOTH SHEETS NOW DRAW A DIFFERENT FIGURE FOR EVERY FACING, and the row exists because
+the owner played the game and said sideways movement "just slides to the side". It did.**
+`character_placeholder.png` drew ONE POSE EIGHT TIMES: measured over the figure band, facing 4 —
+the back, 180 degrees from the front — differed from facing 0 by **0.7%** of the cell, which was
+the two eyes and nothing else, and **facings 2 and 3 were byte-identical**. The alt sheet was
+worse: three of its four columns differed only by their column tally. **THE CODE WAS NEVER
+WRONG** — `_aim` quantises the facing and `column_for_angle` derives the sector from the layout,
+both asserted since Phase 1 — so this is gotcha 54's shape with the unwired middle made of
+PIXELS, and it is **gotcha 62**. No file under `src/` changed except the debug capture tool.
+Five poses and a mirror: front, three-quarter, side, three-quarter back, back, with facings 5-7
+drawn as 1-3 flipped, which is what makes east differ from west by a whole asymmetric figure.
+Worst facing pair now 7.5% (default) and 21.9% (alt), against 0.0% before.
+**AND IT IS PHOTOGRAPHED — the same character walking north, east, south and west, which nothing
+in this repository had ever captured.** `--facing-shots=<dir>` on `dev_gait_shots.gd`, columns
+4, 2, 0 and 6 decoded out of `sprite.frame` and agreeing with four pictures that read as back,
+right profile, front and left profile. T5.6 had recorded that absence as its own gap.
+Suite 1,821 → 1,829; one plant (the old single-pose draw regenerated) at **exit 1, 6 failed**.
+Version 2.3.0, untagged. `gen_placeholders.gd` is at 230 of its 250 and is the next file to
+split. **Gotcha 63 came out of writing the assertion**: a colour written into an RGBA8 image
+does not read back equal to itself, and an IMPORTED texture is not the PNG, because
+`process/fix_alpha_border` rewrites the RGB under transparent pixels.
+
+**T5.7 (`reduce_motion` finished, and the shadow atlas) is the row before it —
 `accessibility/reduce_motion` NOW REACHES ALL THREE MOTIONS THIS TEMPLATE DRAWS, and the shadow
 atlas fix turned out to be a live defect in this repository rather than a hypothetical fork's.**
 `ScreenFade` cuts instead of dissolving and `HD2DCameraRig.follow_lag` goes to zero, both on
@@ -1185,7 +1208,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Sixty-one gotchas that each cost an hour
+## Sixty-three gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -1879,6 +1902,36 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     setting. Read the authored value back before the first write, the way
     `HD2DCameraRig._authored_dof` does; a preference is a VETO over what the author chose, and a
     veto has to remember what it is vetoing.
+
+62. **AN ASSET CAN BE THE UNWIRED MIDDLE, AND A SYSTEM CAN BE CORRECT, ASSERTED AT BOTH ENDS AND
+    INVISIBLE FOR FIVE PHASES.** The facing system quantises a direction into a `GameEnums.Facing`
+    (`facing_test`) and a sheet COLUMN (`art_contract_test`), and every one of those assertions
+    was green and right. `character_placeholder.png` drew ONE POSE EIGHT TIMES: measured over the
+    figure band, facing 4 — the back, 180 degrees from the front — differed from facing 0 by
+    **0.7%** of a 1,536-pixel cell, and facings 2 and 3 were **byte-identical**. The alt sheet was
+    worse: three of its four columns differed only by the column tally. **The first observer was
+    an owner who played the game** and said sideways movement "just slides to the side". This is
+    gotcha 54 with the middle made of pixels instead of code, and it is harder to see for one
+    reason: no rung reads a placeholder's pixels, and a sheet that looks like a person passes
+    every glance a capture gets. The transferable form: for any seam whose two ends are DATA and
+    CODE, ask what the data has to CONTAIN for the code's correctness to be observable — and
+    assert that, because "the column index is right" and "the column looks different" are two
+    claims and only one of them was being made. The floor was picked by measurement rather than
+    taste (0.05, against the old sheets' best pair at 0.035 and the new sheets' worst at 0.075),
+    which is T5.5's rule for a threshold applied to an image.
+63. **A COLOUR YOU WROTE INTO AN IMAGE IS NOT THE COLOUR THAT COMES BACK, TWICE OVER, AND BOTH
+    HALVES COST T5.8 A RUN.** On the WRITE side, `Image.FORMAT_RGBA8` quantises: `0.68` is stored
+    as `173/255` and reads back as `0.6784`, which is near enough to look identical and far enough
+    to fail `Color.is_equal_approx` — so a generator pass that repainted "every SKIN pixel" as hair
+    matched nothing and drew five bald heads. Compare a read-back colour with an explicit
+    tolerance, never with an epsilon. On the READ side, **the imported texture is not the PNG**:
+    `process/fix_alpha_border=true` is on for every texture in this project and rewrites the RGB
+    of TRANSPARENT pixels so filtering cannot pull a halo out of them. It works on the whole image
+    rather than per cell, so a pip tally bleeds its colour into the transparent margin of the
+    cell next door, and a mirror assertion comparing all four channels reported two cells as
+    unmirrored **over pixels the sprite discards before it draws them** (`ALPHA_CUT_DISCARD`). Two
+    transparent pixels are the same pixel. Any assertion that reads an imported sheet has to say
+    which pixels are VISIBLE before it says whether they agree.
 
 ## How work is sliced
 

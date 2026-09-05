@@ -226,6 +226,43 @@ re-take them with the command above rather than looking for a PNG. Run it once o
 sheet too: there, sneak and climb both draw block 1, because that sheet leaves their rows at
 `-1`.
 
+### Every facing is a different figure, and until T5.8 none of them was
+
+Both sheets drew **one pose per gait, repeated across every column**. Measured over the figure
+band, `character_placeholder.png`'s back view differed from its front by **0.7%** of a cell — the
+two eyes and nothing else — and facings 2 and 3 were byte-identical; three of the alt sheet's four
+columns differed only by their column tally. The facing CODE was correct the whole time, so a
+system asserted at both ends was invisible on screen for five phases and the first observer was an
+owner playing the game (gotcha 62).
+
+**What a facing has to show, and it is the low bar rather than a style.** Front, three-quarter,
+side and back should tell themselves apart at a glance. The placeholders do it with five poses:
+the torso narrows and steps forward as the figure turns, the legs close into a front-to-back
+stride, the hair wraps further round the head, the eyes go 2, 2, 1, 0, 0, a profile grows a nose
+past the edge of the face and hides its far arm, and a back is drawn in its own shadow. **The west
+half of each sheet is the east half mirrored** — that is what makes east differ from west by a
+whole asymmetric figure rather than by which shoulder a mark sits on.
+
+`tests/unit/sheet_facings_test.gd` holds the line: **every facing of a shipped sheet must differ
+from every other by more than 5% of the cell**, same block and same frame, measured over the
+figure with four columns ignored down each edge (the alt sheet's pip tallies live there and are
+deliberately not mirrored). The floor was picked by measurement — the old sheets' best pair was
+3.5% and the new sheets' worst is 7.5%. If you add your own sheets to that case, note that two
+transparent pixels count as the same pixel: `process/fix_alpha_border` rewrites the RGB under
+transparency at import, so an imported sheet is not the PNG (gotcha 63).
+
+And photograph it, because the assertion only says the cells are DIFFERENT and not that the pose
+matches the direction — no pixel test can say that:
+
+```
+godot_console --resolution 960x540 --quit-after 600 -- --new-game --time=13:00 \
+    --freeze-time --facing-shots=<dir>
+```
+
+That walks the character north, east, south and west and writes a full frame, an ×5 crop and the
+decoded column for each. On the base at T5.8 those were columns 4, 2, 0 and 6, reading as a back
+with no face, a right profile, a front and the same profile mirrored.
+
 Regenerate both sheets with `tools/gen_placeholders.gd`.
 
 ---

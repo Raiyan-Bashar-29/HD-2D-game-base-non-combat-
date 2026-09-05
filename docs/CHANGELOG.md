@@ -20,6 +20,45 @@ the exact rot this discipline exists to prevent.
 
 ---
 
+## 2.3.0
+
+*2026-09-05 — both placeholder character sheets now draw a different figure for every facing.
+They drew one pose repeated across every column, so the base's facing system was invisible on
+screen for five phases while being correct and asserted the whole time.*
+
+**A consuming game does:** almost certainly nothing. One grep decides it:
+
+**`grep -rn 'character_placeholder\|character_alt' your_game/`.** If it returns nothing, stop
+here — this version cannot reach you. If it returns something, you are drawing characters from
+the base's placeholder art, and **those two PNGs now look different**. Nothing about their SHAPE
+changed — `character_placeholder.png` is still 256x576 with 8 facings × 4 frames × 3 blocks and
+`character_alt.png` is still 96x600 with 4 × 3 × 5, and **neither `.tres` layout changed at all**
+— so nothing you wrote has to change and no code path behaves differently. What changed is the
+pixels inside the cells: a facing now reads as front, three-quarter, side or back, with a profile
+showing one eye and a nose and a back view showing no face. That is a visible change to your
+characters and you should see it before your players do.
+
+**Why this was worth a version.** Measured over the figure band, the old sheet's back view
+differed from its front by **0.7%** of a cell — the two eyes and nothing else — and facings 2 and
+3 were byte-identical. Three of the four-facing sheet's columns differed only by their column
+tally. So a character walking east and a character walking west drew the same picture, and an
+owner playing the game reported that sideways movement "just slides to the side". Nothing in
+`src/` was wrong and nothing in `src/` changed.
+
+**Added, and safe to ignore:** `--facing-shots=<dir>` on the existing
+`src/systems/debug/dev_gait_shots.gd`, which walks a character north, east, south and west and
+photographs each with the sheet column decoded out of `sprite.frame`. Same debug gating as the
+rest. `tests/unit/sheet_facings_test.gd` is new: it requires every facing of a shipped sheet to
+differ from every other by more than 5% of the cell, and asserts only the base's own placeholder
+art, so it survives the demo strip. **If you ship your own sheets and add them to that case, note
+that it measures the FIGURE and ignores four columns down each edge** — the alt sheet's pip
+tallies live there and are deliberately not mirrored.
+
+Nothing else in this version can reach a game. No file under `src/` changed except the debug
+capture tool; no signal, enum value, setting, autoload, save version or layer moved.
+
+---
+
 ## 2.2.0
 
 *2026-09-05 — `accessibility/reduce_motion` reaches all three motions the base draws instead of

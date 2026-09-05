@@ -3974,7 +3974,68 @@ and no reaching at the private tween.
   placeholder SHEET rather than the camera or the animation code — candidate J, measured in this
   row and left for its own.
 
-## Candidate rows — ranked. A, B, D AND I ARE DONE (T5.4, T5.5, T5.6, T5.7); J came from the owner
+## T5.8 · A placeholder sheet whose facings are distinguishable — **DONE**
+
+Candidate J, and the only row on this board that came from the owner **playing the game** rather
+than from an audit. On 2026-09-05 they said sideways movement "just slides to the side". It did.
+
+### What was wrong, and it was not the code
+
+`character_placeholder.png` drew **one pose eight times**. Measured as the fraction of differing
+pixels in a cell, walk block, over the figure band:
+
+| pair | before | after |
+|---|---|---|
+| default sheet, least alike facings | **0.0000** — facings 2 and 3 byte-identical | 0.0747 |
+| default sheet, front against back | 0.0070 — the two eyes and nothing else | 0.3213 |
+| alt sheet, least alike facings | **0.0000** — three columns differed only by the pip tally | 0.2188 |
+
+`_aim` quantises the direction (`facing_test`), `column_for_angle` derives the sector from the
+layout (`art_contract_test`), `update_from_velocity` advances the cycle (`gaits_test`). All green,
+all correct. **The sheet had nothing different to draw**, so the facing system was invisible in
+every capture this project ever took — T5.2's, T5.3's and T5.6's — and the first observer was
+whoever played it. That is **gotcha 62**: gotcha 54 with the unwired middle made of pixels.
+
+### What it did
+
+**Five poses and a mirror**, in `tools/gen_placeholders.gd` and nowhere else: front,
+three-quarter, side, three-quarter back, back. The torso narrows and steps forward as the figure
+turns, the legs close into a front-to-back stride, the hair wraps further round the head, the eyes
+go 2, 2, 1, 0, 0, a profile grows a nose and hides its far arm, and a back is drawn in its own
+shadow. Facings 5-7 are 1-3 **flipped**. The four-facing sheet gets three of the same poses.
+
+A cell is now drawn into a CELL-SIZED image and blitted, which the mirror needed — and which makes
+**gotcha 57 structurally impossible** rather than asserted, because `_plot` now clips to the cell.
+
+**`tests/unit/sheet_facings_test.gd`** (8 assertions), and the floor was picked by measurement on
+T5.5's precedent: 0.05 is above the largest gap either OLD sheet could reach (0.0347) and below
+the smallest either new one reaches (0.0747). Four claims per sheet, each failing differently —
+the least alike pair clears the floor, front against back clears it under its own name, the
+mirrored half is a real mirror, and the cycle still advances (which refuses the cheap way to pass
+the first three).
+
+**Proved by planting the defect:** `FACING_TURN` back to all zeros, both sheets regenerated and
+re-imported → `=== 1823 passed, 6 failed ===`, **exit 1**. Removed → `=== 1829 passed, 0 failed
+===`, **exit 0**.
+
+**And photographed, which is what the row is for.** `--facing-shots=<dir>` on `dev_gait_shots.gd`
+walks the character north, east, south and west: columns **4, 2, 0 and 6** decoded out of
+`sprite.frame`, agreeing with four pictures that read as a back with no face, a right profile, a
+front, and the same profile mirrored. **T5.6 recorded that absence as its own gap** — every
+capture ever taken had been column 0 or column 1.
+
+### What it deliberately did not do
+
+- **It did not split `gen_placeholders.gd`**, which is now at 230 of its 250. A split plus a
+  rewrite in one diff makes the rewrite unreviewable. The seam is named in the DEVLOG and the next
+  row that touches a character sheet has to take it.
+- **It did not put pip tallies on the DEFAULT sheet.** They belong to the swap demonstration; on
+  the sheet the demo ships they would appear in every screenshot this project takes.
+- **It did not touch `face_direction()`**, which is candidate C and the owner's seam decision —
+  though it removes the argument against building one.
+- **It changed no art CONTRACT.** Same facings, frames, blocks and cells; both `.tres` untouched.
+
+## Candidate rows — ranked. A, B, D, I AND J ARE DONE (T5.4-T5.8). C, E, F, G and H remain
 
 These are the audit's findings that are packages rather than one-line corrections. Ranked by value
 to a consuming game per unit of work. Each is sized to one chat.
@@ -3988,4 +4049,4 @@ to a consuming game per unit of work. Each is sized to one chat.
 | G | **Autosave** | The largest of the three features T5.5 removed a setting for rather than fake. It needs a slot POLICY before it needs a trigger: `SaveSystem` has no notion of the slot a run belongs to, and `save_to_slot(slot)` is the only entry point. `Events.quit_requested` has exactly one performer (`GameRoot`) and `events.gd:199` already says an autosave policy will only ever need adding in one place, so the trigger is easy and the choice of slot is the design question. Bring the `gameplay/autosave` key back with it |
 | H | **Screen shake** | The second of the two features T5.5 removed a setting for. No `shake` identifier exists anywhere under `src/`, so this is a feature and not a wiring — most naturally on `HD2DCameraRig`, which already owns placement and smoothing. `gameplay/camera_shake` returns as its scale. **`accessibility/reduce_motion` must reach it in the same row**, and T5.7 left the pattern to copy: `_authored_lag` beside `_authored_dof`, and the key named as a `const` on the consumer |
 | ~~I~~ | ~~**`reduce_motion` finished**~~ | **DONE — T5.7, 2026-09-05.** Both halves landed. The setting reaches all three motions, and the shadow atlas turned out to be a live defect rather than a portability worry: the `2048` const halved this repository's own atlas on every windowed boot, because the engine's default is 4096. Gotcha 61 |
-| J | **A placeholder sheet whose facings are distinguishable** | **NEW, from the owner looking at the game on 2026-09-05** — sideways movement "just slides to the side", and it does. `character_placeholder.png` draws ONE POSE EIGHT TIMES: measured, facing 4 (the back view) differs from facing 0 by **0.5%** of a 1,536-pixel cell, and no facing differs from another by more than 4%; the walk cycle itself is 1.6–5.8%. **The code is correct** — `_aim` quantises the facing and `update_from_velocity` advances the cycle, both asserted — so this is the gotcha-54 shape one level up: the facing machinery is asserted at both ends and has been invisible in every capture ever taken, T5.2's, T5.3's and T5.6's included. Lives entirely in `tools/gen_placeholders.gd` and the two placeholder PNGs; touches no `src/` file and needs no art-contract change, so **it is not a violation of "art is deferred"** — the placeholders are generated by a committed tool and this improves the tool. The proof is a capture of the same character walking north, east, south and west, which nothing has ever taken |
+| ~~J~~ | ~~**A placeholder sheet whose facings are distinguishable**~~ | **DONE — T5.8, 2026-09-05.** Both sheets now draw five poses and a mirror instead of one pose repeated. The worst facing pair went from 0.0000 — facings 2 and 3 were byte-identical — to 0.0747 on the default sheet and 0.2188 on the alt one, and the same character was photographed walking north, east, south and west, which nothing here had ever captured. The code was correct throughout, which is **gotcha 62**: gotcha 54 with the unwired middle made of pixels. No file under `src/` changed except the debug capture tool |

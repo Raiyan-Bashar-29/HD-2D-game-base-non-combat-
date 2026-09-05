@@ -822,6 +822,22 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   fade from a cut inside a synchronous `run()`. **The fourth consumer gate was considered and
   deliberately not built** — public-method liveness is a package, not a paragraph, and it is
   candidate K.
+- **T5.12 Two capture gaps closed, and the third argued away — DONE, 2026-09-06.** Three
+  consecutive rows closed with the same admission and each named a probe as the fix, which is one
+  gap rather than three. **Two were built and the third was argued away**: a still frame cannot
+  show a decibel, so T5.11's probe would have produced only a log line, and gotcha 66 had already
+  retired the limit that made it look necessary. `src/systems/debug/dev_scenario_shots.gd` is the
+  fifth debug file — `--gate-shot=<dir>` throws the demo's lever, opens its gate through the
+  interact key and photographs the shake **the gate** asked for; `--autosave-write` and
+  `--autosave-continue=<dir>` write an autosave from a real `area_entered` in one process and read
+  it back through the real Continue row in another. **The probe found two defects in itself
+  first**, both silent and both green: standing beside a thing does not SELECT it, and `rest`
+  sampled twenty frames after a teleport is the follow-lag tail rather than rest. **0.154743 m
+  against a `camera_shake=0` control at 0.000050 m**, reproducible to the micrometre because the
+  shake is a sine. Suite 1,935 -> 1,947; two plants, each a real reversion, each exit 1 with its
+  control at exit 0. **3.1.0 and not a PATCH on one line**: nothing under `src/` outside the debug
+  directory changed, but `game_root.tscn` gained a node a consuming game has to merge.
+
 ## Sequencing rules
 
 1. **Breadth of systems, one shallow proof each.** This *replaces* "depth before breadth", which

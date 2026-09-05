@@ -7045,3 +7045,231 @@ after, which is the assertion gotcha 54 keeps asking for.
   nothing enforces that pairing.
 - **No ADR.** One node, two connections, one decision, and a method on the file that already owns
   bus decibels. No autoload, no new signal, no new layer, no new seam concept.
+
+## 2026-09-06 — T5.12 · Two capture gaps closed, and the third argued away
+
+**Did.** Built `src/systems/debug/dev_scenario_shots.gd`, the fifth debug file, and wired its node
+into `game_root.tscn`. Three flags: `--gate-shot=<dir>` opens the demo's north gate by pressing the
+interact key and photographs the shake it asks for; `--autosave-write` and
+`--autosave-continue=<dir>` are a two-process pair that writes an autosave from a real arrival and
+reads it back by pressing the real Continue row. **T5.11's probe was NOT built, and the reason is
+below rather than in a gaps list.** 12 new assertions across two existing cases, two plants, one
+new gotcha. No new signal, no new setting, no autoload, no ADR, no CSV row. Version **3.1.0** —
+MINOR, argued below.
+
+**THREE ROWS DEFERRED THE SAME WORK, WHICH IS THE SIGNAL, AND THE FIRST JOB WAS TO ASK WHETHER ALL
+THREE DESERVED IT.** They did not.
+
+| Gap | Verdict | Why |
+|---|---|---|
+| T5.9 — the gate's own shake | **built** | `--shake=` emits the signal a gate emits, so it photographs the RIG. Nothing had ever shown a gate doing it, and `Gate.perform()`'s emit was proved by reading four lines |
+| T5.10 — the autosave read back | **built** | The row's own words: the only claim resting on "it is the same code path". An in-process reload cannot tell a value read off disk from one never cleared |
+| T5.11 — the music duck logged in dB | **NOT built** | It buys nothing. Gotcha 66 already retired the limit that made it look necessary, the duck is measured end to end in the suite through a real `DialogueRunner`, and — the point the gap itself makes — **a still frame cannot show a decibel**, so its whole output would be a log line. This package's own standard is that a probe producing only a log line has not closed a capture gap |
+
+The strongest remaining argument for the third probe was a pause hazard: a `Tween` on a node that
+pauses does not advance, and `custom_step()` bypasses pausing entirely, so the suite would be blind
+to it — gotcha 54's shape exactly. **It was checked and it does not exist.** `AudioDirector` is
+`PROCESS_MODE_ALWAYS` with a comment naming that hazard by name, and `DialogueScreen` sets
+`pauses_world = false`, so the tree is not paused during a conversation in the first place. Two
+independent reasons, either sufficient. **Two well-built probes beat three, and this is the second
+row running to conclude that a listed item was listed rather than justified.**
+
+**THE GATE SHAKE, AND THE PROBE FOUND TWO DEFECTS IN ITSELF BEFORE IT FOUND ANYTHING ELSE.** Both
+were silent, both produced a green run, and both are the reason a probe is written and then RUN.
+
+**Defect 1: standing beside a thing does not select it.** The first run teleported the player to
+the courtyard's gate lever and pressed interact, and the log says the sensor was holding
+`KeeperBarter` — the garden-keeper's barter action, two metres away, inside the sensor's 2.4 m
+reach. A real object was really interacted with and really refused (`LOW_STANDING`), so nothing was
+red. The lever was never thrown, the gate refused with `LOCKED`, and the picture was of a shut
+gate. **The fix is what a player does about the same problem**: press the cycle key until the
+sensor is holding the thing the probe named, capped at six tries, which is `--cycle=`'s reason for
+existing on `dev_stage.gd`.
+
+**Defect 2: `rest` sampled twenty frames after a teleport is not rest.** `follow_lag` is
+exponential, so the rig approaches the player and never arrives, and the probe's first "shake" was
+**0.428401 m rising monotonically to 0.428789 and stopping** — the smoothing tail of a gate that
+had not opened, read as a shake. A decaying oscillation and an asymptotic approach are both
+"the camera moved", and only the SHAPE of the trace tells them apart. `_camera_still()` now waits
+for per-frame movement under 10 µm before the control shot is taken; it reports **53 frames**, and
+53 frames is itself the measurement of how wrong twenty was.
+
+**With both fixed, the trace is unmistakable:**
+
+```
+  selected 'GateLever' after 2 cycles, refusal 0
+  [flags   ] area/courtyard/gate_unlocked = true
+  selected 'NorthGate' after 0 cycles, refusal 0
+  camera parked after 53 frames
+--gate-shot camera parked at (0.000007, 8.56887, 3.572726), gate refusal 0
+  [interact] NorthGate opened
+  frame  0: camera 0.115811 m from rest      frame 13: camera 0.084386 m from rest
+  frame  1: camera 0.118365 m from rest      frame 14: camera 0.000050 m from rest
+  frame  2: camera 0.154743 m from rest      frame 20: camera 0.020390 m from rest
+  frame  3: camera 0.000049 m from rest      frame 24: camera 0.014071 m from rest
+  frame  4: camera 0.140668 m from rest      frame 25: camera 0.000050 m from rest
+--gate-shot peak 0.154743 m on frame 2, camera now 0.000050 m from rest
+```
+
+**Frames 3 and 14 are the signature, not noise.** `_offset_by_shake` slides along x by
+`sin(wave)` and along y by `cos(wave * 0.5) * 0.5`, so both components vanish together only where
+`wave ≈ π` — a two-frequency formula leaving a fingerprint that a random jitter could not. The
+decay reaches the parking floor by frame 25 of a 0.6 s (≈36 frame) shake, which is amplitude
+falling under the noise floor before the timer expires, exactly as a linear decay on a small
+amplitude should.
+
+**THE CONTROL IS THE SAME COMMAND WITH ONE LINE OF `settings.cfg` CHANGED**, which is T5.9's
+method and the only way to say the shake and not the scene is what moved:
+
+| `gameplay/camera_shake` | peak displacement | gate |
+|---|---|---|
+| 1.0 (default) | **0.154743 m** | `NorthGate opened` |
+| 0.0 | **0.000050 m** | `NorthGate opened` |
+
+Three thousand to one, with the gate opening in both runs. And the run is REPRODUCIBLE to the
+micrometre — 0.154743 m twice, forty minutes apart — because the shake is a sine and not noise,
+which is the property T5.9 chose it for and this is the first thing to depend on it.
+
+**WHAT THE PICTURES CARRY THAT NO ASSERTION CAN.** `gate_shake.png` is the whole world slid up and
+left with **the HUD clock and the toast exactly where the control put them** — a camera-space
+slide, not a world transform, which is a claim about the rendered frame and nothing else can make
+it. The stone leaf that fills the middle of `gate_closed.png` is simply gone, and `gate_open.png`
+is framed identically to the control with the leaf missing. Three pictures: shut, displaced,
+settled. **And the metres are the measurement — gotcha 64's discipline — with the images as
+corroboration**, because a rigid-offset search on a translating camera under-reports and would
+disagree with the number.
+
+**THE AUTOSAVE PAIR, AND IT IS TWO PROCESSES FOR `--save-state`'s REASON.** An in-process reload
+cannot tell a value written to disk and read back from one that was simply never cleared. What
+this pair adds to the pair that already existed is **the occasion and the door**: the write is
+performed by `Events.area_entered` and never by the probe, and the read is performed by pressing
+the main menu's own Continue row. Every save on disk was deleted first, so `autosave.json` was the
+only file either process could have been talking about.
+
+```
+A  --autosave-write posed:       area='courtyard'     at=0.00,3.00  day=4 time=22:15 weather=4 carrying=1
+A  [save] Slot 6 written (6 sections)          <- by area_entered, on arrival in the hall
+A  --autosave-write file present: true, latest slot 6
+A  --autosave-write before quit: area='lantern_hall' at=0.00,-4.20 day=4 time=22:15 weather=4 carrying=1
+   ---- process ends ----
+B  --autosave-continue at boot:  area=''             at=0.00,0.00  day=1 time=06:00 weather=0 carrying=0
+B  --autosave-continue latest slot is 6, autosave slot is 6
+B  --autosave-continue pressed the 'Continue — Slot 7' row
+B  [world] Transition (none) -> lantern_hall (spawn '')
+B  [save ] Slot 6 loaded (v1, 2s played)
+B  --autosave-continue after:    area='lantern_hall' at=0.00,-4.20 day=4 time=22:15 weather=4 carrying=1
+```
+
+**The last line and the fourth are identical, and the sixth is what makes that mean anything** —
+a fresh process holding day 1, 06:00, clear weather, an empty bag and no area at all. Five values
+came back off disk and every one of them was posed to differ from the boot value, `STORM` for the
+reason `--save-state` gives: the control has to differ or it proves nothing.
+
+**`autosave_continued.png` carries what the report cannot.** The HUD reads **Day 4 | 22:15 |
+Night**, the hall is lit for night rather than for the midday a boot would have given it, the
+player is standing at the courtyard door, and the toast says **"Autosaved."** — the arrival that
+this Continue produced firing the autosave occasion again, correct and visible. A restored
+`Clock.hour` is a number in a log; a courtyard at night is a photograph, and it is the one that
+says the value reached a renderer. `autosave_menu.png` is the other half: the Continue row exists
+on a menu this process built from a file, and a first-run menu has no such row.
+
+**A FINDING THE CAPTURE PRODUCED AND THIS ROW DID NOT FIX.** The row reads **"Continue — Slot
+7"**. T5.10 chose `autosave.json` over `slot_07.json` precisely so the autosave would not read as a
+seventh manual slot, and the FILE does not — but `MainMenuScreen._fill` formats every Continue row
+with `{"slot": latest + 1}` and the label says Slot 7 anyway. It is a one-line wording question on
+a UI string, it changes no behaviour, and it belongs to whoever owns that screen's copy rather than
+to a probe package. Recorded here because a picture is how anyone was ever going to notice.
+
+**TWELVE ASSERTIONS, AND NEITHER GROUP IS ABOUT THE PROBES' OWN BEHAVIOUR.** A probe is verified by
+running it; what the suite can hold is the two facts the probes lean on.
+
+- **`interaction_test.gd` +6 — the gate's own ask.** T5.9 asserted everything on the rig side and
+  left the emitter to a code read, because "the only way to make a gate emit is to open one" — but
+  `perform()` is the method the sensor calls and a test can call it too. A gate with an authored
+  `open_shake` asks for exactly that amplitude and for `Gate.SHAKE_SECONDS`; **a gate left at the
+  default zero opens and asks for nothing**, which is the half that matters, because a bare `emit`
+  with no `if` keeps every other assertion in the group green. `HEAVY_SHAKE` is 0.6 and not the
+  demo's 0.7, which would tie the case to content `check_boundary.gd` forbids it to name.
+- **`dev_tools_test.gd` +6 — every debug script that reads the command line has a node.** A debug
+  file with no node in `game_root.tscn` is not a broken tool, it is an ABSENT one: no `_ready`, no
+  argument parsing, every documented flag silently ignored, and nothing red anywhere — the file
+  parses, the budget checker counts it, `check_boundary.gd` finds its release gate, and the run
+  prints the log of a game nobody asked to do anything. **T5.12 is the row that could have suffered
+  it**, the fifth file having been written, typed and green a full minute before its node existed.
+  The scan is over the DIRECTORY, so a sixth file is covered the day it is written.
+
+**Both plants were real reversions, and both exit codes are here.**
+
+| Plant | Reversion | Result |
+|---|---|---|
+| 1 | deleted `if open_shake > 0.0:` from `Gate.perform()`, leaving the emit | **exit 1** — `1946 passed, 1 failed`; `FAILED: a silent gate asked for nothing — expected 0, got 1` |
+| 1 control | restored | **exit 0** — `1947 passed, 0 failed, 0 skipped` |
+| 2 | deleted the `DevScenarioShots` node from `game_root.tscn` | **exit 1** — `1946 passed, 1 failed`; `FAILED: dev_scenario_shots.gd has a node in game_root.tscn — expected ., got ` |
+| 2 control | restored | **exit 0** — `1947 passed, 0 failed, 0 skipped` |
+
+**WHY A FIFTH FILE AND NOT A FLAG ON `dev_probes.gd`.** The budget forced the question and the
+answer was already there, which is the third time that has happened to this directory.
+`dev_probes.gd` is at 205 of its 250 and `dev_stage.gd` at 248, so neither could hold a probe that
+drives a scenario AND owns a shutter. But the seam is real: `dev_probes.gd` prints a NUMBER,
+`dev_capture.gd` shoots at a FRAME NUMBER, and neither can photograph a moment that exists for six
+tenths of a second and only after a scripted sequence has produced it. That is the question
+`dev_gait_shots.gd` already asks about a walk cycle, which is why the shutter here takes that
+file's shape — `frame_post_draw` before reading the image, gotcha 59 — rather than a new one. The
+new file is 198 of its 250.
+
+**THE PEAK IS FOUND, NOT GUESSED, WHICH IS THIS FILE'S ANSWER TO GOTCHA 52.** `--shake=` runs for
+8 seconds instead of `Gate`'s 0.6 precisely so a `--shot-frame` cannot miss it, and that trick is
+unavailable when the gate decides the duration. So `_sample_shake` keeps the IMAGE of the largest
+displacement rather than a frame number: the number in the log and the picture on disk come from
+one frame by construction, and no guess is involved at either end.
+
+**VERSION 3.1.0, MINOR, AND THE ARGUMENT FOR PATCH LOSES ON ONE LINE.** Nothing under `src/`
+outside `src/systems/debug/` changed, which is the stated PATCH condition — but `game_root.tscn`
+gained a node, and that is a file a consuming game has and has to merge. PATCH promises nothing a
+game wrote is affected; a node it must take is something it has to do. MINOR, and the `CHANGELOG`
+entry is three lines of scene text and a sentence saying that is the whole obligation.
+
+**Why.** Three consecutive rows closing with the same admission is not three gaps, it is one, and a
+capture gap that three packages agreed to defer will be deferred by the fourth. The deeper reason
+is the one this project was founded on: **the previous project had 409 passing static checks and
+had never rendered a frame.** An assertion that a signal is emitted and an assertion that a rig
+consumes it are two green facts either side of a wire — gotcha 54 — and the only thing that reads
+the wire is a photograph of a gate being opened by a key press.
+
+**Connects.** `Gate.perform()` → `Events.camera_shake_requested` → `HD2DCameraRig.shake` (T5.9);
+`Director.area_entered` → `Autosave.request()` → `SaveSystem.AUTOSAVE_SLOT` (T5.10);
+`MainMenuScreen._on_continue` → `SaveSystem.load_from_slot` → `Director`. Nothing new was added to
+any of them — this row is a reader of three existing chains and an author of none.
+
+**Verified.** `--headless --import`; boot `0 warnings, 0 errors`; suite **1,935 → 1,947 passed, 0
+failed, 0 skipped**, exit 0; six checkers each exit 0 (`budgets` 155 files / 14,324 code lines / 0
+violations, `content`, `boundary`, `strings`, `layers`, `signals`); two plants at exit 1 with their
+controls at exit 0, quoted above. Windowed: `--gate-shot` twice at 0.154743 m and its
+`camera_shake=0` control at 0.000050 m; the autosave pair across two processes; the standing dusk
+capture re-taken unchanged as a regression check.
+
+**Unblocks.** Nothing was blocked on this. It removes three deferrals from three closed rows and
+gives the next person who touches `Gate`, `Autosave` or `MainMenuScreen` a one-command way to see
+the feature happen rather than to read that it does.
+
+**Gaps, stated rather than left to be rediscovered.**
+- **`--gate-shot` names two demo nodes by string and stops if they are absent.** `GateLever` and
+  `NorthGate` are `find_child` names, so a fork that deletes the courtyard gets
+  `could not select 'GateLever' in 6 cycles` and no pictures. That is the debug directory's
+  exemption working as designed and it is in the `CHANGELOG`, but it does mean the flag is the
+  first thing in `src/` a fork has to re-point rather than delete.
+- **The peak is the largest SAMPLED displacement, not the largest displacement.** Physics runs at
+  60 Hz and the shake at 18 Hz, so the frames land at arbitrary phases of the wave and 0.154743 m
+  is a floor under the true peak, not the peak. That is harmless for a ratio against a control at
+  0.000050 m and would be wrong to quote as the amplitude — which is `shake_metres × open_shake`,
+  a number the suite already owns.
+- **`shake_hz` is still not asserted**, which T5.9 said and this row does not change. The probe
+  would notice a frequency change, because the trace's zero crossings would move; nothing
+  automated reads that trace.
+- **The Continue row says "Slot 7"** — recorded above, not fixed, and not this package's file.
+- **The autosave pair is two commands a human runs in order**, with nothing enforcing the order or
+  the gap between them. Run B against no autosave logs `found no Continue row on the main menu` and
+  stops, which is a clear failure, but it is not the same thing as a harness.
+- **Nothing here is in CI**, and cannot be: both probes need a display server, which is the one
+  rung a GPU-less runner has never been able to do.
+- **No ADR.** One file, one node, three flags, no new signal, no new layer, no new seam concept.

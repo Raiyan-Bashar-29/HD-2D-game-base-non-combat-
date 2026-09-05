@@ -3,7 +3,52 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-05 · **T5.11 (music ducking, built — and the alias beside it deleted)
+**Last updated:** 2026-09-06 · **T5.12 (two capture gaps closed, and the third argued away)
+complete — A GATE OPENED BY A KEY PRESS HAS NOW BEEN PHOTOGRAPHED SHAKING THE CAMERA, AND AN
+AUTOSAVE WRITTEN IN ONE PROCESS HAS BEEN PHOTOGRAPHED COMING BACK IN ANOTHER.** Three consecutive
+rows — T5.9, T5.10 and T5.11 — closed with the same admission in their own Gaps section and each
+named a probe as the fix. Three rows deferring the same work is one gap, not three, and the first
+job of this row was to ask whether all three deserved it. **They did not: two were built and the
+third was argued away.** A still frame cannot show a decibel, so T5.11's probe would have produced
+nothing but a log line, and gotcha 66 had already retired the limit that made it look necessary —
+the one hazard that would have justified it (a duck tween on a paused node) was checked and does
+not exist, because `AudioDirector` is `PROCESS_MODE_ALWAYS` and `DialogueScreen` sets
+`pauses_world = false`.
+
+**`src/systems/debug/dev_scenario_shots.gd` IS THE FIFTH DEBUG FILE**, 198 of its 250, with a
+`DevScenarioShots` node in `game_root.tscn`. `--gate-shot=<dir>` throws the demo's lever, opens its
+gate through the interact key and photographs the shake **the gate** asked for;
+`--autosave-write` and `--autosave-continue=<dir>` are two processes that write an autosave from a
+real `Events.area_entered` and read it back by pressing the main menu's own Continue row. The
+budget forced the split for the third time in this directory and the seam was already there:
+`dev_probes.gd` prints a NUMBER, `dev_capture.gd` shoots at a FRAME NUMBER, and neither can
+photograph a moment that lasts six tenths of a second and only after a scripted sequence produced
+it.
+
+**THE PROBE FOUND TWO DEFECTS IN ITSELF BEFORE IT FOUND ANYTHING ELSE, and both ran green.**
+Standing beside a thing does not SELECT it — the first run pressed interact on a barter action two
+metres away, so the lever was never thrown and the gate refused with `LOCKED`; cycling is what a
+player does about that. And `rest` sampled twenty frames after a teleport is the follow-lag tail,
+which the probe reported as a **0.4288 m "shake" of a gate that had not opened** — that is
+**gotcha 67**, and its tell is that an asymptotic approach never crosses its rest position while a
+decaying oscillation crosses it repeatedly. **Gotcha 68** came from the same run: a `UiScreen` is
+`.new()`d, so its node name is the ENGINE class it extends and `find_child("MainMenuScreen")`
+finds nothing — `UiRoot.top()` is the answer, and that is why the stack is public.
+
+**THE MEASUREMENTS: 0.154743 m against a `camera_shake=0` control at 0.000050 m**, the same
+command with one line of `settings.cfg` changed and `NorthGate opened` in both logs — reproducible
+to the micrometre, because T5.9 chose a sine over noise and this is the first thing to depend on
+it. The autosave pair's two reports are identical line for line with a boot report between them
+reading `area='' day=1 time=06:00 weather=0 carrying=0`, and `autosave_continued.png` shows
+**Day 4 | 22:15 | Night** with an "Autosaved." toast. Suite 1,935 -> 1,947; two plants, each a real
+reversion, each exit 1 with its control at exit 0. **Version 3.1.0 — MINOR and not PATCH on one
+line**: nothing under `src/` outside the debug directory changed, but `game_root.tscn` gained a
+node a consuming game has to merge. **Found and not fixed:** the Continue row reads "Continue —
+Slot 7" for the autosave, which is the reading T5.10's file naming was chosen to avoid; it is a
+wording question on a UI string. `gen_placeholders.gd` is still at 230 of its 250 and is still the
+next file to split. **C, F and K remain on the board.**
+
+**T5.11 (music ducking, built — and the alias beside it deleted) is the row before it —
 complete — THE MUSIC DUCKS UNDER DIALOGUE, AND `AudioDirector` IS NOW THE ONE FILE IN THIS
 REPOSITORY WITH NO PUBLIC METHOD THAT NOTHING CALLS.** The row was "build it or delete it" and the
 answer is BOTH, split on one line: `duck()` and `unduck()` were built, because the occasion already
@@ -1326,7 +1371,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,728 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,947 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content, and no orphan CSV row
@@ -1336,7 +1381,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Sixty-six gotchas that each cost an hour
+## Sixty-eight gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -2102,6 +2147,33 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     other case owns and is mid-flight. The default transition is linear, which is what makes the
     midpoint assertion exact rather than approximate — a tween authored with an ease would need
     the curve, not the fraction.
+
+67. **A CAMERA STILL CATCHING UP WITH A TELEPORTED PLAYER LOOKS EXACTLY LIKE A SHAKE, AND THE
+    FIRST TRACE THIS PROJECT TOOK OF ONE WAS THE WRONG PHENOMENON ENTIRELY.** T5.12's gate probe
+    teleported the player, waited twenty frames, sampled the camera as `rest`, opened the gate and
+    reported **0.428401 m rising monotonically to 0.428789 and stopping**. Every part of that run
+    was green and the number was a real measurement of a real camera movement — of `follow_lag`.
+    Exponential smoothing APPROACHES its target and never arrives, so there is no frame count
+    after which a rig is "settled"; twenty frames leaves 4 % of the error, and 4 % of a 10 m
+    teleport is three times the shake being looked for. **The tell is the SHAPE.** A decaying
+    oscillation crosses its rest position repeatedly; an asymptotic approach never crosses it at
+    all, and both summarise as "the camera moved by X". The fix is to wait on the DERIVATIVE
+    rather than on a frame count — per-frame movement under 10 µm, which took **53 frames** — and
+    the general rule is that any measurement taken against a smoothed value needs the smoothing
+    proved finished, not assumed finished. Gotcha 52's family with the still moment made of
+    convergence rather than of animation frames.
+
+68. **A SCREEN'S NODE NAME IS ITS ENGINE CLASS, NEVER ITS `class_name`, SO `find_child` CANNOT
+    FIND ONE.** `find_child("MainMenuScreen")` returned null on a session with the main menu
+    plainly on screen: a `UiScreen` is `.new()`d rather than instanced from a `.tscn`, and Godot
+    names a scriptless-instantiated node after the ENGINE class the script extends — `Control`
+    here — so every screen in the stack shares one unhelpful name. `UiRoot.top()` is the answer
+    and the reason the stack is public: a screen's identity is `screen_id` and its position in the
+    stack, and its node name is an engine detail that happens to be a string. The same trap waits
+    for anything else built with `.new()` — every menu, every dialogue box. Nodes that come from a
+    `.tscn` keep their authored name, which is why `find_child("Player")` and
+    `find_child("NorthGate")` work in the same file three lines away.
+
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the

@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=20 format=3]
 
 [ext_resource type="Script" path="res://src/core/boot/game_root.gd" id="1_root"]
 [ext_resource type="Script" path="res://src/ui/hud/screen_fade.gd" id="2_fade"]
@@ -19,6 +19,7 @@
 [ext_resource type="Script" path="res://src/systems/debug/dev_gait_shots.gd" id="17_gait"]
 [ext_resource type="Script" path="res://src/systems/autosave/autosave.gd" id="18_autosave"]
 [ext_resource type="Script" path="res://src/systems/audio/dialogue_duck.gd" id="19_duck"]
+[ext_resource type="Script" path="res://src/systems/debug/dev_scenario_shots.gd" id="20_scenario"]
 
 [node name="GameRoot" type="Node"]
 script = ExtResource("1_root")
@@ -95,3 +96,6 @@ script = ExtResource("18_autosave")
 
 [node name="DialogueDuck" type="Node" parent="."]
 script = ExtResource("19_duck")
+
+[node name="DevScenarioShots" type="Node" parent="."]
+script = ExtResource("20_scenario")

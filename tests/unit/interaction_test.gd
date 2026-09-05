@@ -9,11 +9,16 @@ extends TestCase
 var _gate: Gate = null
 var _lever: Lever = null
 
+## An area-authored gate amplitude, as 0..1 of the rig's own metres. Not 0.7, which is the
+## demo courtyard's taste judgement and would tie this case to content it must not name.
+const HEAVY_SHAKE: float = 0.6
+
 
 func run() -> void:
-	plan(19)
+	plan(25)
 	_gating()
 	_persistence()
+	_the_gates_own_ask()
 
 
 func _gating() -> void:
@@ -78,4 +83,49 @@ func _persistence() -> void:
 	equal("unrelated flag survived", Flags.get_bool(&"unrelated/keep"), true)
 
 	rebuilt.free()
+	Flags.clear_all()
+
+
+## THE GATE'S OWN ASK, which until now was proved only by reading four lines of `perform()`.
+##
+## T5.9 asserted everything on the RIG side - the amplitude, the decay, the player's scale on it -
+## and left the emitter to a code read, because the only way to make a gate emit is to open one.
+## But a gate can be opened by a direct call, and `perform()` is the same method the sensor calls,
+## so the ask is assertable after all: a heavy gate asks for exactly the amplitude its author
+## wrote and for the template's own answer about how long a jolt lasts, and a gate whose author
+## refused a shake asks for NOTHING while still opening. That last one is the half that matters -
+## a bare `emit` with no `if` would keep every other assertion here green.
+##
+## T5.12 photographed the same two facts through a real interact key, which is what says the ask
+## reaches a camera; this says it is the RIGHT ask, and the two together are the claim.
+func _the_gates_own_ask() -> void:
+	Flags.clear_all()
+	var asked: Array[Array] = []
+	var listener: Callable = func(strength: float, seconds: float) -> void:
+		asked.append([strength, seconds])
+	Events.camera_shake_requested.connect(listener)
+
+	var heavy: Gate = build("res://scenes/objects/gate.tscn") as Gate
+	heavy.object_id = &"t_heavy_gate"
+	heavy.label_key = "fixture.gate.label"
+	heavy.open_shake = HEAVY_SHAKE
+	attach(heavy)
+	equal("a heavy gate opens", heavy.attempt(null), true)
+	equal("a heavy gate asked once", asked.size(), 1)
+	equal("it asked for the amplitude its author wrote",
+		is_equal_approx(DictRead.to_float(asked[0][0]), HEAVY_SHAKE), true)
+	equal("it asked for the template's own jolt length",
+		is_equal_approx(DictRead.to_float(asked[0][1]), Gate.SHAKE_SECONDS), true)
+
+	# A garden gate. The default is ZERO and zero means silent, so this one opens and says
+	# nothing - and a `perform()` that emitted unconditionally would fail here and nowhere else.
+	asked.clear()
+	var quiet: Gate = build("res://scenes/objects/gate.tscn") as Gate
+	quiet.object_id = &"t_quiet_gate"
+	quiet.label_key = "fixture.gate.label"
+	attach(quiet)
+	equal("a silent gate still opens", quiet.attempt(null), true)
+	equal("a silent gate asked for nothing", asked.size(), 0)
+
+	Events.camera_shake_requested.disconnect(listener)
 	Flags.clear_all()

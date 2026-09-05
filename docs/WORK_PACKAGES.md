@@ -4239,7 +4239,59 @@ plus `Tween.custom_step()` make a fade distinguishable from a cut inside a synch
 - **It wrote no ADR.** One node, two connections, one decision, and a method on the file that
   already owns bus decibels.
 
-## Candidate rows — ranked. A, B, D, E, G, H, I AND J ARE DONE (T5.4-T5.11). C and F remain
+## T5.12 · Two capture gaps closed, and the third argued away — **DONE**
+
+**2026-09-06. Version 3.1.0.** Three consecutive rows — T5.9, T5.10 and T5.11 — closed with the
+same admission in their own Gaps section, each naming a probe as the fix. Three rows deferring the
+same work is the signal, and the first job was to ask whether all three deserved it.
+
+| Gap | Verdict | Why |
+|---|---|---|
+| T5.9 — the gate's own shake | **built** | `--shake=` emits the signal a gate emits, so it photographs the RIG. Nothing had ever shown a gate doing it, and `Gate.perform()`'s emit was proved by reading four lines |
+| T5.10 — the autosave read back | **built** | The row's own words: the only claim in it resting on "it is the same code path" |
+| T5.11 — the Music bus in dB | **NOT built** | **A still frame cannot show a decibel**, so the probe's whole output would be a log line — and this row's standard is that a log line does not close a capture gap. Gotcha 66 already retired the limit that made it look necessary, and the duck is measured end to end in the suite through a real `DialogueRunner`. The pause hazard that would have justified it was checked and does not exist: `AudioDirector` is `PROCESS_MODE_ALWAYS` and `DialogueScreen` sets `pauses_world = false` |
+
+**`src/systems/debug/dev_scenario_shots.gd` is the fifth debug file, 198 of its 250.** The budget
+forced the split and the seam was already there, for the third time in this directory:
+`dev_probes.gd` (205/250) prints a NUMBER, `dev_capture.gd` shoots at a FRAME NUMBER, and neither
+can photograph a moment that exists for six tenths of a second and only after a scripted sequence
+produced it. That is `dev_gait_shots.gd`'s question with the subject changed, which is why the
+shutter takes its shape rather than a new one.
+
+**THE PROBE FOUND TWO DEFECTS IN ITSELF BEFORE IT FOUND ANYTHING ELSE, both silent, both green.**
+Standing beside a thing does not SELECT it — the first run pressed interact on a barter action two
+metres away, the lever was never thrown, and the gate refused with `LOCKED`; cycling is what a
+player does about that. And `rest` sampled twenty frames after a teleport is the exponential
+smoothing tail, which the probe reported as a 0.4288 m "shake" of a gate that had not opened.
+`_camera_still()` now waits for the rig to park and reports **53 frames**.
+
+**0.154743 m against 0.000050 m**, the same command with one line of `settings.cfg` changed and
+`NorthGate opened` in both logs — and reproducible to the micrometre, because T5.9 chose a sine
+over noise and this is the first thing to depend on that. The picture carries what the number
+cannot: the world slid up and left with the HUD clock exactly where the control put it.
+
+**The autosave pair is two processes for `--save-state`'s reason**, and adds the OCCASION and the
+DOOR — written by `Events.area_entered`, read by pressing the main menu's own Continue row.
+Run A's last report and run B's are identical; run B's boot report between them reads
+`area='' day=1 time=06:00 weather=0 carrying=0`. `autosave_continued.png` shows **Day 4 | 22:15 |
+Night** and a toast reading "Autosaved." A restored `Clock.hour` is a number in a log; a hall lit
+for night is the photograph that says it reached a renderer.
+
+**12 assertions, neither group about the probes' own behaviour.** `interaction_test.gd` +6: a gate
+asks for exactly the amplitude its author wrote and for `Gate.SHAKE_SECONDS`, and **a gate left at
+the default zero opens and asks for nothing** — the half a bare `emit` would keep green.
+`dev_tools_test.gd` +6: every script under `src/systems/debug/` that reads
+`OS.get_cmdline_user_args()` has a node in `game_root.tscn`, because a debug file with no node is
+not a broken tool but an absent one. Suite 1,935 → 1,947. Two plants, each a real reversion, each
+**exit 1** with its control at **exit 0**.
+
+**3.1.0 and not a PATCH on one line.** Nothing under `src/` outside the debug directory changed,
+which is the PATCH condition — but `game_root.tscn` gained a node, and that is a file a consuming
+game has to merge. **Found and not fixed:** the main menu's Continue row reads "Continue — Slot 7"
+for the autosave, which is the reading T5.10's file naming was chosen to avoid. It is a wording
+question on a UI string and belongs to whoever owns that screen's copy.
+
+## Candidate rows — ranked. A, B, D, E, G, H, I AND J ARE DONE (T5.4-T5.11). C, F and K remain
 
 These are the audit's findings that are packages rather than one-line corrections. Ranked by value
 to a consuming game per unit of work. Each is sized to one chat.

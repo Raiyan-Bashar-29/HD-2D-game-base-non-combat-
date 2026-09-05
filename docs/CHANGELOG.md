@@ -20,6 +20,50 @@ the exact rot this discipline exists to prevent.
 
 ---
 
+## 3.1.0
+
+*2026-09-06 — a fifth debug file, `dev_scenario_shots.gd`, and the node in `game_root.tscn` that
+lets it read the command line. Two features that had never been photographed happening in a real
+session now have been: a screen shake fired by opening a gate, and an autosave written by
+arriving somewhere and read back by pressing Continue in a fresh process.*
+
+**A consuming game does: take the new `DevScenarioShots` node when it merges `game_root.tscn`.**
+That is the whole obligation, and it is the only file outside `src/systems/debug/` that this
+version touches. If your `game_root.tscn` has diverged and the merge conflicts, the node is three
+lines and the file's other nineteen are unchanged:
+
+```
+[node name="DevScenarioShots" type="Node" parent="."]
+script = ExtResource("20_scenario")
+```
+
+**Nothing under `src/` outside the debug directory changed, so nothing you wrote is affected.**
+This is a MINOR bump rather than a PATCH for one reason: a node in a shared scene is something
+you have to take, and a version that says PATCH is promising you do not.
+
+**What you gained**, all of it gated on `OS.is_debug_build()` and absent from a release export:
+
+| Flag | Does |
+|---|---|
+| `--gate-shot=<dir>` | throws a demo lever, opens the demo gate, and photographs the shake, writing `gate_closed.png` / `gate_shake.png` / `gate_open.png` and the camera's distance from rest in metres on every frame |
+| `--autosave-write` | poses a state, travels, and lets `Events.area_entered` write the autosave |
+| `--autosave-continue=<dir>` | in a FRESH process: boots to the main menu, photographs it, presses the real Continue row, and photographs where the game came back |
+
+**`--gate-shot` names demo content and is meant to.** `src/systems/debug/` is the one directory
+exempt from the boundary rule, and a fork that deletes the courtyard will find the flag logs
+`found no node called 'GateLever'` and stops. Point it at your own lever and gate — two string
+constants in the file — or delete the flag. `--autosave-write` names an area id for the same
+reason and takes the same edit.
+
+**Two assertions came with it and neither is about the debug surface's own behaviour.**
+`Gate.perform()` is now asserted to ask for exactly the amplitude its author wrote and for
+`Gate.SHAKE_SECONDS`, and to ask for NOTHING when `open_shake` is left at its default zero —
+which T5.9 had left to a code read. And every script under `src/systems/debug/` that reads
+`OS.get_cmdline_user_args()` is now asserted to have a node in `game_root.tscn`, because a debug
+file with no node is not a broken tool but an absent one, and nothing anywhere goes red.
+
+---
+
 ## 3.0.0
 
 *2026-09-05 — the music ducks under dialogue, the duck is measured from the player's own volume

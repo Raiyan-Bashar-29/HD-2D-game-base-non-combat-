@@ -47,13 +47,14 @@ const GATE_SITES: Array[Array] = [
 
 
 func run() -> void:
-	plan(37)
+	plan(43)
 	_the_verbs_are_the_command_lines_own()
 	_a_malformed_argument_is_refused_whole()
 	_the_console_runs_a_line_and_keeps_a_transcript()
 	_the_overlay_reads_the_engines_own_counters()
 	_every_dev_tool_is_gated_on_a_debug_build()
 	_staging_that_draws_waits_for_a_settled_area()
+	_every_debug_flag_has_a_node_to_parse_it()
 
 
 ## The vocabulary, and that a typed line reaches the verb it names. `run()` takes the SAME
@@ -240,3 +241,42 @@ func _every_verb_dispatches() -> bool:
 		if DevCommands.run(String(verb)).begins_with("no such command"):
 			return false
 	return true
+
+
+## EVERY DEBUG SCRIPT THAT READS THE COMMAND LINE HAS A NODE IN `game_root.tscn`, and without
+## one it is not a broken tool, it is an ABSENT one: no node, no `_ready`, no argument parsing,
+## and every flag it documents silently ignored. Nothing anywhere is red - the file parses, the
+## budget checker counts it, `check_boundary.gd` finds its release gate, and the run that used
+## the flag simply prints the log of a game that was never asked to do anything.
+##
+## THAT IS THE SHAPE THIS PROJECT KEEPS HITTING (gotcha 2's family, and T5.7's unwired `@export`
+## exactly), and T5.12 was the row that could have suffered it: the fifth debug file was written,
+## typed and green a full minute before its node existed. The scan is over the DIRECTORY rather
+## than a list, so a sixth file is covered on the day it is written and not on the day somebody
+## remembers to add a row here.
+const DEBUG_DIR: String = "res://src/systems/debug/"
+const GAME_ROOT: String = "res://scenes/boot/game_root.tscn"
+
+
+func _every_debug_flag_has_a_node_to_parse_it() -> void:
+	var wired: int = 0
+	for path: String in _debug_scripts():
+		if not FileAccess.get_file_as_string(path).contains("OS.get_cmdline_user_args()"):
+			continue
+		wired += 1
+		equal("%s has a node in game_root.tscn" % path.get_file(),
+			parent_of_script(GAME_ROOT, path), ".")
+	equal("every debug script that reads the command line was checked", wired, 5)
+
+
+## The directory as it is on disk, not a list to keep in step with it.
+func _debug_scripts() -> Array[String]:
+	var found: Array[String] = []
+	var directory: DirAccess = DirAccess.open(DEBUG_DIR)
+	if directory == null:
+		return found
+	for file_name: String in directory.get_files():
+		if file_name.ends_with(".gd"):
+			found.append(DEBUG_DIR + file_name)
+	found.sort()
+	return found

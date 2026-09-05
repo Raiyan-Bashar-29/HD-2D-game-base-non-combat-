@@ -36,6 +36,13 @@ extends Node
 ## a synthetic `InputEventAction` must be fed through `Input.parse_input_event`, and a `Button`
 ## acts on RELEASE by default, so a press alone never fires one.
 ##
+## THE PROBE THAT HAS TO PHOTOGRAPH ITS RESULT IS NEXT DOOR, in dev_scenario_shots.gd, and three
+## closed rows named THIS file before that one existed. The line between them is what the probe
+## produces: a measurement printed to the log belongs here, and a moment that has to be
+## PHOTOGRAPHED — a 0.6-second screen shake, a world that came back off disk — belongs there,
+## because it needs a shutter timed to an event rather than to a frame number and this file owns
+## no shutter at all. See T5.12.
+##
 ## OWNS: scripted scenarios and the measurements they print.
 ## MUST NOT: be depended upon by gameplay, or reimplement anything it verifies. A debug path
 ## that reimplements the thing it is checking checks nothing — every probe here goes through

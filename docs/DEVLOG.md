@@ -6482,3 +6482,9 @@ the blocks — and the phase is still closable at the owner's word.
   somebody an hour.
 - **Captures are not committed**, on this project's standing practice. The record is the decoded
   numbers above plus a permanent flag that re-takes the whole run in one command.
+
+**CI green on `30c8304`, PR #37** — all four jobs pass. Full checkout
+`=== 1829 passed, 0 failed, 0 skipped ===`; **stripped template
+`=== 1755 passed, 0 failed, 25 skipped ===`**, which is the number that matters for a new test
+file: `sheet_facings_test.gd` asserts only the base's own placeholder sheets and names no demo
+content, so all 8 of its assertions survive the strip. The 25 skips are unchanged.

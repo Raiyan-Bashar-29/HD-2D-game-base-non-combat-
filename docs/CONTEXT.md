@@ -20,7 +20,9 @@ Worst facing pair now 7.5% (default) and 21.9% (alt), against 0.0% before.
 in this repository had ever captured.** `--facing-shots=<dir>` on `dev_gait_shots.gd`, columns
 4, 2, 0 and 6 decoded out of `sprite.frame` and agreeing with four pictures that read as back,
 right profile, front and left profile. T5.6 had recorded that absence as its own gap.
-Suite 1,821 → 1,829; one plant (the old single-pose draw regenerated) at **exit 1, 6 failed**.
+Suite 1,821 → 1,829 and the STRIPPED run 1,755, so all 8 new assertions survive the demo strip;
+one plant (the old single-pose draw regenerated) at **exit 1, 6 failed**. CI green on `30c8304`,
+PR #37.
 Version 2.3.0, untagged. `gen_placeholders.gd` is at 230 of its 250 and is the next file to
 split. **Gotcha 63 came out of writing the assertion**: a colour written into an RGBA8 image
 does not read back equal to itself, and an IMPORTED texture is not the PNG, because

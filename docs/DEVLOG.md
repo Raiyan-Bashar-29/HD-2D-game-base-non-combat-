@@ -7272,6 +7272,12 @@ the feature happen rather than to read that it does.
   stops, which is a clear failure, but it is not the same thing as a harness.
 - **Nothing here is in CI**, and cannot be: both probes need a display server, which is the one
   rung a GPU-less runner has never been able to do.
+- **The autosave pair's clock is exact to the minute and not below it.** Run B does not pass
+  `--freeze-time`, so `Clock` runs while the world settles and a re-run showed `time=22:16` where
+  the transcript above says `22:15`. That is the clock working, and it is why the reports are
+  compared as five values rather than as a byte-identical string; freezing run B would have made
+  the comparison exact and would also have photographed a game with its clock stopped, which is
+  not what a Continue gives a player.
 - **No ADR.** One file, one node, three flags, no new signal, no new layer, no new seam concept.
 
 **PR #41, on `ed9421b`**, based on `claude/t5-11-music-duck` (#40). The two windowed rungs are not

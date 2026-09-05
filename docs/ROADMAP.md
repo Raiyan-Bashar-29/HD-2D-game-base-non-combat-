@@ -689,6 +689,22 @@ because the first row exposed how much of it was declared and unread.
   and plant 2 re-created T5.3's defect exactly, which is the row's own claim made good.
   1,782 -> 1,798 assertions. Version 2.1.0, untagged.
 
+- **T5.7 `reduce_motion` finished, and the shadow atlas — DONE, 2026-09-05.** The two things T5.6
+  wrote down and deliberately skipped. `accessibility/reduce_motion` now reaches **all three**
+  motions this template draws: `ScreenFade` cuts instead of dissolving and
+  `HD2DCameraRig.follow_lag` goes to zero, both on `_authored_dof`'s veto shape. **The shadow half
+  was a live defect rather than a portability worry** — `_apply_shadows` restored a `2048` const
+  called "the engine's own default" and the default is **4096**, so every windowed boot of this
+  repository ran at half the authored shadow resolution, measured `boot = 2048` against
+  `boot = 4096` on a real display server. `ShadowAtlas` (new, `core`) reads the authored sizes
+  before the first zeroing; `settings.gd` went 144 -> 139 of its 150. That is **gotcha 61**, whose
+  transferable half is that `_apply_display()` returns early under `--headless`, so no rung below
+  the windowed capture executes that code at all. **The camera motion turned out to be
+  photographable, contradicting this row's own prediction**: two `--gait-shots` runs differing by
+  one line of `settings.cfg` translate the whole world by 42 px, residual 0.0268 at -42 against
+  0.0975 at zero. Four plants, each exit 1. 1,798 -> 1,821 assertions.
+  `settings_consumers_test.gd` split at its budget, `settings_effects_test.gd` is the new half. Version 2.2.0, untagged.
+
 **Exit criteria for the phase:**
 
 - [x] A character's movement styles come from its sheet, not its code: idle, walk, run, sneak and
@@ -723,9 +739,17 @@ because the first row exposed how much of it was declared and unread.
 **THE PHASE IS CLOSABLE, AND CLOSING IT IS THE OWNER'S.** Two boxes remain and neither is a
 defect: a second idle block is a chooser on top of machinery that now works, and **a turn in
 place is explicitly a seam decision the owner has not made** — WHO may ask for a turn. T5.3 and
-T5.5 both declined to pick one silently and T5.6 declines too. If the owner answers that
+T5.5 both declined to pick one silently and T5.6 and T5.7 decline too. If the owner answers that
 question the phase has one small row left; if the owner says the two remaining boxes belong to a
 consuming game rather than to the base, the phase closes today.
+
+**AND A THIRD THING THE OWNER SAW THAT NO EXIT CRITERION ASKS FOR.** On 2026-09-05 the owner
+reported that sideways movement "just slides to the side". It does, and **the code is not the
+reason**: `character_placeholder.png` draws one pose eight times, measured at 0.5% pixel
+difference between the front view and the back and under 4% between any two facings. Both boxes
+above are about a character's BLOCKS; nothing on this list ever asked whether a facing is
+distinguishable, and every capture in T5.2, T5.3 and T5.6 was taken without noticing. It is
+candidate J and it lives entirely in `tools/gen_placeholders.gd`.
 
 
 ## Sequencing rules

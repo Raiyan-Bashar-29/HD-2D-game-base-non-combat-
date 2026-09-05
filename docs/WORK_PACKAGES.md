@@ -83,6 +83,7 @@ original board rather than continuing it.
 | T5.4 | **The three missing enforcement gates** | **DONE** — the T5.3 audit found the structural cause rather than another instance: **no gate anywhere asked whether a declared thing has a CONSUMER**, which is why the same defect arrived through a fully green ladder seven times. `check_signals.gd` requires every registry signal to have an emitter and resolves indirect `Signal`-value dispatch, so the three quest signals — **zero** direct `.emit` sites — are not false positives; it named `debug_command` at once. `check_layers.gd` enforces `core -> content -> systems -> gameplay -> ui` and **found a real violation on its first run: 55 upward references**, 13 of them the interaction sensor sitting in `systems/` while typed on `Interactable`. Moved to `src/gameplay/interaction/` — **gotcha 55: a rule with no gate is a rule already being broken.** `check_boundary.gd` gained the `localization/` half and closed gotcha 48. Every gate planted red and proved green. Four checkers to six; see below |
 | T5.5 | **The twelve settings with no consumer** | **DONE** — 12 of 23 settings were declared, drawn to the player, translated in both languages and read by nothing. **Nine wired**, each placed by who owns the thing that has to change: the viewport and the shadow ATLAS to `Settings` itself, bloom to `EnvironmentDriver`, DOF to `HD2DCameraRig` (**`set_dof_enabled()`'s first ever caller**), the prompt's two to `InteractPrompt`, the typewriter's to `DialogueScreen`, the hold floor to `InteractionSensor`, and `accessibility/text_scale` to a new `UiAccessibility`. **Three REMOVED** — screen shake, autosave and subtitles have no machinery here to reach, and a row drawn to the player that cannot do anything is worse than a dead constant. **Five of the twelve were a TEMPLATE defect**: a fork could not wire `accessibility/*` without editing `src/`. Plus the four one-liners — `reset_to_defaults()` never re-applied the locale, `Actions.JUMP` is gone, `rebind()` gates on `REBINDABLE`. **The seventh gate was deliberately not built**: the consumer question is an ASSERTION, because `Settings.DEFAULTS` is a runtime fact. Writing it found **gotcha 56: a text search for a wire stays green after the wire is cut.** Eight plants each exit 1; six settings photographed in pairs. 1,782 assertions (stripped 1,708, so all 64 survive the strip); version 2.0.0. CI green, PR #34. See below |
 | T5.6 | **A wholesale character swap, photographed** | **DONE** — Phase T5's last unmet exit criterion, and the only one of the three that was a proof rather than a feature. The repository held a sheet with a different GRID (`character_alt.png`, 4 facings, 24×40, two blocks) and a sheet with GAITS (the default, 8 facings, 32×48, three blocks) and **never one with both**, so the phase's claim had only ever been demonstrated in halves. The alt sheet is now five blocks — idle, walk, run, sneak, climb, 96×600 — and its layout is **the only one in the project that leaves no gait at -1**. The player was pointed at the pair, driven through all five gaits through the real input path, and photographed; **no file under `src/` changed for the swap**, which is the claim the row exists to test, and the swap is two `ExtResource` paths in `player.tscn`. **The CONTROL is the strongest evidence**: the same probe on the DEFAULT sheet draws blocks 0, 1, 2, **1, 1** — sneak and climb falling back to the walk block, which is the `-1` contract measured in the live game for the first time rather than in an assertion. Four defects, three of them this row's own and all four invisible to any rung that does not open a window — **gotchas 57 to 60**: a generator that clips to the image draws into the next cell; a foot-anchored sprite's bottom rows are eaten by the ground plane so a tally there cannot be read; reading `sprite.frame` before the post-draw await measures a different moment from the photograph; and `unproject_position` answers in the viewport's LOGICAL size. Two plants, each exit 1, and **plant 2 re-created T5.3's defect exactly** (`climb_row = -1` → `expected [2, 3, 4], got [2, 3, -1]`), which makes good the row's own claim that this sheet would have caught it. New `character_swap_test.gd` (14) and `dev_gait_shots.gd`. 1,798 assertions; version 2.1.0. See below |
+| T5.7 | **`reduce_motion` finished, plus the shadow atlas** | **DONE** — candidate I, both halves already diagnosed by T5.5 and deliberately skipped by T5.6. `accessibility/reduce_motion` now reaches **all three** motions this template draws: `ScreenFade` cuts instead of dissolving and `HD2DCameraRig.follow_lag` goes to zero, each naming the key as a `const` on itself and each taking `_authored_dof`'s **veto** shape — the setting may remove smoothing an area author authored and may never add smoothing they refused. **The shadow half was a LIVE DEFECT, not the portability worry it was filed as.** `_apply_shadows` restored `const POSITIONAL_ATLAS: int = 2048` under a comment calling 2048 "the engine's own default"; **it is 4096**, so this repository booted every windowed session at half the shadow resolution the project authored — measured `boot = 2048` against `boot = 4096` on a real display server, before a player touches anything. New `ShadowAtlas` in `core` reads the authored sizes before the first zeroing (a const cannot be right there at all, because the number is a project setting a game is invited to change), and `settings.gd` came DOWN to 139 of its 150. That is **gotcha 61**, and its transferable half is that `_apply_display()` returns early under `--headless`, so **no rung below the windowed capture executes that code** — the suite could not have caught it however many assertions were aimed at the setting. **AND THE CAMERA MOTION WAS PHOTOGRAPHABLE, WHICH THIS ROW PREDICTED IT WOULD NOT BE**: T5.5's honest limit (an instant reveal photographs identically to a finished one) holds for the fade and fails for the camera, because a camera following a moving character has no finished state — two `--gait-shots` runs differing by one line of `settings.cfg` translate the whole world **42 px**, residual 0.0268 at −42 px against 0.0975 at zero, so it is a rigid shift and not a lighting change. Four plants, each exit 1, one of them re-proving **gotcha 56** on a second node. `settings_consumers_test.gd` hit 269/250 and split; `settings_effects_test.gd` is the new half, divided by QUESTION — *is the key reached* against *does the effect happen*. 1,798 → 1,821 assertions. See below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -3867,9 +3868,9 @@ survived.
 
 - **It did not wire the three it removed.** Screen shake, autosave and subtitles are features, and
   autosave needs a slot POLICY before it needs a trigger.
-- **It did not finish `reduce_motion`.** `ScreenFade` and the camera's `follow_lag` are motion too
+- **It did not finish `reduce_motion`. CLOSED BY T5.7.** `ScreenFade` and the camera's `follow_lag` are motion too
   and still ignore it. One consumer makes the setting honest, not complete.
-- **It did not read the authored shadow atlas size.** `_apply_shadows` restores a `2048` const, so a
+- **It did not read the authored shadow atlas size. CLOSED BY T5.7, AND IT WAS WORSE THAN THIS BULLET SAYS — the const was 2048 and the engine default is 4096, so it halved THIS repository, not a hypothetical fork.** `_apply_shadows` restores a `2048` const, so a
   game that authored a different size in `project.godot` loses it the first time a player toggles
   shadows. The fix is `HD2DCameraRig`'s `_authored_dof` pattern and costs two lines `settings.gd`
   does not have — it is at 144 of its 150-line override.
@@ -3877,7 +3878,103 @@ survived.
   already lives, and one input list read instead of copied. `ARCHITECTURE.md` already says the
   owning system reacts; this row only made that true for nine more settings.
 
-## Candidate rows the T5.3 audit produced — ranked, and A, B AND D ARE DONE (T5.4, T5.5, T5.6)
+## T5.7 · `reduce_motion` finished, plus the shadow atlas — **DONE**
+
+Candidate I. Both halves were diagnosed by T5.5, written down as gaps, and deliberately skipped by
+T5.6 because folding them in would have put three unrelated diffs in the one row whose headline
+claim was *no file under `src/` changed*. Neither was hard. One of them was not what it was
+filed as.
+
+### The three motions
+
+`accessibility/reduce_motion` had one consumer — the dialogue typewriter — and T5.5 said in its
+own DEVLOG that one consumer makes a setting honest and not complete. It has three now.
+
+| Motion | Consumer | What reduce-motion does to it |
+|---|---|---|
+| animated TEXT | `DialogueScreen._on_line_changed` | the line arrives whole (T5.5) |
+| the screen FADE | `ScreenFade._on_fade_requested` | cuts, exactly as a fade of zero seconds does |
+| the CAMERA | `HD2DCameraRig._apply_reduce_motion` | `follow_lag` goes to zero, so the camera stops sliding after a stopped character |
+
+Each names the key as a `const` on itself, which is the convention that makes
+`settings_consumers_test._is_consumed` decidable rather than a heuristic, and an assertion now
+requires the three consts to agree with the declaration — three copies of a string are three
+chances to typo one into a key nothing sets.
+
+**THE CUT IS NOT A FASTER FADE, and that is a decision.** Halving a duration is still animation,
+and a preference that only makes motion briefer has not honoured the request. `DialogueScreen`
+made the same choice for the same reason a row earlier.
+
+**THE CAMERA TAKES THE VETO SHAPE and this is the half worth reading.** `_authored_lag` is read at
+`_ready` before the setting is folded in, exactly as `_authored_dof` is, so a rig an area author
+shipped rigid (`follow_lag = 0.0`) stays rigid however the setting moves. The setting may REMOVE
+smoothing an author authored; it may never ADD smoothing they refused. Assigned to `follow_lag`
+rather than clamped at the read site, because a second "effective lag" variable beside the
+exported one is two numbers that can disagree — the defect this project keeps finding.
+
+### The shadow atlas, which was not the defect it was filed as
+
+T5.5 recorded this as a portability worry: *a game that authored a different atlas size in
+`project.godot` would have it replaced the first time a player toggles shadows.* Measured, on a
+real display server, it is worse and nearer:
+
+```
+                       boot     off      back on
+with the 2048 const    2048     0        2048
+with ShadowAtlas       4096     0        4096
+```
+
+**The engine's default positional atlas is 4096, not 2048**, and `_apply_display()` runs at
+`_ready`, so this repository booted **every windowed session at half the shadow resolution the
+project authored**, before a player touched anything. Two things hid it for two rows. The OFF half
+is the half a wrong constant cannot break, and off is the only half T5.5 photographed. And
+`_apply_display()` returns early when `DisplayServer.get_name() == "headless"`, so **no rung below
+the windowed capture executes that code at all** — the suite could not have caught it however many
+assertions were pointed at the setting. That is gotcha 61.
+
+**WHERE IT WENT, WHICH THE ROW WAS ASKED TO DECIDE.** `settings.gd` was at 144 of its 150-line
+override, and the fix needs STATE — the authored sizes — which is the kind of thing every future
+setting will be tempted to add beside. So it is `ShadowAtlas`, a `RefCounted` in `core` that owns
+one property of the renderer and knows nothing about `video/shadows`, and `settings.gd` came DOWN
+to 139 because the two consts and four lines of body left with it. A const cannot be right there
+at all: the number is a project setting a consuming game is invited to change, so the only correct
+value is the one read back before the first zeroing.
+
+### What the verification found out about itself
+
+The row was told to think about what a still frame can prove before promising one, on T5.5's
+honest limit: *an instant reveal photographs identically to a finished one.* That limit holds for
+the fade and **fails for the camera**, and noticing why is the most transferable thing here.
+
+A fade converges. A camera following a MOVING character never does — `follow_lag` sets a steady
+trailing distance that persists for as long as the character keeps walking, so there is a picture
+to take. Two `--gait-shots` runs differing by one line of `settings.cfg`:
+
+- the whole world is translated **42 px** between them at run speed;
+- a brute-force offset search over a static band (rows 340–450, no HUD, no character) puts the
+  residual at **0.0268 at −42 px** against **0.0975 at zero** — a 3.6× drop, so it is a RIGID
+  SHIFT of the scene and not a lighting or content difference;
+- every static landmark agrees: the pillar edge, the platform edge, the crate and the low wall
+  all move together while the character stays put.
+
+The fade is proved by assertion only, and the reason is recorded rather than left as an omission:
+`Events.screen_fade_requested` is the node's only input and `run()` is synchronous, so a tween
+created inside the handler has not advanced when the next line reads `color.a`. A dissolve leaves
+the alpha where it started and a cut leaves it at the target — no awaits, no test-only accessor,
+and no reaching at the private tween.
+
+### What this package deliberately did not do
+
+- **It did not build screen shake**, which is candidate H, even though `reduce_motion` will have
+  to reach it. The pattern to copy is now written down on the rig.
+- **It did not touch `face_direction()`**, which is candidate C and the owner's seam decision.
+- **It wrote no ADR.** One `RefCounted` in `core`, two settings applied where the thing they
+  change already lives. No autoload, no new layer, no new seam concept.
+- **It did not fix what the owner saw.** Sideways movement reads as a slide, and it is the
+  placeholder SHEET rather than the camera or the animation code — candidate J, measured in this
+  row and left for its own.
+
+## Candidate rows — ranked. A, B, D AND I ARE DONE (T5.4, T5.5, T5.6, T5.7); J came from the owner
 
 These are the audit's findings that are packages rather than one-line corrections. Ranked by value
 to a consuming game per unit of work. Each is sized to one chat.
@@ -3889,5 +3986,6 @@ to a consuming game per unit of work. Each is sized to one chat.
 | E | **Music ducking, or delete it** | `stop_music`, `duck` and `unduck` have no callers anywhere — the only `duck` hit in the repository is the phrase "duck-typed" in a comment. Lowering music under dialogue is the obvious use and `DialogueRunner` is the home. Audio is honestly `PART` in the inventory, so this is small; the alternative is to delete three methods |
 | F | **The `Button` styleboxes** | The theme sets `font_sizes` on nine type variations and no `Button/styles/*`, so every menu row draws Godot's default StyleBox — already a declared known limitation, invisible against the shipped dark palette and immediately wrong against a light one |
 | G | **Autosave** | The largest of the three features T5.5 removed a setting for rather than fake. It needs a slot POLICY before it needs a trigger: `SaveSystem` has no notion of the slot a run belongs to, and `save_to_slot(slot)` is the only entry point. `Events.quit_requested` has exactly one performer (`GameRoot`) and `events.gd:199` already says an autosave policy will only ever need adding in one place, so the trigger is easy and the choice of slot is the design question. Bring the `gameplay/autosave` key back with it |
-| H | **Screen shake** | The second. No `shake` identifier exists anywhere under `src/`, so this is a feature and not a wiring — most naturally on `HD2DCameraRig`, which already owns placement and smoothing and has `follow_lag` to fight with. `gameplay/camera_shake` returns as its scale, and `accessibility/reduce_motion` should reach it in the same row, which is one of the two motions T5.5 left that setting missing |
-| I | **`reduce_motion` finished** | Small, and honest work rather than new surface. `ScreenFade` and `HD2DCameraRig.follow_lag` are both motion and both ignore the setting T5.5 wired to the typewriter. A fade that snaps and a camera that does not smooth are two more consumers of a `const` that already exists on `DialogueScreen`. Could fold into H |
+| H | **Screen shake** | The second of the two features T5.5 removed a setting for. No `shake` identifier exists anywhere under `src/`, so this is a feature and not a wiring — most naturally on `HD2DCameraRig`, which already owns placement and smoothing. `gameplay/camera_shake` returns as its scale. **`accessibility/reduce_motion` must reach it in the same row**, and T5.7 left the pattern to copy: `_authored_lag` beside `_authored_dof`, and the key named as a `const` on the consumer |
+| ~~I~~ | ~~**`reduce_motion` finished**~~ | **DONE — T5.7, 2026-09-05.** Both halves landed. The setting reaches all three motions, and the shadow atlas turned out to be a live defect rather than a portability worry: the `2048` const halved this repository's own atlas on every windowed boot, because the engine's default is 4096. Gotcha 61 |
+| J | **A placeholder sheet whose facings are distinguishable** | **NEW, from the owner looking at the game on 2026-09-05** — sideways movement "just slides to the side", and it does. `character_placeholder.png` draws ONE POSE EIGHT TIMES: measured, facing 4 (the back view) differs from facing 0 by **0.5%** of a 1,536-pixel cell, and no facing differs from another by more than 4%; the walk cycle itself is 1.6–5.8%. **The code is correct** — `_aim` quantises the facing and `update_from_velocity` advances the cycle, both asserted — so this is the gotcha-54 shape one level up: the facing machinery is asserted at both ends and has been invisible in every capture ever taken, T5.2's, T5.3's and T5.6's included. Lives entirely in `tools/gen_placeholders.gd` and the two placeholder PNGs; touches no `src/` file and needs no art-contract change, so **it is not a violation of "art is deferred"** — the placeholders are generated by a committed tool and this improves the tool. The proof is a capture of the same character walking north, east, south and west, which nothing has ever taken |

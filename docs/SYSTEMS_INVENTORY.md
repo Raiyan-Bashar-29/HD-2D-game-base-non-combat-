@@ -202,9 +202,13 @@ rather than oversights.
    existed on the camera rig from day one and had no caller anywhere for the whole project; the
    rig now listens for `video/depth_of_field` and remembers what the area author authored, so the
    setting is the player's veto rather than a blanket yes. Photographed both ways.
-   `accessibility/reduce_motion` reaches the dialogue typewriter, which is this template's one
-   piece of animated text — but `ScreenFade` and the camera's `follow_lag` are motion too and
-   still ignore it, so the setting is honest and not yet complete.
+   `accessibility/reduce_motion` reaches **all three motions this template draws as of T5.7**:
+   the dialogue typewriter arrives whole, `ScreenFade` cuts instead of dissolving, and
+   `HD2DCameraRig.follow_lag` goes to zero so the camera stops sliding after a stopped character.
+   The last two take the rig's veto shape — the setting may remove smoothing an area author
+   authored and may never add smoothing they refused. The camera half is photographed (the world
+   translates 42 px between the two settings at run speed); the fade half is proved by assertion
+   only, because a cut and a finished dissolve are the same picture.
 10. **Subtitles and speaker names,** on by default. Speaker names work. **The subtitle SETTING was
     removed by T5.5** rather than left inert: nothing in this template is voiced, so there is
     nothing to caption, and a row drawn to the player that cannot do anything is worse than a

@@ -31,6 +31,11 @@ extends Node3D
 @export var height_offset: float = 1.15
 ## Seconds for the camera to catch up. 0 is rigid, 0.25 is soft. Low values keep pixel art
 ## from smearing.
+##
+## AND IT IS THE ONE NUMBER ON THIS RIG THAT IS MOTION THE PLAYER DID NOT ASK FOR. Everything
+## else here is framing: change `distance` and the picture is different but still. Lag means the
+## camera keeps sliding after the character has stopped, which is the drift a reduce-motion
+## preference exists to remove, so `accessibility/reduce_motion` zeroes it. See `REDUCE_MOTION`.
 @export_range(0.0, 0.6, 0.01) var follow_lag: float = 0.10
 ## Vertical framing bias. Positive pushes the subject down the screen, showing more ahead.
 @export var frame_bias: float = 0.10
@@ -38,6 +43,10 @@ extends Node3D
 ## The setting this rig obeys. Named here, on the consumer, for the reason `PACE` is named on
 ## `PlayerController`: a setting nobody reads has nowhere to be written down.
 const DOF_SETTING: String = "video/depth_of_field"
+## The third consumer of `accessibility/reduce_motion`, after the typewriter and the fade. Same
+## convention, same file-local const, and the same VETO shape as `DOF_SETTING` below: it can only
+## ever remove motion the area author authored, never add motion they did not.
+const REDUCE_MOTION: String = "accessibility/reduce_motion"
 @export_group("Depth of field")
 @export var dof_enabled: bool = true
 ## Everything beyond target distance plus this blurs out.
@@ -56,6 +65,8 @@ var _smoothed: Vector3 = Vector3.ZERO
 var _attributes: CameraAttributesPractical = null
 ## What the area scene authored, before the player's setting was folded in.
 var _authored_dof: bool = true
+## The same, for the smoothing. A rig authored rigid stays rigid however the setting moves.
+var _authored_lag: float = 0.10
 
 
 func _ready() -> void:
@@ -76,6 +87,8 @@ func _ready() -> void:
 	_authored_dof = dof_enabled
 	dof_enabled = _authored_dof and Settings.get_bool(DOF_SETTING)
 	_apply_dof()
+	_authored_lag = follow_lag
+	_apply_reduce_motion()
 	Events.setting_changed.connect(_on_setting_changed)
 
 	# Adopt whoever is already here, then keep listening. Order of area load versus player
@@ -166,5 +179,15 @@ func set_dof_enabled(enabled: bool) -> void:
 ## AND ITS CALLER, which it did not have. `video/depth_of_field` was drawn to the player and
 ## translated from WP-01 and this method was the thing it should have reached the whole time.
 func _on_setting_changed(section: String, key: String, _value: Variant) -> void:
-	if "%s/%s" % [section, key] == DOF_SETTING:
+	var path: String = "%s/%s" % [section, key]
+	if path == DOF_SETTING:
 		set_dof_enabled(_authored_dof and Settings.get_bool(DOF_SETTING))
+	elif path == REDUCE_MOTION:
+		_apply_reduce_motion()
+
+
+## Zero the smoothing, or put the area author's number back. Assigned rather than clamped,
+## because `follow_lag` is what `_physics_process` reads every frame and a second "effective lag"
+## variable beside it is two numbers that can disagree — the defect this project keeps finding.
+func _apply_reduce_motion() -> void:
+	follow_lag = 0.0 if Settings.get_bool(REDUCE_MOTION) else _authored_lag

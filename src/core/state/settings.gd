@@ -56,15 +56,17 @@ const DEFAULTS: Dictionary = {
 	"locale": "en",
 }
 
-## Shadow map sizes restored when `video/shadows` is on. The engine's own defaults, spelled out
-## here because zero is the off value and something has to remember what on meant.
-const POSITIONAL_ATLAS: int = 2048
-const DIRECTIONAL_ATLAS: int = 2048
+## Shadow map sizes are NOT a const here any more. They were, and the number was wrong: 2048 was
+## described as "the engine's own default" and the engine's default is 4096, so toggling
+## `video/shadows` halved the atlas of this very repository. `ShadowAtlas` reads what the project
+## authored instead, on `HD2DCameraRig._authored_dof`'s pattern. See that file's header.
 
 ## The one setting with no section, and the second this file applies without a system owning it.
 const LOCALE: String = "locale"
 
 var _config: ConfigFile = ConfigFile.new()
+## RefCounted, so it needs no freeing and leaks no RID. It holds the two authored sizes.
+var _shadows: ShadowAtlas = ShadowAtlas.new()
 
 
 func _ready() -> void:
@@ -241,9 +243,11 @@ func _apply_render_scale(scale: float) -> void:
 ## So it is applied at the ATLAS instead: a shadow map of size zero means every light in the world
 ## casts nothing, whoever placed it and whenever. A game that adds a hundred lights gets this
 ## setting for free and writes no code, which is the whole test of a template seam.
+##
+## THE RESTORE HALF WAS WRONG UNTIL T5.7, and only the OFF half was ever photographed. Turning
+## shadows back on wrote a 2048 const, and 4096 is what this project — and the engine — actually
+## authors, so a player who toggled the setting once got half the shadow resolution back and
+## nothing said so. `ShadowAtlas` remembers the authored sizes before the first zeroing, which is
+## the only moment they can still be read.
 func _apply_shadows(enabled: bool) -> void:
-	var viewport: Viewport = get_viewport()
-	if viewport == null:
-		return
-	viewport.positional_shadow_atlas_size = POSITIONAL_ATLAS if enabled else 0
-	RenderingServer.directional_shadow_atlas_set_size(DIRECTIONAL_ATLAS if enabled else 0, true)
+	_shadows.apply(get_viewport(), enabled)

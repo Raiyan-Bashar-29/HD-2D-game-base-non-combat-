@@ -6155,3 +6155,175 @@ texture-imported on every fresh clone. The record is the decoded numbers quoted 
 permanent tool that re-takes the whole run in one command, which is strictly better than a PNG:
 a committed image proves what one tree once looked like, and `--gait-shots` proves what this one
 looks like now.
+
+## 2026-09-05 — T5.7 · `reduce_motion` finished, plus the shadow atlas
+
+**Did.** Gave `accessibility/reduce_motion` its two missing consumers, and replaced the shadow
+atlas const with the size the project actually authored. Candidate I, both halves diagnosed by
+T5.5, written down as gaps, and deliberately skipped by T5.6. One of them was not the defect it
+had been filed as. New `src/core/state/shadow_atlas.gd` (21 code lines), new
+`tests/unit/settings_effects_test.gd` (a split, forced by a budget), one new gotcha, and one
+finding that belongs to the owner rather than to this row.
+
+**The three motions.** The setting had one consumer and has three. Each names the key as a `const`
+on itself — `DialogueScreen.REDUCE_MOTION`, `ScreenFade.REDUCE_MOTION`, `HD2DCameraRig.REDUCE_MOTION` —
+which is the convention that makes `_is_consumed` decidable rather than a heuristic, and a new
+assertion requires all three to agree with the declaration in `DEFAULTS`.
+
+| Motion | Consumer | Effect |
+|---|---|---|
+| animated TEXT | `DialogueScreen._on_line_changed` | the line arrives whole (T5.5) |
+| the screen FADE | `ScreenFade._on_fade_requested` | cuts, exactly as `seconds <= 0.0` already did |
+| the CAMERA | `HD2DCameraRig._apply_reduce_motion` | `follow_lag` -> 0, so the camera stops sliding after a stopped character |
+
+**THE CUT IS NOT A FASTER FADE**, and that is a decision rather than an economy: halving a duration
+is still animation, and a preference that only makes motion briefer has not honoured the request.
+`DialogueScreen` chose the same way for the same reason a row earlier, and its header says so.
+
+**THE CAMERA TAKES `_authored_dof`'s VETO SHAPE, which is the half worth reading.** `_authored_lag`
+is read at `_ready` before the setting is folded in, so a rig an area author shipped rigid stays
+rigid however the setting moves: the setting may REMOVE smoothing an author authored and may never
+ADD smoothing they refused. Assigned to `follow_lag` rather than clamped at the read site, because
+a second "effective lag" variable beside the exported one is two numbers that can disagree.
+
+**AND THE SHADOW HALF WAS A LIVE DEFECT IN THIS REPOSITORY, NOT THE PORTABILITY WORRY IT WAS FILED
+AS.** T5.5 recorded it as *a game that authored a different atlas size would have it replaced the
+first time a player toggles shadows.* Measured on a real display server:
+
+```
+                       boot     off      back on
+with the 2048 const    2048     0        2048
+with ShadowAtlas       4096     0        4096
+```
+
+The engine's default positional atlas is **4096**, and `_apply_display()` runs at `_ready` — so
+this repository booted **every windowed session at half the shadow resolution the project
+authored**, before a player touched anything. Two things hid it for two rows, and the second is
+the transferable one. The OFF half is the half a wrong constant cannot break, and off is the only
+half T5.5 photographed. And `_apply_display()` returns early when
+`DisplayServer.get_name() == "headless"`, so **no rung below the windowed capture executes that
+code at all** — the suite could not have caught it however many assertions were aimed at the
+setting. That is **gotcha 61**.
+
+**WHERE IT WENT, WHICH THE ROW WAS ASKED TO DECIDE.** `settings.gd` was at 144 of its 150-line
+override and the fix needs STATE. So it is `ShadowAtlas`, a `RefCounted` in `core` owning one
+property of the renderer and knowing nothing about `video/shadows`, and **`settings.gd` came DOWN
+to 139** because two consts and four lines of body left with it. A const could not have been right
+there at all: the number is a project setting a consuming game is invited to change, so the only
+correct value is the one read back before the first zeroing. It is `RefCounted`, so nothing leaks
+at exit.
+
+**WHY. And what the verification found out about ITSELF.** The row was told to think about what a
+still frame can prove before promising one, on T5.5's honest limit — *an instant reveal
+photographs identically to a finished one.* That limit holds for the fade and **fails for the
+camera**, and noticing why is the most useful thing this row produced. A fade CONVERGES. A camera
+following a moving character never does: `follow_lag` sets a steady trailing distance that
+persists for as long as the character keeps walking, so there is a picture to take after all.
+
+**Connects.** `ShadowAtlas` sits beside `settings.gd` in `core/state/` and is the second thing in
+this project to remember an authored value before folding a preference in; `HD2DCameraRig` is the
+first, and now does it twice. `ScreenFade` gained a setting read and no listener — it reads per
+request rather than caching at `_ready`, because the choice is made fresh each time the shutter is
+asked for and there is nothing to un-apply. Nothing was added to `Events` or `GameEnums`, no
+autoload was added, no ADR was needed, and `check_layers` is unchanged at `core -> ... -> ui`.
+
+**Verified.** Every line is a measured exit code.
+
+```
+--headless --import                                        exit 0 (run first; gotcha 53)
+--headless --quit-after 30                                 Session ended after 0.8s — 0 warnings, 0 errors
+--headless res://tests/test_runner.tscn --quit-after 400   === 1821 passed, 0 failed, 0 skipped ===, exit 0
+tools/check_budgets.gd    exit 0   150 files, 13417 code lines, 0 violations
+tools/check_content.gd    exit 0
+tools/check_boundary.gd   exit 0   214 rows, 51 content namespace
+tools/check_strings.gd    exit 0
+tools/check_layers.gd     exit 0   90 symbols over 100 scripts
+tools/check_signals.gd    exit 0   42 signals declared, 91 emit references over 40
+```
+
+Suite 1,798 -> 1,821. `settings.gd` 144 -> 139, `hd2d_camera_rig.gd` 93 -> 102, `screen_fade.gd`
+17 -> 18, `shadow_atlas.gd` 21 (new).
+
+**EVERY NEW GATE PROVED BY PLANTING THE DEFECT, WATCHING IT FAIL, REMOVING IT AND WATCHING IT
+PASS. Four plants, and BOTH exit codes are here.** Each is a real reversion rather than a broken
+assertion, and all four were re-run AFTER the file split so the numbers below are the final ones.
+
+| Plant | Result |
+|---|---|
+| `ScreenFade` ignores the setting again (`if seconds <= 0.0:`) | `and with reduce motion on the identical request has already landed — expected true, got false`. **1820 passed, 1 failed, exit 1** |
+| the rig stops zeroing `follow_lag` (`follow_lag = _authored_lag`) | `the setting zeroes the smoothing — expected true, got false` and `and the same step now lands the camera exactly on the target, with no drift left — expected true, got false`. **1819 passed, 2 failed, exit 1** |
+| `ShadowAtlas` restores a `2048` const again | **`and turning them back on restores what the project authored, not a constant — expected 4096, got 2048`** and `so this viewport gets ITS size back and not the root's — expected 1024, got 2048`. **1819 passed, 2 failed, exit 1** |
+| the `ScreenFade` NODE is deleted from `game_root.tscn`, `[ext_resource]` left in place | `and the running game has a fade, under UILayer — expected ./UILayer, got `. **1820 passed, 1 failed, exit 1** |
+| all removed | **`1821 passed, 0 failed`, exit 0** |
+
+**The fourth plant is gotcha 56 re-proved on a second node, and it was written that way on
+purpose.** `grep` still found `2_fade` in the file after the node was gone — the `[ext_resource]`
+line outlives every node that used it — so a text search would have stayed byte-identically green.
+Read through `PackedScene.get_state()`, a script is a PROPERTY of a node and the node either
+exists or does not. T5.5 discovered this the hard way on `UiAccessibility`; this row assumed it
+and planted to confirm the assumption, which is the cheaper order.
+
+**Windowed captures, LOOKED AT.** Gotcha 2, and this row has one claim that a still frame CAN
+carry and one it cannot.
+
+- **The camera, `reduce_motion` off against on**, two `--gait-shots` runs at noon differing by one
+  line of `user://settings.cfg` and nothing else. In the run frame the whole world is translated
+  **42 px**: a brute-force offset search over a static band (rows 340-450, no HUD and no
+  character) puts the residual at **0.0268 at -42 px** against **0.0975 at zero**, a 3.6x drop, so
+  it is a RIGID SHIFT of the scene rather than a lighting or content difference. Every static
+  landmark agrees — the pillar edge, the platform edge, the crate and the low wall move together
+  while the character stays put. **This is the camera lagging behind a running character,
+  photographed.**
+- **The shadow atlas, on a real display server**, driven through `Settings.set_value` rather than
+  through `_apply_shadows`, because the public path is the half `--headless` cannot reach:
+  `4096 -> 0 -> 4096` with the fix and `2048 -> 0 -> 2048` without it. The probe was temporary and
+  is not committed; the assertions are the permanent record.
+- **The regression capture**, `--new-game --time=18:40 --freeze-time` at 960x540 with defaults:
+  courtyard at dusk, both characters lit, depth-sorted and casting shadows, HUD reading
+  `Day 1 | 18:40 | Dusk`, prompt on screen, `0 warnings, 0 errors`, exit 0. The demo is unchanged.
+- **The fade is NOT photographed and the reason is recorded rather than left as an omission.** A
+  cut and a finished dissolve are the same picture. What separates them is the frames between, so
+  it is proved by driving `Events.screen_fade_requested` — the node's only input — inside a
+  synchronous `run()`, where a tween has not advanced when the next line reads `color.a`.
+
+**`settings_consumers_test.gd` hit 269 of its 250 and split, which is the same seam T5.6 hit on
+`art_contract_test.gd`.** The split is by QUESTION rather than by size: that file asks *is this key
+reached, and is its consumer wired into the running game* — a reachability question answered
+against `Settings.DEFAULTS` and `SceneState`. `settings_effects_test.gd` asks *and does the effect
+actually happen*, answered by driving the real path and reading the number that comes back. The two
+fail differently and are worth failing separately, which is exactly the pair of defects this row
+found: a key can be read by a consumer that does the wrong thing with it.
+
+**Unblocks.** Candidate H (screen shake) has its pattern written down: `_authored_lag` beside
+`_authored_dof`, and `reduce_motion` reaching the shake in the same row rather than after it. A
+consuming game that authors its own shadow atlas size in `project.godot` now keeps it. And
+`settings_effects_test.gd` is the home for the next setting whose EFFECT needs proving, which
+`settings_consumers_test.gd` was starting to become by default.
+
+**Gaps, stated rather than left to be rediscovered.**
+- **THE OWNER LOOKED AT THE GAME MID-ROW AND FOUND SOMETHING NO EXIT CRITERION ASKS ABOUT.**
+  Sideways movement "just slides to the side", and it does. `character_placeholder.png` draws ONE
+  POSE EIGHT TIMES: measured, facing 4 — the back view, 180 degrees from facing 0 — differs by
+  **0.5%** of a 1,536-pixel cell, and no facing differs from another by more than 4%; the walk
+  cycle itself is 1.6-5.8%. **The code is correct** — `_aim` quantises the facing
+  (`facing_test.gd`) and `update_from_velocity` advances the cycle (`gaits_test.gd`, T5.3) — the
+  sheet has nothing different to draw. That is gotcha 54's shape one level up: the facing
+  machinery is asserted at both ends and has been invisible in every capture ever taken, T5.2's,
+  T5.3's and T5.6's included, and **nobody noticed until somebody played it.** Candidate J. It
+  lives entirely in `tools/gen_placeholders.gd` and the two placeholder PNGs, touches no `src/`
+  file and needs no art-contract change.
+- **`reduce_motion` is complete for the motions that EXIST, which is not the same as complete.**
+  Screen shake is candidate H and does not exist yet; when it does, the setting has to reach it in
+  the same row rather than in a fourth one, or this is a gap again.
+- **The fade's cut is proved by assertion and cannot be photographed**, and the first plant only
+  failed ONE of the three fade assertions — with the setting ignored, the alpha happens to sit at
+  the target of the following to-black request, so "in both directions" stayed green. One
+  assertion is enough to fail the run, but the pair is weaker than it reads.
+- **`Settings._apply_shadows` is driven directly by the suite**, because `_apply_display()` returns
+  early under `--headless` and the public path from `set_value` cannot reach the atlas there at
+  all. What the assertions prove is the wire from the autoload to `ShadowAtlas` and the number
+  that comes back; the full public path is proved only by the windowed probe above, which is not
+  committed. A permanent debug flag that sets a setting and prints the applied value would close
+  that, and no row has needed one badly enough yet.
+- **No ADR.** One `RefCounted` in `core`, two settings applied where the thing they change already
+  lives. No autoload, no new layer, no new seam concept.

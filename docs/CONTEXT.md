@@ -3,7 +3,31 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-05 · **T5.6 (a wholesale character swap, photographed) complete —
+**Last updated:** 2026-09-05 · **T5.7 (`reduce_motion` finished, and the shadow atlas) complete —
+`accessibility/reduce_motion` NOW REACHES ALL THREE MOTIONS THIS TEMPLATE DRAWS, and the shadow
+atlas fix turned out to be a live defect in this repository rather than a hypothetical fork's.**
+`ScreenFade` cuts instead of dissolving and `HD2DCameraRig.follow_lag` goes to zero, both on
+`_authored_dof`'s veto shape: the setting may remove motion an area author authored and may never
+add motion they did not. **THE SHADOW CONST WAS WRONG, NOT MERELY UNPORTABLE.** `_apply_shadows`
+restored `2048` under a comment calling it "the engine's own default"; the engine's default is
+**4096**, so every windowed boot of this repository ran at half the authored shadow resolution —
+measured `boot = 2048` against `boot = 4096` on a real display server. `ShadowAtlas` (new, `core`)
+reads the authored sizes before the first zeroing, and `settings.gd` went 144 → 139 of its 150.
+That is **gotcha 61**, and its second half is the one that transfers: `_apply_display()` returns
+early under `--headless`, so **no rung below the windowed capture executes that code at all** —
+the suite could not have caught it however many assertions were aimed at the setting.
+
+**AND THE CAMERA MOTION WAS PHOTOGRAPHABLE AFTER ALL, WHICH CONTRADICTS THIS ROW'S OWN
+PREDICTION.** T5.5's honest limit — an instant reveal photographs identically to a finished one —
+holds for the fade and does NOT hold for the camera, because a camera following a moving character
+has no "finished" state to converge on. Two `--gait-shots` runs differing by one line of
+`settings.cfg`: the whole world is translated **42 px** between them, and a brute-force offset
+search over a static band puts the residual at 0.0268 at −42 px against 0.0975 at zero — a rigid
+shift, so it is the camera and not the light. The fade is still proved by assertion only, and the
+reason is written down rather than left as an omission. Version 2.2.0, untagged. Suite 1,798 → 1,821; four plants, each
+exit 1, including the `[ext_resource]` one that re-proves gotcha 56 on a second node.
+
+**T5.6 (a wholesale character swap, photographed) is the row before it —
 PHASE T5'S LAST PROOF CRITERION IS MET AND THE PHASE IS CLOSABLE AT THE OWNER'S WORD.** The
 repository held a sheet with a different GRID and a sheet with GAITS and **never one with both**,
 so the phase's claim — a future game inherits working characters and changes only assets — had
@@ -589,15 +613,16 @@ three compiled cleanly and passed every static gate:**
   un-frozen screenshot is not reproducible.
 - The environment driver rebuilds a `Dictionary` every frame in `_sample()`. Measured as
   harmless at this scale; revisit if the frame budget tightens.
-- **`accessibility/reduce_motion` has ONE consumer where it should have three.** T5.5 gave it the
-  dialogue typewriter, which is this template's one piece of animated TEXT. `ScreenFade` and
-  `HD2DCameraRig.follow_lag` are also motion and both still ignore it. One consumer makes the
-  setting honest, not complete.
-- **`Settings._apply_shadows` restores the shadow atlas to a `2048` const rather than to whatever
-  the project authored.** A game that set a different atlas size in `project.godot` would have it
-  replaced by that constant the first time a player toggles shadows. Reading the authored value at
-  boot, the way `HD2DCameraRig` remembers `_authored_dof`, is the fix and costs two lines
-  `settings.gd` does not have — it is at 144 of its 150-line override.
+- **THE PLACEHOLDER SHEET DRAWS ONE POSE EIGHT TIMES, so no facing is visible in any picture.**
+  Measured on `character_placeholder.png`: every facing's walk cell is within 4% of facing 0's,
+  and facing 4 — the one 180 degrees away, the back view — differs by **0.5%**, about eight pixels
+  of a 1,536-pixel cell. The walk cycle itself is 1.6-5.8%. So a character moving sideways is a
+  front-facing figure translating across the screen, which is what the owner reported as "they
+  just slide to the side" on 2026-09-05. **The CODE is correct** — `_aim` quantises the facing
+  (`facing_test.gd`) and `update_from_velocity` advances the cycle (`gaits_test.gd`, T5.3) — the
+  sheet has nothing different to draw. Same shape as gotcha 54 one level up: the facing machinery
+  is asserted at both ends and invisible in every capture ever taken. Fixable inside
+  `tools/gen_placeholders.gd` alone, no `src/` and no art-contract change, and it is candidate J.
 - **Three settings were REMOVED rather than wired, and each is a real feature a game will want.**
   Screen shake, autosave and subtitles. Autosave is the largest: `SaveSystem` has no notion of the
   slot a run belongs to, so it needs a slot POLICY before it needs a trigger, and picking one is a
@@ -1160,7 +1185,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Sixty gotchas that each cost an hour
+## Sixty-one gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -1840,6 +1865,21 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     `Vector2(shot.get_size()) / camera.get_viewport().get_visible_rect().size` rather than by a
     literal 0.5, or the crop is right at one resolution and silently wrong at every other.
 
+61. **A CONSTANT THAT "SPELLS OUT THE ENGINE'S DEFAULT" IS A SECOND COPY OF A NUMBER YOU DO NOT
+    OWN, AND `--headless` CANNOT SEE IT WRONG.** `Settings._apply_shadows` sized the shadow
+    atlas to zero to turn shadows off and restored `const POSITIONAL_ATLAS: int = 2048` to turn
+    them back on, under a comment calling 2048 the engine's own default. It is 4096 —
+    `rendering/lights_and_shadows/positional_shadow/atlas_size` and the directional size both
+    default to 4096 in 4.7.2 — so this repository booted every windowed session at half the
+    shadow resolution the project authored, measured `boot = 2048` against `boot = 4096`. Two
+    things hid it. The OFF half is the half a wrong constant cannot break, and off is the only
+    half T5.5 photographed. And `_apply_display()` returns early when
+    `DisplayServer.get_name() == "headless"`, so no rung below the windowed capture executes this
+    code at all — the suite could not have caught it however many assertions were pointed at the
+    setting. Read the authored value back before the first write, the way
+    `HD2DCameraRig._authored_dof` does; a preference is a VETO over what the author chose, and a
+    veto has to remember what it is vetoing.
+
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the
@@ -1856,11 +1896,12 @@ decision three rows in a row have declined to make silently. **Putting that ques
 is itself the next action, and it is cheaper than any package below.** What follows is a real
 choice, not a queue:
 
-- **Candidate I — `reduce_motion` finished.** The smallest honest row on the board and the one
-  T5.6 explicitly skipped rather than folded in: `ScreenFade` and `HD2DCameraRig.follow_lag` are
-  both motion and both ignore the setting T5.5 wired to the typewriter. Take `_apply_shadows`'
-  `2048` const with it — the fix is `HD2DCameraRig`'s `_authored_dof` pattern and it needs a home
-  outside `settings.gd`, which is at 144 of its 150-line override.
+- **Candidate J — a placeholder sheet whose facings are distinguishable.** NEW, and it comes from
+  the owner looking at the game on 2026-09-05: sideways movement reads as a slide because all
+  eight facings draw the same front-on figure, measured at 0.5% difference between the front view
+  and the back. It is the cheapest row on this list, it touches `tools/gen_placeholders.gd` and
+  the two placeholder PNGs and nothing under `src/`, and it would make the facing machinery
+  visible in a capture for the first time. **Recommended next.**
 - **Candidate E — music ducking, or delete it.** `stop_music`, `duck` and `unduck` have no
   callers anywhere. Lowering music under dialogue is the obvious use and `DialogueRunner` is the
   home; the honest alternative is deleting three methods.

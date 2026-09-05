@@ -20,6 +20,46 @@ the exact rot this discipline exists to prevent.
 
 ---
 
+## 2.2.0
+
+*2026-09-05 — `accessibility/reduce_motion` reaches all three motions the base draws instead of
+one, and the shadow atlas is restored to the size your `project.godot` authored instead of to a
+constant that was wrong.*
+
+**A consuming game does:** nothing, and there is nothing to grep for. Both changes are inside
+files the base owns, and both make an existing setting do what its label already promised. But two
+of them are VISIBLE, so see them before your players do.
+
+**`accessibility/reduce_motion` now zeroes `HD2DCameraRig.follow_lag` and cuts `ScreenFade`.** It
+previously reached only the dialogue typewriter. If your game ships rigs with a smoothed follow —
+the base's default is `0.10` — a player with reduce-motion ON will now get a camera locked to the
+character instead of one that slides after it, and area transitions will cut to black instead of
+dissolving. **Your authored `follow_lag` is remembered and restored** when the setting goes off, on
+the same `_authored_dof` pattern `video/depth_of_field` has used since 2.0.0: the setting is the
+player's VETO over what your area author chose, never a replacement for it, and a rig you shipped
+at `follow_lag = 0.0` stays rigid however the setting moves. Nothing to change in your area scenes.
+
+**`video/shadows` no longer replaces your shadow atlas size with 2048.** This one is a fix to a
+defect that was live in the base, and if you authored
+`rendering/lights_and_shadows/positional_shadow/atlas_size` or `.../directional_shadow/size` in
+your `project.godot`, **the base was silently discarding it at boot.** `Settings._apply_shadows`
+restored a `const POSITIONAL_ATLAS: int = 2048` described as "the engine's own default"; the
+engine's default is **4096**. Measured on the base itself: it booted every windowed session at
+`2048` and now boots at `4096`. The new `ShadowAtlas` (`src/core/state/shadow_atlas.gd`) reads
+both sizes back before the first zeroing and restores those, so whatever you authored is what you
+get. **If your game looked correct to you before this version, your shadows may now be sharper and
+slightly more expensive than you tuned for** — that is the authored value arriving, not a
+regression, and you can set the two project settings to 2048 to get the old picture back
+deliberately.
+
+Nothing else in this version can reach a game. `settings.gd` came down from 144 to 139 code lines
+and gained no new key; no setting was added or removed, so `settings_screen.gd` draws the same
+twenty rows; no signal, enum value or autoload changed. `tests/unit/settings_consumers_test.gd`
+split at its budget and `tests/unit/settings_effects_test.gd` is the new half — a test-only change,
+but worth knowing if you carry local edits to that file.
+
+---
+
 ## 2.1.0
 
 *2026-09-05 — the second placeholder sheet gained a complete gait set, so the wholesale character

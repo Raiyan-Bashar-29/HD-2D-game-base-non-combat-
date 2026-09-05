@@ -47,10 +47,14 @@ const SRC: String = "res://src"
 ## assertion in this file builds its own and would pass without it.
 const GAME_ROOT: String = "res://scenes/boot/game_root.tscn"
 const ACCESSIBILITY_SCRIPT: String = "res://src/ui/root/ui_accessibility.gd"
+## The fade has no `class_name` — it is a script on one node in one scene — so the const it names
+## its setting with is reached through the script itself, and `new()` builds the ColorRect.
+const FADE_SCRIPT: String = "res://src/ui/hud/screen_fade.gd"
+const FADE: GDScript = preload("res://src/ui/hud/screen_fade.gd")
 
 
 func run() -> void:
-	plan(64)
+	plan(69)
 	_every_setting_has_a_consumer()
 	_reset_puts_the_language_back()
 	_the_setting_vetoes_depth_of_field_and_the_author_still_decides()
@@ -58,6 +62,7 @@ func run() -> void:
 	_text_scale_moves_the_theme_and_never_compounds()
 	_only_a_rebindable_action_may_be_rebound()
 	_there_is_no_jump_action()
+	_reduce_motion_reaches_every_motion_this_template_has()
 	_tear_down()
 
 
@@ -188,7 +193,7 @@ func _text_scale_moves_the_theme_and_never_compounds() -> void:
 	# was deleted, because the `[ext_resource]` line survives a node's removal and eight other
 	# nodes carry that parent. Planted and measured. The engine's own parse cannot be fooled
 	# that way: a script is a PROPERTY of a node here, and the node either exists or does not.
-	equal("and the running game actually has one, under UILayer", _accessibility_parent(), "./UILayer")
+	equal("and the running game actually has one, under UILayer", _parent_of_script(ACCESSIBILITY_SCRIPT), "./UILayer")
 
 
 ## The gate was `InputMap.has_action`, so an action outside REBINDABLE could be overridden and
@@ -268,10 +273,13 @@ func _tear_down() -> void:
 	Actions.reset_bindings()
 
 
-## The parent of the node in `game_root.tscn` whose script is `ui_accessibility.gd`, or "" if
-## there is no such node. `get_node_path` returns the path relative to the scene root, so a node
-## under UILayer answers "./UILayer" and one that was deleted answers nothing at all.
-func _accessibility_parent() -> String:
+## The parent of the node in `game_root.tscn` carrying `script_path`, or "" if there is no such
+## node. `get_node_path` returns the path relative to the scene root, so a node under UILayer
+## answers "./UILayer" and one that was deleted answers nothing at all.
+##
+## TAKES THE SCRIPT AS AN ARGUMENT because T5.7 needed the same question asked of `ScreenFade`,
+## and a second copy of this walk is a second thing to get wrong.
+func _parent_of_script(script_path: String) -> String:
 	var packed: PackedScene = load(GAME_ROOT)
 	if packed == null:
 		return ""
@@ -281,6 +289,28 @@ func _accessibility_parent() -> String:
 			if state.get_node_property_name(node, property) != &"script":
 				continue
 			var script: Script = state.get_node_property_value(node, property) as Script
-			if script != null and script.resource_path == ACCESSIBILITY_SCRIPT:
+			if script != null and script.resource_path == script_path:
 				return String(state.get_node_path(node, true))
 	return ""
+
+
+## THE THREE MOTIONS, NAMED IN ONE PLACE. T5.5 wired `accessibility/reduce_motion` to the
+## typewriter and said in its own DEVLOG that one consumer makes a setting honest and not
+## complete. A screen fade and a lagging camera are the other two motions this template draws,
+## and a preference that spares a player one of three has told them something untrue.
+##
+## Each consumer names the key on ITSELF, which is what makes `_is_consumed` decidable rather
+## than a heuristic - so this asserts the three consts agree with the declaration, because three
+## copies of a string are three chances to typo one into a key nothing sets.
+func _reduce_motion_reaches_every_motion_this_template_has() -> void:
+	var key: String = DialogueScreen.REDUCE_MOTION
+	equal("the setting is declared", Settings.DEFAULTS.has(key), true)
+	equal("the typewriter names it", DialogueScreen.REDUCE_MOTION, key)
+	equal("the fade names the same one", FADE.REDUCE_MOTION, key)
+	equal("and so does the camera rig", HD2DCameraRig.REDUCE_MOTION, key)
+	# AND THE WIRE, read through `SceneState` rather than as text - gotcha 56. Every fade
+	# assertion below builds its own ColorRect and would stay green in a checkout where the
+	# running game instances none.
+	equal("and the running game has a fade, under UILayer",
+			_parent_of_script(FADE_SCRIPT), "./UILayer")
+

@@ -12,9 +12,10 @@ extends Node3D
 ##      what sells "miniature". Blurring only the distance just looks like fog.
 ##   4. Smoothed following, with the character sitting slightly low in frame.
 ##
-## OWNS: camera placement, framing and its depth-of-field attributes.
+## OWNS: camera placement, framing, its depth-of-field attributes, and the screen shake.
 ## MUST NOT: read input, or know what it is following beyond a Node3D target. It does not
-## know the player exists; it is handed a target.
+## know the player exists; it is handed a target. It must not know WHY it was asked to shake
+## either - `shake()` takes a strength and a duration and no reference to whatever hit.
 ##
 ## PER-AREA FRAMING: this rig lives in the area scene, not in the player scene, so a tight
 ## courtyard can frame closer than an open field. Duplicate it and change the numbers.
@@ -47,6 +48,21 @@ const DOF_SETTING: String = "video/depth_of_field"
 ## convention, same file-local const, and the same VETO shape as `DOF_SETTING` below: it can only
 ## ever remove motion the area author authored, never add motion they did not.
 const REDUCE_MOTION: String = "accessibility/reduce_motion"
+## The player's SCALE on the shake, 0..1, and the second setting this rig obeys. It was in
+## `Settings.DEFAULTS` until T5.5 removed it, because there was no shake anywhere under `src/`
+## for it to scale and a row drawn to the player that does nothing is worse than a dead
+## constant. It comes back with the feature, exactly as version 2.0.0's entry said it would.
+const SHAKE_SETTING: String = "gameplay/camera_shake"
+
+@export_group("Screen shake")
+## Metres the camera slides at full strength, BEFORE the player's scale is folded in. This is
+## the area author's number: zero here means this rig never shakes, whoever asks and whatever
+## the player prefers, the same way `dof_enabled = false` survives the DOF setting.
+@export_range(0.0, 1.0, 0.01) var shake_metres: float = 0.35
+## Oscillations per second. High enough to read as an impact rather than as a swoon; low
+## enough that a 60fps frame does not alias the wave into a jitter.
+@export_range(1.0, 40.0, 0.5) var shake_hz: float = 18.0
+
 @export_group("Depth of field")
 @export var dof_enabled: bool = true
 ## Everything beyond target distance plus this blurs out.
@@ -67,6 +83,12 @@ var _attributes: CameraAttributesPractical = null
 var _authored_dof: bool = true
 ## The same, for the smoothing. A rig authored rigid stays rigid however the setting moves.
 var _authored_lag: float = 0.10
+## The same again for the shake amplitude. The THIRD authored value this rig remembers, after
+## `_authored_dof` and `_authored_lag`, and the reason has not changed: a preference is a veto.
+var _authored_shake: float = 0.35
+var _shake_left: float = 0.0
+var _shake_total: float = 0.0
+var _shake_strength: float = 0.0
 
 
 func _ready() -> void:
@@ -89,6 +111,9 @@ func _ready() -> void:
 	_apply_dof()
 	_authored_lag = follow_lag
 	_apply_reduce_motion()
+	_authored_shake = shake_metres
+	_apply_shake_scale()
+	Events.camera_shake_requested.connect(shake)
 	Events.setting_changed.connect(_on_setting_changed)
 
 	# Adopt whoever is already here, then keep listening. Order of area load versus player
@@ -119,6 +144,10 @@ func _on_target_lost() -> void:
 ## Physics-frame following, because the target is a physics body. Following in _process
 ## against a body that moves in _physics_process is the usual cause of camera jitter.
 func _physics_process(delta: float) -> void:
+	# Decayed BEFORE the target guard, so a rig that lost its target does not hold a shake
+	# frozen at full amplitude waiting for the next one.
+	if _shake_left > 0.0:
+		_shake_left = maxf(0.0, _shake_left - delta)
 	if _target == null or not is_instance_valid(_target):
 		return
 	if follow_lag <= 0.0:
@@ -146,6 +175,7 @@ func _place() -> void:
 	var back: Vector3 = Vector3(0.0, 0.0, 1.0).rotated(Vector3.RIGHT, pitch).rotated(Vector3.UP, yaw)
 	camera.global_position = focus + back * distance
 	camera.look_at(focus - Vector3.UP * (frame_bias * distance * 0.1), Vector3.UP)
+	_offset_by_shake()
 	_update_dof_distances()
 
 
@@ -184,6 +214,9 @@ func _on_setting_changed(section: String, key: String, _value: Variant) -> void:
 		set_dof_enabled(_authored_dof and Settings.get_bool(DOF_SETTING))
 	elif path == REDUCE_MOTION:
 		_apply_reduce_motion()
+		_apply_shake_scale()
+	elif path == SHAKE_SETTING:
+		_apply_shake_scale()
 
 
 ## Zero the smoothing, or put the area author's number back. Assigned rather than clamped,
@@ -191,3 +224,57 @@ func _on_setting_changed(section: String, key: String, _value: Variant) -> void:
 ## variable beside it is two numbers that can disagree — the defect this project keeps finding.
 func _apply_reduce_motion() -> void:
 	follow_lag = 0.0 if Settings.get_bool(REDUCE_MOTION) else _authored_lag
+
+
+## ASK FOR A SHAKE. `strength` is 0..1 of whatever this rig's author allowed and `seconds` is
+## how long it decays over; both are the caller's account of what just happened, and neither is
+## a distance. Connected to `Events.camera_shake_requested` in `_ready`, so nothing has to hold
+## a reference to the camera to be able to knock it - which is the whole reason the ask is on
+## the bus rather than being a method somebody has to find the rig to call.
+##
+## A NEW REQUEST REPLACES WHATEVER WAS RUNNING rather than summing with it. Summing means a
+## thing that can be triggered repeatedly can drive the camera arbitrarily far off the world,
+## and "the newest impact is the one you feel" is both the cheaper rule and the truer one.
+func shake(strength: float, seconds: float) -> void:
+	if strength <= 0.0 or seconds <= 0.0:
+		return
+	_shake_strength = clampf(strength, 0.0, 1.0)
+	_shake_total = seconds
+	_shake_left = seconds
+
+
+## THE SHAKE ITSELF, AND IT IS A DECAYING SINE RATHER THAN NOISE ON PURPOSE. Random jitter is
+## what most engines reach for and it cannot be verified: two runs of a random shake differ, so
+## no assertion can say the camera moved by the right amount and no pair of captures can be
+## compared. A sine is periodic and reproducible, which is what made this feature photographable
+## at all - see the DEVLOG for T5.9.
+##
+## APPLIED ALONG THE CAMERA'S OWN AXES, AFTER `look_at`, so it is a screen-space slide that
+## leaves the aim exactly where `_place` put it. Displacing the focus point instead would swing
+## the whole world about, which reads as a lurch rather than as an impact.
+##
+## The vertical component runs at half the frequency and half the amplitude, because a shake
+## with one frequency in both axes traces a diagonal line rather than a shudder.
+func _offset_by_shake() -> void:
+	if _shake_left <= 0.0 or _shake_total <= 0.0 or shake_metres <= 0.0:
+		return
+	var elapsed: float = _shake_total - _shake_left
+	var amount: float = shake_metres * _shake_strength * (_shake_left / _shake_total)
+	var wave: float = TAU * shake_hz * elapsed
+	camera.global_position += camera.global_basis.x * (sin(wave) * amount) \
+			+ camera.global_basis.y * (cos(wave * 0.5) * amount * 0.5)
+
+
+## The player's veto on the amplitude, in `_apply_reduce_motion`'s shape and for its reason: the
+## scale is folded INTO the authored number rather than kept in a second variable beside it, so
+## `_offset_by_shake` reads one amplitude and there is nothing for it to disagree with.
+##
+## `reduce_motion` WINS OUTRIGHT rather than scaling. A preference to remove motion is not a
+## volume slider, and this is the same call `DialogueScreen` and `ScreenFade` made at T5.7: a
+## smaller shake is still a shake, and a request to stop moving the picture has not been
+## honoured by moving it less.
+func _apply_shake_scale() -> void:
+	if Settings.get_bool(REDUCE_MOTION):
+		shake_metres = 0.0
+		return
+	shake_metres = _authored_shake * clampf(Settings.get_float(SHAKE_SETTING), 0.0, 1.0)

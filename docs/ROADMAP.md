@@ -690,7 +690,7 @@ because the first row exposed how much of it was declared and unread.
   1,782 -> 1,798 assertions. Version 2.1.0, untagged.
 
 - **T5.7 `reduce_motion` finished, and the shadow atlas — DONE, 2026-09-05.** The two things T5.6
-  wrote down and deliberately skipped. `accessibility/reduce_motion` now reaches **all three**
+  wrote down and deliberately skipped. `accessibility/reduce_motion` reached **three of the four**
   motions this template draws: `ScreenFade` cuts instead of dissolving and
   `HD2DCameraRig.follow_lag` goes to zero, both on `_authored_dof`'s veto shape. **The shadow half
   was a live defect rather than a portability worry** — `_apply_shadows` restored a `2048` const
@@ -760,6 +760,20 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   audit. Suite 1,821 -> 1,829, one plant at exit 1, version 2.3.0. **It does not tick either box
   above** — it is about the SHEET, not the blocks — but it changes the case for one of them: a
   turn in place was not worth animating while every facing drew the same picture, and now it is.
+
+- **T5.9 Screen shake, and the setting that scales it — DONE, 2026-09-05.** Candidate H, and the
+  row T5.7 obliged: it had finished `reduce_motion` for the three motions that EXISTED and written
+  down that a shake would have to be reached in the SAME row it was built, or the setting was a
+  gap again. `HD2DCameraRig` gained a decaying SINE offset (102 -> 138 of its 250, so no new class
+  was needed), `Events.camera_shake_requested` is the ask, `Gate.open_shake` is the template's own
+  asker and **defaults to 0.0**, and `gameplay/camera_shake` is back in `DEFAULTS` as its 0..1
+  scale — **the first of the three settings 2.0.0 removed to come back with the feature it was
+  waiting for**, which is what removing them instead of faking them was for. `reduce_motion`
+  removes it outright rather than making it smaller, on the typewriter's and the fade's reasoning.
+  A sine and not noise is what made it provable: the same command at scale 1.0 / 0.5 / 0.0 moves
+  the camera **0.302357 / 0.151178 / 0.000000 m** and the picture **(+14,-12) / (+8,-6) / (0,0)
+  px**, with the HUD at identical pixels throughout. Suite 1,829 -> 1,848, two plants each exit 1,
+  **gotcha 64**, version 2.4.0.
 
 
 ## Sequencing rules

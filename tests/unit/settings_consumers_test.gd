@@ -54,7 +54,7 @@ const FADE: GDScript = preload("res://src/ui/hud/screen_fade.gd")
 
 
 func run() -> void:
-	plan(69)
+	plan(72)
 	_every_setting_has_a_consumer()
 	_reset_puts_the_language_back()
 	_the_setting_vetoes_depth_of_field_and_the_author_still_decides()
@@ -313,4 +313,14 @@ func _reduce_motion_reaches_every_motion_this_template_has() -> void:
 	# running game instances none.
 	equal("and the running game has a fade, under UILayer",
 			_parent_of_script(FADE_SCRIPT), "./UILayer")
+	equal("the shake scale is a setting in its own right", Settings.DEFAULTS.has(HD2DCameraRig.SHAKE_SETTING), true)
+	# AND THE ASK HAS A LISTENER, which is the one half `tools/check_signals.gd` deliberately
+	# will not fail on: that gate requires an EMITTER and only REPORTS a signal nothing hears.
+	# `Events.camera_shake_requested` is where a gate's ask meets the camera, so the connection
+	# is the wire, and a rig that stopped subscribing would leave both ends of it green.
+	var rig := HD2DCameraRig.new()
+	attach(rig)
+	equal("and a rig in the tree is listening for a shake request",
+			Events.camera_shake_requested.is_connected(rig.shake), true)
+	rig.queue_free()
 

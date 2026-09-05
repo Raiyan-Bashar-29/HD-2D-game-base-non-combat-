@@ -1,4 +1,4 @@
-# Work Packages
+| G | **Autosave** | The larger of the TWO features T5.5 removed a setting for that are still missing — the screen shake came back at T5.9 and this is next.# Work Packages
 
 **One package, one chat.** A chat context window is the binding constraint on this project, so
 work is sliced into packages that each fit in one. Every package names the exact files to read,
@@ -4035,7 +4035,86 @@ capture ever taken had been column 0 or column 1.
   though it removes the argument against building one.
 - **It changed no art CONTRACT.** Same facings, frames, blocks and cells; both `.tres` untouched.
 
-## Candidate rows — ranked. A, B, D, I AND J ARE DONE (T5.4-T5.8). C, E, F, G and H remain
+## T5.9 · Screen shake, and the setting that scales it — **DONE**
+
+Candidate H, and the row T5.7 obliged: *when a shake exists, `reduce_motion` has to reach it in
+the same row rather than in a fourth one, or that setting is a gap again.* Both halves landed.
+Version 2.4.0.
+
+### What it built, and where each piece went
+
+| Piece | Where | Note |
+|---|---|---|
+| the motion | `HD2DCameraRig._offset_by_shake` | a decaying SINE along the camera's own axes, applied after `look_at` |
+| the ask | `Events.camera_shake_requested(strength, seconds)` | `_requested`, many askers by design, like `notify_requested` |
+| the asker | `Gate.perform` when `open_shake > 0.0` | **defaults to 0.0** — every gate already authored stays silent |
+| the author's number | `shake_metres`, `shake_hz` on the rig | 0.35 m, 18 Hz |
+| the player's veto | `gameplay/camera_shake`, 0..1 | back in `DEFAULTS`; one line plus one CSV row, and `settings_screen.gd` needed no edit |
+| the accessibility veto | `accessibility/reduce_motion` | removes it OUTRIGHT rather than scaling it |
+
+It stayed on `HD2DCameraRig`, which went 102 -> 138 of its 250. A `CameraShake` `RefCounted` on
+`ShadowAtlas`'s model was considered and refused: the offset is applied to a camera this node
+already places, inside a function it already calls every physics frame, and a class holding four
+floats would have been a seam invented to look like T5.7's.
+
+### The pattern was copied, not reinvented
+
+`_authored_shake` is read at `_ready` beside `_authored_dof` and `_authored_lag` — three authored
+values on one node now — and the player's scale is folded INTO `shake_metres` rather than kept in
+a second variable beside it, on T5.7's reasoning exactly. **A rig an area author shipped at
+`shake_metres = 0.0` never shakes, whoever asks and whatever the player prefers.** `SHAKE_SETTING`
+is a `const` on the consumer, which is what keeps `settings_consumers_test._is_consumed` decidable.
+
+**`reduce_motion` cuts rather than scales**, the third time this project has made that call after
+the typewriter and the fade: a quieter shake is still a shake.
+
+### WHO MAY ASK — the seam question, decided and recorded
+
+On the bus, with many askers by design: the thing that just happened knows how hard it hit and
+nothing about a camera; the rig knows how far it may move and nothing about gates. The template's
+own asker is **`Gate`**, because a heavy leaf grinding open is the one impact a game with no
+combat actually has, and because it is AUTHORED — `open_shake` is per gate and defaults to silent,
+so a garden gate and a portcullis are one class with different numbers. The demo courtyard's
+`NorthGate` sets `0.7`, in a `.tscn` and not under `src/`.
+
+### A sine and not noise, which is what made it provable
+
+Random jitter cannot be verified — two runs differ — so "exactly half as far" would have been an
+unassertable claim in the suite and an unmeasurable one in a capture. Five windowed runs of one
+command differing only by `user://settings.cfg`:
+
+| `camera_shake` | camera x | best rigid offset vs the control | residual there | residual at zero |
+|---|---|---|---|---|
+| (no shake asked for) | 0.000000 | — | — | — |
+| 1.0 | **0.302357** | **(+14, −12) px** | 0.0173 | 0.0513 |
+| 0.5 | **0.151178** | **(+8, −6) px** | 0.0125 | 0.0402 |
+| 0.0 | 0.000000 | (0, 0) | 0.0004 | 0.0004 |
+| `reduce_motion = true` | 0.000000 | (0, 0) | 0.0001 | 0.0001 |
+
+The picture halves when the number halves. **Looked at, not only measured:** the world is
+displaced while the HUD and the prompt sit at identical pixels — a camera shake and not a screen
+shake, which no log line could have said. **Gotcha 64** came out of reconciling the two columns.
+
+**Proved by planting, both exit codes recorded.** `_apply_shake_scale` reverted to ignoring both
+settings -> `1844 passed, 4 failed`, **exit 1**; the rig's `connect` line removed, leaving both
+ends of the wire green -> `1847 passed, 1 failed`, **exit 1**; both removed -> `1848 passed,
+0 failed`, **exit 0**. Suite 1,829 -> 1,848.
+
+### What it deliberately did not do
+
+- **It did not photograph a GATE opening.** The demo's north gate needs the lever and the key, so
+  it is not on a boot capture's path; `--shake=` on `dev_capture.gd` fires the same signal instead.
+  A `dev_probes.gd` row that unlocks the gate and shoots the frame after would close it.
+- **It did not assert `shake_hz`.** Every assertion measures the same instant of the wave, which
+  is what makes them comparable and also means a changed frequency would keep them all green.
+- **It did not make shakes additive.** A new request replaces a running one, so nothing repeatable
+  can drive the camera off the world. Four lines in `shake()` if a game wants layered rumble.
+- **It did not split `gen_placeholders.gd`**, still at 230 of its 250 and still next, because it
+  touched no character sheet.
+- **It wrote no ADR.** One signal, one method, two exports on the node that already owned the
+  camera.
+
+## Candidate rows — ranked. A, B, D, H, I AND J ARE DONE (T5.4-T5.9). C, E, F and G remain
 
 These are the audit's findings that are packages rather than one-line corrections. Ranked by value
 to a consuming game per unit of work. Each is sized to one chat.
@@ -4046,7 +4125,7 @@ to a consuming game per unit of work. Each is sized to one chat.
 | ~~D~~ | ~~**A wholesale character swap, photographed**~~ | **DONE — T5.6, 2026-09-05.** The alt sheet gained its gait set, the player was pointed at it and all five gaits were photographed with nothing under `src/` changed. Phase T5's third exit criterion is ticked and the phase is closable at the owner's word — the two boxes that remain are a second idle block and candidate C, which is the owner's seam decision |
 | E | **Music ducking, or delete it** | `stop_music`, `duck` and `unduck` have no callers anywhere — the only `duck` hit in the repository is the phrase "duck-typed" in a comment. Lowering music under dialogue is the obvious use and `DialogueRunner` is the home. Audio is honestly `PART` in the inventory, so this is small; the alternative is to delete three methods |
 | F | **The `Button` styleboxes** | The theme sets `font_sizes` on nine type variations and no `Button/styles/*`, so every menu row draws Godot's default StyleBox — already a declared known limitation, invisible against the shipped dark palette and immediately wrong against a light one |
-| G | **Autosave** | The largest of the three features T5.5 removed a setting for rather than fake. It needs a slot POLICY before it needs a trigger: `SaveSystem` has no notion of the slot a run belongs to, and `save_to_slot(slot)` is the only entry point. `Events.quit_requested` has exactly one performer (`GameRoot`) and `events.gd:199` already says an autosave policy will only ever need adding in one place, so the trigger is easy and the choice of slot is the design question. Bring the `gameplay/autosave` key back with it |
-| H | **Screen shake** | The second of the two features T5.5 removed a setting for. No `shake` identifier exists anywhere under `src/`, so this is a feature and not a wiring — most naturally on `HD2DCameraRig`, which already owns placement and smoothing. `gameplay/camera_shake` returns as its scale. **`accessibility/reduce_motion` must reach it in the same row**, and T5.7 left the pattern to copy: `_authored_lag` beside `_authored_dof`, and the key named as a `const` on the consumer |
+| G | **Autosave** | The larger of the TWO features T5.5 removed a setting for that are still missing — the screen shake came back at T5.9 with its setting, and this is next. It needs a slot POLICY before it needs a trigger: `SaveSystem` has no notion of the slot a run belongs to, and `save_to_slot(slot)` is the only entry point. `Events.quit_requested` has exactly one performer (`GameRoot`) and `events.gd` already says on `quit_requested` an autosave policy will only ever need adding in one place, so the trigger is easy and the choice of slot is the design question. Bring the `gameplay/autosave` key back with it |
+| ~~H~~ | ~~**Screen shake**~~ | **DONE — T5.9, 2026-09-05.** Built on `HD2DCameraRig` as a decaying sine, asked for through `Events.camera_shake_requested` with `Gate.open_shake` as the template's own asker, and `gameplay/camera_shake` is back in `DEFAULTS` as its 0..1 scale — the FIRST of the three settings 2.0.0 removed to return with the feature it was waiting for. `accessibility/reduce_motion` reaches it in the same row, which is the obligation T5.7 recorded. Photographed: the same command at scale 1.0 / 0.5 / 0.0 moves the camera 0.302357 / 0.151178 / 0.000000 m and the picture (+14,-12) / (+8,-6) / (0,0) px, with the HUD unmoved throughout |
 | ~~I~~ | ~~**`reduce_motion` finished**~~ | **DONE — T5.7, 2026-09-05.** Both halves landed. The setting reaches all three motions, and the shadow atlas turned out to be a live defect rather than a portability worry: the `2048` const halved this repository's own atlas on every windowed boot, because the engine's default is 4096. Gotcha 61 |
 | ~~J~~ | ~~**A placeholder sheet whose facings are distinguishable**~~ | **DONE — T5.8, 2026-09-05.** Both sheets now draw five poses and a mirror instead of one pose repeated. The worst facing pair went from 0.0000 — facings 2 and 3 were byte-identical — to 0.0747 on the default sheet and 0.2188 on the alt one, and the same character was photographed walking north, east, south and west, which nothing here had ever captured. The code was correct throughout, which is **gotcha 62**: gotcha 54 with the unwired middle made of pixels. No file under `src/` changed except the debug capture tool |

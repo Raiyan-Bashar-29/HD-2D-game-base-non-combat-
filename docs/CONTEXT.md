@@ -3,8 +3,34 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-05 · **T5.8 (a placeholder sheet whose facings are distinguishable)
-complete — BOTH SHEETS NOW DRAW A DIFFERENT FIGURE FOR EVERY FACING, and the row exists because
+**Last updated:** 2026-09-05 · **T5.9 (screen shake, and the setting that scales it) complete —
+`accessibility/reduce_motion` NOW REACHES FOUR MOTIONS AND THERE IS NO FIFTH TO FIND, and
+`gameplay/camera_shake` is the FIRST of the three settings 2.0.0 removed to come back with the
+feature it was waiting for.** T5.5 refused to fake it, T5.7 wrote down as its own gap that a shake
+would have to be reached in the SAME row as it was built, and both halves are here. The shake
+lives on `HD2DCameraRig` (102 -> 138 of 250, so no new class was needed), is asked for through
+`Events.camera_shake_requested(strength, seconds)` from anywhere, and the template's own asker is
+`Gate.open_shake` — **defaulting to 0.0, so every gate already authored opens exactly as silently
+as before.** The pattern was copied and not reinvented: `_authored_shake` beside `_authored_dof`
+and `_authored_lag`, the scale folded INTO `shake_metres` rather than kept beside it, and the key
+named as a `const` on the consumer.
+**IT IS A DECAYING SINE AND NOT NOISE, WHICH IS THE DECISION THE VERIFICATION RESTED ON.** Random
+jitter cannot be verified — two runs differ — so "exactly half as far" would have been an
+unassertable claim. Five windowed runs of one command differing only by `user://settings.cfg`:
+camera x of **0.302357 / 0.151178 / 0.000000** at `camera_shake` 1.0 / 0.5 / 0.0, best rigid image
+offsets of **(+14,-12) / (+8,-6) / (0,0)** with residuals 0.0173 / 0.0125 / 0.0004 against 0.0513
+/ 0.0402 / 0.0004 at zero, and **0.000000 with `reduce_motion` on**. The picture halves when the
+number halves. Looked at rather than only measured: the whole world is displaced while the HUD and
+the prompt sit at identical pixels, which is the difference between a camera shake and a screen
+shake and the half no log line could carry. **Gotcha 64** came out of reconciling the two columns:
+a camera TRANSLATION parallaxes, so a rigid-offset search under-reports it and the pixel count is
+corroboration rather than measurement. Suite 1,829 -> 1,848; two plants, each exit 1, the second
+aimed at gotcha 54 deliberately — cutting the `connect` line leaves both ends green and only the
+connection assertion notices. Version 2.4.0, untagged. `gen_placeholders.gd` is still at 230 of
+its 250 and is still the next file to split.
+
+**T5.8 (a placeholder sheet whose facings are distinguishable) is the row before it —
+BOTH SHEETS NOW DRAW A DIFFERENT FIGURE FOR EVERY FACING, and the row exists because
 the owner played the game and said sideways movement "just slides to the side". It did.**
 `character_placeholder.png` drew ONE POSE EIGHT TIMES: measured over the figure band, facing 4 —
 the back, 180 degrees from the front — differed from facing 0 by **0.7%** of the cell, which was
@@ -82,10 +108,11 @@ makes good T5.3's own note that this row would have caught it. Suite 1,782 -> 1,
 **T5.5 (the twelve settings with no consumer) is the row before it — EVERY ONE
 OF THE TWENTY REMAINING SETTINGS IS NOW READ BY SOMETHING, and an assertion refuses a
 twenty-first that is not. Nine were wired; THREE WERE REMOVED, because honouring
-`gameplay/camera_shake`, `gameplay/autosave` and `accessibility/subtitles` would have meant
-inventing three features rather than connecting existing ones — there is no shake anywhere under
-`src/`, no autosave and no notion of the slot a run belongs to, and nothing is voiced. A row drawn
-to the player that cannot do anything is worse than a dead constant, because the player finds out.
+`gameplay/camera_shake` (BACK at T5.9 with its feature), `gameplay/autosave` and
+`accessibility/subtitles` would have meant inventing three features rather than connecting
+existing ones — there was no shake anywhere under `src/`, there is still no autosave and no
+notion of the slot a run belongs to, and nothing is voiced. A row drawn to the player that cannot
+do anything is worse than a dead constant, because the player finds out.
 Each returns in one line plus one CSV row; `settings_screen.gd` is generated from `DEFAULTS` and
 needed no edit. **THE FIVE `accessibility/*` WERE A TEMPLATE DEFECT AND NOT A MISSING FEATURE OF A
 GAME**: the thing a text-size preference has to change is the project theme every screen in
@@ -299,11 +326,11 @@ something declared, validated and read by nothing, after `Gate.locked_key`,
 T5.1 just fixed.
 
 
-148 files, 13,287 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
+151 files, 13,728 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
 three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 3 on the default one**,
-1 shared area material, **20 settings and 20 consumers**.
-Template version **2.1.0**, and that version is deliberately UNTAGGED — `v1.0.0` and
+1 shared area material, **21 settings and 21 consumers**.
+Template version **2.4.0**, and that version is deliberately UNTAGGED — `v1.0.0` and
 `v1.0.1` are the tags, each naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 
@@ -1210,7 +1237,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Sixty-three gotchas that each cost an hour
+## Sixty-four gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -1934,6 +1961,17 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     unmirrored **over pixels the sprite discards before it draws them** (`ALPHA_CUT_DISCARD`). Two
     transparent pixels are the same pixel. Any assertion that reads an imported sheet has to say
     which pixels are VISIBLE before it says whether they agree.
+64. **A CAMERA THAT TRANSLATES PARALLAXES, SO A RIGID-OFFSET SEARCH UNDER-REPORTS IT — AND THE
+    TWO NUMBERS WILL NOT RECONCILE.** T5.7's brute-force offset search is the right tool for
+    "did the picture move", and T5.9 used it again on the screen shake. But the focal-plane
+    maths says a camera sliding 0.302 m at 14 m and a 27-degree lens should move the image about
+    24 px, and the best rigid fit came back at **(+14, −12)**. Neither number is wrong. A camera
+    TRANSLATION shifts near geometry further than far geometry, so there is no single offset that
+    fits the whole frame, and a least-residual search returns a depth-weighted average of all of
+    them. What the search proves is that the scene moved RIGIDLY ENOUGH that one offset drops the
+    residual sharply — 0.0513 to 0.0173, a 3.0x fall — and it is that RATIO, plus a control at
+    the same offset, that carries the claim. Do not quote the pixel count as a measurement of the
+    displacement; the metres in the log are the measurement, and the search is the corroboration.
 
 ## How work is sliced
 

@@ -26,8 +26,9 @@ extends TestCase
 ## BETWEEN, so every assertion below drives the real path one step at a time and reads a value
 ## that only one of the two behaviours can produce.
 ##
-## OWNS: assertions that reduce-motion reaches all three motions, and that the shadow atlas comes
-## back at the authored size.
+## OWNS: assertions that reduce-motion reaches every motion the template draws, that the screen
+## shake is the player scale on the area author's amplitude, and that the shadow atlas comes back
+## at the authored size.
 ## MUST NOT: ask whether a setting has a consumer at all - `settings_consumers_test.gd` owns that,
 ## and duplicating its scan here would give two answers to one question.
 
@@ -43,6 +44,13 @@ const SOFT_LAG: float = 0.22
 ## not a float-comparison argument.
 const STEP_METRES: float = 10.0
 const PHYSICS_DELTA: float = 1.0 / 60.0
+## An area-authored shake amplitude, in metres of camera slide at full strength. Deliberately
+## not the rig's own default, for `SOFT_LAG`'s reason: a restore assertion has to prove the
+## AUTHORED number came back and not a default that happens to match it.
+const AUTHORED_SHAKE: float = 0.4
+## How long a measured shake decays over. Long enough that one physics step is nowhere near the
+## end of it, so "it came back to rest" is a claim about the decay and not about rounding.
+const SHAKE_SECONDS: float = 0.6
 ## What `_apply_shadows` used to restore, kept here as the thing that must NOT come back. It is
 ## named in a test rather than in `settings.gd`, which is the difference between a record and a
 ## constant something might start using again.
@@ -53,10 +61,12 @@ const SCRATCH_ATLAS: int = 1024
 
 
 func run() -> void:
-	plan(18)
+	plan(31)
 	_the_fade_cuts_instead_of_dissolving()
 	_the_camera_stops_smoothing_and_the_author_still_decides()
 	_shadows_come_back_at_the_size_the_project_authored()
+	_the_shake_is_the_players_scale_on_the_authors_amplitude()
+	_a_shake_ends_itself_and_never_starts_where_the_author_refused()
 	Settings.reset_to_defaults()
 
 
@@ -175,3 +185,104 @@ func _shadows_come_back_at_the_size_the_project_authored() -> void:
 	equal("so this viewport gets ITS size back and not the root's",
 			scratch.positional_shadow_atlas_size, SCRATCH_ATLAS)
 	scratch.queue_free()
+
+
+## THE SHAKE, AND IT IS THE THIRD TIME THIS RIG HAS TAKEN `_authored_dof`'s VETO SHAPE. The
+## author's number is the AMPLITUDE on their rig; the player's number is a 0..1 SCALE on it; and
+## `reduce_motion` removes it outright rather than making it smaller, for the reason the fade
+## above cuts instead of dissolving faster.
+##
+## DRIVEN THROUGH `_physics_process`, never by reading `shake_metres` alone. The amplitude and
+## the displacement are the two ends of a wire, and asserting both ends of one is exactly what
+## gotcha 54 looks like - so every distance below comes out of the camera's real position after
+## a real step, and only the SETUP reads the exported number.
+##
+## AND EVERY DISTANCE IS COMPARABLE BECAUSE THE SHAKE IS A SINE. Each measurement fires a fresh
+## request and takes exactly one step, so the phase is identical every time; a random jitter
+## would have made "half as far" an unassertable claim, which is the argument for the waveform
+## rather than a happy consequence of it.
+func _the_shake_is_the_players_scale_on_the_authors_amplitude() -> void:
+	Settings.set_value(HD2DCameraRig.REDUCE_MOTION, false)
+	Settings.set_value(HD2DCameraRig.SHAKE_SETTING, 1.0)
+	var target := Node3D.new()
+	attach(target)
+	var rig: HD2DCameraRig = _rig_for(target, AUTHORED_SHAKE)
+	equal("the rig keeps the amplitude its area scene authored",
+			is_equal_approx(rig.shake_metres, AUTHORED_SHAKE), true)
+	var rest: Vector3 = rig.camera.global_position
+	rig._physics_process(PHYSICS_DELTA)
+	equal("and a step with nothing asked for leaves the camera exactly where placement put it",
+			rig.camera.global_position.is_equal_approx(rest), true)
+
+	var full: float = _shaken_by(rig, rest)
+	equal("one request actually displaces the camera", full > 0.0, true)
+	Settings.set_value(HD2DCameraRig.SHAKE_SETTING, 0.5)
+	equal("halving the setting halves the amplitude",
+			is_equal_approx(rig.shake_metres, AUTHORED_SHAKE * 0.5), true)
+	equal("and the identical request moves the camera exactly half as far, so the setting is a "
+			+ "scale and not a switch", is_equal_approx(_shaken_by(rig, rest) * 2.0, full), true)
+
+	Settings.set_value(HD2DCameraRig.REDUCE_MOTION, true)
+	equal("reduce motion removes the shake outright rather than making it smaller",
+			is_equal_approx(rig.shake_metres, 0.0), true)
+	equal("so the same request moves the camera not at all",
+			is_equal_approx(_shaken_by(rig, rest), 0.0), true)
+	Settings.set_value(HD2DCameraRig.REDUCE_MOTION, false)
+	Settings.set_value(HD2DCameraRig.SHAKE_SETTING, 1.0)
+	equal("and turning both back gives the area author's amplitude back",
+			is_equal_approx(rig.shake_metres, AUTHORED_SHAKE), true)
+	rig.queue_free()
+	target.queue_free()
+
+
+## The two claims a scale assertion cannot make. A shake that never ended would be a broken
+## camera rather than a feature, and a rig whose author gave it no amplitude must not gain one
+## from a player's preference - which is the half of the veto no setting can be trusted with.
+func _a_shake_ends_itself_and_never_starts_where_the_author_refused() -> void:
+	var target := Node3D.new()
+	attach(target)
+	var rig: HD2DCameraRig = _rig_for(target, AUTHORED_SHAKE)
+	var rest: Vector3 = rig.camera.global_position
+	rig.shake(1.0, SHAKE_SECONDS)
+	for _i: int in roundi(SHAKE_SECONDS / PHYSICS_DELTA) + 2:
+		rig._physics_process(PHYSICS_DELTA)
+	equal("a shake decays to nothing by itself, so the camera comes back to rest",
+			rig.camera.global_position.is_equal_approx(rest), true)
+	rig.shake(0.0, SHAKE_SECONDS)
+	rig._physics_process(PHYSICS_DELTA)
+	equal("and a request of no strength is refused rather than started",
+			rig.camera.global_position.is_equal_approx(rest), true)
+	rig.queue_free()
+
+	# Authored BEFORE it enters the tree, because `_ready` is the moment the rig remembers what
+	# the area scene asked for - which is the whole mechanism, and setting it afterwards would
+	# assert against a value the rig had already replaced.
+	var still: HD2DCameraRig = _rig_for(target, 0.0)
+	equal("a rig authored still starts still", is_equal_approx(still.shake_metres, 0.0), true)
+	Settings.set_value(HD2DCameraRig.SHAKE_SETTING, 1.0)
+	equal("and the setting at full does NOT hand it a shake the author refused",
+			is_equal_approx(still.shake_metres, 0.0), true)
+	equal("so asking it to shake moves it nowhere",
+			is_equal_approx(_shaken_by(still, still.camera.global_position), 0.0), true)
+	still.queue_free()
+	target.queue_free()
+
+
+## A rig in the tree, following `target`, authored rigid so no smoothing can be mistaken for a
+## shake, and with `metres` authored before it enters the tree.
+func _rig_for(target: Node3D, metres: float) -> HD2DCameraRig:
+	var rig := HD2DCameraRig.new()
+	rig.follow_lag = 0.0
+	rig.shake_metres = metres
+	attach(rig)
+	rig.set_target(target)
+	return rig
+
+
+## One request, one step, and how far that left the camera from where placement alone would have
+## put it. Every caller gets the same instant of the wave, because `shake()` restarts the decay
+## and `_physics_process` advances it by exactly one delta before placing.
+func _shaken_by(rig: HD2DCameraRig, rest: Vector3) -> float:
+	rig.shake(1.0, SHAKE_SECONDS)
+	rig._physics_process(PHYSICS_DELTA)
+	return rig.camera.global_position.distance_to(rest)

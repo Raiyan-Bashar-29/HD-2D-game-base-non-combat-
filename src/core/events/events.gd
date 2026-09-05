@@ -160,6 +160,20 @@ signal weather_changing(to: GameEnums.WeatherKind, seconds: float)
 signal weather_changed(kind: GameEnums.WeatherKind)
 
 # ---------------------------------------------------------------------------------------
+# The camera. Asked for by anyone, performed by the area's own rig.
+# ---------------------------------------------------------------------------------------
+
+## Shake the camera. `strength` is 0..1 of whatever amplitude the AREA AUTHOR gave their rig,
+## and `seconds` is how long it decays over. A `_requested` ask with many askers by design, on
+## `notify_requested`'s shape: the thing that just happened knows how hard it hit and knows
+## nothing about a camera, and the rig knows how far it may move and nothing about gates.
+##
+## IT IS NOT ON THE UI BLOCK BELOW, and the distinction is worth stating: this is a request to a
+## GAMEPLAY node living in the area scene, so an area with no rig simply has no listener - which
+## is the correct behaviour and not a missing one.
+signal camera_shake_requested(strength: float, seconds: float)
+
+# ---------------------------------------------------------------------------------------
 # Dialogue and narrative. Emitted by the dialogue system.
 # ---------------------------------------------------------------------------------------
 

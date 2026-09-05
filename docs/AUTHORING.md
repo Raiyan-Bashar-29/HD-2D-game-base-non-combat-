@@ -441,7 +441,7 @@ under an area's `Interactables` (or `Triggers`, for a volume). You write no code
 |---|---|---|
 | `sign.tscn` | `Readable` | `text_key`, `display_seconds` |
 | `lever.tscn` | `Lever` | `world_flag`, `notify_on_key`, `notify_off_key` |
-| `gate.tscn` | `Gate` | `requires_flag` **or** `requires_item`, `locked_key`, `opened_key`, `stays_open`, `blocker` |
+| `gate.tscn` | `Gate` | `requires_flag` **or** `requires_item`, `locked_key`, `opened_key`, `stays_open`, `blocker`, `open_shake` |
 | `pickup.tscn` | `Pickup` | `item` (an `ExtResource` pointing at an `ItemDefinition`), `count` |
 | `chest.tscn` | `ItemContainer` | `contents` — `Array[ItemDefinition]([...])`, repeat an entry for a second copy |
 | `rest_point.tscn` | `RestPoint` | `target_hour`, `night_only`, `rested_key` |

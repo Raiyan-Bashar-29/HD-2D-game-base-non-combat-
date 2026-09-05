@@ -25,6 +25,11 @@ extends Node
 ##   --freeze-time        stop the clock, so a capture is reproducible to the pixel.
 ##   --skip-to-hour=<int> perform the same time skip a rest point does, after --time.
 ##   --weather=<KIND>     force weather. Any GameEnums.WeatherKind name.
+##   --shake=<0..1>       fire one screen shake, through the same `Events.camera_shake_requested`
+##                        a gate emits, once the area has settled. It runs for SHAKE_SECONDS,
+##                        which is long enough that any sane --shot-frame lands MID-shake. Two
+##                        runs of the same command differing only by `gameplay/camera_shake` in
+##                        user://settings.cfg is how the feature was photographed - see T5.9.
 ##   --wet=<0..1>         set how soaked the ground is, skipping the eight-second soak. A
 ##                        capture lasts under a second, so without this every rain shot would
 ##                        photograph a courtyard that has only just started getting wet.
@@ -41,12 +46,16 @@ extends Node
 ## allowed code lines, which is the budget checker doing precisely its job: the split was
 ## already there in the reasoning and only the line count made it visible.
 ##
-## OWNS: capture, and CLI-driven overrides for time and weather.
+## OWNS: capture, and CLI-driven overrides for time, weather and one screen shake.
 ## MUST NOT: be depended upon by gameplay, or drive a scenario. Deleting this file must not
 ## break the game.
 
 const SHOT_DIR: String = "user://screenshots"
 const DEFAULT_SHOT_FRAME: int = 30
+## How long --shake runs for. Deliberately far longer than `Gate.SHAKE_SECONDS`: a capture has
+## to still be shaking when the shutter opens, and a probe that had to guess the frame a 0.6s
+## jolt is halfway through would be gotcha 52 all over again.
+const SHAKE_SECONDS: float = 8.0
 
 var _shot_path: String = ""
 var _shot_frame: int = DEFAULT_SHOT_FRAME
@@ -55,6 +64,8 @@ var _captured: bool = false
 ## Negative means "--wet was not passed", which is not the same as --wet=0.
 var _wet_to: float = -1.0
 var _dry_seconds: float = 0.0
+## Negative means --shake was not passed.
+var _shake: float = -1.0
 
 
 func _ready() -> void:
@@ -103,7 +114,15 @@ func _capture(path: String) -> void:
 			return
 	var err: Error = image.save_png(path)
 	if err == OK:
-		Log.info("test", "Captured %dx%d to %s" % [image.get_width(), image.get_height(), path])
+		# THE CAMERA POSITION GOES IN THE LOG BESIDE THE PICTURE, on this project's standing
+		# rule that a number and a photograph are read together. It is what makes two captures
+		# comparable at all: the image says the world moved, this says by how much and that the
+		# move was the camera.
+		var eye: Camera3D = view.get_camera_3d()
+		Log.info("test", "Captured %dx%d to %s, camera at %s" % [
+			image.get_width(), image.get_height(), path,
+			"none" if eye == null else str(eye.global_position),
+		])
 	else:
 		Log.error("test", "Capture to %s failed: %s" % [path, error_string(err)])
 
@@ -128,10 +147,14 @@ func _parse_arguments() -> void:
 			_wet_to = clampf(argument.trim_prefix("--wet=").to_float(), 0.0, 1.0)
 		elif argument.begins_with("--dry-for="):
 			_dry_seconds = maxf(0.0, argument.trim_prefix("--dry-for=").to_float())
+		elif argument.begins_with("--shake="):
+			_shake = clampf(argument.trim_prefix("--shake=").to_float(), 0.0, 1.0)
 	# Both wetness flags are served by ONE coroutine, deliberately. Two would each await the
 	# area load and then race to resume, so --dry-for could run before --wet had soaked.
 	if _wet_to >= 0.0 or _dry_seconds > 0.0:
 		_soak_and_dry()
+	if _shake >= 0.0:
+		_start_shake()
 
 
 
@@ -209,3 +232,15 @@ func _force_locale(code: String) -> void:
 		return
 	Settings.set_value(Settings.LOCALE, code)
 	Log.info("capture", "Locale forced to %s" % TranslationServer.get_locale())
+
+
+## Fire one shake through the REAL path, which is the whole point of the flag: it emits the
+## signal a `Gate` emits and touches no camera itself, so what a capture photographs is the
+## feature and not a posed offset. If the area's scene has no rig, nothing listens and the
+## picture is honestly unchanged.
+func _start_shake() -> void:
+	while Director.current_area_id == &"":
+		await get_tree().process_frame
+	await _settled()
+	Events.camera_shake_requested.emit(_shake, SHAKE_SECONDS)
+	Log.info("test", "--shake %.2f for %.1fs" % [_shake, SHAKE_SECONDS])

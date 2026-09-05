@@ -20,6 +20,55 @@ the exact rot this discipline exists to prevent.
 
 ---
 
+## 2.4.0
+
+*2026-09-05 — the base has a screen shake, and `gameplay/camera_shake` is back in
+`Settings.DEFAULTS` as its scale. It is the first of the three settings version 2.0.0 removed to
+come back with the feature it was waiting for, which is what removing them was for.*
+
+**A consuming game does:** nothing, unless one grep says otherwise.
+
+**`grep -rn 'gameplay/camera_shake' your_game/`.** If it returns nothing, this version is
+additive for you and you can stop here. If it returns something, you had re-added the key
+yourself after 2.0.0 removed it — which that entry explicitly invited — and you now have **two
+declarations of the same key** in a merged `settings.gd`. Keep the base's and delete yours: it is
+the same key with the same 0..1 meaning and the same `[0.0, 1.0, 0.1]` row in
+`settings_screen.gd`, and `HD2DCameraRig.SHAKE_SETTING` is now the const that names it. If your
+own consumer read it as something other than a 0..1 scale — a boolean, say — that consumer is the
+thing to change, and it is yours.
+
+**What you gained**, all of it opt-in:
+
+| Thing | Where | Default |
+|---|---|---|
+| `HD2DCameraRig.shake(strength, seconds)` | the rig in your area scene | — |
+| `Events.camera_shake_requested(strength, seconds)` | the bus, ask from anywhere | — |
+| `shake_metres`, `shake_hz` on the rig | your area scene | 0.35 m, 18 Hz |
+| `Gate.open_shake` | per gate | **0.0 — silent** |
+| `gameplay/camera_shake` | the options screen | 1.0 |
+
+**Nothing in your game shakes until you ask it to.** `Gate.open_shake` defaults to zero, so every
+gate you have already authored opens exactly as silently as it did before; the base's own demo
+courtyard sets `0.7` on its north gate and that is authoring in a `.tscn`, not a behaviour change
+in `src/`. The two new exports on the rig have defaults, so an area scene you wrote before this
+version loads unchanged and its rig shakes 0.35 m when something asks.
+
+**The amplitude is the AREA AUTHOR'S and the setting is the PLAYER'S VETO**, which is the same
+contract `video/depth_of_field` and `accessibility/reduce_motion` already have on this rig. The
+setting is a 0..1 scale on `shake_metres` and cannot exceed it, so **a rig you authored at
+`shake_metres = 0.0` never shakes, whoever asks and whatever the player prefers.**
+`accessibility/reduce_motion` removes it outright rather than making it smaller — a smaller shake
+is still a shake — so that setting now reaches four motions instead of three, which T5.7 recorded
+as its own gap the day it shipped.
+
+**No autoload, no ADR, no save version, no layer change.** One signal was ADDED to the registry
+and none removed or altered, so nothing you connected has changed shape. `settings_screen.gd`,
+`menu_screen.gd` and the theme resource were not touched: the screen is generated from `DEFAULTS`
+and already carried the range row for this key, which is the seam claim from 2.0.0 tested
+literally rather than repeated.
+
+---
+
 ## 2.3.0
 
 *2026-09-05 — both placeholder character sheets now draw a different figure for every facing.

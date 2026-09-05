@@ -45,6 +45,7 @@ previous project started as a system that was allowed to know one thing too many
 | Area root | The uniform contract every area scene satisfies | Weather, Audio, Log | gameplay logic | DONE — the ten required children are asserted, not just documented, and authored in `docs/AUTHORING.md` |
 | Area doors | The one object that asks to travel. Names an id and a spawn, nothing else | Interactable, Director | loading, fading, or moving the player | DONE |
 | HD-2D camera rig | Long-lens diorama framing, tilt-shift depth of field, every framing value an `@export` set PER AREA in the area scene | Events, Director | input; what it follows beyond a Node3D; any framing number of its own | DONE — the exports were always there; T3.2 gave the interior its own 36-degree / 9.5 m framing so the seam is USED, and a test fails if no area authors one |
+| Screen shake | A decaying sine offset on `HD2DCameraRig`, along the camera's own axes after `look_at`, so it slides the picture without moving the aim. Asked for by `Events.camera_shake_requested(strength, seconds)` from anywhere; the template's own asker is `Gate.open_shake`, which defaults to 0.0 so a gate is silent unless its author says otherwise. `shake_metres` and `shake_hz` are the AREA AUTHOR's numbers; `gameplay/camera_shake` is a 0..1 player scale on the first and `accessibility/reduce_motion` removes it outright | Events, Settings | who asked, or why. It takes a strength and a duration and no reference to whatever hit | DONE — T5.9, 2026-09-05. Photographed: same command, same frame, `camera_shake` at 1.0 / 0.5 / 0.0 gives camera x of 0.302357 / 0.151178 / 0.000000 and best rigid image offsets of (+14,-12) / (+8,-6) / (0,0), with the HUD at identical pixels throughout |
 | Character visual | Billboarded, lit, correctly-sorted sprite; facing and column quantised from the sheet layout, camera-relative; and since T5.2 the animation BLOCK chosen by `GameEnums.MoveState`, so idle, walk, run, sneak and climb are separate cycles the SHEET names. Since T5.3 a climb is MOVING even with no horizontal velocity, and an idle block that differs from the walk block advances at `idle_fps` instead of holding cell 0 | Events, SpriteSheetLayout | input, movement, game rules, any sheet dimension of its own, or knowing whether it drives a player or an NPC — it is TOLD its state, never reading `player_state_changed` | DONE — T2.1 moved every dimension out to a resource; T5.2 made the block a state rather than a bool; T5.3 made CLIMB and a cycling idle actually reach the sprite, which until then they did not |
 | Sprite sheet layout | The art CONTRACT: facings, frames, cell size, animation blocks and a row PER GAIT, as authored data. The sector width is derived from the facing count, so the two cannot disagree; a gait row left at -1 inherits the walk block, so every sheet authored before T5.2 draws what it always did | nothing — it is a data shape | a texture, a node, or what animation is playing | DONE — T2.1, and a sheet with a different cell and frame count was swapped in with no code change. T5.2 added run/sneak/climb rows and made `problems()` validate every one of them by field name. **T5.6 performed the whole swap**: the alt sheet now names all five gaits, and the player drew every one of them from it with nothing under `src/` changed |
 | Player controller | Movement, gait, movement state, authored climb, token input lock | Actions, Settings, Events, Layers | dialogue, inventory, interaction rules, the camera | DONE |
@@ -202,13 +203,15 @@ rather than oversights.
    existed on the camera rig from day one and had no caller anywhere for the whole project; the
    rig now listens for `video/depth_of_field` and remembers what the area author authored, so the
    setting is the player's veto rather than a blanket yes. Photographed both ways.
-   `accessibility/reduce_motion` reaches **all three motions this template draws as of T5.7**:
-   the dialogue typewriter arrives whole, `ScreenFade` cuts instead of dissolving, and
-   `HD2DCameraRig.follow_lag` goes to zero so the camera stops sliding after a stopped character.
-   The last two take the rig's veto shape — the setting may remove smoothing an area author
-   authored and may never add smoothing they refused. The camera half is photographed (the world
-   translates 42 px between the two settings at run speed); the fade half is proved by assertion
-   only, because a cut and a finished dissolve are the same picture.
+   `accessibility/reduce_motion` reaches **all four motions this template draws as of T5.9**:
+   the dialogue typewriter arrives whole, `ScreenFade` cuts instead of dissolving,
+   `HD2DCameraRig.follow_lag` goes to zero so the camera stops sliding after a stopped character,
+   and the SCREEN SHAKE T5.9 built is removed outright rather than made smaller. All three on the
+   rig take its veto shape — the setting may remove motion an area author authored and may never
+   add motion they refused. The camera-lag half is photographed (the world translates 42 px
+   between the two settings at run speed) and so is the shake (see the camera-shake row above);
+   the fade half is proved by assertion only, because a cut and a finished dissolve are the same
+   picture.
 10. **Subtitles and speaker names,** on by default. Speaker names work. **The subtitle SETTING was
     removed by T5.5** rather than left inert: nothing in this template is voiced, so there is
     nothing to caption, and a row drawn to the player that cannot do anything is worse than a

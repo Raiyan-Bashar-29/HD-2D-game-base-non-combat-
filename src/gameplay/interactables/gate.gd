@@ -9,11 +9,14 @@ extends Interactable
 ## something to come back for. Offering the interaction and refusing it with a reason is what
 ## turns a wall into a goal.
 ##
-## OWNS: whether it is open, and its persistence.
+## OWNS: whether it is open, its persistence, and how hard opening it knocks the camera.
 ## MUST NOT: know how the condition became true, or what is on the other side. It must not
 ## reach for the player or a global inventory either - it asks whoever is interacting.
 
 const OPEN_FIELD: StringName = &"open"
+## How long the shake decays over. Not exported: a gate author decides how HEAVY their gate is,
+## and how long a jolt lasts is the template's answer about what a jolt is.
+const SHAKE_SECONDS: float = 0.6
 
 ## Must be true before this gate will open. Empty means it is never locked.
 @export var requires_flag: StringName = &""
@@ -28,6 +31,11 @@ const OPEN_FIELD: StringName = &"open"
 @export var opened_key: String = ""
 ## Once open, stay open. A gate that re-locks itself behind the player is a different object.
 @export var stays_open: bool = true
+## How hard the camera shakes when this gate opens, as 0..1 of whatever amplitude the area's
+## rig authored. ZERO IS THE DEFAULT AND IT MEANS SILENT, which is right for a garden gate and
+## wrong for a portcullis - and the template cannot know which one any particular gate is, so
+## it is authored per gate rather than decided here. See `Events.camera_shake_requested`.
+@export_range(0.0, 1.0, 0.05) var open_shake: float = 0.0
 
 signal opened()
 
@@ -56,6 +64,11 @@ func perform(_who: Node3D) -> void:
 	if store != null:
 		store.store(OPEN_FIELD, true)
 	_apply_open(true)
+	# THE ASK IS ON THE BUS AND THE CAMERA IS NOT NAMED HERE. This gate knows how heavy it is
+	# and knows nothing about a rig; the rig knows how far it may move and nothing about gates.
+	# An area whose scene has no rig simply has no listener, which is correct rather than broken.
+	if open_shake > 0.0:
+		Events.camera_shake_requested.emit(open_shake, SHAKE_SECONDS)
 	if opened_key != "":
 		Events.notify_requested.emit(opened_key, 2.5, {})
 	opened.emit()

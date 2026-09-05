@@ -6488,3 +6488,190 @@ the blocks — and the phase is still closable at the owner's word.
 `=== 1755 passed, 0 failed, 25 skipped ===`**, which is the number that matters for a new test
 file: `sheet_facings_test.gd` asserts only the base's own placeholder sheets and names no demo
 content, so all 8 of its assertions survive the strip. The 25 skips are unchanged.
+
+## 2026-09-05 — T5.9 · Screen shake, and the setting that scales it
+
+**Did.** Built the screen shake `HD2DCameraRig` never had, brought `gameplay/camera_shake` back
+to `Settings.DEFAULTS` as its scale, and made `accessibility/reduce_motion` reach it **in the same
+row rather than in a fourth one**, which is the obligation T5.7 wrote down as its own gap. New
+signal `Events.camera_shake_requested`, one opt-in export on `Gate`, one `--shake=` flag on
+`dev_capture.gd`, 15 new assertions across the two settings test files, one new gotcha. No
+autoload, no ADR, no new class, no save version.
+
+**Why this row and not a fourth `reduce_motion` row later.** T5.5 removed `gameplay/camera_shake`
+rather than fake it — there was no `shake` identifier anywhere under `src/`, so honouring the key
+would have meant inventing a feature inside a row about connecting existing ones. T5.7 then
+finished `reduce_motion` for the three motions that EXISTED and said plainly that this was not the
+same as finished: *when a shake exists, the setting has to reach it in the same row, or this is a
+gap again.* Both halves are here, and **this is the first of the three settings 2.0.0 removed to
+come back with the feature it was waiting for** — which is the whole argument for removing them
+instead of leaving inert rows on the options screen.
+
+**Where the shake went, and why nothing new was built to hold it.** On `HD2DCameraRig`, which
+already owns placement and smoothing and now owns three preferences. It went from 102 to 138 of
+its 250, so the `ShadowAtlas` question T5.7 had to answer — *where does this live when the file is
+full* — did not arise. A `CameraShake` `RefCounted` was considered and refused: the offset is
+applied to a camera this node already places, in a function this node already calls every physics
+frame, and a class to hold four floats would have been a seam invented to look like T5.7's.
+
+| Piece | Where | Note |
+|---|---|---|
+| the motion | `HD2DCameraRig._offset_by_shake` | a decaying sine along the camera's OWN axes, after `look_at` |
+| the ask | `Events.camera_shake_requested(strength, seconds)` | `_requested`, many askers by design |
+| the asker | `Gate.perform` when `open_shake > 0.0` | **defaults to 0.0**, so nothing shakes until an author says so |
+| the author's number | `shake_metres` on the rig | 0.35 m at full strength |
+| the player's veto | `gameplay/camera_shake`, 0..1 | folded INTO `shake_metres`, never kept beside it |
+| the accessibility veto | `accessibility/reduce_motion` | **removes it outright**, does not scale it |
+
+**THE PATTERN WAS COPIED AND NOT REINVENTED**, which the row was told to do. `_authored_shake` is
+read at `_ready` beside `_authored_dof` and `_authored_lag` — the third authored value this one
+node remembers — and the scale is assigned into `shake_metres` rather than clamped at the read
+site, on T5.7's exact reasoning: a second "effective amplitude" variable beside the exported one
+is two numbers that can disagree. So **a rig an area author shipped at `shake_metres = 0.0` never
+shakes, whoever asks and whatever the player prefers**, and the setting can only ever take motion
+away. `SHAKE_SETTING` is a `const` on the consumer, which is what keeps
+`settings_consumers_test._is_consumed` decidable rather than heuristic.
+
+**AND `reduce_motion` CUTS RATHER THAN SCALES**, which is a decision and the third time this
+project has made it. `DialogueScreen` refused a faster typewriter and `ScreenFade` refused a
+shorter dissolve for the same reason: a preference that only makes motion smaller has not honoured
+the request. A quieter shake is still a shake.
+
+**WHO MAY ASK — the seam question this row was told to decide and record.** The ask is on the bus,
+with the `_requested` suffix and many askers by design, exactly as `notify_requested` is: the
+thing that just happened knows how hard it hit and knows nothing about a camera, and the rig knows
+how far it may move and nothing about gates. The template's own asker is **`Gate`**, because a
+heavy leaf grinding open is the one impact a game with no combat actually has, and because it is
+AUTHORED rather than decided in code — `open_shake` is per gate and defaults to silent, so a
+garden gate and a portcullis are the same class with different numbers. The demo courtyard's
+`NorthGate` sets `0.7`, in a `.tscn` and not under `src/`. `check_signals.gd` is satisfied by a
+real emitter rather than by a test one.
+
+**A DECAYING SINE, NOT NOISE, AND THAT IS THE REASON THIS ROW COULD BE PHOTOGRAPHED AT ALL.**
+Random jitter is what most engines reach for and it cannot be verified: two runs of a random shake
+differ, so no assertion can say the camera moved by the right amount and no two captures can be
+compared. A sine is periodic and reproducible, which is what made "exactly half as far" an
+assertable claim in the suite AND a measurable one in a photograph.
+
+**Connects.** `Gate.perform` -> `Events.camera_shake_requested` -> `HD2DCameraRig.shake` ->
+`_offset_by_shake` inside the `_place` this rig already ran every physics frame. Nothing holds a
+reference to the camera to knock it, which is why the ask is on the bus and not a method somebody
+has to find the rig to call — and an area whose scene has no rig simply has no listener, which is
+correct rather than broken. The offset is applied AFTER `look_at`, along the camera's own basis,
+so it is a screen-space slide that leaves the aim alone; displacing the focus point instead would
+swing the whole world and read as a lurch. `dev_capture.gd` gained `--shake=`, which emits the
+same signal a gate emits and touches no camera itself, so what it photographs is the feature.
+
+**Verified.** Every line is a measured exit code.
+
+```
+--headless --import                                        exit 0 (run first; gotcha 53)
+--headless --quit-after 30                                 Session ended after 0.8s — 0 warnings, 0 errors
+--headless res://tests/test_runner.tscn --quit-after 400   === 1848 passed, 0 failed, 0 skipped ===, exit 0
+tools/check_budgets.gd    exit 0   151 files, 13728 code lines, 0 violations
+tools/check_content.gd    exit 0
+tools/check_boundary.gd   exit 0   215 rows, 51 content namespace
+tools/check_strings.gd    exit 0
+tools/check_layers.gd     exit 0   90 symbols over 100 scripts
+tools/check_signals.gd    exit 0   43 signals declared, 93 emit references over 41
+```
+
+Suite 1,829 -> 1,848. `hd2d_camera_rig.gd` 102 -> 138, `settings.gd` 139 -> 140, `gate.gd`
+52 -> 56, `dev_capture.gd` 106 -> 122, `events.gd` 44 -> 45, `settings_effects_test.gd`
+92 -> 161, `settings_consumers_test.gd` 182 -> 188.
+
+**PROVED BY PLANTING THE REVERSION, WATCHING IT FAIL, REMOVING IT AND WATCHING IT PASS. BOTH exit
+codes for both plants.** Each is a real reversion of this row's own work rather than a broken
+assertion.
+
+| Plant | Result |
+|---|---|
+| `_apply_shake_scale` ignores both settings (`shake_metres = _authored_shake`) — the state before this row | `halving the setting halves the amplitude`, `and the identical request moves the camera exactly half as far…`, `reduce motion removes the shake outright…`, `so the same request moves the camera not at all`. **1844 passed, 4 failed, exit 1** |
+| the rig stops connecting to `Events.camera_shake_requested` — the wire, with both ends left intact | `and a rig in the tree is listening for a shake request — expected true, got false`. **1847 passed, 1 failed, exit 1** |
+| both removed | **1848 passed, 0 failed, exit 0** |
+
+**The second plant is gotcha 54 aimed at deliberately.** With the `connect` line gone, `Gate` still
+emits, the rig still has a working `shake()`, `check_signals.gd` still passes and every
+amplitude assertion in `settings_effects_test.gd` stays green — because they all call `shake()`
+directly. Only the connection assertion notices, and it exists for exactly that reason.
+
+**WINDOWED CAPTURES, LOOKED AT, AND THIS ROW GOT MORE OUT OF A STILL FRAME THAN IT EXPECTED TO.**
+Gotcha 2 and gotcha 61: `_apply_display()` returns early under `--headless`, and `--headless`
+shades nothing, so a picture is the only place some of this is visible at all. The row was told to
+think about what a still frame can prove before promising one. **A shake is periodic, so one frame
+of it is a DISPLACEMENT**, and T5.7's brute-force offset search measures it against a control.
+
+Five runs of one command at `--resolution 960x540 --shot-frame=70 --time=13:00 --freeze-time
+--shake=1.0`, differing only by `user://settings.cfg`, each `0 warnings, 0 errors`. The camera's
+world position now goes in the capture log beside the picture, on this project's standing rule
+that a number and a photograph are read together:
+
+| run | camera x | best rigid offset vs the control | residual there | residual at zero |
+|---|---|---|---|---|
+| no `--shake` at all (the control) | **0.000000** | — | — | — |
+| `camera_shake = 1.0` | **0.302357** | **(+14, −12) px** | **0.0173** | 0.0513 |
+| `camera_shake = 0.5` | **0.151178** | **(+8, −6) px** | **0.0125** | 0.0402 |
+| `camera_shake = 0.0` | **0.000000** | (0, 0) | 0.0004 | 0.0004 |
+| `reduce_motion = true` | **0.000000** | (0, 0) | 0.0001 | 0.0001 |
+
+**0.151178 is 0.302357 halved to six figures, and the PICTURES halve too** — (+8, −6) against
+(+14, −12). The setting is a scale on a real display server, in the running game, through the
+signal a gate emits, and not only in an assertion. The two zero rows are the controls that make
+the other two mean something: with the setting at zero and with `reduce_motion` on, the frame is
+the control frame to within 0.0004 and 0.0001 — **a shake was requested and the picture did not
+move at all.**
+
+**Looked at, not merely measured**: the whole world — the pillar, the platform edge, the low wall,
+the crate, both characters — is displaced up and to the right against the control, **while the HUD
+`Day 1 | 13:00 | Midday` and the prompt `Read Weathered Notice` sit at identical pixels.** That is
+the difference between a camera shake and a screen shake, and it is the half no number in the log
+could have told me. The dusk regression capture (`--time=18:40 --freeze-time`) is unchanged:
+courtyard at dusk, both characters lit, depth-sorted and casting shadows, HUD reading
+`Day 1 | 18:40 | Dusk`, prompt on screen, camera at rest, `0 warnings, 0 errors`.
+
+**Gotcha 64 came out of reconciling those two columns**, and it is the one thing here that will
+cost the next person an hour. The focal-plane maths says 0.302 m at 14 m through a 27-degree lens
+should move the image about **24 px**; the best rigid fit says **14**. Neither is wrong. A camera
+TRANSLATION parallaxes — near geometry shifts further than far — so no single offset fits the
+whole frame and a least-residual search returns a depth-weighted average. The claim the search
+carries is the RATIO (0.0513 -> 0.0173, a 3.0x fall) plus a control at the same offset, not the
+pixel count. The metres in the log are the measurement.
+
+**WHICH HALF IS PROVED BY WHICH, stated rather than left as an omission**, because T5.5 and T5.7
+both had to. Proved by ASSERTION: that the amplitude is the author's and the scale is the
+player's, that `reduce_motion` zeroes it, that a rig authored still stays still, that a shake
+decays to nothing by itself, that a zero-strength request is refused, and that a rig in the tree
+is subscribed to the bus. Proved by PHOTOGRAPH: that any of it reaches a screen at all, that the
+displacement is of the WORLD and not the UI, and that the scale is linear in the picture and not
+only in the number. Neither set can stand alone and both are here.
+
+**Unblocks.** Nothing was left half-applied by this row, which is the point of it: there is no
+fourth `reduce_motion` package to write, and `accessibility/reduce_motion` now reaches every
+motion this template draws — the typewriter, the fade, the camera's follow lag and the shake.
+`Events.camera_shake_requested` is the hook a consuming game's own impacts emit on, with no code
+under `src/` to change. Two of 2.0.0's three removed settings are still out: `gameplay/autosave`
+is candidate G and still needs a slot POLICY before it needs a trigger, and
+`accessibility/subtitles` still has nothing voiced to caption.
+
+**Gaps, stated rather than left to be rediscovered.**
+- **NOTHING SHAKES IN THE DEMO WITHOUT WALKING TO THE GATE.** The only asker under `src/` is
+  `Gate`, and the demo's north gate needs the lever thrown and the rose key carried, so the shake
+  is not on the path a boot capture takes. That is why `--shake=` exists on `dev_capture.gd` and
+  why the pictures above were taken with it. The FLAG emits the real signal, so what it
+  photographs is the real feature — but the GATE's own emit is proved by reading the four lines
+  in `perform()` and by `check_signals.gd`, not by a capture of a gate opening. A probe that
+  unlocks the gate, hands over the key and photographs the frame after would close it, and it is
+  a `dev_probes.gd` row rather than part of this one.
+- **`shake_hz` is not asserted, only the amplitude is.** Every assertion here fires a fresh
+  request and takes exactly one step, so all of them measure the same instant of the wave — which
+  is what makes them comparable, and also means a frequency changed to 3 Hz would keep every one
+  of them green. The photographs would notice; nothing automated would.
+- **The demo's `open_shake = 0.7` is a taste judgement.** 0.7 of 0.35 m reads as a heavy stone
+  leaf at this framing to one person looking at one capture. It is authored data in a `.tscn`, so
+  changing it costs nothing and no assertion depends on it.
+- **A second shake landing on a first REPLACES it rather than summing.** That is deliberate —
+  summing lets anything repeatable drive the camera arbitrarily far off the world — but it means
+  two impacts a frame apart read as one, and a game that wants layered rumble will want an
+  additive path. It is four lines in `shake()` and no seam moves.
+- **No ADR.** One signal, one method and two exports on a node that already owned the camera. No
+  autoload, no new layer, no new seam concept.

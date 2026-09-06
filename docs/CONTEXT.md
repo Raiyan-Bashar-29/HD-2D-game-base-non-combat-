@@ -3,7 +3,52 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-06 · **T5.12 (two capture gaps closed, and the third argued away)
+**Last updated:** 2026-09-06 · **T5.13 (a public-method liveness gate) complete — THE LADDER IS
+SEVEN CHECKERS, AND THE FOURTH CONSUMER QUESTION IS THE FIRST ONE TO HAVE FOUND A DEFECT IN A
+DOC COMMENT.** `tools/check_methods.gd` fails when a public method declared under `src/` has its
+name written nowhere else in the repository. **The design question was which methods it is even
+asked of, and the answer is the narrowest question a text scan can answer soundly**: not "is it
+called on a value of the right type" — a scan cannot know a variable's static type and does not
+need to — but "did anybody write this name down at all", on any non-comment line, in `.gd`,
+`.tscn` or `.tres`. That form needs no knowledge of `Callable`, `.bind`, unqualified inherited
+calls or scene properties, because every one of them writes the name.
+
+**FIRST RUN: EXIT 1, TWELVE VIOLATIONS OUT OF 316 PUBLIC METHODS. Two deleted, one wired, nine
+exempted, and every exemption had to be argued in a sentence.** The two deletions are why the
+base is **4.0.0**: `DialogueNode.has_choices()` was an alias over `not choices.is_empty()`, which
+is what both real readers already write, and `ItemDefinition.is_equippable()` carried a doc block
+claiming "an `Equipment` component and a UI row both ask this" — **neither ever did**, and the one
+place that asks writes `slot_of(id) != NONE`, which is better because it also answers for an id
+with no definition. `Footsteps.current_surface()` said "read by the probe" and no probe has ever
+read it. **A gate for dead code found two false claims in prose**, which is not what it was built
+for and is the most useful thing it did.
+
+**PROVED AGAINST THE CASE THAT MOTIVATED IT.** At `7a162ca`, the commit before T5.11, `duck`,
+`unduck` and `stop_music` had **zero** references outside their own declarations — the only other
+occurrence of the word `duck` in the whole repository was the prose "duck-typed" in an unrelated
+header — so this gate would have failed the build on the day each of them landed. That is the
+answer to "would it have caught the thing it exists for", and it is a fact about a commit rather
+than an opinion.
+
+**WHAT IT DELIBERATELY DOES NOT FAIL ON IS THE OTHER HALF OF THE DESIGN.** 86 of the 314 public
+methods are reached only from `tests/` or `tools/`, and **"has a caller in the suite" is not "has
+a caller in the game"** — but a template declares accessors for a consuming game to call and this
+repository never will, so failing there would be answered with a fake caller, and a gate that
+starts out mostly exemptions is decoration. It is REPORTED on every run and never failed, which
+is `check_signals.gd`'s asymmetry for a listener, with the subject changed. **The gate
+under-reports and cannot over-report**: 37 names are declared in more than one file and are
+treated as one, so a green run is not a proof, while a red run is always real.
+
+**One precondition, checked rather than assumed** — no line both dispatches (`call(`, `callv(`,
+`call_deferred(`, `Callable(`, `has_method(`) and builds a string, because a name assembled at
+runtime is the one form this scan cannot see. **It fired on this row's own test file**, which had
+written the opaque sample out whole; the gate was right and the test was the violation. That is
+**gotcha 69**. Suite 1,947 -> 1,970; three plants — a restored dead method, a stale exemption and
+a built name — each **exit 1**, control **exit 0**. `gen_placeholders.gd` is still at 230 of its
+250 and is still the next file to split. **C and F remain on the board, and C is the owner's seam
+decision.**
+
+**T5.12 (two capture gaps closed, and the third argued away) is the row before it —
 complete — A GATE OPENED BY A KEY PRESS HAS NOW BEEN PHOTOGRAPHED SHAKING THE CAMERA, AND AN
 AUTOSAVE WRITTEN IN ONE PROCESS HAS BEEN PHOTOGRAPHED COMING BACK IN ANOTHER.** Three consecutive
 rows — T5.9, T5.10 and T5.11 — closed with the same admission in their own Gaps section and each
@@ -1371,17 +1416,18 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,947 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 1,970 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content, and no orphan CSV row
 "$G" --headless --script tools/check_strings.gd            # must exit 0 — no player-facing literal, every *_KEY exists
 "$G" --headless --script tools/check_layers.gd             # must exit 0 — core -> content -> systems -> gameplay -> ui
 "$G" --headless --script tools/check_signals.gd            # must exit 0 — every declared signal has an emitter
+"$G" --headless --script tools/check_methods.gd            # must exit 0 — every public method under src/ has a caller, or says NO CALLER
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Sixty-eight gotchas that each cost an hour
+## Sixty-nine gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -2173,6 +2219,16 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     for anything else built with `.new()` — every menu, every dialogue box. Nodes that come from a
     `.tscn` keep their authored name, which is why `find_child("Player")` and
     `find_child("NorthGate")` work in the same file three lines away.
+
+69. **A TEST THAT QUOTES A CHECKER'S TRIGGER PATTERN TRIPS THAT CHECKER**, and the checker is
+    right. `check_methods.gd` fails a line that both dispatches and builds a string, because a
+    method name assembled at runtime is invisible to it — and `gates_test.gd`, asserting that
+    exact classifier, wrote the opaque sample out whole on one line. Rung 11 went red on the test
+    file. The fix is never to exempt the test: split the sample across two constants so no single
+    line is a dispatch site, which is what the file now does and says why. The same trap waits
+    for every gate whose evidence is a line of text — `check_strings.gd` and `check_boundary.gd`
+    both scan `tests/`, and both would fail a case that quoted a real violation to assert against
+    it. **The gate's own test is the first place a text gate meets a false positive.**
 
 ## How work is sliced
 

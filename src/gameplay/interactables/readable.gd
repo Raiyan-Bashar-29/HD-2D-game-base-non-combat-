@@ -31,7 +31,10 @@ func perform(_who: Node3D) -> void:
 		store.store(READ_FIELD, true)
 
 
-## True once the player has read this at least once, across saves.
+## True once the player has read this at least once, across saves. NO CALLER: the write side is
+## `perform()` above and the read side belongs to a consuming game, which asks it from a quest
+## condition or a dialogue gate — "you have already seen the notice". `Gate.is_open()` is the
+## same shape one layer over, and both exist so a game adds no method to a template class.
 func has_been_read() -> bool:
 	var store: PersistentState = state()
 	return store != null and store.fetch_bool(READ_FIELD)

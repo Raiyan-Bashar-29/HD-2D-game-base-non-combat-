@@ -85,6 +85,10 @@ func enabled(level: Level) -> bool:
 	return level >= min_level
 
 
+## NO CALLER, and deliberately: TRACE is one rung of a five-rung ladder, and `min_level` can be
+## set to it. Nothing in this template logs that finely — the finest thing it has to say is a
+## DEBUG line — but a game that wants per-frame detail needs the rung to exist to select it.
+## Deleting the bottom of a level ladder because the demo does not reach it is the wrong cut.
 func trace(category: String, message: String) -> void:
 	_write(Level.TRACE, category, message)
 

@@ -4291,7 +4291,77 @@ game has to merge. **Found and not fixed:** the main menu's Continue row reads "
 for the autosave, which is the reading T5.10's file naming was chosen to avoid. It is a wording
 question on a UI string and belongs to whoever owns that screen's copy.
 
-## Candidate rows — ranked. A, B, D, E, G, H, I AND J ARE DONE (T5.4-T5.11). C, F and K remain
+## T5.13 · A public-method liveness gate — **DONE**
+
+**2026-09-06. Version 4.0.0.** Candidate K, the fourth consumer question, and the last of the four
+with no enforcement. `tools/check_methods.gd` is rung 11: a public method declared at column 0
+under `src/` whose name is written nowhere else in the repository fails the build.
+
+**The design question was which methods it is even asked of, and the answer is what makes the
+tool possible.** T5.11 recorded, correctly, that a method is called through `Callable`, `.bind`,
+`.tscn` properties and typed variables a scan cannot resolve. **None of that matters, because the
+gate does not resolve calls.** It asks the narrowest question a text scan can answer soundly —
+*did anybody write this name down at all*, on any non-comment line, in `.gd`, `.tscn` or `.tres`.
+Every one of those dispatch forms writes the name out, including the one an earlier draft got
+wrong: an unqualified inherited call, `set_available(false)` in a subclass, which made `perform`,
+`add_row`, `push` and `request_close` all look dead.
+
+**First run: exit 1, twelve violations of 316 public methods.**
+
+| Verdict | Count | Which |
+|---|---|---|
+| **deleted** | 2 | `DialogueNode.has_choices()` — an alias over `not choices.is_empty()`, which both real readers already write. `ItemDefinition.is_equippable()` — its doc claimed "an `Equipment` component and a UI row both ask this" and **neither ever did**; the one place that asks writes `slot_of(id) != NONE`, which also answers for an id with no definition |
+| **wired** | 1 | `NpcBrain.current_activity()` — `activity_name()` indexed the private field beside it and now reads the accessor |
+| **exempt** | 9 | A log level, the untyped `Flags` hatch, a `PersistentState` typed family of three, a `Readable`'s persisted read flag, a `Footsteps` pair, and `Director.reload_current_area()`, which was the close call and is recorded as such |
+
+**A gate for dead code found two false claims in prose**, which is not what it was built for and
+is the most useful thing it did: `is_equippable()` named callers that never existed and
+`Footsteps.current_surface()` said "read by the probe" when no probe has ever read it.
+
+**Proved against the case that motivated it.** At `7a162ca`, the merge base before T5.11,
+`git grep -w` for `duck`, `unduck` and `stop_music` returns five hits: three declaration headers
+and two comment lines, one of them the word "duck-typed" in an unrelated file. The tool drops
+comments and declaration headers before counting, so it would have failed on the day each landed.
+
+**What it deliberately does NOT fail on is the other half of the design.** 86 of the 314 public
+methods are reached only from `tests/` or `tools/`, and "has a caller in the suite" is genuinely
+not "has a caller in the game" — but a template declares accessors a consuming game calls and this
+repository never will, so failing there would be answered with a fake caller in `src/`, which the
+gate would then certify as green. Reported on every run, never failed: `check_signals.gd`'s
+asymmetry for a listener, with the subject changed. **The gate under-reports and cannot
+over-report** — 37 names are declared in more than one file and are treated as one — so a green
+run is not a proof while a red run is always real.
+
+**One precondition, and it fired on this row's own test file.** No line may both dispatch
+(`call(`, `callv(`, `call_deferred(`, `Callable(`, `has_method(`) and build a string, because a
+name assembled at runtime is the one form the scan cannot see. `gates_test.gd`, asserting that
+exact classifier, wrote the opaque sample out whole; the gate was right and the test was the
+violation. The sample is now split across two constants. **Gotcha 69**, and it waits for every
+gate whose evidence is a line of text.
+
+**+23 assertions, 1,947 → 1,970, all on the CLASSIFIERS** and none on today's tree: what a
+declaration is, what a reference is, the two kinds of line thrown away first, the precondition
+classifier, and that every use of the exemption phrase in the whole engine tree sits in a comment.
+Three plants — a restored dead method, a stale exemption, a built name — each **exit 1**, control
+**exit 0**.
+
+**4.0.0 and not a PATCH, on the two deletions.** A new tool under `tools/` that changes nothing
+under `src/` carries a consuming game no obligation and would be a PATCH; two public methods gone
+is a MAJOR bump by the rule 3.0.0 set for `stop_music()`, and the `CHANGELOG.md` entry names the
+one-line replacement for each.
+
+### What it did NOT do
+
+- **It did not answer the 86.** A method kept alive only by its own test is exactly the class
+  `duck()` was in, and this gate cannot see into it. A run of the game with a call recorder could;
+  that is a package of its own and is not on the board yet.
+- **It did not touch `face_direction()`**, which is candidate C and the owner's seam decision. It
+  is one of the 86, which is now a measured fact rather than an impression.
+- **It did not split `gen_placeholders.gd`**, still at 230 of its 250 and still next.
+- **It did not fix the "Continue — Slot 7" wording** T5.12 found in `MainMenuScreen._fill`.
+- **It wrote no ADR.** One tool, one exemption phrase copied from an existing gate.
+
+## Candidate rows — ranked. A, B, D, E, G, H, I, J AND K ARE DONE (T5.4-T5.13). C and F remain
 
 These are the audit's findings that are packages rather than one-line corrections. Ranked by value
 to a consuming game per unit of work. Each is sized to one chat.
@@ -4306,4 +4376,4 @@ to a consuming game per unit of work. Each is sized to one chat.
 | ~~H~~ | ~~**Screen shake**~~ | **DONE — T5.9, 2026-09-05.** Built on `HD2DCameraRig` as a decaying sine, asked for through `Events.camera_shake_requested` with `Gate.open_shake` as the template's own asker, and `gameplay/camera_shake` is back in `DEFAULTS` as its 0..1 scale — the FIRST of the three settings 2.0.0 removed to return with the feature it was waiting for. `accessibility/reduce_motion` reaches it in the same row, which is the obligation T5.7 recorded. Photographed: the same command at scale 1.0 / 0.5 / 0.0 moves the camera 0.302357 / 0.151178 / 0.000000 m and the picture (+14,-12) / (+8,-6) / (0,0) px, with the HUD unmoved throughout |
 | ~~I~~ | ~~**`reduce_motion` finished**~~ | **DONE — T5.7, 2026-09-05.** Both halves landed. The setting reaches all three motions, and the shadow atlas turned out to be a live defect rather than a portability worry: the `2048` const halved this repository's own atlas on every windowed boot, because the engine's default is 4096. Gotcha 61 |
 | ~~J~~ | ~~**A placeholder sheet whose facings are distinguishable**~~ | **DONE — T5.8, 2026-09-05.** Both sheets now draw five poses and a mirror instead of one pose repeated. The worst facing pair went from 0.0000 — facings 2 and 3 were byte-identical — to 0.0747 on the default sheet and 0.2188 on the alt one, and the same character was photographed walking north, east, south and west, which nothing here had ever captured. The code was correct throughout, which is **gotcha 62**: gotcha 54 with the unwired middle made of pixels. No file under `src/` changed except the debug capture tool |
-| K | **A public-method liveness gate — the fourth consumer question** | T5.4 built three gates for the "declared and read by nothing" class and T5.5 asked it of settings in the suite; **a public method is still declarable-and-dead and nothing says so**, which is how T5.11's subject survived three phases and eight instances. It is not the same size as those three: a method is called by name on a variable whose static type a text scan does not know, through `Callable` and `.bind`, from `.tscn` property values, from `tools/` and from `tests/` — and **"has a caller in the suite" is not "has a caller in the game"**, which is the distinction that matters and the one the scan cannot make. Needs an exemption phrase like `check_signals.gd`'s `NO EMITTER`, an argued exemption list on day one, and a decision about whether a template's deliberately-public seams (`Autosave.request()`, `DialogueDuck.held()`) count. **A gate that starts out mostly exemptions is decoration**, so the design question is which methods it is even asked of |
+| ~~K~~ | ~~**A public-method liveness gate — the fourth consumer question**~~ | **DONE — T5.13, 2026-09-06.** `tools/check_methods.gd` is rung 11, and the design question — which methods it is even asked of — has the answer that made it buildable: not "is it called on a value of the right type", which no text scan can know, but "did anybody write this name down at all", which every dispatch form satisfies, including the unqualified inherited call an earlier draft missed. **First run: 12 violations of 316, exit 1** — two deleted (a MAJOR bump, 4.0.0, with the one-line replacement named for each), one wired, nine exempted with an argued sentence each, and **two of the twelve carried doc comments naming callers that never existed**. Proved against `duck()`: at `7a162ca` it had zero references outside its own declaration, so it would have failed on the day it landed. **86 of 314 are reached only from tests/ or tools/ and that is REPORTED, never failed** — the distinction is real, but 86 exemptions on day one is decoration and would be answered with a fake caller. Exemption is `NO CALLER` in the method own `##` block; a stale one fails too. **Gotcha 69**: the precondition fired on the test file that quoted its own trigger pattern, and the gate was right |

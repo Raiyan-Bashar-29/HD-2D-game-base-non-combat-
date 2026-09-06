@@ -151,7 +151,7 @@ func current_activity() -> GameEnums.NpcActivity:
 ## The activity as its enum name, for logs and debug output.
 func activity_name() -> String:
 	var names: Array = GameEnums.NpcActivity.keys()
-	var raw: String = names[_activity]
+	var raw: String = names[current_activity()]
 	return raw
 
 

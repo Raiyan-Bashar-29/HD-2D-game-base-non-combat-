@@ -20,6 +20,65 @@ the exact rot this discipline exists to prevent.
 
 ---
 
+## 4.0.0
+
+*2026-09-06 — the seventh checker, `tools/check_methods.gd`: a public method under `src/` that
+nothing anywhere calls now fails the build. It found twelve on its first run, and two of them are
+deleted in this version, which is what makes this a MAJOR bump rather than a PATCH for a tool.*
+
+**A consuming game does: nothing, unless it called one of the two deleted methods — and then it
+is a one-line edit each. After that, run rung 11 on your own tree and expect it to say
+something.** The gate is asked of every public method under `src/`, and your `src/` is bigger
+than this one.
+
+### The two methods that are gone, and what to write instead
+
+| Removed | Write instead | Why it went |
+|---|---|---|
+| `DialogueNode.has_choices()` | `not node.choices.is_empty()` | Two lines of alias over the expression both real readers already write — `DialogueRunner` and `DialogueScreen` each call `available_choices().is_empty()` and never went through it. `stop_music()`'s shape exactly, and the same verdict |
+| `ItemDefinition.is_equippable()` | `Equipment.slot_of(item_id) != GameEnums.EquipSlot.NONE` | Its doc block claimed "an `Equipment` component and a UI row both ask this"; neither ever did. `Equipment.can_equip()` compares against NONE through `slot_of()`, which is strictly better, because `slot_of()` also answers NONE for an id with no definition at all |
+
+**Neither had a caller anywhere in the repository — not in `src/`, not in the suite, not in the
+tools.** If your game calls one, the replacement above is exact and behaviour is unchanged.
+
+### The gate itself
+
+**Rung 11, `godot --headless --script tools/check_methods.gd`, and it is in CI as its own step.**
+It fails when a public method declared at column 0 under `src/` — 314 of them here — has its name
+written nowhere else in the repository, on any non-comment line, in `.gd`, `.tscn` or `.tres`.
+
+**The exemption is the phrase `NO CALLER` in the method's own `##` block**, which is
+`check_signals.gd`'s `NO EMITTER` with the subject changed, and **a stale exemption fails too**: a
+method that carries the phrase and has a caller is a violation in the other direction. Nine
+methods carry it in this version and each one states its reason in the same breath — a log level
+you can select but this template never writes at, the untyped `Flags` hatch for a type the typed
+accessors cannot cover, three `PersistentState` fetchers kept as a complete typed family, a
+`Readable`'s persisted read flag that a quest condition asks, and a `Footsteps` pair that a dust
+puff would read.
+
+**What it does NOT fail on, deliberately: a method reached only from `tests/` or `tools/`.** There
+are 86 of those, and "has a caller in the suite" is genuinely not "has a caller in the game" — but
+a template declares accessors for a consuming game to call and this repository never will, so
+failing there would be answered with a fake caller. The count is printed on every run instead.
+
+**It under-reports and cannot over-report.** A local variable or another class's method sharing a
+name keeps a dead method looking alive; 37 names are declared in more than one file and are
+treated as one. A green run is therefore not a proof that everything public is live. **A red run
+is always real.**
+
+**One precondition, checked rather than assumed:** no line in the repository both dispatches
+(`call(`, `callv(`, `call_deferred(`, `Callable(`, `has_method(`) and builds a string. A name
+assembled at runtime is the one form this gate cannot see, so if you introduce one, rung 11 fails
+loudly instead of quietly reporting a green it cannot back. **If your game dispatches that way,
+that is where you will meet this tool first** — either name the method in full at the call site,
+or accept that the gate stops covering it and say so.
+
+**Nothing else under `src/` changed** except one line in `NpcBrain.activity_name()`, which now
+reads its own `current_activity()` accessor instead of the private field beside it. Same value,
+one fewer place that knows how the enum is stored.
+
+---
+
 ## 3.1.0
 
 *2026-09-06 — a fifth debug file, `dev_scenario_shots.gd`, and the node in `game_root.tscn` that

@@ -254,7 +254,8 @@ Every rung is proven working on this machine. Nothing here is aspirational.
 | 8. check_strings | `--headless --script tools/check_strings.gd` | A literal reaching a text sink, a `*_KEY` const with no CSV row |
 | 9. check_layers | `--headless --script tools/check_layers.gd` | A dependency pointing UP the layer list — the rule below, enforced since T5.4 |
 | 10. check_signals | `--headless --script tools/check_signals.gd` | A signal declared in the registry that nothing ever emits |
-| 11. Visual capture | `--quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=HH:MM` | The actual look, at any hour, on demand |
+| 11. check_methods | `--headless --script tools/check_methods.gd` | A public method under src/ whose name is written nowhere else in the repository |
+| 12. Visual capture | `--quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=HH:MM` | The actual look, at any hour, on demand |
 
 **Rung 1 gotcha:** autoload identifiers such as `Log` do not resolve under `--check-only`,
 because a standalone script check does not create them. Filter

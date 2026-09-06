@@ -7283,3 +7283,211 @@ the feature happen rather than to read that it does.
 **PR #41, on `ed9421b`**, based on `claude/t5-11-music-duck` (#40). The two windowed rungs are not
 in CI and cannot be — both probes need a display server, which is the one rung a GPU-less runner
 has never been able to do, and it is the rung this row exists for.
+
+## 2026-09-06 — T5.13 · A public-method liveness gate, the fourth consumer question
+
+**Did.** Built `tools/check_methods.gd`, rung 11 of the ladder and the seventh checker. It fails
+when a public method declared at column 0 under `src/` has its name written nowhere else in the
+repository. Acted on all twelve of its first-run findings: **two deleted, one wired, nine
+exempted**, each exemption argued in a sentence beside the declaration. Added 23 assertions to
+`tests/unit/gates_test.gd`, wired the checker into both jobs in `.github/workflows/ladder.yml`,
+and bumped the base to **4.0.0**.
+
+**Why.** T5.4 built three gates for the "declared and read by nothing" class and T5.5 asked the
+question of the settings in the suite. A public method was the one member of that class with no
+enforcement — which is how `AudioDirector.duck()` survived three phases uncalled and, when finally
+wired at T5.11, turned out to be **wrong as well as unused**: it ducked to an absolute −8 dB, so
+against a player who had moved `audio/music` to 0.25 the same call made the music four decibels
+LOUDER every time somebody spoke. Code with no consumer is not merely unused, it is unverified,
+and eight instances have now said so.
+
+### The design question was which methods it is asked of, and it was the whole package
+
+T5.11 wrote down why this cannot be `check_signals.gd` with the subject changed: a method is
+called by name on a variable whose static type a scan does not know, through `Callable` and
+`.bind`, from `.tscn` property values, from `tools/` and from `tests/`. **All of that is true and
+none of it matters**, because the gate does not try to RESOLVE a call. It asks the narrowest
+question a text scan can answer soundly — *did anybody write this name down at all*, on any
+non-comment line, in `.gd`, `.tscn` or `.tres`. A `Callable(o, "alpha")` writes `alpha`. A `.bind`
+writes it. A scene property writes it. An unqualified inherited call — `set_available(false)` in a
+subclass — writes it, and that form is the one an earlier draft of this tool got wrong: it
+searched for `.name` and reported `perform`, `add_row`, `push` and `request_close` as dead, all
+four of them called with no receiver at all.
+
+**What the gate cannot answer is left unasked rather than faked.** "Has a caller in the suite" is
+not "has a caller in the game", and the distinction is real here: **86 of the 314 public methods
+are reached only from `tests/` or `tools/`.** Failing on those would mean 86 exemptions on day
+one, and a gate that starts out mostly exemptions is decoration — worse, it would be answered with
+a fake caller in `src/`, which is a defect the gate would then certify as green. So it is REPORTED
+on every run and never failed, which is `check_signals.gd`'s asymmetry for a signal with no
+listener, with the subject changed. The count is printed so it cannot quietly grow.
+
+**Which direction it errs in, stated rather than discovered later.** A local variable, a parameter
+or another class's method sharing a name keeps a dead method looking alive; 37 names are declared
+in more than one file and are treated as one. **The gate under-reports and cannot over-report**,
+which is the right way round for something that fails a build: a green run is not a proof that
+everything public is live, and a red run is always real.
+
+### The first run, verbatim
+
+```
+Method check — every public method under src/ is called by something
+==============================================================================
+  public methods declared: 316 over 103 files
+  preconditions: 157 scripts checked for a name built at runtime
+  !! has_choices() is declared and called by nothing — ["res://src/content/dialogue/dialogue_node.gd"] (say 'NO CALLER' in its ## block if that is deliberate)
+  !! is_equippable() is declared and called by nothing — ["res://src/content/items/item_definition.gd"] (...)
+  !! trace() is declared and called by nothing — ["res://src/core/log/log.gd"] (...)
+  !! get_flag() is declared and called by nothing — ["res://src/core/state/flags.gd"] (...)
+  !! current_surface() is declared and called by nothing — ["res://src/gameplay/character/footsteps.gd"] (...)
+  !! steps_taken() is declared and called by nothing — ["res://src/gameplay/character/footsteps.gd"] (...)
+  !! current_activity() is declared and called by nothing — ["res://src/gameplay/character/npc_brain.gd"] (...)
+  !! has_been_read() is declared and called by nothing — ["res://src/gameplay/interactables/readable.gd"] (...)
+  !! fetch_int() is declared and called by nothing — ["res://src/gameplay/objects/persistent_state.gd"] (...)
+  !! fetch_dict() is declared and called by nothing — ["res://src/gameplay/objects/persistent_state.gd"] (...)
+  !! fetch_float() is declared and called by nothing — ["res://src/gameplay/objects/persistent_state.gd"] (...)
+  !! reload_current_area() is declared and called by nothing — ["res://src/systems/scene_director/director.gd"] (...)
+  exempted by 'NO CALLER' in their own ## block: 0
+  names declared in more than one file, treated as one: 37
+  reached only from tests/ or tools/ (reported, not failed): 86
+==============================================================================
+FAIL — 12 method violation(s)
+```
+
+**Twelve of 316, so 3.8% — real and bounded, which is what the row asked to be told either way.**
+
+### Would it have caught the thing it exists for
+
+Yes, and this is a fact about a commit rather than an opinion. At `7a162ca`, the merge base before
+T5.11:
+
+```
+$ git grep -n -w -e duck -e unduck -e stop_music 7a162ca -- src tests tools scenes
+src/gameplay/interactables/interactable.gd:9:## calling a method on an untyped value. A duck-typed component would need casts at every call
+src/systems/audio/audio_director.gd:77:func stop_music(fade: float = DEFAULT_FADE) -> void:
+src/systems/audio/audio_director.gd:95:func duck(amount_db: float = -8.0, seconds: float = 0.4) -> void:
+src/systems/audio/audio_director.gd:104:## Undo duck() by re-reading the settings, so it cannot drift out of sync with the mixer.
+src/systems/audio/audio_director.gd:105:func unduck(seconds: float = 0.6) -> void:
+```
+
+Five hits for three method names: three declaration headers and two comment lines, one of which is
+the word "duck-typed" in an unrelated file. The tool drops comments and declaration headers before
+counting, so all three would have been reported on the day each landed.
+
+### The twelve verdicts, and every exemption argued rather than granted
+
+| Method | Verdict | Why |
+|---|---|---|
+| `DialogueNode.has_choices()` | **deleted** | Two lines of alias over `not choices.is_empty()`. `DialogueRunner` and `DialogueScreen` each write `available_choices().is_empty()` and neither ever went through it. `stop_music()`'s shape and `stop_music()`'s verdict |
+| `ItemDefinition.is_equippable()` | **deleted** | Its doc block said "an `Equipment` component and a UI row both ask this rather than each comparing against NONE themselves". **Neither ever did.** `Equipment.can_equip()` compares through `slot_of()`, which is strictly better because it also answers NONE for an id with no definition at all |
+| `NpcBrain.current_activity()` | **wired** | `activity_name()` indexed the private `_activity` beside it. It now reads the accessor, so one fewer place knows how the enum is stored |
+| `Log.trace()` | exempt | One rung of a five-rung level ladder that `min_level` can select. Deleting the bottom of a ladder because the demo does not reach it is the wrong cut |
+| `Flags.get_flag()` | exempt | The untyped hatch. Every type this template stores has a typed accessor that is better; it survives for the type the template did not anticipate, and the typed accessors cannot be widened to a type they cannot check. The neighbouring comment read "use these rather than get_flag", which is deprecation of a method with no replacement; it now names it as the hatch |
+| `Footsteps.current_surface()` | exempt | Its doc said **"Read by the probe"** and no probe in this repository has ever read it. The line is corrected and the real reason kept: it is what a dust puff or a footprint decal reads on the frame it spawns |
+| `Footsteps.steps_taken()` | exempt | The same pair: a distance achievement, a tutorial firing on the tenth step, a debug overlay — none of the three is here |
+| `Readable.has_been_read()` | exempt | The write side is `perform()` four lines above; the read side belongs to a consuming game's quest condition or dialogue gate. `Gate.is_open()` is the same shape one layer over |
+| `PersistentState.fetch_int()` / `fetch_dict()` / `fetch_float()` | exempt | One decision, three methods. `fetch_bool` and `fetch_string` are used, and a typed family with holes is worse than none: the game storing a counter on an object would reach past `PersistentState` to `Flags` and lose the per-object key prefix that is the whole point |
+| `Director.reload_current_area()` | exempt, and it was the close call | Three lines that any caller could write as `Events.area_change_requested.emit(current_area_id, &"")`, which is `stop_music()`'s argument exactly. It stays because it names an OCCASION rather than duplicating a spelling — it is the only caller that has to read `current_area_id` off the Director to know where "here" is. Recorded because the reasoning is thinner than the other eight |
+
+**Nine exemptions out of twelve is close to the line the row drew, and worth being explicit
+about.** The claim is not that the day-one yield is large. It is that (a) every exemption is a
+sentence somebody had to write next to the declaration, and two of them corrected a false claim
+that had been sitting in the file unchallenged; (b) a stale exemption fails, so none of the nine
+can rot into permission; and (c) the gate is permanent — the next `duck()` fails the build on the
+day it lands rather than three phases later.
+
+### The precondition, and the one thing this gate cannot see
+
+A name **built** at runtime — `o.call("fetch_" + kind)` — is invisible to a text scan, and a green
+run would then say nothing at all about that method. So the tool fails on any line that both
+dispatches (`call(`, `callv(`, `call_deferred(`, `Callable(`, `has_method(`) and builds a string.
+There are none today: every dispatch site in the repository is a call on a `Callable` made where
+its method name is written out. That is `check_boundary.gd`'s debug-gate precondition in this
+file's terms — the gate fails the day its own reasoning stops holding.
+
+**It fired on this row's own test file first**, which had written the opaque sample out whole on
+one line while asserting the classifier that detects it. The gate was right and the test was the
+violation; the sample is now split across two constants so no single line is a dispatch site, and
+the file says why. **That is gotcha 69**, and it waits for every gate whose evidence is a line of
+text: `check_strings.gd` and `check_boundary.gd` both scan `tests/` and would both fail a case
+that quoted a real violation in order to assert against it.
+
+### Assertions
+
+**+23, suite 1,947 -> 1,970**, all in `tests/unit/gates_test.gd`, and all on the CLASSIFIERS
+rather than on today's tree — the file's own standing rule, because a plant is a one-off and what
+rots afterwards is the four lines that decide what a declaration is.
+
+- **What counts as a declaration** (5): column 0 only, `static` included, an indented line is not
+  one, a `var` is not one, and a private name is still a declaration with the caller dropping it.
+- **What counts as a reference** (4): whole word, so `alphabet` and `my_alpha` do not keep `alpha`
+  alive, and two sites count twice.
+- **The two kinds of line thrown away first** (3), each a real defect in a draft: a doc comment
+  mentioning a method is not a caller, a declaration header is not a caller, a call in a body is.
+- **The precondition classifier** (4): a dispatch site is recognised, an ordinary call is not,
+  concatenation is what makes a dispatch site opaque, and a line with only the first half is not.
+- **The exemption phrase** (5): non-empty, uppercase so prose cannot grant one by accident, not
+  the same phrase as the signal gate's, carried by at least one method, and **every use of it in
+  the whole engine tree sits in a comment** — a phrase in live code would exempt a method nobody
+  meant to exempt.
+- **The ladder** (2 more, 14 in total): CI names `tools/check_methods.gd` as its own step and the
+  file exists. This is the assertion that would catch a gate written, committed and never wired,
+  which is the defect the whole package is about applied to the package itself.
+
+### Verified
+
+| Rung | Result |
+|---|---|
+| `--headless --import` | clean |
+| `--headless --quit-after 30` | `Session ended after 0.6s — 0 warnings, 0 errors` |
+| `--headless res://tests/test_runner.tscn --quit-after 400` | **1970 passed, 0 failed, 0 skipped** |
+| windowed capture, `--time=18:40 --freeze-time` | unchanged from T5.12, `0 warnings, 0 errors` |
+| `check_budgets.gd` | exit 0 |
+| `check_content.gd` | exit 0 |
+| `check_boundary.gd` | exit 0 |
+| `check_strings.gd` | exit 0 |
+| `check_layers.gd` | exit 0 |
+| `check_signals.gd` | exit 0 |
+| `check_methods.gd` | exit 0 — 314 methods, 9 exempted, 37 shared names, 86 suite-only |
+
+**Three plants, each a real reversion, each exit 1, control exit 0.**
+
+| Plant | Output | Exit |
+|---|---|---|
+| `DialogueNode.has_choices()` restored | `!! has_choices() is declared and called by nothing — ["res://src/content/dialogue/dialogue_node.gd"]` | **1** |
+| `NO CALLER` written above `Flags.get_bool()`, which has callers — a STALE exemption | `!! get_bool() is marked 'NO CALLER' and has 49 reference(s) — the exemption is stale` | **1** |
+| `PersistentState.fetch_int()` rewritten to dispatch on a built name | `!! res://src/gameplay/objects/persistent_state.gd dispatches by a BUILT name — this gate cannot see that` | **1** |
+| all three removed | `PASS` | **0** |
+
+**The windowed capture was taken as a REGRESSION CHECK and nothing more, and saying which it is
+matters.** Nothing this row changed can move a pixel: the two deleted methods had no caller, and
+the wired one returns the value the line beside it already read. The standing dusk capture is
+unchanged — `Day 1 | 18:40 | Dusk`, the `Autosaved.` toast, `Read Weathered Notice`, the keeper on
+the dais — at `0 warnings, 0 errors`, camera at `(0.0, 8.56925, 14.87248)`. It proves the game
+still boots and renders, which is the whole claim being made for it.
+
+**4.0.0 — a MAJOR bump, and the version discipline question the row asked.** A new tool under
+`tools/` that changes nothing under `src/` would be a PATCH: a consuming game inherits no
+obligation from a checker it can decline to run. **But two public methods are gone**, and that is
+a MAJOR bump by the rule 3.0.0 set for `stop_music()`. The `CHANGELOG.md` entry names the exact
+replacement for each — `not node.choices.is_empty()` and
+`Equipment.slot_of(id) != GameEnums.EquipSlot.NONE` — the way that entry did.
+
+**Unblocks.** The fourth and last member of the "declared and read by nothing" class is enforced,
+so the next instance fails a build instead of being found by reading. A consuming game gets a tool
+that will say something on its own tree, which is larger than this one. And nine methods that were
+silently unused are now nine methods whose reason for existing is written down beside them, which
+is the part that survives after the tool.
+
+**Gaps, stated rather than left to be rediscovered.**
+- **86 methods are still unanswered.** The gate cannot tell a template seam from a method kept
+  alive only by its own test, and that is the class `duck()` belonged to right up until it was
+  built-or-deleted. A suite-only method is where the next one will be, and this gate will not find
+  it. What would: a run of the game with a call recorder, which is a package of its own.
+- **37 shared names are one name.** `perform` is declared on eleven files and any single call
+  keeps all eleven green. A dead `perform()` override on one subclass is invisible here.
+- **It cannot see a method called only from an exported build**, because it never runs one.
+- **`Director.reload_current_area()` is exempt on the thinnest reasoning of the nine**, and it is
+  the one to revisit if a debug console command ever wants it or a row ever needs three lines back.
+- **No ADR.** One tool, one exemption phrase copied from an existing gate, and no new autoload,
+  signal, layer or seam concept.

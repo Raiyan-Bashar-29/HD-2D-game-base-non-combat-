@@ -65,6 +65,10 @@ func fetch_bool(field: StringName, default: bool = false) -> bool:
 	return Flags.get_bool(key(field), default) if _valid else default
 
 
+## fetch_int, fetch_float and fetch_dict have NO CALLER in this template and are kept as a set:
+## `fetch_bool` and `fetch_string` are used, and a typed family with holes in it is worse than no
+## family, because the game that stores a counter or a position on an object would then reach
+## past PersistentState to Flags and lose the per-object key prefix that is the whole point.
 func fetch_int(field: StringName, default: int = 0) -> int:
 	return Flags.get_int(key(field), default) if _valid else default
 
@@ -100,9 +104,11 @@ func _owner_name() -> String:
 
 
 ## A Dictionary field, deep-copied. Container contents live here.
+## NO CALLER — see fetch_int above; these three are one decision.
 func fetch_dict(field: StringName, default: Dictionary = {}) -> Dictionary:
 	return Flags.get_dict(key(field), default) if _valid else default.duplicate(true)
 
 
+## NO CALLER — see fetch_int above; these three are one decision.
 func fetch_float(field: StringName, default: float = 0.0) -> float:
 	return Flags.get_float(key(field), default) if _valid else default

@@ -1,6 +1,7 @@
 extends TestCase
-## The three enforcement gates T5.4 added, and the one structural question none of the four
-## older gates asked: DOES A DECLARED THING HAVE A CONSUMER?
+## The three enforcement gates T5.4 added and the method gate T5.13 added, and the one
+## structural question none of the four older gates asked: DOES A DECLARED THING HAVE A
+## CONSUMER?
 ##
 ## WHY A CASE AT ALL, WHEN THE GATES ARE ALREADY IN THE LADDER. A checker that runs is not a
 ## checker that WORKS. Each of the three was proved red by planting a real violation and green
@@ -21,12 +22,19 @@ extends TestCase
 ## NO FIXTURE CONTENT IS ACTIVATED and no demo name appears: every string below is synthetic
 ## GDScript written for the assertion, which is what lets `check_boundary.gd` scan this file.
 ##
-## OWNS: the three classifiers, and the fact that each tool's own gate is wired into the ladder.
+## THE FOURTH GATE, T5.13, ASKS THE SAME QUESTION OF A PUBLIC METHOD, and its classifiers are
+## here for the same reason: what counts as a declaration, what counts as a reference, and the
+## two kinds of line — prose and a declaration header — that must be thrown away before either
+## is counted. Both of those last two were real defects in a draft of that tool.
+##
+## OWNS: the classifiers of all four consumer gates, and the fact that each tool own gate is
+## wired into the ladder.
 ## MUST NOT: run a checker (they call quit(), which would end the suite), name demo content, or
 ## assert a violation COUNT — that is a property of today's tree, not a contract.
 
 const LAYERS_TOOL = preload("res://tools/check_layers.gd")
 const SIGNALS_TOOL = preload("res://tools/check_signals.gd")
+const METHODS_TOOL = preload("res://tools/check_methods.gd")
 const BOUNDARY_TOOL = preload("res://tools/check_boundary.gd")
 const REGISTRY: String = "res://src/core/events/events.gd"
 const WORKFLOW: String = "res://.github/workflows/ladder.yml"
@@ -36,15 +44,32 @@ const WORKFLOW: String = "res://.github/workflows/ladder.yml"
 const LADDER: Array[String] = [
 	"tools/check_budgets.gd", "tools/check_content.gd", "tools/check_boundary.gd",
 	"tools/check_strings.gd", "tools/check_layers.gd", "tools/check_signals.gd",
+	"tools/check_methods.gd",
 ]
+
+## Where the method gate looks for its exemption phrase. Unlike the signal registry there is no
+## one file to read, so the phrase is counted over the whole engine tree.
+const METHOD_ROOT: String = "res://src"
+## THE OPAQUE DISPATCH SAMPLE, IN TWO HALVES ON PURPOSE. The method gate's precondition fires
+## on a LINE that both dispatches and builds a string, and this file writing the sample out
+## whole would trip it — which it did, on the first run after these assertions were added. The
+## gate was right and the test was the violation; splitting the sample is the honest fix,
+## because a line that only quotes half of it is not a dispatch site.
+const OPAQUE_HEAD: String = "\to.call("
+const OPAQUE_TAIL: String = "\"fetch_\" + kind)"
 
 
 func run() -> void:
-	plan(33)
+	plan(56)
 	_the_layer_of_a_path_comes_from_the_path()
 	_an_indirect_signal_reference_is_read_from_its_files_dispatch()
 	_a_whole_word_match_is_shared_by_both_gates()
 	_a_reserved_signal_says_so_where_the_reader_is_looking()
+	_a_declaration_is_read_from_the_line_it_is_on()
+	_a_reference_is_a_whole_word_and_is_counted()
+	_prose_and_declaration_headers_are_not_callers()
+	_a_name_built_at_runtime_trips_the_precondition()
+	_a_reserved_method_says_so_where_the_reader_is_looking()
 	_every_checker_is_wired_into_the_ladder()
 
 
@@ -121,7 +146,93 @@ func _all_uses_are_comments(source: String, phrase: String) -> int:
 	return found
 
 
-## SIX CHECKERS NOW, NOT FOUR, AND CI MUST NAME EACH ONE AS ITS OWN STEP so a failure says
+## WHAT COUNTS AS A DECLARATION, which is the method gate's first classifier and the one that
+## decides what it is even asked of. Column 0 only, `static` included, and the underscore rule
+## is applied by the caller so the classifier itself stays a pure reading of the line.
+func _a_declaration_is_read_from_the_line_it_is_on() -> void:
+	var tool_script := METHODS_TOOL
+	equal("a plain declaration", tool_script._declared_name("func alpha() -> void:"), "alpha")
+	equal("a static one", tool_script._declared_name("static func beta(x: int) -> int:"), "beta")
+	equal("a private one is still a declaration, and the caller drops it",
+		tool_script._declared_name("func _gamma() -> void:"), "_gamma")
+	equal("an indented line is not one — GDScript has no nested function",
+		tool_script._declared_name("\tfunc delta() -> void:"), "")
+	equal("and a variable is not one", tool_script._declared_name("var epsilon: int = 0"), "")
+
+
+## A REFERENCE IS A WHOLE WORD, for check_boundary.gd's reason at its own cost: a substring
+## match would let a method called `travel` be kept alive by an unrelated `travel_to`.
+func _a_reference_is_a_whole_word_and_is_counted() -> void:
+	var tool_script := METHODS_TOOL
+	equal("a bare call counts", tool_script._hits("\tself.alpha()", "alpha"), 1)
+	equal("a longer name does not", tool_script._hits("\tself.alphabet()", "alpha"), 0)
+	equal("a suffixed name does not", tool_script._hits("\tself.my_alpha()", "alpha"), 0)
+	equal("two sites count twice", tool_script._hits("\talpha()\n\tvar x := alpha", "alpha"), 2)
+
+
+## THE TWO LINES A SCAN MUST THROW AWAY BEFORE IT COUNTS ANYTHING, and each was a real defect
+## in an earlier draft of the tool. A method named in PROSE is not a caller — the word `duck`
+## appeared exactly once outside its own declaration before T5.11, in a doc comment saying what
+## `unduck` undid — and a PARAMETER named after a method is not a call to it either.
+func _prose_and_declaration_headers_are_not_callers() -> void:
+	var tool_script := METHODS_TOOL
+	equal("a doc comment mentioning it is dropped",
+		tool_script._hits(tool_script._code_of("## undo alpha() later\n\tpass"), "alpha"), 0)
+	equal("the declaration header itself is dropped",
+		tool_script._hits(tool_script._code_of("func alpha() -> void:\n\tpass"), "alpha"), 0)
+	equal("but a call in the body survives",
+		tool_script._hits(tool_script._code_of("func beta() -> void:\n\talpha()"), "alpha"), 1)
+
+
+## THE PRECONDITION CLASSIFIER. A dispatch line that also BUILDS its name hides a method from
+## this gate completely, so the tool fails on one rather than reporting a green it cannot back.
+func _a_name_built_at_runtime_trips_the_precondition() -> void:
+	var tool_script := METHODS_TOOL
+	equal("a dispatch site is recognised",
+		tool_script._has_any("\to.call(f)", tool_script.DISPATCH), true)
+	equal("an ordinary call is not",
+		tool_script._has_any("\to.alpha(f)", tool_script.DISPATCH), false)
+	equal("and concatenation is what makes a dispatch site opaque",
+		tool_script._has_any(OPAQUE_HEAD + OPAQUE_TAIL, tool_script.BUILDS_A_NAME), true)
+	equal("while a line that only dispatches is not opaque",
+		tool_script._has_any(OPAQUE_HEAD, tool_script.BUILDS_A_NAME), false)
+
+
+## THE FOURTH ESCAPE HATCH, SPELLED THE SAME WAY AS THE SIGNAL GATE'S. There is no single
+## registry to read here, so the phrase is counted over the whole engine tree; the assertion is
+## that the mechanism is present, uppercase and only ever granted from a comment, because a
+## phrase appearing in live code would exempt a method nobody meant to exempt.
+func _a_reserved_method_says_so_where_the_reader_is_looking() -> void:
+	var phrase: String = METHODS_TOOL.RESERVED
+	equal("the phrase is not empty", phrase.is_empty(), false)
+	equal("and is uppercase, so prose cannot grant an exemption by accident",
+		phrase, phrase.to_upper())
+	equal("it is not the signal gate's phrase, because they gate different things",
+		phrase == SIGNALS_TOOL.RESERVED, false)
+	var uses: int = 0
+	var in_comments: int = 0
+	for path: String in _engine_scripts(METHOD_ROOT):
+		var source: String = FileAccess.get_file_as_string(path)
+		for line: String in source.split("\n"):
+			if not line.contains(phrase):
+				continue
+			uses += 1
+			if line.strip_edges().begins_with("#"):
+				in_comments += 1
+	equal("at least one method carries it", uses > 0, true)
+	equal("and every use of it sits in a comment", in_comments, uses)
+
+
+func _engine_scripts(root: String) -> Array[String]:
+	var found: Array[String] = []
+	for sub: String in DirAccess.get_directories_at(root):
+		found.append_array(_engine_scripts("%s/%s" % [root, sub]))
+	for file_name: String in DirAccess.get_files_at(root):
+		if file_name.ends_with(".gd"):
+			found.append("%s/%s" % [root, file_name])
+	return found
+
+## SEVEN CHECKERS NOW, NOT FOUR, AND CI MUST NAME EACH ONE AS ITS OWN STEP so a failure says
 ## which gate failed rather than "the ladder". This is the assertion that would have caught a
 ## gate written, committed, and never wired — which is the defect the whole package is about,
 ## applied to the package itself.

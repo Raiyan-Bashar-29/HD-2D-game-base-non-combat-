@@ -221,6 +221,35 @@ and it is the only thing separating a gate from a reassuring printout.
 Plant the *real* failure, not a convenient one: the assertion that fails when you break the
 assertion is not evidence.
 
+**Assert the CLASSIFIER, not the tree.** A plant is a one-off; what rots afterwards is the four
+or five lines inside the tool that decide whether a reference is an emit or a connect, whether a
+path is core or ui, whether a line is a declaration. Those are static, pure and take strings, so
+they belong in `tests/unit/gates_test.gd` where they run forever. **Never assert a violation
+COUNT** — that is a property of today's tree, not a contract.
+
+**And expect the gate to fail on its own test.** A text gate scans `tests/` too, so a case that
+quotes the pattern it exists to catch is a violation of it — `check_methods.gd` went red on
+`gates_test.gd` the first time that file wrote out an opaque dispatch sample. The gate was right.
+Split the sample so no single line is the thing, and say in the file why it is split; exempting
+the test is how a gate stops meaning anything. That is gotcha 69.
+
+### The seven checkers, and what each refuses
+
+| Rung | Tool | Refuses |
+|---|---|---|
+| 5 | `check_budgets.gd` | a file over its line budget, a function over 40 |
+| 6 | `check_content.gd` | a bad id, a duplicate `object_id`, a missing CSV key |
+| 7 | `check_boundary.gd` | a file under `src/` or `tests/` naming demo content |
+| 8 | `check_strings.gd` | a player-facing literal, a `*_KEY` with no row |
+| 9 | `check_layers.gd` | an upward reference across `core -> content -> systems -> gameplay -> ui` |
+| 10 | `check_signals.gd` | a signal in the registry that nothing emits — exemption `NO EMITTER` |
+| 11 | `check_methods.gd` | a public method under `src/` whose name appears nowhere else — exemption `NO CALLER` |
+
+The last three ask one question the first four never did: **does a declared thing have a
+consumer?** Both exemption phrases live in the declaration's own `##` block rather than in a list
+inside the tool, and **a stale exemption fails too**, because that is how a gate rots into
+decoration.
+
 ## What the suite cannot see
 
 Stated so nobody reads a green run as more than it is:
@@ -237,6 +266,6 @@ Stated so nobody reads a green run as more than it is:
 ## Read next
 
 [`AUTHORING.md`](AUTHORING.md) · [`ARCHITECTURE.md`](ARCHITECTURE.md#the-extension-surface) ·
-[`CONTEXT.md`](CONTEXT.md) — the sixty-eight gotchas, several of which are the long form of the rules
+[`CONTEXT.md`](CONTEXT.md) — the sixty-nine gotchas, several of which are the long form of the rules
 above · `tests/framework/test_case.gd` and `tests/test_runner.gd`, whose headers carry the
 reasoning in full.

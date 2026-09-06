@@ -838,6 +838,27 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   control at exit 0. **3.1.0 and not a PATCH on one line**: nothing under `src/` outside the debug
   directory changed, but `game_root.tscn` gained a node a consuming game has to merge.
 
+- **T5.13 A public-method liveness gate — DONE, 2026-09-06.** Candidate K, and the fourth
+  consumer question: T5.4 built three gates for the "declared and read by nothing" class and T5.5
+  asked it of the settings, but **a public method was still declarable-and-dead with nothing
+  saying so**, which is how `AudioDirector.duck()` survived three phases uncalled and turned out
+  to be WRONG as well as unused. `tools/check_methods.gd` is rung 11. **The design question was
+  which methods it is even asked of**, and the answer is the narrowest question a text scan can
+  answer soundly: not "is it called on a value of the right type" but "did anybody write this name
+  down at all" — which needs no knowledge of `Callable`, `.bind`, unqualified inherited calls or
+  `.tscn` properties, because every one of them writes the name out. **First run: exit 1, twelve
+  violations of 316.** Two deleted, one wired, nine exempted with an argued sentence each, and
+  **two of the twelve carried doc comments naming callers that never existed** — a gate for dead
+  code finding false claims in prose. Proved against its own motivating case: at `7a162ca`,
+  `duck`, `unduck` and `stop_music` had zero references outside their declarations, so it would
+  have failed on the day each landed. **86 of the 314 are reached only from `tests/` or `tools/`
+  and that is REPORTED, never failed** — "a caller in the suite" is not "a caller in the game",
+  but a template declares accessors this repository will never call, and a gate that starts out
+  mostly exemptions is decoration. Suite 1,947 -> 1,970; three plants, each exit 1, control exit
+  0. **4.0.0, a MAJOR bump, because two public methods are gone** and the entry names the
+  one-line replacement for each. **Gotcha 69**: the gate's precondition fired on the test file
+  that quoted its own trigger pattern, and the gate was right.
+
 ## Sequencing rules
 
 1. **Breadth of systems, one shallow proof each.** This *replaces* "depth before breadth", which

@@ -7284,6 +7284,22 @@ the feature happen rather than to read that it does.
 in CI and cannot be — both probes need a display server, which is the one rung a GPU-less runner
 has never been able to do, and it is the rung this row exists for.
 
+**CI GREEN ON `f2c46e4`, PR #41, MERGEABLE / CLEAN** — both jobs pass. Full checkout
+`=== 1947 passed, 0 failed, 0 skipped ===`; **stripped template
+`=== 1873 passed, 0 failed, 25 skipped ===`**, and that is the number worth reading: T5.11 left the
+stripped run at 1,861, so **all 12 of this row's assertions survive the demo strip.** That was the
+one thing about them worth checking, because `interaction_test.gd`'s new case builds a real
+`Gate` — it builds it from `scenes/objects/`, which is template geometry rather than demo content,
+and configures `open_shake` itself with a `HEAVY_SHAKE` of 0.6 rather than reading the courtyard's
+authored 0.7. `check_boundary.gd` says the same thing independently.
+
+**`f2c46e4` IS A MERGE**, of the base's `f7d57cd` — the owner's answer to candidate C's seam
+question, which landed on `claude/t5-11-music-duck` after this branch was cut. One conflict, in
+`WORK_PACKAGES.md`, and both sides were right about different things: this branch inserted the
+T5.12 section immediately above the candidate heading and the base rewrote that heading. Both kept.
+`CONTEXT.md` auto-merged and its top block was amended in the merge commit, because it had been
+written while C was still an open question and said so.
+
 ## 2026-09-06 — T5.13 · A public-method liveness gate, the fourth consumer question
 
 **Did.** Built `tools/check_methods.gd`, rung 11 of the ladder and the seventh checker. It fails

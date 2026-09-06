@@ -46,7 +46,9 @@ line**: nothing under `src/` outside the debug directory changed, but `game_root
 node a consuming game has to merge. **Found and not fixed:** the Continue row reads "Continue —
 Slot 7" for the autosave, which is the reading T5.10's file naming was chosen to avoid; it is a
 wording question on a UI string. `gen_placeholders.gd` is still at 230 of its 250 and is still the
-next file to split. **C, F and K remain on the board.**
+next file to split. **C, F and K remain on the board — and C is no longer a question**: the
+owner answered its seam on 2026-09-06, both askers, with the NPC half on `NpcBrain`, so it is now
+a build rather than a decision.
 
 **T5.11 (music ducking, built — and the alias beside it deleted) is the row before it —
 complete — THE MUSIC DUCKS UNDER DIALOGUE, AND `AudioDirector` IS NOW THE ONE FILE IN THIS
@@ -825,6 +827,22 @@ three compiled cleanly and passed every static gate:**
   design decision rather than a wiring. All three are candidate rows.
 
 ## Decisions already made — do not re-litigate
+
+- **A TURN IN PLACE IS BUILT, BOTH HALVES, AND THE NPC HALF BELONGS TO `NpcBrain` — THE OWNER
+  ANSWERED THIS ON 2026-09-06 AND IT IS NOT THE ASSISTANT'S TO REOPEN.** T5.3 declined to pick the
+  seam silently and candidate C has carried the question ever since: `face_direction()` on
+  `CharacterVisual` has only test callers, so nothing in the game changes facing while standing
+  still. The answer is **both askers**, not one — the player turns to face what they interact with,
+  and an NPC turns to face the player when a conversation starts. Deleting `face_direction()`
+  instead, which is what T5.11 did to `stop_music()` on the same reasoning, was offered and
+  **rejected**: it is a seam a consuming game would plausibly want, and unlike the alias it has no
+  second spelling. The NPC half lives on **`NpcBrain`**, because the brain already owns where an NPC
+  goes and what it does and turning to face someone is behaviour — which keeps `Speaker` at the 17
+  lines its header promises, and means a speaker with no brain (a plaque, a parrot) does not turn,
+  which is correct rather than a gap. The player half is `InteractionSensor`, which already knows
+  the current target and already lives on the player. **T5.8 is what makes this worth building at
+  all**: while every facing drew the same picture a turn in place was invisible, and now every
+  facing draws a different figure.
 
 - **THE TEMPLATE'S VERSION IS `[template] base/version`, NOT `application/config/version`.** The
   obvious field is the wrong one, and `NEW_GAME.md` § 4 already said why without noticing: it tells

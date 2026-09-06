@@ -20,6 +20,49 @@ the exact rot this discipline exists to prevent.
 
 ---
 
+## 4.1.0
+
+*2026-09-06 — a turn in place. `Events.turn_requested` is a new signal, and with it
+`CharacterVisual.face_direction()` — correct, asserted and reached only from `tests/` since the
+day it was written — finally has an occasion. The player turns towards what the prompt is
+offering; the person you talk to turns towards you.*
+
+**A consuming game does: nothing. Every character it already has gains the behaviour, and any
+character it does not want turning simply never has a request addressed to it.** No export
+changed, no scene changed, no method was removed or renamed, and nothing a game wrote has to
+move. This is the MINOR case exactly.
+
+### What is new
+
+| | |
+|---|---|
+| `Events.turn_requested(character: Node3D, towards: Vector3)` | Ask a character to face a world point without moving it. Many askers by design, on `camera_shake_requested`'s shape |
+| `CharacterVisual` | Listens, and answers only when the request names the character it draws — itself, or any ancestor of itself |
+| `InteractionSensor` | Asks for the player, when a target is selected **while standing still**, or when the player comes to rest with one selected |
+| `Speaker` | Asks for the character it hangs under, if there is one, towards whoever spoke. A speaker on a plaque asks for nothing |
+
+### Two things worth knowing before you build on it
+
+**A turn does not need undoing, and there is no hold flag anywhere.**
+`update_from_velocity` re-aims only while the character is actually moving, so a turn given to
+somebody standing simply persists until they walk — which is why an NPC is still looking at the
+player when the dialogue box closes, at the cost of no listener at all. A turn given to a
+character who is *moving* is overwritten on the next physics frame, and that is not a defect to
+work around; it is why `InteractionSensor` asks only while the player is still.
+
+**Your own askers need no new seam.** An NPC that notices the player, walks over and stops them —
+the case neither shipped asker covers — emits the same signal and needs nothing added here. That
+is the reason the seam was drawn at the bus rather than inside either call site.
+
+### Also
+
+`src/systems/debug/dev_gait_shots.gd` gained a `--turn-shots=<dir>` pass, which photographs a
+character before and after a turn and reports the fraction of the crop's pixels that differ,
+against a same-gap control shot with no turn asked for. Debug surface only; deleting that file
+still does not break the game.
+
+---
+
 ## 4.0.0
 
 *2026-09-06 — the seventh checker, `tools/check_methods.gd`: a public method under `src/` that

@@ -32,6 +32,12 @@ extends Node3D
 ## OWNS: the sprite, its facing, its sheet column, and its animation frame.
 ## MUST NOT: read input, move the character, contain game rules, or hold any sheet dimension of
 ## its own. It is told a velocity and a state, and it draws.
+##
+## THE SECOND WAY IT IS TOLD, since T5.14, is `Events.turn_requested` - a turn asked for by
+## somebody else and answered only when the request names THIS character. Still being told;
+## still no rule of its own. The reason it listens rather than being called is in that signal's
+## own block, and the reason listening is safe here when `player_state_changed` is not is on
+## `_on_turn_requested`.
 
 ## The layout assumed when the @export below is unwired. Not a fallback anybody should rely on:
 ## it exists so an unwired node draws a recognisable character while the log says it is unwired,
@@ -87,6 +93,9 @@ func _ready() -> void:
 		sprite.name = "Sprite3D"
 		add_child(sprite)
 	_configure_sprite()
+	# ONE LISTENER PER CHARACTER, filtered by who the request names. Freeing the node
+	# disconnects it, which is why nothing here undoes it.
+	Events.turn_requested.connect(_on_turn_requested)
 
 
 func _configure_sprite() -> void:
@@ -170,7 +179,14 @@ func _idle_animates() -> bool:
 			!= _layout.animation_for(GameEnums.MoveState.WALK)
 
 
-## Face a direction without moving, for dialogue and scripted moments.
+## Face a direction without moving, for dialogue and scripted moments. `direction` is a
+## world-space XZ vector, the same shape `update_from_velocity` derives from a velocity.
+##
+## ITS CALLER IS THE BUS, not any one system. Until T5.14 this method had only test callers -
+## one of the 86 suite-only methods `check_methods.gd` reports - because nothing had decided
+## WHO may ask for a turn. `Events.turn_requested` is that answer, and it is deliberately not
+## a single owner: the player turning to a prompt and an NPC turning to whoever spoke are the
+## same motion asked for by two unrelated systems, and a third will come along.
 func face_direction(direction: Vector2) -> void:
 	if direction.length_squared() < 0.0001:
 		return
@@ -180,6 +196,28 @@ func face_direction(direction: Vector2) -> void:
 
 func facing() -> GameEnums.Facing:
 	return _facing
+
+
+## THE BUS ASKED SOMEBODY TO TURN. Answer only for the character this visual draws, because
+## every character in the area hears the same signal.
+##
+## THIS IS NOT THE THING `_state`'s COMMENT FORBIDS, and the difference is the whole design.
+## `Events.player_state_changed` is about THE PLAYER, so a class every NPC also uses must not
+## listen to it. `turn_requested` NAMES the character it is for, so listening is safe for
+## exactly as many characters as exist - and putting the answer here rather than in
+## `PlayerController` and `NpcBrain` separately is what keeps it one implementation.
+func _on_turn_requested(character: Node3D, towards: Vector3) -> void:
+	if character == null or not _draws(character):
+		return
+	var to: Vector3 = towards - global_position
+	face_direction(Vector2(to.x, to.z))
+
+
+## Is `character` the body this visual belongs to? An ANCESTOR rather than the parent exactly,
+## because a game may hang its visual under an offset node or a rig and nothing here should
+## care - and `self`, for a visual attached with no body above it, which is what a test builds.
+func _draws(character: Node3D) -> bool:
+	return character == self or character.is_ancestor_of(self)
 
 
 ## Map a world-space XZ direction to a GameEnums.Facing, corrected for camera yaw so that

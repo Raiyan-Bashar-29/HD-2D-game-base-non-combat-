@@ -7491,3 +7491,151 @@ is the part that survives after the tool.
   the one to revisit if a debug console command ever wants it or a row ever needs three lines back.
 - **No ADR.** One tool, one exemption phrase copied from an existing gate, and no new autoload,
   signal, layer or seam concept.
+
+## 2026-09-06 — T5.14 · A turn in place, and the seam decision was the package
+
+**Did.** Put candidate C's question to the owner with four answers and their costs, built the one
+they chose, and photographed it. `Events.turn_requested(character: Node3D, towards: Vector3)` is a
+new signal; `CharacterVisual` listens and answers only for the character the request names;
+`InteractionSensor` asks for the player when a target is selected while they are STILL or when
+they come to rest with one selected; `Speaker` asks for the character it hangs under, if there is
+one, towards whoever spoke. New `tests/unit/turn_test.gd` (13 assertions), a `--turn-shots=<dir>`
+pass on `dev_gait_shots.gd`, and **4.1.0** — a MINOR bump, because every character a consuming
+game already has gains the behaviour and nothing it wrote has to move.
+
+**Why the row began with a question, and why that was the right shape.** `face_direction()` has
+been correct, statically typed, asserted by `facing_test.gd` and reached only from `tests/` since
+the day it was written — one of the 86 suite-only methods T5.13's gate reports. Nothing was wrong
+with the code. What was missing was an OCCASION, and T5.3, T5.5 and T5.6 each declined to invent
+one silently because WHO may ask for a turn is a design decision. The four options put to the
+owner were: the sensor alone, `Speaker`/`NpcBrain` alone, both through a bus signal, or deletion
+on `stop_music()`'s precedent.
+
+**THE OWNER ANSWERED BOTH, AND THE REASON SETTLED THE SEAM RATHER THAN JUST PICKING FROM THE
+LIST.** The case they described — *"sometimes some NPCs will notice the player and stop us and come
+nearby to talk"* — **has no interactable in it at all.** No asker living inside the interaction
+path can serve it, which rules out a method call from `InteractionSensor` and rules out one from
+`Speaker`, and leaves the bus. That is the whole argument for the third option, and it came from
+the owner's use case rather than from a preference for signals: the seam is drawn where a THIRD
+asker costs nothing.
+
+**THE EXPENSIVE-LOOKING PART DID NOT EXIST, AND SAYING SO WAS A CORRECTION.** The question put to
+the owner priced option 2 as needing a hold flag, on the reasoning that `NpcBrain._physics_process`
+pushes a velocity into the visual every frame and would undo the turn on the next one. It does push
+one — but `update_from_velocity` calls `_aim` only when `speed > 0.05`, so a standing character
+keeps whatever facing it was last given. No hold flag, no timer, no `dialogue_finished` listener to
+undo anything, and an NPC still looking at you when the box closes for free. That is asserted
+directly, because the day it stops being true an NPC will snap back one frame after you speak to it
+and nothing else in the suite would notice.
+
+**WHY THE LISTENER IS IN `CharacterVisual` AND NOT IN THE TWO DRIVERS.** `PlayerController` and
+`NpcBrain` are the two things that drive a visual, so honouring the request in each of them is the
+obvious placement — and it is two copies of one implementation, kept in step by hand, for a class
+that already exists to be the one answer to "what does this character look like". Putting it in the
+visual makes it one function. The objection is that file's own comment on `_state`, which forbids
+listening to `Events.player_state_changed`, and the distinction is exact and now written on
+`_on_turn_requested`: that signal is about THE PLAYER, so a class every NPC also uses must not hear
+it, while `turn_requested` NAMES the character it is for. The filter is `character == self or
+character.is_ancestor_of(self)` — an ancestor rather than the parent exactly, so a game may hang
+its visual under an offset node.
+
+**`Speaker` GREW AND ITS HEADER SENTENCE SURVIVED, WHICH IS WORTH THE THREE LINES IT COST TO
+CHECK.** "It names a conversation id and nothing else" is still true of the DATA it carries: no
+second export, no second id, and the fiftieth speaker is still a `.tscn` override with no code. What
+it gained is that it may hang under a `CharacterBody3D` — the ENGINE's word, not this game's. It
+does not know the body has a brain, a schedule, a visual or a sprite, `NpcBrain` is not named
+anywhere in it, and a `Speaker` on a plaque finds no character above it and asks for nothing.
+
+**Connects.** `InteractionSensor` / `Speaker` -> `Events.turn_requested` -> every `CharacterVisual`
+-> `face_direction` -> `_aim` -> `_apply_frame`, which is the path `facing_test.gd` has asserted
+from the far end since Phase 1 and which nothing in the game had ever entered. `Speaker.perform`
+already received the player as `who`, so the NPC half needed no new argument anywhere. The stillness
+gate's constant is `0.05`, deliberately the same number `update_from_velocity` uses, because two
+files disagreeing by a hundredth about what "moving" means is a turn asked for and silently undone
+on the very next frame.
+
+**Verified.** Every line is a measured exit code.
+
+```
+--headless --import                                        exit 0 (run first; gotcha 53)
+--headless --quit-after 30                                 Session ended after 0.6s — 0 warnings, 0 errors
+--headless res://tests/test_runner.tscn --quit-after 400   === 1983 passed, 0 failed, 0 skipped ===, exit 0
+tools/check_budgets.gd    exit 0   157 files, 0 violations
+tools/check_content.gd    exit 0
+tools/check_boundary.gd   exit 0
+tools/check_strings.gd    exit 0
+tools/check_layers.gd     exit 0
+tools/check_signals.gd    exit 0   turn_requested has two emitters
+tools/check_methods.gd    exit 0   86 reached only from tests/ or tools/ (reported, not failed)
+```
+
+Suite 1,970 -> 1,983. Budgets: `character_visual.gd` 131/250, `interaction_sensor.gd` 173/250,
+`speaker.gd` 32/250, `events.gd` 46/150, `turn_test.gd` 107/250 (new).
+
+**THREE PLANTS, EACH THE REAL REVERSION, AND BOTH EXIT CODES FOR EVERY ONE.**
+
+| Plant | Result |
+|---|---|
+| the listener never connected in `_ready` | `a turn request turns the character it names — expected 5, got 0`. **`=== 1982 passed, 1 failed ===`, exit 1** |
+| `_draws` returns `character != null`, so a courtyard turns as one man | `and leaves every character it does not name exactly where it was — expected 0, got 5`. **`=== 1982 passed, 1 failed ===`, exit 1** |
+| the stillness gate deleted from `_turn_to_target` | `and a target that takes the prompt MID-WALK asks for nothing either — expected 1, got 2`, plus one more. **`=== 1981 passed, 2 failed ===`, exit 1** |
+| all three removed | **`=== 1983 passed, 0 failed ===`, exit 0** |
+
+**AND THE THIRD PLANT PASSED THE FIRST TIME, WHICH IS GOTCHA 70.** The stillness gate was deleted —
+the real line, the whole point of it — and the suite came back **`1982 passed, 0 failed`, exit 0**.
+The case as first written walked the player with the SAME target selected throughout, and in that
+sequence the surviving `just_stopped` term already implies stillness, so removing the test changed
+nothing measurable. The gate exists for a target that CHANGES mid-walk — a player crossing a
+courtyard past a row of objects — and that frame simply was not in the case. With a second
+interactable that takes the prompt while the player is moving, the same plant fails twice. **The
+answer to a plant that passes is a harder case, never a weaker claim**, and a green plant is the
+only way to find out that an assertion was decoration.
+
+**WINDOWED CAPTURE, WHICH FOR THIS ROW IS THE PROOF** (gotcha 2 — `--headless` shades nothing, and
+gotcha 28 — a sprite drawn from the wrong cell is still a person, so the number alone will not do
+either). `--resolution 960x540 --quit-after 300 -- --new-game --time=13:00 --freeze-time
+--turn-shots=user://shots/turn`, `0 warnings, 0 errors`:
+
+| shot | decoded | |
+|---|---|---|
+| `turn_before` | `frame=19` -> block 0, **column 3**, cell 2 | the figure faces away and to the right; the ear patch and the sash sit on its right side |
+| `turn_control` | `frame=19` -> block 0, **column 3**, cell 2 | the same shutter gap again with NO turn asked for |
+| `turn_after` | `frame=29` -> block 0, **column 5**, cell 3 | the ear patch and the sash have moved to its left side — the mirrored facing, a genuinely different figure |
+
+**`the idle cycle alone moves 0.1838 of the crop, the turn moves 0.7666`.** The control is not
+decoration: this sheet's idle block animates and the renderer has its own frame-to-frame noise, so
+two shots one shutter apart already differ by 18% of the crop with nothing happening at all. The
+turn is four times that floor, and the decoded column moved two sectors. Columns 3 and 5 happen to
+be a mirrored pair on this sheet (T5.8's `FACING_MIRROR`), which is why the difference reads as the
+figure turning through profile rather than front-to-back.
+
+**Unblocks.** A consuming game gets the behaviour on every character it already has, with no export
+to set and no scene to touch, and gets a seam for its own askers: a cutscene, a quest step, a
+trigger volume or an NPC that walks over to you all emit the same signal. The last of the seam
+decisions the board was holding for the owner is answered, so nothing on it is now blocked.
+
+**Known gaps.**
+- **THE GATE'S 86 DID NOT MOVE, AND THE GATE IS RIGHT.** `face_direction()` is still counted
+  suite-only, because `check_methods.gd` files a reference inside the declaring file under `self`
+  rather than `src`, and its only caller is `_on_turn_requested` one function below it. The wire is
+  a signal connection, which no text scan can follow. **The fix is not to restructure the code**:
+  moving the listener into `PlayerController` and `NpcBrain` would satisfy the counter by
+  duplicating one implementation into two files, which is exactly the fake caller T5.13 refused. It
+  is the sharpest illustration yet of why answering the 86 needs a call recorder on a real run.
+- **The capture asks on the bus rather than walking the player at an object.** What needed
+  photographing is the LISTENER end — that a request becomes a different figure on a screen — and
+  the two askers' occasions are staged exactly and cheaply in the suite. A probe that walked the
+  player at an authored object would photograph the courtyard's furniture placement as much as the
+  turn. Stated in the tool's own header rather than left for a reader to notice.
+- **A turn is a SNAP, not an animation.** The character changes column in one frame. Interpolating
+  through the intervening facings is a different feature, wants `accessibility/reduce_motion` in the
+  row with it, and is not what the roadmap line asked for.
+- **`Speaker` does not turn the PLAYER towards the NPC** when a conversation begins. The sensor
+  usually has already done it, because the player is standing still and the speaker is the selected
+  target — but a conversation opened by a trigger volume rather than by a button press would leave
+  the player facing wherever they stopped. One more emit would fix it and no occasion in the
+  template needs it yet.
+- **It did not split `tools/gen_placeholders.gd`**, still at 230 of its 250 and still next.
+- **It did not fix the "Continue — Slot 7" wording** T5.12 found in `MainMenuScreen._fill`.
+- **No ADR.** One signal on an existing bus, declared in `events.gd` with its own `##` block, and
+  no new autoload, layer or seam concept.

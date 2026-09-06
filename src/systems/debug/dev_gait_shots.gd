@@ -19,6 +19,8 @@ extends Node
 ##                          the real input path, and for each one write <dir>/gait_<name>.png,
 ##                          a x5 nearest-neighbour crop beside it, and a log line decoding the
 ##                          block, column and cell out of sprite.frame.
+##   --turn-shots=<dir>     photograph the player before and after a turn asked for on the bus,
+##                          and report the fraction of pixels that differ between the two crops.
 ##   --facing-shots=<dir>   walk the player north, east, south and west and photograph each,
 ##                          same shutter and same decode, into <dir>/facing_<name>.png.
 ##
@@ -61,6 +63,10 @@ const SETTLE_FRAMES: int = 30
 ## reaches depends on the camera's yaw and is deliberately not assumed here - it is read out of
 ## `sprite.frame` and logged, so the picture and the number can be checked against each other.
 const COMPASS: Array[StringName] = [&"north", &"east", &"south", &"west"]
+## Where the turn probe asks the player to look, relative to where the player is standing. Far
+## enough that the direction is unambiguous, and diagonal so it cannot coincide with the facing
+## a single held key produced.
+const TURN_TOWARDS: Vector3 = Vector3(-6.0, 0.0, -6.0)
 
 var _dir: String = ""
 
@@ -73,6 +79,9 @@ func _ready() -> void:
 		if argument.begins_with("--gait-shots="):
 			_dir = argument.trim_prefix("--gait-shots=")
 			_run()
+		elif argument.begins_with("--turn-shots="):
+			_dir = argument.trim_prefix("--turn-shots=")
+			_run_turns()
 		elif argument.begins_with("--facing-shots="):
 			_dir = argument.trim_prefix("--facing-shots=")
 			_run_facings()
@@ -109,6 +118,56 @@ func _run_facings() -> void:
 	Log.info("test", "--facing-shots done")
 
 
+## THE SAME CHARACTER PHOTOGRAPHED BEFORE AND AFTER A TURN IN PLACE, which is the only evidence
+## T5.14 could offer: a turn is a VISUAL claim and --headless shades nothing (gotcha 2), while
+## `sprite.frame` alone proves only that a number changed (gotcha 28). So this reports BOTH -
+## the decoded column either side, and the fraction of pixels that actually differ between the
+## two crops. T5.8's standard, with the axis substituted.
+##
+## IT ASKS ON THE BUS RATHER THAN WALKING UP TO SOMETHING. What needs photographing is the
+## LISTENER end - that a request becomes a different figure on a screen - and the two askers'
+## occasions are the suite's business, where they are staged exactly and cheaply. A probe that
+## walked the player at an authored object would be photographing the courtyard's furniture
+## placement as much as the turn.
+func _run_turns() -> void:
+	var player: PlayerController = await _wait_for_player()
+	if player == null:
+		return
+	# Face one way through the real input path first, so the turn is FROM somewhere known
+	# rather than from whatever the boot transition left behind.
+	_hold(Actions.MOVE_RIGHT, true)
+	for _i: int in HOLD_FRAMES:
+		await get_tree().physics_frame
+	_hold(Actions.MOVE_RIGHT, false)
+	for _i: int in SETTLE_FRAMES:
+		await get_tree().physics_frame
+	var before: Image = await _shoot(player, "turn_before")
+	# THE CONTROL, and without it the headline number is worthless: this sheet's idle block
+	# animates, so two shots one shutter apart already differ by a whole cell. Shoot the same
+	# gap again with NO turn asked for, and the turn's number is the one above that floor.
+	var control: Image = await _shoot(player, "turn_control")
+	Events.turn_requested.emit(player, player.global_position + TURN_TOWARDS)
+	var after: Image = await _shoot(player, "turn_after")
+	Log.info("test", "turn: the idle cycle alone moves %.4f of the crop, the turn moves %.4f" % [
+		_difference(before, control), _difference(control, after),
+	])
+	Log.info("test", "--turn-shots done")
+
+
+## How far apart two crops of the same character are, as the fraction of pixels that differ at
+## all. The same measure `sheet_facings_test.gd` uses on cells of a sheet, applied to the screen
+## instead - so a number here is comparable with the numbers T5.8 recorded.
+func _difference(a: Image, b: Image) -> float:
+	if a.get_size() != b.get_size():
+		return 1.0
+	var differ: int = 0
+	for y: int in a.get_height():
+		for x: int in a.get_width():
+			if a.get_pixel(x, y) != b.get_pixel(x, y):
+				differ += 1
+	return float(differ) / float(a.get_width() * a.get_height())
+
+
 ## The wait every probe in this file opens with, and the player it found. Null means the run has
 ## already logged why, so a caller only has to stop.
 func _wait_for_player() -> PlayerController:
@@ -141,7 +200,7 @@ func _one(player: PlayerController, gait: GameEnums.MoveState, home: Vector3) ->
 ## post-draw await put a physics step between them, so the log said cellframe 2 while the
 ## photograph showed one foot pip - two honest measurements of two different moments, which
 ## reads exactly like the sheet being wrong.
-func _shoot(player: PlayerController, label: String) -> void:
+func _shoot(player: PlayerController, label: String) -> Image:
 	await RenderingServer.frame_post_draw
 	var shot: Image = get_viewport().get_texture().get_image()
 	var layout: SpriteSheetLayout = player.visual.layout
@@ -151,7 +210,9 @@ func _shoot(player: PlayerController, label: String) -> void:
 		cell % layout.facings, (cell / layout.facings) % layout.frames,
 	])
 	shot.save_png("%s/%s.png" % [_dir, label])
-	_zoom(shot, player).save_png("%s/%s_zoom.png" % [_dir, label])
+	var crop: Image = _zoom(shot, player)
+	crop.save_png("%s/%s_zoom.png" % [_dir, label])
+	return crop
 
 
 ## Screen north, east, south and west as the action a player holds. A function rather than a

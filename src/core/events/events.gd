@@ -174,6 +174,28 @@ signal weather_changed(kind: GameEnums.WeatherKind)
 signal camera_shake_requested(strength: float, seconds: float)
 
 # ---------------------------------------------------------------------------------------
+# Characters. Asked for by anyone, performed by the character's own visual.
+# ---------------------------------------------------------------------------------------
+
+## Turn a character to face a world point, without moving it. `character` is the body the turn
+## is meant for and `towards` is the point to look at. Every `CharacterVisual` hears this and
+## only the one belonging to `character` answers, so a courtyard full of people does not turn
+## as one man.
+##
+## MANY ASKERS BY DESIGN, on `camera_shake_requested`'s shape, and that is the whole reason it
+## is a signal rather than a method call. Two askers ship: `InteractionSensor` turns the PLAYER
+## towards whatever the prompt is offering, and `Speaker` turns the person being SPOKEN TO
+## towards whoever spoke. A third - an NPC that notices the player, walks over and stops them -
+## needs no new seam, which is why the seam was drawn here rather than at either call site.
+##
+## IT IS A REQUEST AND IT DOES NOT HOLD. `CharacterVisual.update_from_velocity` re-aims only
+## while the character is actually MOVING, so a turn given to a standing character persists
+## until it walks, and one given to a walking character is overwritten on the next physics
+## frame. No hold flag exists anywhere and none is needed - the ASKER decides the moment is
+## right, and `InteractionSensor`'s stillness gate is exactly that decision written down.
+signal turn_requested(character: Node3D, towards: Vector3)
+
+# ---------------------------------------------------------------------------------------
 # Dialogue and narrative. Emitted by the dialogue system.
 # ---------------------------------------------------------------------------------------
 

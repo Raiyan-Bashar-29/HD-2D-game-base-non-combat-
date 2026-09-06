@@ -3,50 +3,58 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-06 · **T5.13 (a public-method liveness gate) complete — THE LADDER IS
-SEVEN CHECKERS, AND THE FOURTH CONSUMER QUESTION IS THE FIRST ONE TO HAVE FOUND A DEFECT IN A
-DOC COMMENT.** `tools/check_methods.gd` fails when a public method declared under `src/` has its
-name written nowhere else in the repository. **The design question was which methods it is even
-asked of, and the answer is the narrowest question a text scan can answer soundly**: not "is it
-called on a value of the right type" — a scan cannot know a variable's static type and does not
-need to — but "did anybody write this name down at all", on any non-comment line, in `.gd`,
-`.tscn` or `.tres`. That form needs no knowledge of `Callable`, `.bind`, unqualified inherited
-calls or scene properties, because every one of them writes the name.
+**Last updated:** 2026-09-06 · **T5.14 (a turn in place) complete — CANDIDATE C IS CLOSED, AND
+THE SEAM DECISION IT HAD BEEN WAITING ON SINCE T5.3 WAS THE WHOLE PACKAGE.** The base is at
+**4.1.0**, a MINOR bump.
 
-**FIRST RUN: EXIT 1, TWELVE VIOLATIONS OUT OF 316 PUBLIC METHODS. Two deleted, one wired, nine
-exempted, and every exemption had to be argued in a sentence.** The two deletions are why the
-base is **4.0.0**: `DialogueNode.has_choices()` was an alias over `not choices.is_empty()`, which
-is what both real readers already write, and `ItemDefinition.is_equippable()` carried a doc block
-claiming "an `Equipment` component and a UI row both ask this" — **neither ever did**, and the one
-place that asks writes `slot_of(id) != NONE`, which is better because it also answers for an id
-with no definition. `Footsteps.current_surface()` said "read by the probe" and no probe has ever
-read it. **A gate for dead code found two false claims in prose**, which is not what it was built
-for and is the most useful thing it did.
+`CharacterVisual.face_direction()` was correct, asserted, and reached only from `tests/` from the
+day it was written — one of the 86 suite-only methods T5.13's gate reports. Nothing was wrong with
+it. What was missing was an OCCASION, and three rows in a row (T5.3, T5.5, T5.6) refused to invent
+one silently because WHO may ask for a turn is a design decision and not an implementation one.
 
-**PROVED AGAINST THE CASE THAT MOTIVATED IT.** At `7a162ca`, the commit before T5.11, `duck`,
-`unduck` and `stop_music` had **zero** references outside their own declarations — the only other
-occurrence of the word `duck` in the whole repository was the prose "duck-typed" in an unrelated
-header — so this gate would have failed the build on the day each of them landed. That is the
-answer to "would it have caught the thing it exists for", and it is a fact about a commit rather
-than an opinion.
+**The owner's answer was BOTH, and the reason settled the seam.** The case they described —
+*"sometimes some NPCs will notice the player and stop us and come nearby to talk"* — has no
+interactable in it at all, so no asker that lives inside the interaction path could serve it. That
+rules out a method call and leaves the bus: **`Events.turn_requested(character: Node3D, towards:
+Vector3)`**, on `camera_shake_requested`'s shape. `CharacterVisual` listens and answers only for
+the character the request NAMES. Two askers ship — `InteractionSensor` for the player, `Speaker`
+for the person you talk to — and the NPC-notices-you case needs nothing added.
 
-**WHAT IT DELIBERATELY DOES NOT FAIL ON IS THE OTHER HALF OF THE DESIGN.** 86 of the 314 public
-methods are reached only from `tests/` or `tools/`, and **"has a caller in the suite" is not "has
-a caller in the game"** — but a template declares accessors for a consuming game to call and this
-repository never will, so failing there would be answered with a fake caller, and a gate that
-starts out mostly exemptions is decoration. It is REPORTED on every run and never failed, which
-is `check_signals.gd`'s asymmetry for a listener, with the subject changed. **The gate
-under-reports and cannot over-report**: 37 names are declared in more than one file and are
-treated as one, so a green run is not a proof, while a red run is always real.
+**THE EXPENSIVE-LOOKING PART TURNED OUT NOT TO EXIST.** The obvious worry is that a turn must be
+HELD, since both drivers push a velocity into the visual every physics frame. They do, but
+`update_from_velocity` calls `_aim` only when `speed > 0.05`, so a standing character keeps
+whatever facing it was last given: no hold flag, no timer, no `dialogue_finished` listener to undo
+anything, and an NPC still looking at you when the box closes for free. `turn_test.gd` asserts it
+directly, because if it ever stops being true an NPC will snap back one frame after you speak.
 
-**One precondition, checked rather than assumed** — no line both dispatches (`call(`, `callv(`,
-`call_deferred(`, `Callable(`, `has_method(`) and builds a string, because a name assembled at
-runtime is the one form this scan cannot see. **It fired on this row's own test file**, which had
-written the opaque sample out whole; the gate was right and the test was the violation. That is
-**gotcha 69**. Suite 1,947 -> 1,970; three plants — a restored dead method, a stale exemption and
-a built name — each **exit 1**, control **exit 0**. `gen_placeholders.gd` is still at 230 of its
-250 and is still the next file to split. **C and F remain on the board, and C is the owner's seam
-decision.**
+**`InteractionSensor`'s stillness gate is the one judgement that could have gone the other way**,
+and its first test was decoration. Dropping the gate and running the suite came back GREEN, because
+the case never staged a target CHANGING while the player walked — which is the only situation the
+gate exists for. With that frame added the same plant fails twice. **That is gotcha 70**: a plant
+that passes is evidence about the TEST, and the answer is a harder case rather than a weaker claim.
+
+**Photographed, because a turn is a visual claim (gotcha 2).** Same character, same world position,
+one shutter apart: column 3 to column 5, **0.7666 of the crop's pixels changed against a 0.1838
+no-turn control** taken across the identical gap — the control is not optional, since this sheet's
+idle block animates and two shots already differ without any turn at all. `--turn-shots=<dir>` on
+`dev_gait_shots.gd`. Suite 1,970 -> 1,983; three plants — the listener unwired, the character
+filter dropped, the stillness gate dropped — each **exit 1**, control **exit 0**.
+
+**THE GATE'S 86 DID NOT MOVE, AND THAT IS THE GATE BEING RIGHT.** `face_direction()` is still
+reported as suite-only, because `check_methods.gd` files a reference inside the declaring file
+under `self` rather than `src` — and the only caller is `_on_turn_requested`, one function below
+it. The wire is a signal connection, which no text scan can follow. Restructuring the code to
+satisfy the counter would have meant duplicating the listener into `PlayerController` and
+`NpcBrain`, which is exactly the fake caller T5.13 refused to accept. **F is the only candidate
+left on the board.**
+
+**T5.13 (a public-method liveness gate) is the row before it — complete.** `tools/check_methods.gd`
+is rung 11: a public method declared under `src/` whose name is written nowhere else in the
+repository fails the build. Twelve violations of 316 on its first run — two deleted, one wired,
+nine exempted with `NO CALLER` and an argued sentence each, and **two carried doc comments naming
+callers that never existed**. **Gotcha 69**: the precondition fired on the test file that quoted
+its own trigger pattern, and the gate was right. 86 of 314 methods are reached only from `tests/`
+or `tools/`, which is REPORTED and deliberately never failed.
 
 **T5.12 (two capture gaps closed, and the third argued away) is the row before it —
 complete — A GATE OPENED BY A KEY PRESS HAS NOW BEEN PHOTOGRAPHED SHAKING THE CAMERA, AND AN
@@ -351,12 +359,12 @@ undrawable while "more than one idle" sat on the exit criteria. Both fixed and b
 planting the revert: `1688 passed, 6 failed`, exit 1 without the fix; `1694 passed, 0 failed`
 with it.
 
-**WHAT IS LEFT OF THE T5.3 AUDIT'S LIST, and it is two items.** **Music ducking is entirely dead**
-— `stop_music`, `duck` and `unduck` have no callers anywhere, and the only `duck` hit in the
-repository is the phrase "duck-typed" in a comment; that is candidate E, and `DialogueRunner` is
-the natural home. **`face_direction()` still has only test callers**, so nothing changes facing
-while stationary; that is candidate C, and WHO may ask for a turn is an owner's seam decision that
-T5.3, T5.5 and T5.6 all declined to pick silently.
+**WHAT IS LEFT OF THE T5.3 AUDIT'S LIST: NOTHING.** Its last two items are both closed. Music
+ducking was candidate E and landed in T5.11 — `duck()` and `unduck()` built, `stop_music()`
+deleted. **`face_direction()` was candidate C and landed in T5.14**, and the seam decision it had
+been waiting on since T5.3 was the package: the owner's answer to "who may ask for a turn" was
+BOTH, so it is `Events.turn_requested` on the bus, with `InteractionSensor` asking for the player
+while they are still and `Speaker` asking for whoever you talk to.
 
 Everything else on it is closed. **T5.4 closed the three enforcement holes** — the layer direction,
 the signal registry's shape and `localization/` demo content all have gates now, and the corrected
@@ -1427,7 +1435,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Sixty-nine gotchas that each cost an hour
+## Seventy gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -2230,6 +2238,18 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     both scan `tests/`, and both would fail a case that quoted a real violation to assert against
     it. **The gate's own test is the first place a text gate meets a false positive.**
 
+
+70. **A PLANT THAT PASSES IS EVIDENCE ABOUT THE TEST, NOT ABOUT THE CODE.** T5.14 deleted the
+    stillness gate from `InteractionSensor._turn_to_target` — a real reversion, the whole point of
+    the line — and the suite came back **green**. The assertion staged a player who walked with
+    the SAME target selected throughout, and in that sequence the surviving `just_stopped` term
+    already implies stillness, so removing the test changed nothing measurable. The gate exists
+    for a target that CHANGES mid-walk, which is a player crossing a courtyard past a row of
+    objects, and that frame was simply not in the case. With it added the same plant fails twice.
+    **The answer to a plant that passes is a harder case, never a weaker claim** — and the reason
+    to plant every reversion is precisely that a green plant is the only way to find out that an
+    assertion was decoration.
+
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the
@@ -2239,34 +2259,25 @@ names the exact files that chat should read, so a session loads a few hundred li
 package never has to read upward.
 
 
-**Next package: NOTHING IS BLOCKING, AND THE STRONGEST CANDIDATE IS A QUESTION FOR THE OWNER.**
-Candidates D, G, H, I and J are all done (T5.6 to T5.10), and what is left of Phase T5 is a second
-idle block — a chooser on top of machinery that already works — and **candidate C, a turn in
-place, which is a SEAM decision three rows in a row have declined to make silently.** T5.8 changed
-the case for it: a turn in place was not worth animating while every facing drew the same picture,
-and now that every facing draws a different figure, it is. **Putting that question to the owner is
-itself the next action, and it is cheaper than any package below.** What follows is a real choice,
-not a queue:
+**Next package: NOTHING IS BLOCKING, AND NOTHING IS WAITING ON THE OWNER.**
+Candidates C, D, E, G, H, I and J are all done (T5.6 to T5.14), and what is left of Phase T5 is a
+second idle block — a chooser on top of machinery that already works. **T5.14 closed the last of
+the seam decisions**, so nothing on the board is now waiting on an answer from the owner. What
+follows is a real choice, not a queue:
 
-- **Candidate C — a turn in place, but the seam decision FIRST. Recommended, as a question.**
-  `face_direction()` has only test callers, so nothing in this game changes facing while
-  stationary. The question is WHO may ask for a turn: the player facing an interaction target, or
-  an NPC facing the player in dialogue. `Speaker` is 17 lines and deliberately knows only a
-  conversation id, so it is probably `NpcBrain` or `InteractionSensor` — **but that is the owner's
-  call and must not be picked silently.**
-- **Candidate E — music ducking, or delete it.** `stop_music`, `duck` and `unduck` have no callers
-  anywhere. Lowering music under dialogue is the obvious use and `DialogueRunner` is the home; the
-  honest alternative is deleting three methods.
-- **Candidate F — the `Button` styleboxes.** The theme sets `font_sizes` on nine type variations
-  and no `Button/styles/*`, so every menu row draws Godot's default StyleBox — already a declared
-  known limitation, invisible against the shipped dark palette and immediately wrong against a
-  light one.
-- **A `dev_probes.gd` row for the two capture gaps that are now written down twice.** T5.9 wants a
-  probe that unlocks the gate, hands over the key and photographs a gate opening; T5.10 wants one
-  that boots, autosaves, quits, relaunches and continues into the autosave. Both are the same
-  shape — a scripted scenario no assertion can run — and one row could close both.
+- **Candidate F — the `Button` styleboxes. The only candidate row left.** The theme sets
+  `font_sizes` on nine type variations and no `Button/styles/*`, so every menu row draws Godot's
+  default StyleBox — already a declared known limitation, invisible against the shipped dark
+  palette and immediately wrong against a light one.
+- **A second idle block and a chooser between them.** The last unticked Phase T5 exit criterion.
+  `_advance` and `_rate_for` are the hooks; this is a chooser on working machinery, not a rewrite.
+- **A call recorder, to answer the 86.** T5.13's gate reports 86 public methods reached only from
+  `tests/` or `tools/`, and T5.14 added the sharpest illustration of why a text scan cannot shrink
+  that number: `face_direction()` is genuinely called by the game now, through a signal, and the
+  gate still counts it as suite-only because the connection is not a written name. Instrumenting a
+  real run is the only thing that would answer them, and it is a package of its own.
 - **Split `tools/gen_placeholders.gd`**, at 230 of its 250, character sheets against flat textures.
-  It has been the next file to split for three rows and no row has touched it.
+  It has been the next file to split for eight rows and no row has touched it.
 - **WP-10 crafting**, if a game wants it. Still OPTIONAL, still a genre choice per `TEMPLATE.md`.
 - **Nothing at all**, which stays a legitimate answer for a base that has answered every question
   it set out to.

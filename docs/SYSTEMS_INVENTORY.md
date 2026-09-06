@@ -111,7 +111,7 @@ previous project started as a system that was allowed to know one thing too many
 | Path actions | Non-combat NPC verbs. One Interactable per action, selected with the cycle key | Interactable, Flags, Standing | performing itself, or what a standing level means | DONE — 2 of 5 verbs authored |
 | Standing | What one person thinks of the player. A clamped namespace over Flags, not a store | Flags | what any level means, or what changes it | DONE |
 | Followers | A companion that trails the player | Navigation | — | LATER — leave a seam, build nothing |
-| Animation state machine | Drives sprite animation from movement and actions | Character visual | — | PART — the BLOCK is now chosen by `MoveState` (T5.2) and the frame rate scales with speed, so gaits are data. T5.3 closed the two that were declared and undrawn: CLIMB reaches the sprite, and one idle animates. Still missing: a SECOND idle and a chooser between them, and a turn in place — for which `face_direction()` still has no production caller, so nothing changes facing while stationary at all. See Phase T5 |
+| Animation state machine | Drives sprite animation from movement and actions | Character visual | — | PART — the BLOCK is now chosen by `MoveState` (T5.2) and the frame rate scales with speed, so gaits are data. T5.3 closed the two that were declared and undrawn: CLIMB reaches the sprite, and one idle animates. **T5.14 closed the turn in place**: `Events.turn_requested` gives `face_direction()` its occasion, `InteractionSensor` asks for the player while still and `Speaker` asks for whoever you talk to. Still missing: a SECOND idle and a chooser between them. See Phase T5 |
 
 ## 4. Narrative
 

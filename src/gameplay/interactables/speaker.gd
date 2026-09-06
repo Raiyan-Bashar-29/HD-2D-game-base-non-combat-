@@ -7,6 +7,10 @@ extends Interactable
 ## keeps the fiftieth speaker in the game a `.tscn` override and a `.tres` file with no code at
 ## all, which is the same test `ItemDb` and `DialogueDb` are built to pass.
 ##
+## SINCE T5.14 IT ALSO ASKS FOR A TURN, and that sentence above is still true of the DATA it
+## carries: no second export, no second id. What it gained is a three-line ask on the bus so
+## the person you talk to looks at you, which needs nothing authored and nothing configured.
+##
 ## WHY IT GOES THROUGH THE BUS. `Speaker` is in the gameplay layer and the dialogue box is in
 ## the ui layer, and dependencies here point downward only: gameplay must not name a screen.
 ## So it emits `Events.dialogue_requested` and stops, exactly as `AreaDoor` emits
@@ -45,6 +49,40 @@ func refusal(_who: Node3D) -> GameEnums.RefusalReason:
 	return GameEnums.RefusalReason.NONE
 
 
-func perform(_who: Node3D) -> void:
+func perform(who: Node3D) -> void:
 	Log.info("dialogue", "%s asks for '%s'" % [name, conversation_id])
+	_turn_to_whoever_spoke(who)
 	Events.dialogue_requested.emit(conversation_id)
+
+
+## LOOK AT WHOEVER SPOKE, IF THERE IS ANYBODY HERE TO LOOK. A `Speaker` on a plaque has no
+## character above it and asks for nothing; a `Speaker` on a person asks the bus to turn that
+## person towards the one who started the conversation.
+##
+## THIS IS THE WHOLE OF WHAT IT KNOWS ABOUT THE BODY IT HANGS UNDER: that it is a
+## `CharacterBody3D`, which is the engine's word and not this game's. It does not know the body
+## has a brain, a schedule, a visual or a sprite - `Events.turn_requested` carries the node and
+## whatever draws that node decides what a turn means. `NpcBrain` is not named here and must
+## not be: the same three lines turn a talking statue, a parrot or the player.
+##
+## AND IT DOES NOT NEED UNDOING WHEN THE CONVERSATION ENDS. A standing character keeps the
+## facing it was last given, so the NPC is still looking at the player when the box closes -
+## which is the behaviour anybody would want and costs no listener to get.
+func _turn_to_whoever_spoke(who: Node3D) -> void:
+	if who == null:
+		return
+	var character: CharacterBody3D = _character()
+	if character == null:
+		return
+	Events.turn_requested.emit(character, who.global_position)
+
+
+## The character this speaker is attached to, or null when it is attached to scenery. Walks up
+## rather than reading `get_parent()`, so a game may nest its speaker under an offset marker.
+func _character() -> CharacterBody3D:
+	var walker: Node = get_parent()
+	while walker != null:
+		if walker is CharacterBody3D:
+			return walker as CharacterBody3D
+		walker = walker.get_parent()
+	return null

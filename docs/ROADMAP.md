@@ -720,13 +720,15 @@ because the first row exposed how much of it was declared and unread.
       a standing character was a held pose was that the idle block never advanced at all, which
       is now fixed. What remains is genuinely a SECOND block and a chooser between them, and it
       is a smaller and more optional thing than this line implied.
-- [ ] **A turn in place.** Changing facing while stationary currently snaps between columns —
-      except that **nothing changes facing while stationary at all.** `_aim()` is called only
-      when the character is moving, and the one public API for it, `face_direction()`, has only
-      test callers. So the first question is not how to animate a turn but WHO is allowed to ask
-      for one: the player turning to face an interaction target, or an NPC turning to face the
-      player in dialogue. That is a seam decision and T5.3 deliberately left it to the owner
-      rather than picking one silently.
+- [x] **A turn in place.** — **T5.14, 2026-09-06, and the SEAM DECISION was the package.** The
+      question was never how to animate a turn: `face_direction()` was correct and asserted from
+      the day it was written, and had only test callers because nothing had decided WHO may ask.
+      The owner's answer was BOTH, on the strength of a case neither candidate asker covered — an
+      NPC that notices the player, walks over and stops them — so the seam is
+      `Events.turn_requested(character, towards)` on the bus rather than a call inside either.
+      `InteractionSensor` asks for the player while they are STILL; `Speaker` asks for the person
+      you talk to. Photographed: the same character, same position, one shutter apart, column 3
+      to column 5, **0.7666 of the crop's pixels changed against a 0.1838 no-turn control**.
 - [x] **A worked example of swapping a character wholesale** — a second sheet with a different
       cell size, facing count and gait set, dropped in and photographed, to the standard T2.1 set
       for the layout swap. — **T5.6, 2026-09-05.** `character_alt.png` is 4 facings, 24x40 and

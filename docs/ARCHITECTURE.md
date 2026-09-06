@@ -299,9 +299,13 @@ never resolve.
   caught only by review.
 - **Audio has no assets,** so every audio path is written but unexercised. It accepts `null`
   everywhere by design, which means it is untested rather than broken.
-- **The UI theme sets no `Button` styleboxes,** so a menu row draws Godot's default dark panel.
-  Invisible against the shipped dark palette and immediately wrong against a light one. The seam
-  is right and unpopulated — see [`ART_CONTRACT.md`](ART_CONTRACT.md).
+- **The UI theme set no `Button` styleboxes until 4.2.0** — closed by T5.15, and the shape is
+  worth knowing because it is the general answer whenever a look has to survive a palette the
+  base does not ship. The five states are not authored in `ui_theme.tres`; they are DERIVED from
+  the palette by `UiRowStyles` at boot, and the derivation is directional — `hover` is `surface`
+  moved toward `text`, which lightens a dark row and darkens a light one from one expression.
+  What remains is that the base still has no LOOK: `surface` is a placeholder colour like every
+  other entry in that palette, and a game picks its own by editing one line.
 - **`Director` drains its threaded load on shutdown as of WP-14**, so a run killed mid-load no
   longer prints `Parse Error` for files that parse perfectly. There is no `load_threaded_cancel` in
   4.7, so the fix is a blocking `load_threaded_get()` in `_exit_tree()` — measured at 118-197ms,

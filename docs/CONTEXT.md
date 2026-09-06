@@ -3,8 +3,70 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-06 · **T5.14 (a turn in place) complete — CANDIDATE C IS CLOSED, AND
-THE SEAM DECISION IT HAD BEEN WAITING ON SINCE T5.3 WAS THE WHOLE PACKAGE.** The base is at
+**Last updated:** 2026-09-06 · **T5.15 (the `Button` styleboxes) complete — CANDIDATE F IS
+CLOSED, AND WITH IT THE LAST ROW ON THE BOARD. THE OLDEST DECLARED LIMITATION IN THIS PROJECT IS
+GONE.** The base is at **4.2.0**, a MINOR bump.
+
+The theme had set `font_sizes` on nine type variations and no `Button/styles/*` at all since
+T2.1, so every menu row and every dialogue reply drew the engine's fallback panel — invisible
+against the shipped near-black palette and immediately wrong against a light one. **Four packages
+opened `ui_theme.tres` and closed it again, each giving the same reason, and the reason was
+right**: a stylebox has to be *designed*, the only palette to design against is the placeholder
+one, and populating it ships a decision as a default.
+
+**THE FIX ANSWERS THAT REASON RATHER THAN OVERRULING IT. Nothing in
+`src/ui/root/ui_row_styles.gd` designs a colour — it designs the RELATIONSHIP between the five
+states** and takes every colour from the palette, at boot, into `MenuRow` and `ChoiceRow`.
+`UiAccessibility`'s sibling: that one owns the theme's font SIZES, this one owns its Button
+STYLES, and neither knows which screens exist.
+
+**`hover` IS `surface` MOVED TOWARD `text`, AND THAT WORD IS THE WHOLE PACKAGE.** The same
+expression lightens a dark row and darkens a light one, so the fix survives a palette this base
+does not ship — which is the half of the stated defect a hard-coded lighten would have left
+exactly where it was. Measured both ways: **0.1490 -> 0.3020 on the shipped palette, 0.8902 ->
+0.7529 on parchment**, one expression, opposite directions. `pressed` moves toward `accent`
+because a press is an ACT and wants a hue rather than another shade; `disabled` keeps the hue and
+drops the alpha, so a refused row is the same row faded; and **`focus` draws no centre at all**,
+only an accent ring, so it composes with whichever of the other four is underneath — the state a
+mouse user never sees and the one a gamepad player navigates by.
+
+**ONE PALETTE TOKEN WAS ADDED AND IT IS ARGUED IN THE FILE.** `dim` and `solid` are the panel a
+row sits ON, so a row drawn in either vanishes into it, and `muted` already means "present but
+lesser" — a whole menu in it would say every row is half-earned. There was no token for a button
+SURFACE, and adding one silently is the invention the four refusals were about.
+`UiMetrics/constants/row_padding` and `focus_border` came with it.
+
+**PHOTOGRAPHED TWICE, BECAUSE THE DEFECT HAD TWO HALVES.** On the shipped palette a row's
+separation from its panel goes **0.0981 -> 0.3490 summed channel delta, 3.6x**, and **all 61,998
+changed pixels are inside the row band with none outside it** — the change is exactly the rows
+and nothing else. All five states were then photographed at once against a probe menu, before and
+after, and the whole thing again on a parchment palette produced by six palette lines and no code.
+
+**Suite 1,983 -> 2,051. Five plants, each a real reversion, each exit 1, control exit 0** — and
+**the one that matters is the hard-coded lighten, which passes every dark-palette assertion in
+the file and fails only the light ones.** That is why the light palette is asserted and not merely
+photographed: gotcha 70 says a plant that passes is evidence about the test, and this one says the
+converse — an assertion that only ever sees one palette cannot tell a directional rule from a
+constant.
+
+**Gotcha 71** came out of the probe and cost the hour: a Control's `get_global_rect()` is in
+stretched canvas coordinates and an input event is in window ones, so pointing the mouse at a
+row's centre missed it, and **the capture came back with the hover row byte-identical to the
+normal one** — a perfectly plausible picture of a subtle hover style, and it would have been
+recorded as one.
+
+**Fixed as its own line, not folded in:** the main menu's Continue row read "Continue — Slot 7"
+for the autosave, which is exactly the reading T5.10's `autosave.json` naming was chosen to
+avoid. `ui.menu.continue_autosave` and a three-line `_continue_text`, with the slot still what is
+LOADED and only the label changed.
+
+**Two seams inherited and deliberately not taken:** `tools/gen_placeholders.gd` is still at 230
+of its 250 and still the next file to split, and `check_methods.gd` still reports 86 public
+methods reached only from `tests/` or `tools/` — answering that needs a call recorder on a real
+run, which is a package of its own and is not on the board yet.
+
+**T5.14 (a turn in place) is the row before it — complete. CANDIDATE C WAS CLOSED, AND
+THE SEAM DECISION IT HAD BEEN WAITING ON SINCE T5.3 WAS THE WHOLE PACKAGE.** It shipped at
 **4.1.0**, a MINOR bump.
 
 `CharacterVisual.face_direction()` was correct, asserted, and reached only from `tests/` from the
@@ -45,8 +107,7 @@ reported as suite-only, because `check_methods.gd` files a reference inside the 
 under `self` rather than `src` — and the only caller is `_on_turn_requested`, one function below
 it. The wire is a signal connection, which no text scan can follow. Restructuring the code to
 satisfy the counter would have meant duplicating the listener into `PlayerController` and
-`NpcBrain`, which is exactly the fake caller T5.13 refused to accept. **F is the only candidate
-left on the board.**
+`NpcBrain`, which is exactly the fake caller T5.13 refused to accept. **F was then the only candidate left on the board, and T5.15 closed it.**
 
 **T5.13 (a public-method liveness gate) is the row before it — complete.** `tools/check_methods.gd`
 is rung 11: a public method declared under `src/` whose name is written nowhere else in the
@@ -1435,7 +1496,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Seventy gotchas that each cost an hour
+## Seventy-one gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -2250,6 +2311,18 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     to plant every reversion is precisely that a green plant is the only way to find out that an
     assertion was decoration.
 
+71. **A CONTROL'S `get_global_rect()` IS IN STRETCHED CANVAS COORDINATES AND AN INPUT EVENT IS
+    IN WINDOW ONES, SO POINTING THE MOUSE AT A BUTTON'S CENTRE MISSES IT.** This project's
+    `canvas_items` stretch keeps the logical size at 1920x1080 whatever the window does, so at
+    `--resolution 960x540` every rect a Control reports is exactly twice the coordinate an
+    `InputEventMouseMotion` needs. T5.15's state probe aimed at a row's centre, the row never
+    hovered, and **the capture came back with the hover row byte-identical to the normal one** —
+    which is a perfectly plausible picture of a hover style that is merely subtle, and would have
+    been recorded as one. `Input.warp_mouse` fails the same way and for the same reason. The fix
+    is one multiplication: `get_viewport().get_screen_transform() * rect.get_center()`. The tell
+    is that `Button.is_hovered()` returns false and `get_draw_mode()` stays 0 while the picture
+    looks arguable; ask the button, never the pixels.
+
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the
@@ -2259,16 +2332,11 @@ names the exact files that chat should read, so a session loads a few hundred li
 package never has to read upward.
 
 
-**Next package: NOTHING IS BLOCKING, AND NOTHING IS WAITING ON THE OWNER.**
-Candidates C, D, E, G, H, I and J are all done (T5.6 to T5.14), and what is left of Phase T5 is a
-second idle block — a chooser on top of machinery that already works. **T5.14 closed the last of
-the seam decisions**, so nothing on the board is now waiting on an answer from the owner. What
-follows is a real choice, not a queue:
+**Next package: THE CANDIDATE BOARD IS EMPTY. NOTHING IS BLOCKING AND NOTHING IS WAITING ON THE
+OWNER.** Candidates C through K are all done (T5.6 to T5.15), T5.14 closed the last seam decision
+and T5.15 closed the last row. What is left of Phase T5 is a second idle block — a chooser on top
+of machinery that already works. What follows is a real choice, not a queue:
 
-- **Candidate F — the `Button` styleboxes. The only candidate row left.** The theme sets
-  `font_sizes` on nine type variations and no `Button/styles/*`, so every menu row draws Godot's
-  default StyleBox — already a declared known limitation, invisible against the shipped dark
-  palette and immediately wrong against a light one.
 - **A second idle block and a chooser between them.** The last unticked Phase T5 exit criterion.
   `_advance` and `_rate_for` are the hooks; this is a chooser on working machinery, not a rewrite.
 - **A call recorder, to answer the 86.** T5.13's gate reports 86 public methods reached only from

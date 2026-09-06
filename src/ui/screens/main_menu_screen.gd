@@ -23,6 +23,11 @@ const SCREEN_ID: StringName = &"main_menu"
 const TITLE_KEY: String = "ui.menu.title"
 const NEW_KEY: String = "ui.menu.new_game"
 const CONTINUE_KEY: String = "ui.menu.continue"
+## T5.10 named the autosave file rather than numbering it, precisely so nobody would read it as
+## a seventh manual slot — and then the Continue row printed "Slot 7", which is that reading
+## arriving by the one route the file name could not close. The slot is still what is LOADED;
+## only the label changes, and the save screen has said "Autosave" since T5.10.
+const CONTINUE_AUTOSAVE_KEY: String = "ui.menu.continue_autosave"
 const LOAD_KEY: String = "ui.menu.load"
 const SETTINGS_KEY: String = "ui.menu.settings"
 const CONTROLS_KEY: String = "ui.menu.controls"
@@ -43,11 +48,19 @@ func _fill() -> void:
 	add_row(tr(NEW_KEY), _on_new_game)
 	var latest: int = SaveSystem.latest_slot()
 	if latest >= 0:
-		add_row(tr(CONTINUE_KEY).format({"slot": latest + 1}), _on_continue.bind(latest))
+		add_row(_continue_text(latest), _on_continue.bind(latest))
 		add_row(tr(LOAD_KEY), _on_load)
 	add_row(tr(SETTINGS_KEY), _on_settings)
 	add_row(tr(CONTROLS_KEY), _on_controls)
 	add_row(tr(QUIT_KEY), _on_quit)
+
+
+## What the Continue row says. A separate function rather than an inline ternary because the
+## two keys take different arguments: one is numbered and one is named.
+func _continue_text(slot: int) -> String:
+	if slot == SaveSystem.AUTOSAVE_SLOT:
+		return tr(CONTINUE_AUTOSAVE_KEY)
+	return tr(CONTINUE_KEY).format({"slot": slot + 1})
 
 
 func _on_new_game() -> void:

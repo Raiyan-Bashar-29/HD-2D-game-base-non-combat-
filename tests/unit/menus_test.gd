@@ -29,7 +29,7 @@ var _keys: ScreenKeys = null
 
 
 func run() -> void:
-	plan(107)
+	plan(113)
 	_set_up()
 	_every_menu_is_reachable_by_name()
 	_flags_are_declared_in_init()
@@ -112,6 +112,24 @@ func _the_main_menu_omits_what_it_cannot_offer() -> void:
 	equal("now the menu offers six", rows.size(), 6)
 	equal("Continue names the slot it would restore", rows[1].contains(str(PROBE_SLOT + 1)), true)
 	equal("and Load has appeared under it", rows[2], tr(MainMenuScreen.LOAD_KEY))
+
+	# T5.10 gave the autosave a NAMED file rather than a seventh number so that nobody would
+	# read it as a seventh manual slot, and the Continue row then printed "Slot 7" - the same
+	# reading arriving by the one route a file name cannot close.
+	equal("an autosave is written", SaveSystem.save_to_slot(SaveSystem.AUTOSAVE_SLOT), OK)
+	# Two saves written in the same second tie on `saved_utc`, and latest_slot() keeps the first
+	# it met - so the manual slot has to go for the autosave to be unambiguously the latest.
+	SaveSystem.delete_slot(PROBE_SLOT)
+	equal("and with the manual slot gone it is the latest", SaveSystem.latest_slot(),
+			SaveSystem.AUTOSAVE_SLOT)
+	menu.refresh()
+	rows = menu.row_texts()
+	equal("Continue names the autosave", rows[1], tr(MainMenuScreen.CONTINUE_AUTOSAVE_KEY))
+	equal("and never as a slot number", rows[1].contains(str(SaveSystem.AUTOSAVE_SLOT + 1)),
+			false)
+	# Put the saves back the way the cases below expect to find them.
+	SaveSystem.delete_slot(SaveSystem.AUTOSAVE_SLOT)
+	equal("the manual save is restored", SaveSystem.save_to_slot(PROBE_SLOT), OK)
 	equal("cleanup", _stack.close_top(), true)
 
 
@@ -229,7 +247,8 @@ func _the_save_list_faces_the_other_way() -> void:
 func _the_keys_these_menus_draw_exist() -> void:
 	for key: String in [
 		MainMenuScreen.TITLE_KEY, MainMenuScreen.NEW_KEY, MainMenuScreen.CONTINUE_KEY,
-		MainMenuScreen.LOAD_KEY, MainMenuScreen.SETTINGS_KEY, MainMenuScreen.CONTROLS_KEY,
+		MainMenuScreen.CONTINUE_AUTOSAVE_KEY, MainMenuScreen.LOAD_KEY,
+		MainMenuScreen.SETTINGS_KEY, MainMenuScreen.CONTROLS_KEY,
 		MainMenuScreen.QUIT_KEY, PauseMenuScreen.TITLE_KEY, PauseMenuScreen.STATUS_KEY,
 		PauseMenuScreen.RESUME_KEY, PauseMenuScreen.SAVE_KEY, PauseMenuScreen.MAIN_MENU_KEY,
 		PauseMenuScreen.HINT_KEY, SaveScreen.SAVE_TITLE_KEY, SaveScreen.LOAD_TITLE_KEY,

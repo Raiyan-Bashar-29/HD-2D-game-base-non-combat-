@@ -264,6 +264,11 @@ Exit criteria:
       `assets/theme/ui_theme.tres` and no other file: the main menu and the inventory screen both
       went from dark-on-translucent-black to dark-on-parchment with a deep-red accent and a wider
       inset, and the HUD clock followed. Captures before and after, both looked at
+- [x] And a row DRAWS as one — T5.15, **2026-09-06**. T2.1 left the theme setting nine
+      `font_sizes` and no `Button/styles/*`, so the restyle above changed everything on a menu
+      except the menu rows themselves. `UiRowStyles` derives all five states from the palette at
+      boot, and the derivation is directional, so the same expression is right on a dark palette
+      and on a light one. Photographed on both
 - [x] Someone who has not read `src/` can author an area, an NPC and a conversation from the docs
       — T2.2, **2026-08-27**. Performed, not claimed: an area, an NPC with a schedule and a
       four-node conversation were written from `AUTHORING.md` alone, with no reference to `src/`
@@ -860,6 +865,34 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   0. **4.0.0, a MAJOR bump, because two public methods are gone** and the entry names the
   one-line replacement for each. **Gotcha 69**: the gate's precondition fired on the test file
   that quoted its own trigger pattern, and the gate was right.
+
+- **T5.15 The `Button` styleboxes — DONE, 2026-09-06.** Candidate F, the last row on the board,
+  and the oldest declared limitation in the project: the theme set `font_sizes` on nine type
+  variations and no `Button/styles/*` at all, so every menu row and every dialogue reply drew the
+  engine's fallback panel. **Four packages had opened this file and closed it again, each giving
+  the same reason** — a stylebox has to be *designed*, and the only palette to design against is
+  the placeholder one, so populating it would ship a decision as a default. **That reason is what
+  the fix answers rather than overrules: nothing in `src/ui/root/ui_row_styles.gd` designs a
+  colour. It designs the RELATIONSHIP between the five states** and takes every colour from the
+  palette. **`hover` is `surface` moved toward `text`, and that word is the whole package**: the
+  same expression lightens a dark row and darkens a light one, so the fix survives a palette this
+  base does not ship — which is the half of the stated defect ("immediately wrong against a light
+  one") a hard-coded lighten would have left in place. `pressed` moves toward `accent` because a
+  press is an act and wants a hue; `disabled` keeps the hue and drops the alpha; **`focus` draws
+  no centre at all**, only an accent ring, so it composes with whatever is underneath — and it is
+  the state a mouse user never sees and a gamepad player navigates by. **ONE palette entry was
+  added and named as such**: `dim` and `solid` are the panel a row sits ON and `muted` already
+  meant "present but lesser", so there was no token for a button SURFACE and inventing one
+  silently would have been the invention the four refusals were about. Photographed twice over:
+  on the shipped palette a row's separation from its panel goes from **0.0981 to 0.3490 summed
+  channel delta, 3.6x**, with **every one of the 61,998 changed pixels inside the row band and
+  none outside it**; and the whole thing again on a parchment palette, changed by six palette
+  lines and no code. **MINOR, 4.2.0** — nothing removed, nothing renamed, and a game that
+  authored its own `styles/normal` or ships a palette with no `surface` is left exactly as it
+  was, both refusals asserted. Suite 1,983 -> 2,051; five plants, each a real reversion, each
+  exit 1, control exit 0. **The plant that matters is the hard-coded lighten**: it passes every
+  dark-palette assertion in the file and fails only the light ones, which is why the light
+  palette had to be asserted rather than only photographed.
 
 ## Sequencing rules
 

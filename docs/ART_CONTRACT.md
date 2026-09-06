@@ -307,25 +307,42 @@ Edit that one file. Six lines is a complete change of look: the palette's four c
 a title size. This was demonstrated with captures before and after — the main menu and the
 inventory screen both restyled, and the HUD clock followed without being mentioned.
 
-### The known gap: no `Button` styleboxes
+### The five states of a row — closed at 4.2.0, and derived rather than authored
 
-**The theme sets font sizes for `MenuRow` and `ChoiceRow` but no styleboxes, so every menu row and
-every dialogue reply draws Godot's default dark panel.**
+**Until 4.2.0 the theme set font sizes for `MenuRow` and `ChoiceRow` and no styleboxes at all, so
+every menu row and every dialogue reply drew Godot's fallback panel** — invisible against the
+shipped near-black palette, and immediately wrong against a light one. It was declared here for
+four packages, on the reasoning that a stylebox has to be *designed* and the only palette to
+design against was the placeholder one.
 
-Against the shipped near-black palette that is invisible. Against a **light palette it is
-immediately wrong** — dark-on-light rows in an otherwise parchment UI, legible but plainly not
-restyled with the rest. A consuming game that picks a light look hits this in its first capture.
+**`src/ui/root/ui_row_styles.gd` closes it without designing a colour.** It designs the
+*relationship* between the five states and takes every colour from the palette:
 
-The seam is right and it is in the same file — `MenuRow/styles/normal`, `hover`, `pressed`,
-`focus` and the same for `ChoiceRow`, taking `StyleBoxFlat` sub-resources, no code anywhere. It is
-simply unpopulated, because the template has no look to populate it with and a stylebox authored
-against the placeholder palette would be a *decision* shipped as a *default*. Populate it when you
-choose your look; that is one edit to `ui_theme.tres` and nothing else.
+| State | Is | Why |
+|---|---|---|
+| `normal` | `surface` | the new palette entry, and the only one this reads at rest |
+| `hover` | `surface` toward `text` | **directional**: lightens a dark row, darkens a light one, from one expression |
+| `pressed` | `surface` toward `accent` | a press is an act, so it takes a hue rather than another shade |
+| `disabled` | `surface` at 35% alpha | the same row faded, not a different one |
+| `focus` | `accent` ring, **no centre** | composes with whichever of the other four is under it |
 
-This is stated rather than hidden because it was found by a capture that was looked at, and
-because a gap you are told about costs ten minutes while a gap you discover costs an afternoon of
-suspecting the theme system.
+`_mirrored` (right-to-left layouts) and `hover_pressed` are set to the same boxes, because left
+unset they are the two ways back to the fallback bar from inside a fully styled menu.
 
+**So restyling a row is still an edit to `ui_theme.tres` and nothing else.** Change
+`UiPalette/colors/surface` and the four other palette entries; the five states follow, and so do
+the font colours, which were the other half of the light-palette defect — an unset `font_color`
+takes the fallback theme's near-white, which is invisible on a pale ground whatever the boxes do.
+
+**Two ways out, both deliberate.** A variation that declares its own `styles/normal` is left
+completely alone — a game that authored its own rows has already made this decision. And a
+palette with no `surface` entry is left alone entirely, with one `WARN` at boot: there is nothing
+to derive from, and inventing a surface would be the base picking a colour for you after all.
+Deleting the `UiRowStyles` node from `game_root.tscn` is the third.
+
+**What has NOT changed is that the base has no look.** `surface` is a placeholder like every
+other colour in that palette. What 4.2.0 removed is not the need to choose one — it is the
+possibility of choosing one and finding the rows ignored it.
 ---
 
 ---

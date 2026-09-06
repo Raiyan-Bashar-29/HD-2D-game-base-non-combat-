@@ -20,6 +20,64 @@ the exact rot this discipline exists to prevent.
 
 ---
 
+## 4.2.0
+
+*2026-09-06 — the `Button` styleboxes, declared as a known limitation since T2.2 and left for
+six packages. Every menu row, and every reply in a conversation, now draws all five of its
+states from the palette instead of falling through to the engine's fallback StyleBox.*
+
+**A consuming game does: nothing, unless it wants to.** Nothing was removed or renamed, no
+export changed, and no method a game calls has a different signature. **A game that authored
+its own `MenuRow/styles/normal` keeps it untouched** — `UiRowStyles` skips any variation that
+already declares a `normal` box. **A game that replaced `ui_theme.tres` with a palette that has
+no `surface` entry keeps exactly the behaviour it had at 4.1.0**, and gets one `WARN` line at
+boot saying so. The one merge conflict to expect is `scenes/boot/game_root.tscn`, which gains a
+`UiRowStyles` node under `UILayer`.
+
+### What is new
+
+| | |
+|---|---|
+| `UiPalette/colors/surface` | The face of a pressable row at rest, and the only colour the five states are derived from. The first palette entry that needed a SURFACE rather than a mark on one |
+| `UiMetrics/constants/row_padding` | Side inset between a row's border and its text |
+| `UiMetrics/constants/focus_border` | Width of the ring round the focused row |
+| `src/ui/root/ui_row_styles.gd` | Derives `normal`, `hover`, `pressed`, `disabled` and `focus` — plus the `_mirrored` and `hover_pressed` spellings — and writes them into the project theme at boot. `UiAccessibility`'s sibling: that one owns the theme's font SIZES, this one owns its Button styles |
+| `ui.menu.continue_autosave` | The main menu's Continue row said "Continue — Slot 7" when the latest save was the autosave. It says "Continue — Autosave" |
+
+### Why nothing here is a colour this base picked
+
+The four previous packages that opened this file and closed it again all gave the same reason: a
+stylebox has to be *designed*, and the only palette to design against is the placeholder one, so
+populating them would ship a decision as a default. **Nothing in `ui_row_styles.gd` designs a
+colour. It designs the relationship between the five states**, and takes every colour from the
+palette:
+
+- `hover` is `surface` moved **toward `text`** — which lightens a dark row and darkens a light
+  one, from the same expression. That is what makes the fix survive a palette this base does not
+  ship, and it is the half of the defect ("immediately wrong against a light one") that a
+  hard-coded lighten would not have touched.
+- `pressed` moves toward `accent`, because a press is an act and wants a hue rather than a shade.
+- `disabled` keeps the hue and drops the alpha, so a refused row is the same row faded.
+- `focus` draws **no centre at all**, only an `accent` ring, so it composes with whichever of the
+  other four is underneath rather than hiding it.
+
+**To restyle: change `UiPalette/colors/surface` and the four other palette entries. Nothing
+else.** To opt out entirely: delete the `UiRowStyles` node from `game_root.tscn`.
+
+### If you are upgrading and you replaced the theme
+
+Add one line to your palette and you get the whole set:
+
+```
+UiPalette/colors/surface = Color(<the face of a row at rest>)
+```
+
+Without it the row styles are skipped and your menus look exactly as they did at 4.1.0. This is
+deliberate: there is nothing to derive from, and inventing a surface would be the base picking
+a colour for you after all.
+
+---
+
 ## 4.1.0
 
 *2026-09-06 — a turn in place. `Events.turn_requested` is a new signal, and with it

@@ -13,7 +13,7 @@ situation; [`docs/TEMPLATE.md`](docs/TEMPLATE.md) is the framing both assume.
 | starting any session | `docs/CONTEXT.md`, then your package on the board |
 | confused about what this project IS | `docs/TEMPLATE.md` |
 | picking the next package | `docs/WORK_PACKAGES.md` (the board) and `docs/ROADMAP.md` |
-| surprised by the engine | the gotcha list in `docs/CONTEXT.md` — seventy, each cost an hour |
+| surprised by the engine | the gotcha list in `docs/CONTEXT.md` — seventy-one, each cost an hour |
 | wondering why a file is shaped that way | its own `##` header first, then `docs/ARCHITECTURE.md` and `docs/decisions/` |
 | about to write a player-facing string | `localization/strings.csv`, and quote any value containing a comma |
 | starting a new game on this base | `docs/NEW_GAME.md` |
@@ -149,7 +149,7 @@ same reasoning as the file budgets: a package that outgrows one chat gets half-f
 | You want to | Read |
 |---|---|
 | know what to work on now | [`docs/WORK_PACKAGES.md`](docs/WORK_PACKAGES.md) — the board |
-| know where things stand | [`docs/CONTEXT.md`](docs/CONTEXT.md) — state, settled decisions, seventy gotchas |
+| know where things stand | [`docs/CONTEXT.md`](docs/CONTEXT.md) — state, settled decisions, seventy-one gotchas |
 | understand why this is a template and not a game | [`docs/TEMPLATE.md`](docs/TEMPLATE.md) |
 | **add an area, an NPC, a conversation, an item, an object, a quest, equipment, a place on the world map** | **[`docs/AUTHORING.md`](docs/AUTHORING.md)** |
 | **make art that drops into this** | **[`docs/ART_CONTRACT.md`](docs/ART_CONTRACT.md)** |

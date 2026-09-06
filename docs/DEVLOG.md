@@ -7639,3 +7639,179 @@ decisions the board was holding for the owner is answered, so nothing on it is n
 - **It did not fix the "Continue — Slot 7" wording** T5.12 found in `MainMenuScreen._fill`.
 - **No ADR.** One signal on an existing bus, declared in `events.gd` with its own `##` block, and
   no new autoload, layer or seam concept.
+
+## 2026-09-06 — T5.15 · The `Button` styleboxes, and the word that made them buildable
+
+**Did.** Gave `MenuRow` and `ChoiceRow` all five of their states — `normal`, `hover`, `pressed`,
+`disabled` and `focus` — plus the `_mirrored` and `hover_pressed` spellings, and the font colours
+that were half the same defect. Candidate F, the last row on the board, and **the oldest declared
+limitation in the project**: stated in `ART_CONTRACT.md`, `ARCHITECTURE.md` and `CONTEXT.md` since
+T2.2, and deliberately left by four packages since. New `src/ui/root/ui_row_styles.gd` (91 code
+lines), new `tests/unit/row_styles_test.gd` (62 outcomes), one new palette token, two new metrics,
+one new gotcha, and one wording fix recorded as its own line rather than folded in.
+
+**THE FOUR REFUSALS WERE RIGHT AND THIS ROW DOES NOT OVERRULE THEM.** Every one gave the same
+reason: *a stylebox has to be designed, and the only palette to design against is the placeholder
+one, so populating it would ship a decision as a default.* That is true, and it is why the answer
+is not five authored `StyleBoxFlat` sub-resources in `ui_theme.tres`. **Nothing in
+`ui_row_styles.gd` designs a colour. It designs the RELATIONSHIP between the five states**, and
+takes every colour from the palette the theme already declares, at boot, into the two variations
+that draw a Button. It is `UiAccessibility`'s sibling in every respect: that one owns the project
+theme's font SIZES and this one owns its Button STYLES, neither knows which screens exist, and
+both are one node under `UILayer` that a game may delete.
+
+| State | Is | Why |
+|---|---|---|
+| `normal` | `surface` | the one new palette entry |
+| `hover` | `surface` toward `text` | **directional** — see below |
+| `pressed` | `surface` toward `accent` | a press is an ACT and wants a hue rather than another shade |
+| `disabled` | `surface` at 35% alpha | the same row faded, not a different row |
+| `focus` | an `accent` ring, **no centre** | composes with whichever of the other four is underneath |
+
+**`hover` IS `surface` MOVED TOWARD `text`, AND THAT ONE WORD IS THE PACKAGE.** The stated defect
+has two halves — *invisible against the shipped dark palette* and *immediately wrong against a
+light one* — and a hard-coded lighten closes the first and leaves the second exactly where it was.
+Moving toward the text colour lightens a dark row and darkens a light one from the same
+expression, so the fix survives a palette this base does not ship. Measured on the real path:
+**0.1490 -> 0.3020 on the shipped palette, 0.8902 -> 0.7529 on parchment.** `focus` is the state
+that matters most and the one most likely to be forgotten, because a mouse user never sees it:
+`MenuScreen`'s header says controller navigation is free because a VBoxContainer of Buttons
+already answers `ui_up` and `ui_down`, and that is true only for as long as the player can tell
+WHICH row answered.
+
+**ONE PALETTE TOKEN WAS ADDED, AND ADDING IT SILENTLY WOULD HAVE BEEN THE INVENTION THE FOUR
+REFUSALS WERE ABOUT.** There was no existing token for a button surface and the three near
+candidates each fail for a stated reason: `dim` and `solid` are the panel a row sits ON, so a row
+drawn in either vanishes into it, and `muted` already means "present but lesser" — a whole menu
+drawn in it would say every row is half-earned. So `UiPalette/colors/surface`, argued in the
+`.tres` comment beside it, and **the other four states derived from it rather than authored beside
+it**, because a theme resource has no variables and five hand-picked surfaces are five things a
+consuming game has to re-pick instead of one.
+
+**FONT COLOURS WERE HALF THE LIGHT-PALETTE DEFECT ON THEIR OWN**, and would have been missed by a
+package that thought about styleboxes only. `MenuRow` set no `font_color`, so a Button took the
+fallback theme's near-white — legible on this palette, invisible on a pale ground whatever the
+boxes do. The `states_light_before` capture shows it: white text on grey slabs on parchment.
+
+**WHAT IT DOES TO A GAME THAT SHIPPED ITS OWN THEME — the question a MINOR bump has to answer.**
+Two refusals, both asserted. A variation that already declares `styles/normal` is left completely
+alone, because a game that authored its own rows has already made this decision and silently
+replacing it would be a MAJOR bump wearing a MINOR number. A palette with no `surface` entry is
+left alone entirely with one `WARN` line, because there is nothing to derive from. Deleting the
+node from `game_root.tscn` is the third way out and restores 4.1.0 exactly. **4.2.0 and not a
+PATCH** on `game_root.tscn` gaining a node a consuming game has to merge — T5.12's rule, applied
+unchanged.
+
+**Connects.** `UiRowStyles` sits beside `UiAccessibility` under `UILayer` and mutates the same
+shared `Theme`; both are static-where-it-counts so the suite can drive the arithmetic without
+leaving the project theme changed for every assertion that runs after. Nothing was added to
+`Events` or `GameEnums`, no autoload was added, no ADR was needed, no screen file changed for the
+styling, and `check_layers` is unchanged at `core -> ... -> ui`. The five states are written under
+the engine's own theme item names, which is why nothing here needs a mapping table or an enum.
+
+**Verified.** Every line is a measured exit code.
+
+```
+--headless --import                                        exit 0 (run first; gotcha 53)
+--headless --quit-after 30                                 Session ended after 0.6s — 0 warnings, 0 errors
+                                                           and one line: Row styles -> 2 variation(s)
+--headless res://tests/test_runner.tscn --quit-after 400   === 2051 passed, 0 failed, 0 skipped ===, exit 0
+tools/check_budgets.gd    exit 0   159 files, 14974 code lines, 0 warnings, 0 violations
+tools/check_content.gd    exit 0
+tools/check_boundary.gd   exit 0   219 rows, 51 content namespace
+tools/check_strings.gd    exit 0   CSV rows loaded: 219
+tools/check_layers.gd     exit 0   93 symbols over 104 scripts
+tools/check_signals.gd    exit 0   44 signals declared, 107 emit references over 42
+tools/check_methods.gd    exit 0   316 public methods over 104 files, 86 suite-only (reported)
+```
+
+Suite 1,983 -> 2,051: +62 from `row_styles_test.gd` and +6 from `menus_test.gd`.
+
+**EVERY CHANGE PROVED BY PLANTING THE DEFECT, WATCHING IT FAIL, REMOVING IT AND WATCHING IT PASS.
+Five plants, each a real reversion, and BOTH exit codes are here.**
+
+| Plant | Result |
+|---|---|
+| `hover` lightens by a fixed amount (`surface.lightened(HOVER_LIFT)`) instead of moving toward `text` | `on a parchment palette, the same expression DARKENS it — expected true, got false`, `and it moves about as far either way`, `the box a light-palette menu draws is darker on hover than at rest`. **2042 passed, 3 failed, exit 1** |
+| the `has_stylebox(NORMAL, variation)` guard is dropped, so a game's own rows are overwritten | `only the variation that authored nothing is styled — expected 1, got 2`, `and the game's own box is still the one there`, `with nothing added around it`, `a second run finds them authored and leaves them — expected 0, got 2`. **2041 passed, 4 failed, exit 1** |
+| the focus box fills its centre (`draw_center` left true) | `the focus box draws no centre — expected false, got true`. **2044 passed, 1 failed, exit 1** |
+| the `UiRowStyles` NODE is deleted from `game_root.tscn`, `[ext_resource]` left in place | `the running game has a row styler, under UILayer — expected ./UILayer, got `. **2044 passed, 1 failed, exit 1** |
+| the Continue row numbers the autosave again | `Continue names the autosave — expected Continue — Autosave, got Continue — Slot 7` and `and never as a slot number — expected false, got true`. **2049 passed, 2 failed, exit 1** |
+| all removed | **`2051 passed, 0 failed`, exit 0** |
+
+**THE FIRST PLANT IS THE ONE THIS ROW EXISTS TO HAVE MADE, AND IT IS GOTCHA 70 READ THE OTHER WAY
+ROUND.** `surface.lightened(0.18)` is not a broken assertion or an obvious sabotage — it is the
+implementation this row would most plausibly have shipped, it looks identical on this project's
+own palette, and **it passes every dark-palette assertion in the file.** Only the parchment cases
+fail. That is the whole argument for asserting a palette this repository does not ship: gotcha 70
+says a plant that passes is evidence about the test, and the converse is that a test which only
+ever sees one palette cannot tell a directional rule from a constant. The fourth plant is gotcha
+56 re-proved on a third node — `grep` still found `21_rows` in the scene file after the node was
+gone, so a text scan would have stayed byte-identically green.
+
+**Windowed captures, LOOKED AT.** Gotcha 2: `--headless` shades nothing, and this is a visual
+claim end to end.
+
+- **The main menu, before and after, same command, 960x540.** Before: six rows in the engine's
+  fallback panel, each **0.0745,0.0706,0.0824** against a **0.0392,0.0314,0.0588** solid panel —
+  a summed channel separation of **0.0981**, which is the "invisible" in the limitation, measured.
+  After: **0.1490,0.1412,0.1882**, separation **0.3490**, a **3.6x** difference. **61,998 pixels
+  of 518,400 differ over the whole frame and 61,998 of 157,440 differ inside the row band —
+  identical counts, so every changed pixel is inside the rows and not one is outside them.**
+- **All five states at once, before and after.** A still frame of the real menu can only ever show
+  `normal` and `focus`, so a temporary probe scene put one row in each state — `disabled`,
+  toggle-`pressed`, a real hover, and a focused row — and photographed them. Before, from the
+  engine fallback: `0.0745 / 0.1490 / 0.0157 / 0.0549`, and **`pressed` at 0.0157 is DARKER than
+  the 0.0392 panel behind it**, so a pressed row was a hole rather than a highlight. After:
+  `0.1490 / 0.3020 / 0.4196,0.3686,0.3137 / 0.0784`, with the focus ring measured at
+  **0.8588,0.7412,0.5216 — the palette's `accent` exactly.**
+- **The whole thing again on a LIGHT palette**, because "immediately wrong against a light one" is
+  half the stated defect and could not be photographed on the shipped one. Six palette lines
+  changed in `ui_theme.tres`, no code, no other edit. Before: dark grey slabs at **0.4431** on a
+  **0.9608** parchment ground, white text on them, and the focus row indistinguishable from the
+  rest. After: **0.8902** rows, **0.7529** on hover — *darker*, from the identical expression that
+  lightens on the dark palette — ink-dark text, and a rust focus ring. The main menu was shot on
+  that palette too and reads correctly end to end. The palette edit was reverted; the assertions
+  in `row_styles_test.gd` are the permanent record, and the probe scene is not committed.
+- **The regression capture**, `--new-game --time=18:40 --freeze-time` at 960x540 with defaults:
+  courtyard at dusk, both characters lit, depth-sorted and casting shadows, HUD reading
+  `Day 1 | 18:40 | Dusk`, prompt on screen, `0 warnings, 0 errors`, exit 0. The demo is unchanged.
+- **The final menu capture** shows `Continue — Autosave` where the before shot said
+  `Continue — Slot 7`. That pair is NOT the pixel-difference pair quoted above: the wording fix
+  landed after those two shots, and both of them say "Slot 7".
+
+**GOTCHA 71 COST THE HOUR AND IS THE MOST TRANSFERABLE THING HERE.** The state probe pointed the
+mouse at a row's `get_global_rect().get_center()` and the row never hovered — `canvas_items`
+stretch keeps the logical size at 1920x1080 while the window is 960x540, so every rect a Control
+reports is exactly twice the coordinate an `InputEventMouseMotion` needs, and `Input.warp_mouse`
+fails identically. **The capture came back with the hover row byte-identical to the normal one**,
+which is a perfectly plausible picture of a hover style that is merely subtle, and it would have
+been recorded as one had the sampler not printed `vs previous row 0.0000`. `Button.is_hovered()`
+returned false and `get_draw_mode()` stayed 0 the whole time. Ask the button, never the pixels.
+
+**The Continue wording, fixed as its own line and not folded into the theme work.** T5.10 gave the
+autosave a NAMED file rather than a seventh number precisely so nobody would read it as a seventh
+manual slot, and the main menu's Continue row then printed "Continue — Slot 7" — the same reading
+arriving by the one route a file name cannot close. `ui.menu.continue_autosave` and a three-line
+`_continue_text` on `MainMenuScreen`; the slot is still what is LOADED and only the label changed.
+Writing the assertion for it turned up a real property of `latest_slot()` worth knowing: two saves
+written in the same second tie on `saved_utc`, and the loop keeps the first it met, so the test
+has to delete the manual slot before the autosave is unambiguously the latest.
+
+**Unblocks.** `ART_CONTRACT.md`'s known-gap section is gone and replaced by the derivation table,
+so a game choosing a light look now changes six palette lines instead of discovering the rows
+ignored them. `ARCHITECTURE.md`'s limitation bullet is rewritten rather than deleted, because
+what remains true is that **the base still has no LOOK** — `surface` is a placeholder like every
+other colour in that palette, and what 4.2.0 removed is not the need to choose one but the
+possibility of choosing one and finding the rows had not followed.
+
+**Gaps, stated rather than left.**
+- **`ChoiceRow` is styled and not photographed.** The states probe drew `MenuRow`, and the
+  assertions cover both variations identically; a dialogue capture would add a picture of the same
+  five boxes under a different font size.
+- **`tools/gen_placeholders.gd` is still at 230 of its 250** and is still the next file to split.
+  Nine rows now.
+- **`check_methods.gd` still reports 86** reached only from `tests/` or `tools/`, and this row's
+  three new public methods did not move it. Answering the 86 needs a call recorder on a real run,
+  which is a package of its own and is not on the board yet.
+- **The candidate board is now empty.** C through K are all closed.

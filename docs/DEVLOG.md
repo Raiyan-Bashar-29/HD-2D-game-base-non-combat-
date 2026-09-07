@@ -7928,3 +7928,12 @@ unblocks building on `main` again at all.
 - **Not a gate.** Nothing stops the next re-entrancy guard being written as a bare `return`;
   gotcha 72 states the tell (ask whether the caller wanted a RETRY or wanted to be REFUSED) and
   that is prose, not enforcement. A gate would have to understand intent.
+
+**CI GREEN ON `4d101b2`, PR #45, MERGEABLE / CLEAN** — both jobs pass. Full checkout
+`=== 2059 passed, 0 failed, 0 skipped ===`; **stripped template
+`=== 1985 passed, 0 failed, 25 skipped ===`**, and that is the number worth reading: T5.15 left
+the stripped run at 1,977, so **all 8 of this row's assertions survive the demo strip.** They
+were always going to — `quest_chain_test.gd` is fixtures all the way down and names no authored
+content — but the whole point of quoting the stripped number is that "always going to" is a
+prediction and this is the measurement. First package to land through branch protection, which
+required both jobs before the merge button was live.

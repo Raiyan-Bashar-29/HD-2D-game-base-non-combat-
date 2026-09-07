@@ -44,10 +44,6 @@ extends Resource
 @export var effect_value: int = 0
 
 
-func has_choices() -> bool:
-	return not choices.is_empty()
-
-
 func problems(conversation_id: StringName) -> PackedStringArray:
 	var context: String = "%s/%s" % [conversation_id, node_id if node_id != &"" else &"(unnamed)"]
 	var found: PackedStringArray = PackedStringArray()

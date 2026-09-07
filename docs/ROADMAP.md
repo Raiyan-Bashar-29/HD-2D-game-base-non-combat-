@@ -34,7 +34,18 @@ Exit criteria, all met:
       first actually executed on 2026-08-24 by the test suite, and passes.
 - [x] A frame can be captured to PNG and inspected
 
-## Phase 1 — One area, one character · **COMPLETE**
+## Phase 1 — One area, one character · **COMPLETE, and honestly so since 2026-09-04**
+
+> **This phase read COMPLETE for months while carrying three unticked exit criteria**, and
+> Phase 2 read IN PROGRESS with one. Nobody had lied: each was ticked as it was proved and
+> the three that were awkward to prove — an eight-direction walk-through, a save across a
+> real relaunch, and a 30-second session — were left, then the phase was called done on the
+> strength of everything else. That is the drift this project polices everywhere else, in
+> the one file that describes whether the project is finished. **T5.1 proved all four
+> rather than ticking them**, and one of the four turned out to be a genuinely missing
+> FEATURE rather than an unproved one: the locale setting was wired to nothing. The lesson
+> is the cheap half of gotcha 23 — a criterion nobody has run is a criterion nobody knows
+> the answer to, and "complete except for the hard ones" is how 409 passing checks happened.
 
 *Goal: a person can be walked around a lit, living space and touch things in it.*
 
@@ -57,8 +68,14 @@ Also done, ahead of Phase 2 because every screen needs it first:
   consumers, plus the one action-to-screen binding and keyboard/gamepad focus in a screen
 
 Exit criteria:
-- [ ] Walk the courtyard, and the character faces the direction of travel correctly in all
-      eight directions
+- [x] Walk the courtyard, and the character faces the direction of travel correctly in all
+      eight directions — done 2026-09-04 (T5.1). `facing_test.gd` asserts the mapping from a
+      direction of travel to a facing and a sheet column, in the form that holds for every
+      camera angle: the eight directions stay distinct, and one sector of turn advances the
+      facing by exactly one. Planted both ways — swapping the axes in `_screen_angle` gives
+      `expected 1, got 7`, and deleting the standing-still guard gives `expected 0, got 2`.
+      A live windowed probe then walked the real player through all eight in the courtyard,
+      reporting `facing=N column=N` for N in 0..7, and a capture at frame 140 was read.
 - [x] Approach three overlapping objects and select each one deliberately — ranking plus
       Tab cycling, done 2026-08-24
 - [x] Pick up an item; it appears in the inventory and no longer exists in the world —
@@ -70,7 +87,15 @@ Exit criteria:
 - [x] Rest on the bench and watch the light change — done 2026-08-26. Two windowed captures
       from the same 06:30 start, one with the same skip the bench performs, show warm dawn
       becoming cool night with the lantern pools lit
-- [ ] Save, quit, relaunch, continue — position, time, weather and inventory all restored
+- [x] Save, quit, relaunch, continue — position, time, weather and inventory all restored —
+      done 2026-09-04 (T5.1), and in TWO PROCESSES, which is the whole point: the existing
+      `--cross-area-save` reloads in process and cannot tell a value read back from disk
+      from one that was simply never cleared. Run one posed `lantern_hall / 0.00,-4.20 /
+      day 3 21:45 / STORM / carrying 1` and saved it; a fresh process reported that line
+      back identically after loading. The boot line before the load is the control —
+      `area='' at=0.00,0.00 day=1 time=06:00 weather=0 carrying=0` — and the weather is
+      deliberately STORM rather than CLEAR, because CLEAR is the boot default and would
+      have been right by accident.
 - [x] Test suite passes headless and exits non-zero on failure — 606 assertions
 - [x] A screen opens over the world, gameplay input stops, the fade still runs over the
       top of it, and Escape restores control — done 2026-08-26, windowed captures plus a
@@ -83,7 +108,11 @@ Exit criteria:
       assertion driving the real Clock
 - [x] Two overlapping input locks release correctly: lock A, lock B, release A, the player is
       still locked — done 2026-08-26, covered by the test suite
-- [ ] A 30-second play session produces **zero** warnings or errors in the log
+- [x] A 30-second play session produces **zero** warnings or errors in the log — done
+      2026-09-04 (T5.1), and it had simply never been run: the boot rung is 30 FRAMES at the
+      main menu (gotcha 31). A windowed 33.6-second session that entered the courtyard,
+      baked its navmesh, opened the satchel, cycled the sensor and interacted twice ended
+      `0 warnings, 0 errors` with zero `SCRIPT ERROR`, `Parse Error` or leaked-RID lines.
 - [x] The budget checker reports no file over its limit — a mandatory close-out gate for every
       package since WP-01; 73 files, 5,638 code lines, 0 violations at WP-06
 
@@ -91,7 +120,7 @@ Exit criteria:
 > document: fifteen packages, one chat each, in dependency order. When the two disagree, the
 > board is what is actually being worked and this file needs updating.
 
-## Phase 2 — Two areas and a reason to move · **IN PROGRESS**
+## Phase 2 — Two areas and a reason to move · **COMPLETE, 2026-09-04**
 
 *Goal: prove the world is a world, not a room.*
 
@@ -101,7 +130,8 @@ Exit criteria:
 - [x] Dialogue runner, dialogue UI, and an authorable conversation format (WP-05)
 - [x] The pause menu itself, and the other four menus with it (WP-12, taken early because
       Phase 3's controller-navigation criterion needed screens to navigate)
-- Localization wired for real: every string is already an ID
+- [x] Localization wired for real: every string is already an ID, and since T5.1 the locale
+      SETTING reaches `TranslationServer` and there is a second language to switch to
 - [x] Weather visuals: rain, snow and wind particles, wet surfaces, ambience layers (WP-13)
 
 Exit criteria:
@@ -121,7 +151,18 @@ Exit criteria:
 - [x] Hold a conversation that reads and sets a flag, and branches on it — done 2026-08-26,
       covered by the test suite, plus a windowed capture and a real-input probe that pressed
       the button, advanced a line and took a branch with the world still running
-- [ ] Switch language at runtime and see every visible string change
+- [x] Switch language at runtime and see every visible string change — done 2026-09-04
+      (T5.1). It was unmet for a reason no amount of wiring would have fixed: the CSV had
+      ONE locale column, so there was nothing to switch TO, and `settings_screen.gd`
+      cycled a locale, stored it, and nothing ever read it back — `TranslationServer` was
+      never told. `Settings._apply_locale` now applies it, on `_apply_display`'s stated
+      reasoning rather than by analogy: nothing else owns `TranslationServer` either.
+      `tools/gen_pseudolocale.gd` generates an `en_XA` column so a second language exists
+      without the template pretending to ship a translation — the same argument that
+      generates placeholder ART. Two captures of the satchel at 12:00, differing only in
+      that setting, were READ: `Satchel / Key Items / Rose Key x1` against
+      `[~~Satchel~~] / [~~Key Items~~] / [~~[~~Rose Key~~] x1~~]`, the item row
+      double-wrapped because the row format AND the name both come from the table.
 
 ## Phases 3 and 4 — RETIRED, out of scope
 
@@ -223,6 +264,11 @@ Exit criteria:
       `assets/theme/ui_theme.tres` and no other file: the main menu and the inventory screen both
       went from dark-on-translucent-black to dark-on-parchment with a deep-red accent and a wider
       inset, and the HUD clock followed. Captures before and after, both looked at
+- [x] And a row DRAWS as one — T5.15, **2026-09-06**. T2.1 left the theme setting nine
+      `font_sizes` and no `Button/styles/*`, so the restyle above changed everything on a menu
+      except the menu rows themselves. `UiRowStyles` derives all five states from the palette at
+      boot, and the derivation is directional, so the same expression is right on a dark palette
+      and on a light one. Photographed on both
 - [x] Someone who has not read `src/` can author an area, an NPC and a conversation from the docs
       — T2.2, **2026-08-27**. Performed, not claimed: an area, an NPC with a schedule and a
       four-node conversation were written from `AUTHORING.md` alone, with no reference to `src/`
@@ -501,6 +547,36 @@ OPTIONAL and blocks nothing. The board carries the full reasoning.
   own trap, with a grep to run after pruning. Three further prose defects were re-measured rather
   than inherited, including a `--new-game` invocation that is silently green without a `--`.
 
+- **T4.4 `TESTING.md` performed, the last document never walked — DONE, 2026-09-04.** After the
+  phase's exit criteria were already met, so it adds none: the phase closed with T4.3 and this
+  package neither reopens it nor is required by it. What it settles is the *last* of the five
+  consumer documents, and **five for five now — every document performed has found a defect no
+  amount of reading would have, and three of the five were defects in the TEMPLATE.**
+
+  **The template defect is the sharpest of the three, because it invalidated the rung that judges
+  every other one.** The suite SKIPPED A LISTED CASE THAT DID NOT PARSE, in silence, at exit 0.
+  `load()` on a script with a parse error returns a `GDScript` that is not `null` and cannot be
+  instantiated, so `_run_case` walked into `script.new()` — and gotcha 24 already established that
+  a GDScript runtime error aborts only the innermost frame, so the failure two lines below was
+  never reached and the loop moved on. Measured: `=== 1608 passed, 0 failed, 0 skipped ===` and
+  exit 0, a last line byte-identical to a checkout in which the file does not exist. T1.3 built
+  two mechanisms here because the first was measured and found wanting; this was the third hole in
+  the same wall, and the one neither was positioned to see — `error_watch.gd` had counted the error
+  the whole time and nothing ever asked it. Two guards close it, and the second closes the class.
+
+  **The document's one worked example did not compile**, and was wrong twice over — nothing
+  declares `inventory`, and `Inventory` has no `count()`. Copying it verbatim is what began the
+  package, which is a fair summary of why documents get performed rather than proofread.
+
+  **And three documents gave three different answers to a countable question:** 44,
+  48 and 43, over a list of 48 gotchas. `doc_counts_test.gd` counts the
+  entries and requires every document that states the number to state that one — gotcha 48's shape
+  without gotcha 48's excuse, since a count needs no list of exceptions behind it.
+
+  One assertion was KEPT rather than deleted with the throwaway: `bag_mirror_test.gd`, on the
+  ordering between the count-flag publish and `item_gained` / `item_lost`, which `Inventory.add`
+  documents in a comment and which nothing tested on either path.
+
 **Exit criteria for the phase:**
 
 - [x] The template states its own version, readably at runtime and assertably. — T4.1
@@ -514,6 +590,309 @@ OPTIONAL and blocks nothing. The board carries the full reasoning.
       commit lacking the version it claimed or an unmerged branch.
 
 ---
+
+
+## Phase T5 — The base as a reusable CHARACTER kit · **IN PROGRESS**
+
+*Goal: a future game inherits working characters and changes only assets. Several idle formats and
+several movement styles, so that swapping a sprite sheet makes a character feel different without
+touching code.*
+
+**Why this phase exists, and why it is not scope creep.** Phases 0 to T4 answered "does the base
+have a home for every system a game needs". This one answers a narrower and more practical
+question the owner put on 2026-09-04: *when we make the actual game, what do we get for free?* The
+answer had better be "the characters move, animate and feel distinct from their art alone",
+because that is the part a new game otherwise rebuilds blind. It is a phase rather than a package
+because the first row exposed how much of it was declared and unread.
+
+- **T5.1 The skeleton's four open exit criteria — DONE, 2026-09-04.** Not part of this phase's
+  goal, but it is what revealed the gap: proving criteria rather than ticking them found the
+  locale setting wired to nothing, and reading the roadmap honestly is what prompted the question
+  this phase answers. See Phase 1 and Phase 2, now fully ticked.
+
+- **T5.2 An animation block per GAIT — DONE, 2026-09-04.** `SpriteSheetLayout.animation_for` took
+  a **boolean**, so a sheet could hold an idle cycle and a walk cycle and nothing else: run and
+  sneak replayed the walk block faster. Meanwhile `GameEnums.MoveState` had ten values and
+  `Events.player_state_changed` was declared, emitted and **listened to by nothing** — the sixth
+  time this project has found something validated and unread. It now takes a `MoveState`, and
+  `run_row` / `sneak_row` / `climb_row` default to `-1` meaning "replay the walk block", so every
+  sheet authored before it behaves identically and a game adds a run cycle by drawing one. Proved
+  by 19 assertions, a live probe reading the real `sprite.frame`, and three captures in which the
+  player walks in green and runs in rust while the NPC beside them stands in blue — same sheet,
+  same frame, different blocks.
+
+- **T5.3 Delivering the gaits that were already declared — DONE, 2026-09-04.** An audit of the
+  whole base went looking for more of this project's characteristic defect and found the
+  **seventh instance, created by T5.2 two rows above.** `MoveState.CLIMB` never reached
+  `CharacterVisual` at all: `_physics_process` returns early while a climb owns the body, and
+  `climb_step` touched the visual only after resetting the state to IDLE — so across all three
+  callers of `update_from_velocity` nothing could ever pass CLIMB, and `climb_row` was exported,
+  defaulted, range-limited, validated by `problems()` and asserted by `art_contract_test.gd`
+  while being **impossible to draw**. Invisible in the demo because the shipped sheet leaves
+  `climb_row` at -1, so the fallback drew the walk block and looked right; the first person to
+  see it would have been the first game that drew a climb cycle. **Both ends were asserted and
+  the wire was not** — `traversal_test` proved the body reports CLIMB, `art_contract_test`
+  proved the layout maps it, and nothing proved it arrived. Second defect in the same function:
+  `update_from_velocity` pinned `_frame = 0` whenever horizontal speed was zero, so **no idle
+  block had ever advanced a single cell** — three of the shipped sheet's four idle cells were
+  undrawable, while "more than one idle" sat on the exit criteria below. Fixed: a climb counts
+  as moving without turning the character, and an idle block that DIFFERS from the walk block
+  advances at a new `idle_fps` (a sheet whose idle *is* its walk block still holds cell 0, which
+  is the pre-T2.1 case and would otherwise walk on the spot). Proved by 18 new assertions and by
+  planting the revert: the fix removed, the suite is `1688 passed, 6 failed`, exit 1, naming
+  `a climb draws the climb block — expected 1, got 0`; restored, `1694 passed, 0 failed`, exit 0.
+- **T5.4 The three missing enforcement gates — DONE, 2026-09-05.** Not a character row, and it is
+  here because the T5.3 audit that produced it found the structural cause of seven packages'
+  worth of the same defect: **no gate anywhere asked whether a declared thing has a CONSUMER.**
+  Three gates close it. `tools/check_signals.gd` requires every signal in the registry to have an
+  emitter, resolving indirect `Signal`-value dispatch so the three quest signals — which have
+  **zero** direct `.emit` sites — are not false positives; it named `debug_command` on its first
+  run. `tools/check_layers.gd` enforces `core -> content -> systems -> gameplay -> ui`, the one
+  architectural rule with no gate, and **found a real violation immediately: 55 upward
+  references**, of which 13 were the interaction sensor sitting in `systems/` while typed on
+  `Interactable`. Moved to `src/gameplay/interaction/`; gotcha 55. `check_boundary.gd` gained the
+  `localization/` half, closing gotcha 48: an orphan CSV row fails, presence is reported, and the
+  stripped CI job now runs `NEW_GAME.md`'s prune `awk` before it, which checks the prune list
+  itself. Each gate proved red by planting a real violation and green by removing it — exit codes
+  in `DEVLOG.md`. Ladder: four checkers to six, rungs 9 and 10 in CI as their own steps. 1,728
+  assertions.
+
+- **T5.5 The twelve settings with no consumer — DONE, 2026-09-05.** Also not a character row,
+  and the last of the T5.3 audit's structural findings. **Twelve of twenty-three settings were
+  declared, drawn to the player, translated in both languages, and inert.** Nine got a real
+  consumer, placed by who OWNS the thing that has to change: the viewport and the shadow atlas to
+  `Settings` itself, bloom to `EnvironmentDriver` because the Environment is that node's, DOF to
+  `HD2DCameraRig` — `set_dof_enabled()`'s first ever caller — the prompt's two to `InteractPrompt`,
+  the typewriter's to `DialogueScreen`, the hold floor to `InteractionSensor`, and
+  `accessibility/text_scale` to a new `UiAccessibility` under `UILayer`. **`video/shadows` is the
+  placement worth reading**: shadows are cast by lights an AREA AUTHOR placed, no node owns the
+  set of them, so it is applied at the shadow ATLAS and a game that adds a hundred lights gets it
+  free. **Three were REMOVED** — screen shake, autosave and subtitles have no machinery in this
+  template to reach, and a row drawn to the player that cannot do anything is worse than a dead
+  constant. **Five of the twelve were a TEMPLATE defect and not a missing game feature**: a fork
+  could not honour `accessibility/*` without editing `src/`, because the thing that changes is the
+  theme every screen in `src/ui/` draws from. Plus the audit's four one-liners:
+  `reset_to_defaults()` never re-applied the locale, `Actions.JUMP` is gone entirely, and
+  `rebind()` gates on `Actions.REBINDABLE`. **The seventh gate was deliberately NOT built** — the
+  consumer question is an ASSERTION, because `Settings.DEFAULTS` is a runtime fact and a `check_*`
+  tool would have to parse `settings.gd` to get it. Writing it found gotcha 56. Eight plants, each
+  exit 1; six settings photographed in pairs. 1,782 assertions, stripped 1,708. Version 2.0.0,
+  untagged. CI green on `31fea16`, PR #34.
+
+- **T5.6 A wholesale character swap, photographed — DONE, 2026-09-05.** The phase's last proof
+  criterion, and the only one of the three that was a proof rather than a feature. The repository
+  held a sheet with a different GRID and a sheet with GAITS and **never one with both**, so the
+  phase's claim had been demonstrated in halves. `character_alt.png` went from two animation
+  blocks to five (idle, walk, run, sneak, climb, 96x600) and `character_alt_layout.tres` is now
+  the only layout in the project that leaves no gait at -1. The player was pointed at the pair,
+  driven through all five gaits through the real input path and photographed, and **no file under
+  `src/` changed for the swap** — the swap is two `ExtResource` paths in `player.tscn`. The
+  CONTROL is the strongest evidence: the same probe on the DEFAULT sheet draws blocks 0, 1, 2, 1,
+  1 — sneak and climb falling back to the walk block, which is the `-1` contract measured in the
+  live game for the first time. Four defects, three of them this row's own, and all four
+  invisible to any rung that does not open a window: gotchas 57 to 60. Two plants, each exit 1,
+  and plant 2 re-created T5.3's defect exactly, which is the row's own claim made good.
+  1,782 -> 1,798 assertions. Version 2.1.0, untagged.
+
+- **T5.7 `reduce_motion` finished, and the shadow atlas — DONE, 2026-09-05.** The two things T5.6
+  wrote down and deliberately skipped. `accessibility/reduce_motion` reached **three of the four**
+  motions this template draws: `ScreenFade` cuts instead of dissolving and
+  `HD2DCameraRig.follow_lag` goes to zero, both on `_authored_dof`'s veto shape. **The shadow half
+  was a live defect rather than a portability worry** — `_apply_shadows` restored a `2048` const
+  called "the engine's own default" and the default is **4096**, so every windowed boot of this
+  repository ran at half the authored shadow resolution, measured `boot = 2048` against
+  `boot = 4096` on a real display server. `ShadowAtlas` (new, `core`) reads the authored sizes
+  before the first zeroing; `settings.gd` went 144 -> 139 of its 150. That is **gotcha 61**, whose
+  transferable half is that `_apply_display()` returns early under `--headless`, so no rung below
+  the windowed capture executes that code at all. **The camera motion turned out to be
+  photographable, contradicting this row's own prediction**: two `--gait-shots` runs differing by
+  one line of `settings.cfg` translate the whole world by 42 px, residual 0.0268 at -42 against
+  0.0975 at zero. Four plants, each exit 1. 1,798 -> 1,821 assertions.
+  `settings_consumers_test.gd` split at its budget, `settings_effects_test.gd` is the new half. Version 2.2.0, untagged.
+
+**Exit criteria for the phase:**
+
+- [x] A character's movement styles come from its sheet, not its code: idle, walk, run, sneak and
+      climb each addressable, and an unnamed one falling back rather than breaking. — T5.2 for
+      the addressing, **T5.3 for climb actually arriving.** This box was ticked while CLIMB
+      reached nothing; it is honest now, and the lesson is that "addressable" was asserted at
+      both ends of a seam whose middle had no assertion.
+- [x] The same seam serves NPCs, with no NPC-specific animation code. — T5.2, `NpcBrain` passes a
+      gait and knows nothing about animation blocks. Worth knowing: `NpcBrain` only ever passes
+      WALK or IDLE, so RUN, SNEAK and CLIMB are exercised by the player alone.
+- [ ] **More than one idle.** A second idle block chosen over time or at random, so a standing
+      character is not a held pose. **Reworded by T5.3's finding rather than closed:** the reason
+      a standing character was a held pose was that the idle block never advanced at all, which
+      is now fixed. What remains is genuinely a SECOND block and a chooser between them, and it
+      is a smaller and more optional thing than this line implied.
+- [x] **A turn in place.** — **T5.14, 2026-09-06, and the SEAM DECISION was the package.** The
+      question was never how to animate a turn: `face_direction()` was correct and asserted from
+      the day it was written, and had only test callers because nothing had decided WHO may ask.
+      The owner's answer was BOTH, on the strength of a case neither candidate asker covered — an
+      NPC that notices the player, walks over and stops them — so the seam is
+      `Events.turn_requested(character, towards)` on the bus rather than a call inside either.
+      `InteractionSensor` asks for the player while they are STILL; `Speaker` asks for the person
+      you talk to. Photographed: the same character, same position, one shutter apart, column 3
+      to column 5, **0.7666 of the crop's pixels changed against a 0.1838 no-turn control**.
+- [x] **A worked example of swapping a character wholesale** — a second sheet with a different
+      cell size, facing count and gait set, dropped in and photographed, to the standard T2.1 set
+      for the layout swap. — **T5.6, 2026-09-05.** `character_alt.png` is 4 facings, 24x40 and
+      FIVE blocks against the default's 8, 32x48 and three, and the swap is two `ExtResource`
+      paths in `player.tscn` with nothing under `src/` touched. Five gaits driven through the
+      real input path and photographed, each pip tally agreeing with the block decoded off
+      `sprite.frame`; the same probe on the default sheet draws sneak and climb from the WALK
+      block, which is the `-1` fallback measured live. Captures are re-takeable with `--gait-shots=<dir>` rather than committed, which is this project's standing practice for screenshots.
+
+**THE PHASE IS CLOSABLE, AND CLOSING IT IS THE OWNER'S.** Two boxes remain and neither is a
+defect: a second idle block is a chooser on top of machinery that now works, and **a turn in
+place is explicitly a seam decision the owner has not made** — WHO may ask for a turn. T5.3 and
+T5.5 both declined to pick one silently and T5.6 and T5.7 decline too. If the owner answers that
+question the phase has one small row left; if the owner says the two remaining boxes belong to a
+consuming game rather than to the base, the phase closes today.
+
+**AND A THIRD THING THE OWNER SAW THAT NO EXIT CRITERION ASKS FOR — FIXED, T5.8, 2026-09-05.** On
+2026-09-05 the owner reported that sideways movement "just slides to the side". It did, and **the
+code was not the reason**: `character_placeholder.png` drew one pose eight times, measured at 0.7%
+pixel difference between the front view and the back, with facings 2 and 3 byte-identical. Both
+boxes above are about a character's BLOCKS; nothing on this list ever asked whether a facing is
+distinguishable, and every capture in T5.2, T5.3 and T5.6 was taken without noticing.
+**T5.8 gave both sheets five poses and a mirror** — front, three-quarter, side, three-quarter
+back, back — took the worst facing pair from 0.0% to 7.5% (default) and 21.9% (alt), added
+`sheet_facings_test.gd` with a floor picked by measurement, and photographed the same character
+walking north, east, south and west through `--facing-shots`, which nothing in this repository had
+ever captured. It touched no file under `src/` except the debug capture tool. That is gotcha 62.
+
+- **T5.8 A placeholder sheet whose facings are distinguishable — DONE, 2026-09-05.** Candidate J,
+  and the only row on this board that came from the owner playing the game rather than from an
+  audit. Suite 1,821 -> 1,829, one plant at exit 1, version 2.3.0. **It does not tick either box
+  above** — it is about the SHEET, not the blocks — but it changes the case for one of them: a
+  turn in place was not worth animating while every facing drew the same picture, and now it is.
+
+- **T5.9 Screen shake, and the setting that scales it — DONE, 2026-09-05.** Candidate H, and the
+  row T5.7 obliged: it had finished `reduce_motion` for the three motions that EXISTED and written
+  down that a shake would have to be reached in the SAME row it was built, or the setting was a
+  gap again. `HD2DCameraRig` gained a decaying SINE offset (102 -> 138 of its 250, so no new class
+  was needed), `Events.camera_shake_requested` is the ask, `Gate.open_shake` is the template's own
+  asker and **defaults to 0.0**, and `gameplay/camera_shake` is back in `DEFAULTS` as its 0..1
+  scale — **the first of the three settings 2.0.0 removed to come back with the feature it was
+  waiting for**, which is what removing them instead of faking them was for. `reduce_motion`
+  removes it outright rather than making it smaller, on the typewriter's and the fade's reasoning.
+  A sine and not noise is what made it provable: the same command at scale 1.0 / 0.5 / 0.0 moves
+  the camera **0.302357 / 0.151178 / 0.000000 m** and the picture **(+14,-12) / (+8,-6) / (0,0)
+  px**, with the HUD at identical pixels throughout. Suite 1,829 -> 1,848, two plants each exit 1,
+  **gotcha 64**, version 2.4.0.
+
+
+
+- **T5.10 Autosave, and the slot policy it needed first — DONE, 2026-09-05.** Candidate G, and the
+  **second** of the three settings 2.0.0 removed to come back with the feature it was waiting for;
+  only `accessibility/subtitles` is left, and it still has nothing to caption. T5.5 refused to fake
+  this one because `SaveSystem` had no notion of the slot a run belongs to, so **the slot was the
+  design question and the trigger was the easy half**. The answer is a DEDICATED slot one past the
+  manual six — `SaveSystem.AUTOSAVE_SLOT`, written to `user://saves/autosave.json` — which no
+  manual list can reach, because every manual list iterates `MAX_SLOTS` and never counts that high.
+  Reserving slot 5 instead would have changed what slot 5 MEANS in every save already on disk, a
+  MAJOR bump paid for nothing; the format is untouched and `SCHEMA_VERSION` is still 1, so this is
+  **2.5.0**. Reading is deliberately wider than writing: `latest_slot()` sees the autosave, so
+  Continue resumes it and the load list offers it, while the save list cannot name it. The policy
+  is a node under `GameRoot` — not a second job for `SaveSystem`, which owns the format and not the
+  occasion, and not an autoload, which would need an ADR. Both occasions (`game_ending`,
+  `area_entered`) were already on the bus, so **no signal was added and `game_root.gd` gained
+  nothing but lost the stale comment that said an autosave would go there.** Three refusals, each
+  proved by the absence of a file: the player's veto, a transition in flight, and no run in
+  progress. **Gotcha 65** came out of the transition guard and is the transferable half:
+  `area_entered` is emitted TWO STATEMENTS BEFORE `_transitioning` is cleared, so the obvious guard
+  would have refused every arrival and the feature would never have fired once — with nothing red
+  anywhere. Suite 1,848 -> 1,898, four plants each exit 1, and the indicator photographed: the same
+  command with the setting on writes `autosave.json` and shows `Autosaved.` on the toast, and with
+  it off writes nothing and shows nothing, over an otherwise identical frame.
+- **T5.11 Music ducking, built — and the alias beside it deleted — DONE, 2026-09-05.** Candidate E,
+  which was explicitly "build it or delete it", and **the answer is both**, split on one line.
+  `duck()` and `unduck()` were BUILT, because the occasion already existed:
+  `Events.dialogue_started` and `dialogue_finished` have been on the bus since Phase 0 with one
+  emitter each, so a `DialogueDuck` node under `GameRoot` was the whole wiring and **no signal and
+  no setting were added**. `stop_music()` was DELETED — two lines of alias over
+  `play_music(null, fade)`, no caller in three phases, no occasion this template has that the
+  surviving spelling does not serve — and deleting a public method is a MAJOR bump, so the base is
+  **3.0.0**. **The methods were not merely uncalled, they were WRONG, which only wiring them could
+  reveal:** `duck()` tweened to an ABSOLUTE −8 dB, so against a player who had moved `audio/music`
+  to 0.25 (−12 dB) it made the music four decibels LOUDER every time somebody spoke. `target_db()`
+  measures a duck from the player's own level instead, and a muted bus stays muted. Three smaller
+  defects came out of the same wiring — a settings change lifted the duck, two ducks raced, and a
+  positive "duck" would have worked. The duck COUNTS conversations and releases after the last,
+  because a plain pair lifts the music underneath a second one still running with nothing red
+  anywhere. **A bus volume in dB is a number the audio server hands back even under the dummy
+  driver, so essentially all of this row is proved in the suite** in a way T5.7's and T5.9's camera
+  work was not: suite 1,898 -> 1,935, five plants each exit 1, and the windowed capture is a
+  regression check only, because a still frame cannot show a decibel. **Gotcha 66** retires an
+  honest limit T5.7 wrote down: `SceneTree.get_processed_tweens()` and `Tween.custom_step()` tell a
+  fade from a cut inside a synchronous `run()`. **The fourth consumer gate was considered and
+  deliberately not built** — public-method liveness is a package, not a paragraph, and it is
+  candidate K.
+- **T5.12 Two capture gaps closed, and the third argued away — DONE, 2026-09-06.** Three
+  consecutive rows closed with the same admission and each named a probe as the fix, which is one
+  gap rather than three. **Two were built and the third was argued away**: a still frame cannot
+  show a decibel, so T5.11's probe would have produced only a log line, and gotcha 66 had already
+  retired the limit that made it look necessary. `src/systems/debug/dev_scenario_shots.gd` is the
+  fifth debug file — `--gate-shot=<dir>` throws the demo's lever, opens its gate through the
+  interact key and photographs the shake **the gate** asked for; `--autosave-write` and
+  `--autosave-continue=<dir>` write an autosave from a real `area_entered` in one process and read
+  it back through the real Continue row in another. **The probe found two defects in itself
+  first**, both silent and both green: standing beside a thing does not SELECT it, and `rest`
+  sampled twenty frames after a teleport is the follow-lag tail rather than rest. **0.154743 m
+  against a `camera_shake=0` control at 0.000050 m**, reproducible to the micrometre because the
+  shake is a sine. Suite 1,935 -> 1,947; two plants, each a real reversion, each exit 1 with its
+  control at exit 0. **3.1.0 and not a PATCH on one line**: nothing under `src/` outside the debug
+  directory changed, but `game_root.tscn` gained a node a consuming game has to merge.
+
+- **T5.13 A public-method liveness gate — DONE, 2026-09-06.** Candidate K, and the fourth
+  consumer question: T5.4 built three gates for the "declared and read by nothing" class and T5.5
+  asked it of the settings, but **a public method was still declarable-and-dead with nothing
+  saying so**, which is how `AudioDirector.duck()` survived three phases uncalled and turned out
+  to be WRONG as well as unused. `tools/check_methods.gd` is rung 11. **The design question was
+  which methods it is even asked of**, and the answer is the narrowest question a text scan can
+  answer soundly: not "is it called on a value of the right type" but "did anybody write this name
+  down at all" — which needs no knowledge of `Callable`, `.bind`, unqualified inherited calls or
+  `.tscn` properties, because every one of them writes the name out. **First run: exit 1, twelve
+  violations of 316.** Two deleted, one wired, nine exempted with an argued sentence each, and
+  **two of the twelve carried doc comments naming callers that never existed** — a gate for dead
+  code finding false claims in prose. Proved against its own motivating case: at `7a162ca`,
+  `duck`, `unduck` and `stop_music` had zero references outside their declarations, so it would
+  have failed on the day each landed. **86 of the 314 are reached only from `tests/` or `tools/`
+  and that is REPORTED, never failed** — "a caller in the suite" is not "a caller in the game",
+  but a template declares accessors this repository will never call, and a gate that starts out
+  mostly exemptions is decoration. Suite 1,947 -> 1,970; three plants, each exit 1, control exit
+  0. **4.0.0, a MAJOR bump, because two public methods are gone** and the entry names the
+  one-line replacement for each. **Gotcha 69**: the gate's precondition fired on the test file
+  that quoted its own trigger pattern, and the gate was right.
+
+- **T5.15 The `Button` styleboxes — DONE, 2026-09-06.** Candidate F, the last row on the board,
+  and the oldest declared limitation in the project: the theme set `font_sizes` on nine type
+  variations and no `Button/styles/*` at all, so every menu row and every dialogue reply drew the
+  engine's fallback panel. **Four packages had opened this file and closed it again, each giving
+  the same reason** — a stylebox has to be *designed*, and the only palette to design against is
+  the placeholder one, so populating it would ship a decision as a default. **That reason is what
+  the fix answers rather than overrules: nothing in `src/ui/root/ui_row_styles.gd` designs a
+  colour. It designs the RELATIONSHIP between the five states** and takes every colour from the
+  palette. **`hover` is `surface` moved toward `text`, and that word is the whole package**: the
+  same expression lightens a dark row and darkens a light one, so the fix survives a palette this
+  base does not ship — which is the half of the stated defect ("immediately wrong against a light
+  one") a hard-coded lighten would have left in place. `pressed` moves toward `accent` because a
+  press is an act and wants a hue; `disabled` keeps the hue and drops the alpha; **`focus` draws
+  no centre at all**, only an accent ring, so it composes with whatever is underneath — and it is
+  the state a mouse user never sees and a gamepad player navigates by. **ONE palette entry was
+  added and named as such**: `dim` and `solid` are the panel a row sits ON and `muted` already
+  meant "present but lesser", so there was no token for a button SURFACE and inventing one
+  silently would have been the invention the four refusals were about. Photographed twice over:
+  on the shipped palette a row's separation from its panel goes from **0.0981 to 0.3490 summed
+  channel delta, 3.6x**, with **every one of the 61,998 changed pixels inside the row band and
+  none outside it**; and the whole thing again on a parchment palette, changed by six palette
+  lines and no code. **MINOR, 4.2.0** — nothing removed, nothing renamed, and a game that
+  authored its own `styles/normal` or ships a palette with no `surface` is left exactly as it
+  was, both refusals asserted. Suite 1,983 -> 2,051; five plants, each a real reversion, each
+  exit 1, control exit 0. **The plant that matters is the hard-coded lighten**: it passes every
+  dark-palette assertion in the file and fails only the light ones, which is why the light
+  palette had to be asserted rather than only photographed.
 
 ## Sequencing rules
 

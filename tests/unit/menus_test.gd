@@ -29,7 +29,7 @@ var _keys: ScreenKeys = null
 
 
 func run() -> void:
-	plan(98)
+	plan(113)
 	_set_up()
 	_every_menu_is_reachable_by_name()
 	_flags_are_declared_in_init()
@@ -47,7 +47,9 @@ func _set_up() -> void:
 	attach(_stack)
 	_keys = ScreenKeys.new()
 	attach(_keys)
-	for slot: int in SaveSystem.MAX_SLOTS:
+	# AUTOSAVE_SLOT + 1: a leftover autosave file is a save this file would then see, and the
+	# first assertion below is that a first run has none.
+	for slot: int in SaveSystem.AUTOSAVE_SLOT + 1:
 		SaveSystem.delete_slot(slot)
 
 
@@ -110,6 +112,24 @@ func _the_main_menu_omits_what_it_cannot_offer() -> void:
 	equal("now the menu offers six", rows.size(), 6)
 	equal("Continue names the slot it would restore", rows[1].contains(str(PROBE_SLOT + 1)), true)
 	equal("and Load has appeared under it", rows[2], tr(MainMenuScreen.LOAD_KEY))
+
+	# T5.10 gave the autosave a NAMED file rather than a seventh number so that nobody would
+	# read it as a seventh manual slot, and the Continue row then printed "Slot 7" - the same
+	# reading arriving by the one route a file name cannot close.
+	equal("an autosave is written", SaveSystem.save_to_slot(SaveSystem.AUTOSAVE_SLOT), OK)
+	# Two saves written in the same second tie on `saved_utc`, and latest_slot() keeps the first
+	# it met - so the manual slot has to go for the autosave to be unambiguously the latest.
+	SaveSystem.delete_slot(PROBE_SLOT)
+	equal("and with the manual slot gone it is the latest", SaveSystem.latest_slot(),
+			SaveSystem.AUTOSAVE_SLOT)
+	menu.refresh()
+	rows = menu.row_texts()
+	equal("Continue names the autosave", rows[1], tr(MainMenuScreen.CONTINUE_AUTOSAVE_KEY))
+	equal("and never as a slot number", rows[1].contains(str(SaveSystem.AUTOSAVE_SLOT + 1)),
+			false)
+	# Put the saves back the way the cases below expect to find them.
+	SaveSystem.delete_slot(SaveSystem.AUTOSAVE_SLOT)
+	equal("the manual save is restored", SaveSystem.save_to_slot(PROBE_SLOT), OK)
 	equal("cleanup", _stack.close_top(), true)
 
 
@@ -169,8 +189,14 @@ func _the_slot_list_reads_headers() -> void:
 	equal("the load list opens", _stack.open(loading), true)
 	equal("it faces the reading way", loading.writing, false)
 	equal("and wears the load title", loading.title_key, SaveScreen.LOAD_TITLE_KEY)
-	equal("all six slots are listed", loading.row_texts().size(), SaveSystem.MAX_SLOTS)
+	# SIX MANUAL SLOTS PLUS THE AUTOSAVE. The extra row is the load half of the slot policy: an
+	# autosave the player cannot come back to is not an autosave, so reading offers it where
+	# writing cannot reach it. Empty here, so it is a note rather than a pressable row.
+	equal("all six slots are listed, and the autosave under them",
+		loading.row_texts().size(), SaveSystem.MAX_SLOTS + 1)
 	equal("but only the written one can be pressed", _button_count(loading), 1)
+	equal("and the autosave row does not pretend to be a seventh slot",
+		loading.slot_text(SaveSystem.AUTOSAVE_SLOT), tr(SaveScreen.AUTOSAVE_EMPTY_KEY))
 
 	var info: Dictionary = SaveSystem.slot_info(PROBE_SLOT)
 	equal("reading a header does not carry the payload", info.has("sections"), false)
@@ -180,6 +206,31 @@ func _the_slot_list_reads_headers() -> void:
 	equal("an empty slot says empty", loading.slot_text(0), tr(SaveScreen.EMPTY_KEY).format({"slot": 1}))
 	equal("cleanup", _stack.close_top(), true)
 	_the_save_list_faces_the_other_way()
+	_a_written_autosave_becomes_a_row_the_writing_half_still_refuses_to_offer()
+
+
+## THE ASYMMETRY, DRIVEN RATHER THAN DESCRIBED. Both halves are built over the same on-disk
+## state, so the only thing that can produce different lists is the direction each faces — which
+## is the slot policy exactly: writing counts to `MAX_SLOTS` and therefore cannot name the
+## autosave, reading adds it. A save screen that offered it would fail the second assertion here
+## before anything ever overwrote a real autosave.
+func _a_written_autosave_becomes_a_row_the_writing_half_still_refuses_to_offer() -> void:
+	equal("an autosave is written", SaveSystem.save_to_slot(SaveSystem.AUTOSAVE_SLOT), OK)
+	var reading := SaveScreen.new()
+	equal("the load list reopens", _stack.open(reading), true)
+	equal("and the autosave is now pressable, not a note",
+		_button_count(reading), 2)
+	equal("its row reads as the autosave and carries the stamp out of the file",
+		reading.slot_text(SaveSystem.AUTOSAVE_SLOT).contains(
+			DictRead.get_string(SaveSystem.slot_info(SaveSystem.AUTOSAVE_SLOT), "saved_utc", "?")), true)
+	equal("cleanup", _stack.close_top(), true)
+
+	var saving := SaveScreen.for_saving()
+	equal("the save list opens over the same files", _stack.open(saving), true)
+	equal("and still offers exactly the six the player may write, autosave or not",
+		_button_count(saving), SaveSystem.MAX_SLOTS)
+	equal("cleanup", _stack.close_top(), true)
+	SaveSystem.delete_slot(SaveSystem.AUTOSAVE_SLOT)
 
 
 func _the_save_list_faces_the_other_way() -> void:
@@ -196,7 +247,8 @@ func _the_save_list_faces_the_other_way() -> void:
 func _the_keys_these_menus_draw_exist() -> void:
 	for key: String in [
 		MainMenuScreen.TITLE_KEY, MainMenuScreen.NEW_KEY, MainMenuScreen.CONTINUE_KEY,
-		MainMenuScreen.LOAD_KEY, MainMenuScreen.SETTINGS_KEY, MainMenuScreen.CONTROLS_KEY,
+		MainMenuScreen.CONTINUE_AUTOSAVE_KEY, MainMenuScreen.LOAD_KEY,
+		MainMenuScreen.SETTINGS_KEY, MainMenuScreen.CONTROLS_KEY,
 		MainMenuScreen.QUIT_KEY, PauseMenuScreen.TITLE_KEY, PauseMenuScreen.STATUS_KEY,
 		PauseMenuScreen.RESUME_KEY, PauseMenuScreen.SAVE_KEY, PauseMenuScreen.MAIN_MENU_KEY,
 		PauseMenuScreen.HINT_KEY, SaveScreen.SAVE_TITLE_KEY, SaveScreen.LOAD_TITLE_KEY,
@@ -232,6 +284,8 @@ func _tear_down() -> void:
 		_stack.close_all()
 		_stack = null
 	get_tree().paused = false
-	for slot: int in SaveSystem.MAX_SLOTS:
+	# AUTOSAVE_SLOT + 1: a leftover autosave file is a save this file would then see, and the
+	# first assertion below is that a first run has none.
+	for slot: int in SaveSystem.AUTOSAVE_SLOT + 1:
 		SaveSystem.delete_slot(slot)
 	_keys = null

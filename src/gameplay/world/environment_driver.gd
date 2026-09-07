@@ -101,6 +101,10 @@ const WEATHER_FOG_GAIN: float = 4.0
 @export_range(0.0, 0.2, 0.001) var interior_fog_density: float = 0.010
 
 
+## The settings this driver obeys, named on the consumer so a setting nobody reads has nowhere
+## to be written down.
+const BLOOM_SETTING: String = "video/bloom"
+
 @export_group("Post stack")
 ## THE HD-2D LOOK, AS DATA (T3.2). Every one of these was a literal inside _build_post_stack, so
 ## re-tuning the look of a game built on this template meant editing engine code — which
@@ -158,6 +162,7 @@ func _ready() -> void:
 		_apply_now()
 	else:
 		_apply_interior()
+	Events.setting_changed.connect(_on_setting_changed)
 	Log.info("world", "Environment driver ready (follow_clock=%s)" % str(follow_clock))
 
 
@@ -179,7 +184,11 @@ func _build_post_stack() -> void:
 	_environment.tonemap_mode = Environment.TONE_MAPPER_AGX
 	_environment.tonemap_exposure = tonemap_exposure
 
-	_environment.glow_enabled = glow_enabled
+	# THE PLAYER'S VETO OVER THE AREA AUTHOR'S DEFAULT, on `HD2DCameraRig`'s reasoning: an area
+	# that wants no glow keeps none, and a player who turned bloom off gets none anywhere. This
+	# is where `video/bloom` had to land - the Environment is this node's, and nothing else may
+	# touch it, so no other file could have consumed that setting.
+	_environment.glow_enabled = glow_enabled and Settings.get_bool(BLOOM_SETTING)
 	_environment.glow_intensity = glow_intensity
 	_environment.glow_strength = glow_strength
 	_environment.glow_bloom = glow_bloom
@@ -310,3 +319,11 @@ func _discover_siblings() -> void:
 			Log.warn("world", "Sun was not wired in the scene; found by name instead")
 	if moon == null:
 		moon = host.get_node_or_null(^"Moon") as DirectionalLight3D
+
+
+## Only the glow line is re-applied, not the whole stack: `_build_post_stack` also rebuilds the
+## sky, and doing that on a settings change would drop the procedural sky material mid-frame.
+func _on_setting_changed(section: String, key: String, _value: Variant) -> void:
+	if _environment == null or "%s/%s" % [section, key] != BLOOM_SETTING:
+		return
+	_environment.glow_enabled = glow_enabled and Settings.get_bool(BLOOM_SETTING)

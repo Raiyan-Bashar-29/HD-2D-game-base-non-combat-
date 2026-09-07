@@ -21,7 +21,8 @@ extends RefCounted
 ## is the line this package draws: chrome is text, output is data. See
 ## `src/ui/screens/debug_console_screen.gd`.
 ##
-## OWNS: what `goto`, `flag`, `time` and `give` do, and the one-line report each returns.
+## OWNS: what `goto`, `flag`, `time`, `give`, `save` and `load` do, and the one-line report
+##   each returns.
 ## MUST NOT: wait for a frame, read the command line, draw anything, or be depended upon by
 ## gameplay. Deleting this file must break only the harness and the console.
 
@@ -29,10 +30,12 @@ const GOTO: StringName = &"goto"
 const FLAG: StringName = &"flag"
 const TIME: StringName = &"time"
 const GIVE: StringName = &"give"
+const SAVE: StringName = &"save"
+const LOAD: StringName = &"load"
 
 ## The vocabulary, in the order the console offers it. A caller listing the verbs reads this
-## rather than repeating the four names, so a fifth verb is one edit.
-const VERBS: Array[StringName] = [GOTO, FLAG, TIME, GIVE]
+## rather than repeating the names, so another verb is one edit.
+const VERBS: Array[StringName] = [GOTO, FLAG, TIME, GIVE, SAVE, LOAD]
 
 
 ## Run one typed line: a verb, a space, and the SAME argument the matching `--verb=` takes.
@@ -52,6 +55,10 @@ static func run(line: String) -> String:
 		return set_time(argument)
 	if verb == GIVE:
 		return give(argument)
+	if verb == SAVE:
+		return save_to(argument)
+	if verb == LOAD:
+		return load_from(argument)
 	return "no such command '%s'. %s" % [verb, usage()]
 
 
@@ -114,3 +121,40 @@ static func give(list: String) -> String:
 	if report.is_empty():
 		return "give needs an item id"
 	return "give %s" % " ".join(report)
+
+
+## Write the session to a slot. Slots are ZERO-based, which is what `SaveSystem` and the save
+## screen both use - a verb that renumbered them for friendliness would make `save 1` from the
+## console and slot 1 in the menu two different files.
+static func save_to(slot_text: String) -> String:
+	var slot: int = _slot_of(slot_text)
+	if slot < 0:
+		return "save needs a slot from 0 to %d" % (SaveSystem.MAX_SLOTS - 1)
+	var problem: Error = SaveSystem.save_to_slot(slot)
+	if problem != OK:
+		return "save to slot %d failed: %s" % [slot, error_string(problem)]
+	return "saved to slot %d" % slot
+
+
+## Restore a slot. `SaveSystem` owns the sequence and `Director` still owns the area change, so
+## this is the same path `Continue` takes rather than a second one.
+static func load_from(slot_text: String) -> String:
+	var slot: int = _slot_of(slot_text)
+	if slot < 0:
+		return "load needs a slot from 0 to %d" % (SaveSystem.MAX_SLOTS - 1)
+	if not SaveSystem.has_slot(slot):
+		return "slot %d is empty" % slot
+	var problem: Error = SaveSystem.load_from_slot(slot)
+	if problem != OK:
+		return "load from slot %d failed: %s" % [slot, error_string(problem)]
+	return "loaded slot %d" % slot
+
+
+## A slot number, or -1 for anything that is not one. `to_int()` answers 0 for rubbish, so the
+## digits are checked rather than trusted - otherwise `save banana` would overwrite slot 0.
+static func _slot_of(slot_text: String) -> int:
+	var trimmed: String = slot_text.strip_edges()
+	if not trimmed.is_valid_int():
+		return -1
+	var slot: int = trimmed.to_int()
+	return slot if slot >= 0 and slot < SaveSystem.MAX_SLOTS else -1

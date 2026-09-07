@@ -10,7 +10,8 @@ extends Node
 ## 3,983 lines, twenty reasonable lines at a time - the suite grew a seam. The
 ## `tests/framework/` and `tests/unit/` directories already existed, empty, for this.
 ##
-## OWNS: assertion counting and failure messages.
+## OWNS: assertion counting, failure messages, and the shape questions more than one case asks
+## of a .tscn.
 ## MUST NOT: contain game logic, or know which other cases exist.
 
 var passed: int = 0
@@ -98,3 +99,31 @@ func skip(label: String, why: String, stands_for: int = 1) -> void:
 
 func outcomes() -> int:
 	return passed + failed + skipped
+
+
+## The parent of the node in `scene_path` that carries `script_path`, or "" when there is no
+## such node. `get_node_path` is relative to the scene root, so a node directly under it
+## answers "." and one that has been deleted answers nothing at all.
+##
+## HERE RATHER THAN IN A CASE because a second case now asks the same question of the same
+## scene, and this project moves a helper out on its second caller rather than its third.
+## It is shape, not game logic: it reads a .tscn and says where a script hangs.
+##
+## READ THROUGH `SceneState`, NEVER AS TEXT, which is the reason it is worth sharing at all.
+## The first version of this question searched the .tscn for the script path and stayed GREEN
+## when the node was deleted, because an `[ext_resource]` line survives a node's removal.
+## The engine's own parse cannot be fooled that way: a script is a PROPERTY of a node here,
+## and the node either exists or it does not.
+func parent_of_script(scene_path: String, script_path: String) -> String:
+	var packed: PackedScene = load(scene_path)
+	if packed == null:
+		return ""
+	var state: SceneState = packed.get_state()
+	for node: int in state.get_node_count():
+		for property: int in state.get_node_property_count(node):
+			if state.get_node_property_name(node, property) != &"script":
+				continue
+			var script: Script = state.get_node_property_value(node, property) as Script
+			if script != null and script.resource_path == script_path:
+				return String(state.get_node_path(node, true))
+	return ""

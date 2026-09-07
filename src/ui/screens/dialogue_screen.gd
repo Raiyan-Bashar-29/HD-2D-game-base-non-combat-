@@ -12,8 +12,9 @@ extends UiScreen
 ## effects, and a player who can escape out of the middle of one can skip the effect of the
 ## node they were about to reach. A conversation ends when it ends.
 ##
-## TEXT SPEED is the first consumer of `gameplay/text_speed`, one of the seventeen settings
-## that had been declared with nothing reading them. Reveal is by `visible_ratio`, so a
+## TEXT SPEED was the first consumer of `gameplay/text_speed`, one of the settings that had been
+## declared with nothing reading them; `accessibility/reduce_motion` is the second, and its
+## effect is the reveal not happening at all. Reveal is by `visible_ratio`, so a
 ## half-revealed line is one property rather than a substring, and a translator's line with
 ## multibyte characters cannot be cut in the middle of one.
 ##
@@ -23,6 +24,9 @@ extends UiScreen
 
 const SCREEN_ID: StringName = &"dialogue"
 const CONTINUE_KEY: String = "ui.dialogue.continue"
+## The reveal is this template's one piece of animated TEXT, so it is where reduce-motion has to
+## be honoured. Named on the consumer, beside `gameplay/text_speed`, which this file already read.
+const REDUCE_MOTION: String = "accessibility/reduce_motion"
 
 ## Tall enough for a speaker, two wrapped lines and four choices at once. Sized from the
 ## WORST case rather than the common one: the box is anchored to the bottom, so anything that
@@ -148,6 +152,13 @@ func _on_line_changed(node: DialogueNode, choices: Array[DialogueChoice]) -> voi
 		_choice_box.add_child(_choice_button(choice))
 	_choice_box.visible = false
 	_hint.visible = choices.is_empty()
+	# AND THE CONSUMER OF `accessibility/reduce_motion`. A typewriter reveal is animated text,
+	# which is precisely what a reduce-motion preference asks to be spared, so the line arrives
+	# whole. Done here rather than by zeroing the rate in `_process`, because a rate of zero
+	# would leave the choices hidden forever: `_show_choices` fires when the reveal COMPLETES,
+	# and a reveal that never advances never completes.
+	if Settings.get_bool(REDUCE_MOTION):
+		_finish_reveal()
 
 
 func _show_choices() -> void:

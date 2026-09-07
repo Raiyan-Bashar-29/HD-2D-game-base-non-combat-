@@ -37,6 +37,18 @@ anything above it.
 The test for a violation is simple: **could you delete the layer above and still compile?**
 If `core` imports something from `gameplay`, that is a defect, not a shortcut.
 
+**Since T5.4 that test is a command, not a question.** `tools/check_layers.gd` runs it on every
+push: it derives each file's layer from its path, each `class_name` from the file that declares
+it and each autoload from `project.godot`, then fails on a `class_name` or a `res://src/<layer>/`
+path literal pointing upward. **It found a real violation the first time it ran** — the
+interaction sensor sat in `systems/` while typed on `Interactable`, which is `gameplay`, and was
+simply in the wrong layer: it is a component of the player, and `gameplay/` is where things that
+exist in the world live. It is now `src/gameplay/interaction/`. Two exemptions, both counted and
+printed: the composition root, which assembles the tree and must know what it assembles, and
+`src/systems/debug/`, the development harness, which `check_boundary.gd` already exempts on the
+same precondition. The five autoloads under `src/systems/` are NOT an exemption — they are
+layer 2, so a `gameplay` or `ui` file calling them is already downward.
+
 **Why `content` sits below `gameplay`, not above it.** It was above until 2026-08-25. That was
 wrong: `pickup.gd` in `gameplay` must reference `ItemDefinition` in `content`, which under the
 old order was an **upward** dependency and failed the very test above. Content is *data*, not a
@@ -182,9 +194,10 @@ are template bugs. `tools/check_boundary.gd` exists to make the *other* directio
 file under `src/` may name your content — and a game editing `src/` is the failure this whole
 boundary was written to prevent.
 
-**How a game already forked from the template receives a later fix to the base is not yet
-described.** That is Phase T4's job and it is open work, stated here so nobody assumes an answer
-exists.
+**How a game already forked from the template receives a later fix to the base is
+[`UPGRADING.md`](UPGRADING.md)**, and it was performed against a real fork rather than written
+from intent. This paragraph said that answer did not exist yet and named Phase T4 as the open
+work; T4 is complete and the document has been there since T4.1.
 
 ## Data, not code
 
@@ -234,12 +247,15 @@ Every rung is proven working on this machine. Nothing here is aspirational.
 | 1. Parse and type gate | `--headless --check-only --script <file>` | Type errors, unknown functions, with file and line |
 | 2. Import gate | `--headless --import` | Broken scenes, resources, asset references |
 | 3. Headless run | `--headless --quit-after 30` | Boot order, null references, real `_process` frames |
-| 4. Tests | `--headless res://tests/test_runner.tscn --quit-after 400` | Logic, save round-trips. 1,574 assertions, exit 1 on failure |
+| 4. Tests | `--headless res://tests/test_runner.tscn --quit-after 400` | Logic, save round-trips. 1,728 assertions, exit 1 on failure |
 | 5. check_budgets | `--headless --script tools/check_budgets.gd` | File and function line budgets, stray `print()` |
 | 6. check_content | `--headless --script tools/check_content.gd` | Broken items, duplicate object ids, missing CSV keys, a missing `[editable]` |
-| 7. check_boundary | `--headless --script tools/check_boundary.gd` | Any demo name in a code line under `src/` or `tests/` |
+| 7. check_boundary | `--headless --script tools/check_boundary.gd` | Any demo name in a code line under `src/` or `tests/`; a CSV row translating content that is not there |
 | 8. check_strings | `--headless --script tools/check_strings.gd` | A literal reaching a text sink, a `*_KEY` const with no CSV row |
-| 9. Visual capture | `--quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=HH:MM` | The actual look, at any hour, on demand |
+| 9. check_layers | `--headless --script tools/check_layers.gd` | A dependency pointing UP the layer list — the rule below, enforced since T5.4 |
+| 10. check_signals | `--headless --script tools/check_signals.gd` | A signal declared in the registry that nothing ever emits |
+| 11. check_methods | `--headless --script tools/check_methods.gd` | A public method under src/ whose name is written nowhere else in the repository |
+| 12. Visual capture | `--quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=HH:MM` | The actual look, at any hour, on demand |
 
 **Rung 1 gotcha:** autoload identifiers such as `Log` do not resolve under `--check-only`,
 because a standalone script check does not create them. Filter
@@ -283,9 +299,13 @@ never resolve.
   caught only by review.
 - **Audio has no assets,** so every audio path is written but unexercised. It accepts `null`
   everywhere by design, which means it is untested rather than broken.
-- **The UI theme sets no `Button` styleboxes,** so a menu row draws Godot's default dark panel.
-  Invisible against the shipped dark palette and immediately wrong against a light one. The seam
-  is right and unpopulated — see [`ART_CONTRACT.md`](ART_CONTRACT.md).
+- **The UI theme set no `Button` styleboxes until 4.2.0** — closed by T5.15, and the shape is
+  worth knowing because it is the general answer whenever a look has to survive a palette the
+  base does not ship. The five states are not authored in `ui_theme.tres`; they are DERIVED from
+  the palette by `UiRowStyles` at boot, and the derivation is directional — `hover` is `surface`
+  moved toward `text`, which lightens a dark row and darkens a light one from one expression.
+  What remains is that the base still has no LOOK: `surface` is a placeholder colour like every
+  other entry in that palette, and a game picks its own by editing one line.
 - **`Director` drains its threaded load on shutdown as of WP-14**, so a run killed mid-load no
   longer prints `Parse Error` for files that parse perfectly. There is no `load_threaded_cancel` in
   4.7, so the fix is a blocking `load_threaded_get()` in `_exit_tree()` — measured at 118-197ms,

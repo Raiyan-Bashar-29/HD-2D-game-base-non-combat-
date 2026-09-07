@@ -76,6 +76,14 @@ original board rather than continuing it.
 | T4.1 | **Template v1.0 — the version, and the upgrade note** | **DONE** — `799d957`, PR #25. The first package of Phase T4. The version is `[template] base/version`, NOT `application/config/version`, and the reason is the whole package in one line: a fork resets its own version on day one, so that field stops recording which base the game came from. `docs/UPGRADING.md` was PERFORMED against a real stripped fork and found a template defect nobody would have reasoned their way to; see below |
 | T4.2 | **A second worked example, authored from `AUTHORING.md` alone** | **DONE** — the second package of Phase T4, and T2.2's mechanism applied to CONTENT. Five defects, two of them in the TEMPLATE rather than the prose: `check_boundary` matched SUBSTRINGS, so an item called `pear` collided with the word `appeared` and failed a gate its author could not fix; and `--stand-by` always resolved in the DEPARTURE area, so no object in an authored area could be photographed. Both gotcha 44's shape — found only by authoring content this repository does not have; see below |
 | T4.3 | **`NEW_GAME.md` performed as a fork, and the release tag** | **DONE** — the last package of Phase T4, which it CLOSES. Landed the 26-PR stack on `main` as one 71-commit chain and tagged `v1.0.0` with the owner's authorisation, then performed `NEW_GAME.md` from a fresh clone. Two defects, one in the TEMPLATE: `core_test.gd` asserted an empty `first_area` was illegal when four other statements call it legal, so a fork had a red rung 4 before authoring its first area; and the prune list never learned about `quest.`, so a fork shipped this template's demo quest strings with every gate green. Bumped to `1.0.1`; see below |
+| T4.4 | **`TESTING.md` performed, the last document never walked** | **DONE** — five for five: every document performed has found a defect reading would not, and this is the third of the five where the defect was in the TEMPLATE. The test runner SKIPPED A LISTED CASE THAT DID NOT PARSE, in silence, for the life of the suite — `load()` returns a non-null uninstantiable `GDScript`, `script.new()` then raises a runtime error, and that aborts only `_run_case`, so the loop moved on and the suite reported `1608 passed, 0 failed` and exit 0 with a whole case never run. `error_watch.gd` had counted the error the whole time and nothing asked it. Also: the document's ONE worked example did not compile, and three documents gave three different gotcha counts. Bumped to `1.0.2`; see below |
+| T5.1 | **The skeleton's four open exit criteria, closed by proving them** | **DONE** — asked whether the base was actually finished, `ROADMAP.md` said no: **Phase 1 read COMPLETE with three unticked exit criteria and Phase 2 read IN PROGRESS with one.** All four proved rather than ticked, and **one was a missing FEATURE** — `Settings` stored a locale, the options screen cycled one, and nothing anywhere called `TranslationServer.set_locale`, with only one locale column in the CSV so there was nothing to switch to. Also: the eight-direction facing mapping had no assertions (21 now, camera-yaw independent), the save criterion needed TWO PROCESSES, and the 30-second session had never been run. Bumped to `1.1.0`; see below |
+| T5.2 | **An animation block per GAIT** | **DONE** — the first row of Phase T5, and the owner's reframing made concrete: a future game should inherit working characters and change only assets. `SpriteSheetLayout.animation_for` took a **boolean**, so a sheet could hold an idle cycle and a walk cycle and nothing else — run and sneak replayed the walk block faster — while `GameEnums.MoveState` had ten values and `Events.player_state_changed` was declared, emitted and **listened to by nothing.** Sixth instance of declared-validated-and-read-by-nothing. Now a `MoveState`, with `run_row`/`sneak_row`/`climb_row` defaulting to -1 = "replay the walk block" so no existing sheet changes behaviour. Bumped to `1.2.0`; see below |
+| T5.3 | **Delivering the gaits that were already declared** | **DONE** — a full-base audit found the **seventh** instance of declared-validated-and-read-by-nothing, and **T5.2 one row above had created it**: `MoveState.CLIMB` never reached `CharacterVisual`, because `_physics_process` returns early while a climb owns the body and `climb_step` touched the visual only after resetting to IDLE. `climb_row` was exported, validated and asserted, and **undrawable** — a ticked exit criterion that was false, invisible in the demo because the shipped sheet leaves it at -1. Second defect in the same function: `_frame` was pinned to 0 whenever horizontal speed was zero, so **no idle block had ever advanced a cell** while "more than one idle" sat on the criteria. Both fixed, both proved by planting the revert (`1688 passed, 6 failed`, exit 1 → `1694 passed, 0 failed`). **Gotcha 54: a unit test at each end of a seam proves nothing about the wire between them.** See below |
+| T5.4 | **The three missing enforcement gates** | **DONE** — the T5.3 audit found the structural cause rather than another instance: **no gate anywhere asked whether a declared thing has a CONSUMER**, which is why the same defect arrived through a fully green ladder seven times. `check_signals.gd` requires every registry signal to have an emitter and resolves indirect `Signal`-value dispatch, so the three quest signals — **zero** direct `.emit` sites — are not false positives; it named `debug_command` at once. `check_layers.gd` enforces `core -> content -> systems -> gameplay -> ui` and **found a real violation on its first run: 55 upward references**, 13 of them the interaction sensor sitting in `systems/` while typed on `Interactable`. Moved to `src/gameplay/interaction/` — **gotcha 55: a rule with no gate is a rule already being broken.** `check_boundary.gd` gained the `localization/` half and closed gotcha 48. Every gate planted red and proved green. Four checkers to six; see below |
+| T5.5 | **The twelve settings with no consumer** | **DONE** — 12 of 23 settings were declared, drawn to the player, translated in both languages and read by nothing. **Nine wired**, each placed by who owns the thing that has to change: the viewport and the shadow ATLAS to `Settings` itself, bloom to `EnvironmentDriver`, DOF to `HD2DCameraRig` (**`set_dof_enabled()`'s first ever caller**), the prompt's two to `InteractPrompt`, the typewriter's to `DialogueScreen`, the hold floor to `InteractionSensor`, and `accessibility/text_scale` to a new `UiAccessibility`. **Three REMOVED** — screen shake, autosave and subtitles have no machinery here to reach, and a row drawn to the player that cannot do anything is worse than a dead constant. **Five of the twelve were a TEMPLATE defect**: a fork could not wire `accessibility/*` without editing `src/`. Plus the four one-liners — `reset_to_defaults()` never re-applied the locale, `Actions.JUMP` is gone, `rebind()` gates on `REBINDABLE`. **The seventh gate was deliberately not built**: the consumer question is an ASSERTION, because `Settings.DEFAULTS` is a runtime fact. Writing it found **gotcha 56: a text search for a wire stays green after the wire is cut.** Eight plants each exit 1; six settings photographed in pairs. 1,782 assertions (stripped 1,708, so all 64 survive the strip); version 2.0.0. CI green, PR #34. See below |
+| T5.6 | **A wholesale character swap, photographed** | **DONE** — Phase T5's last unmet exit criterion, and the only one of the three that was a proof rather than a feature. The repository held a sheet with a different GRID (`character_alt.png`, 4 facings, 24×40, two blocks) and a sheet with GAITS (the default, 8 facings, 32×48, three blocks) and **never one with both**, so the phase's claim had only ever been demonstrated in halves. The alt sheet is now five blocks — idle, walk, run, sneak, climb, 96×600 — and its layout is **the only one in the project that leaves no gait at -1**. The player was pointed at the pair, driven through all five gaits through the real input path, and photographed; **no file under `src/` changed for the swap**, which is the claim the row exists to test, and the swap is two `ExtResource` paths in `player.tscn`. **The CONTROL is the strongest evidence**: the same probe on the DEFAULT sheet draws blocks 0, 1, 2, **1, 1** — sneak and climb falling back to the walk block, which is the `-1` contract measured in the live game for the first time rather than in an assertion. Four defects, three of them this row's own and all four invisible to any rung that does not open a window — **gotchas 57 to 60**: a generator that clips to the image draws into the next cell; a foot-anchored sprite's bottom rows are eaten by the ground plane so a tally there cannot be read; reading `sprite.frame` before the post-draw await measures a different moment from the photograph; and `unproject_position` answers in the viewport's LOGICAL size. Two plants, each exit 1, and **plant 2 re-created T5.3's defect exactly** (`climb_row = -1` → `expected [2, 3, 4], got [2, 3, -1]`), which makes good the row's own claim that this sheet would have caught it. New `character_swap_test.gd` (14) and `dev_gait_shots.gd`. 1,798 assertions; version 2.1.0. See below |
+| T5.7 | **`reduce_motion` finished, plus the shadow atlas** | **DONE** — candidate I, both halves already diagnosed by T5.5 and deliberately skipped by T5.6. `accessibility/reduce_motion` now reaches **all three** motions this template draws: `ScreenFade` cuts instead of dissolving and `HD2DCameraRig.follow_lag` goes to zero, each naming the key as a `const` on itself and each taking `_authored_dof`'s **veto** shape — the setting may remove smoothing an area author authored and may never add smoothing they refused. **The shadow half was a LIVE DEFECT, not the portability worry it was filed as.** `_apply_shadows` restored `const POSITIONAL_ATLAS: int = 2048` under a comment calling 2048 "the engine's own default"; **it is 4096**, so this repository booted every windowed session at half the shadow resolution the project authored — measured `boot = 2048` against `boot = 4096` on a real display server, before a player touches anything. New `ShadowAtlas` in `core` reads the authored sizes before the first zeroing (a const cannot be right there at all, because the number is a project setting a game is invited to change), and `settings.gd` came DOWN to 139 of its 150. That is **gotcha 61**, and its transferable half is that `_apply_display()` returns early under `--headless`, so **no rung below the windowed capture executes that code** — the suite could not have caught it however many assertions were aimed at the setting. **AND THE CAMERA MOTION WAS PHOTOGRAPHABLE, WHICH THIS ROW PREDICTED IT WOULD NOT BE**: T5.5's honest limit (an instant reveal photographs identically to a finished one) holds for the fade and fails for the camera, because a camera following a moving character has no finished state — two `--gait-shots` runs differing by one line of `settings.cfg` translate the whole world **42 px**, residual 0.0268 at −42 px against 0.0975 at zero, so it is a rigid shift and not a lighting change. Four plants, each exit 1, one of them re-proving **gotcha 56** on a second node. `settings_consumers_test.gd` hit 269/250 and split; `settings_effects_test.gd` is the new half, divided by QUESTION — *is the key reached* against *does the effect happen*. 1,798 → 1,821 assertions. See below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -166,7 +174,7 @@ input every physics frame with no notion of an open screen, and the only hand-ov
 and you get one boolean per screen, forever.
 
 **Read:** `src/ui/` (all three files), `scenes/boot/game_root.tscn`, `src/core/boot/game_root.gd`,
-`src/systems/interaction/interaction_sensor.gd`, `src/gameplay/character/player_controller.gd`,
+`src/gameplay/interaction/interaction_sensor.gd`, `src/gameplay/character/player_controller.gd`,
 `src/systems/input/actions.gd`, `src/core/events/events.gd`.
 
 **Write:** `src/ui/root/ui_root.gd` — a screen stack, one `is_gameplay_input_allowed()` truth,
@@ -3092,3 +3100,1280 @@ aimed at the person actually holding the fork. This is the same objection that r
 skipped ===`, the 25 skips unchanged from T4.2. All four checkers PASS in both jobs.
 
 **Commit:** `4ec29fb` on `claude/t4-3-new-game-perform`, PR #27, targeting `main` directly.
+
+
+## T4.4 · `TESTING.md` performed, the last document never walked — **DONE**
+
+**The fifth document performed, and the fifth to find a defect.** T2.2 walked the first half of
+`AUTHORING.md`, T4.1 `UPGRADING.md`, T4.2 the rest of `AUTHORING.md`, T4.3 `NEW_GAME.md`. Five for
+five, and **three of the five found a defect in the TEMPLATE rather than in the prose.** The
+mechanism was the same one and it is not negotiable: do what the document says a consumer does,
+from the document alone, and treat every wall as a finding rather than as a reason to go and read
+the code. For `TESTING.md` the consumer is somebody adding assertions to a suite they did not
+write, so the walk began by copying the document's own worked example verbatim into a new case
+and registering it in `CASES`.
+
+### The defect: a listed case that does not parse reported a clean pass, and exit 0
+
+The very first run found it, and it found it by accident, which is the point. The copied example
+did not compile — see below — and the suite's answer to a case that does not compile was:
+
+```
+SCRIPT ERROR: Parse Error: Identifier "inventory" not declared in the current scope.
+   at: GDScript::reload (tests/unit/inventory_order_test.gd:14)
+ERROR: Failed to load script "tests/unit/inventory_order_test.gd" with error "Parse error".
+SCRIPT ERROR: Invalid call. Nonexistent function 'new' in base 'GDScript'.
+=== 1608 passed, 0 failed, 0 skipped ===
+```
+
+*(The throwaway case's `res://` prefix is stripped in that quote on purpose. It was deleted at
+the end of the package, and `docs_test.gd` asserts that every `res://` path named in `docs/`
+resolves — so quoting the engine's own line verbatim fails rung 4. `DEVLOG.md` is exempt from
+that scan for exactly this reason; the board is not. The gate caught it here, which is a fair
+demonstration that it works.)*
+
+
+**Exit 0.** `0 failed`, `0 skipped`, and a whole case never run — a last line byte-identical to
+one from a checkout in which the file does not exist.
+
+The chain is three facts this project already knew, meeting in a place nobody looked.
+`load()` on a script with a parse error returns a `GDScript` that is **not `null`** and cannot be
+instantiated; `_run_case` tested only for `null`, so it walked into `script.new()`; and the
+failure of that call is a GDScript runtime error, which **gotcha 24 established aborts only the
+innermost frame.** So `_run_case` itself aborted, the `does not extend TestCase` failure two lines
+below was never reached, and the `for` loop in `_ready` carried on. The sharpest part is that
+`tests/framework/error_watch.gd` — T1.3's second mechanism, built precisely because the plan was
+measured and found insufficient — **had counted the error the whole time.** `_no_script_errors` is
+read per case from *inside* `_run_case`, after `run()` returns, so an error raised on the way IN
+is tallied by the watch and read by nobody. Three correct mechanisms, all silent: the plan never
+ran, the manifest was satisfied because the file WAS listed, and the watch was never asked.
+
+**Two guards, because the second is the general one.** `can_instantiate()` before instantiating,
+which names the file; and a run-level check that any engine script error no named case accounted
+for fails the run, because the next hole in that wall will not be a parse error.
+
+**Proved by planting, and the plant was caught twice — once deliberately and once by accident.**
+Deliberately: a parse error appended to `version_test.gd`, a case with nothing else wrong with it.
+
+```
+res://tests/unit/version_test.gd is listed but does not parse, so it never ran
+FAILED: 2 engine script error(s) were raised outside any case: ["Parse Error: Identifier
+  nothing_declared_anywhere not declared in the current scope. at
+  res://tests/unit/version_test.gd:123 in GDScript::reload()", ...]
+=== 1591 passed, 2 failed, 0 skipped ===
+```
+
+Exit 1, both guards firing independently, the file and the line named, and the parse errors
+quoted. Removed, and the control is exit 0 at `=== 1624 passed, 0 failed, 0 skipped ===`. By
+accident, and it is better evidence than the plant: while this package was writing
+`doc_counts_test.gd`, a stray escape produced `Invalid escape in string` at line 29 — and the new
+guard reported the file and line unprompted, on a real mistake, where the old runner would have
+carried on green.
+
+### The document's one worked example did not compile, and it was wrong twice over
+
+`equal("an empty inventory holds nothing", inventory.count(), 0)` — the only assertion example in
+the document. Copied verbatim it produces two parse errors. **Nothing declares `inventory`**:
+`TestCase` provides `plan`, `equal`, `skip`, `build` and `attach` and no content whatsoever, which
+the document nowhere states. And **`Inventory` has no `count()`** — it has `distinct_count()`,
+`total_count()` and `count_of(id)`. So a consumer's first act on this document is a compile
+failure, followed, until this package, by a *green suite* that hid it. The replacement was written
+and then RUN as a real case before being put in the document, which is non-negotiable #1 aimed at
+prose.
+
+### Three documents, three different answers to a countable question
+
+`CLAUDE.md` said 44 in two places, `CONTEXT.md` said 48 and `TESTING.md` said
+43, over a list of 48 entries. Each was true when written; none was updated.
+This is gotcha 48's shape — a number in prose with no gate — but **without gotcha 48's excuse**:
+the localization gate was refused in writing because it would need a list of which key prefixes
+are engine, which is the same rot moved sideways. A count needs no list. `doc_counts_test.gd`
+counts the entries, checks they run 1..N without a gap or a repeat, spells the number, and
+requires every document that states it to state that one.
+
+It is **its own case file rather than three more checks inside `docs_test.gd`**, because that
+file's MUST NOT line forbids asserting anything about what the documents SAY, and non-negotiable
+#4 says a change that needs a MUST NOT broken adds a system instead of widening the boundary.
+
+**Planted twice.** A fiftieth gotcha added with no count updated fails all four claim sites at
+once — `expected fifty, got forty-nine` — which is the rot that actually happened. `CLAUDE.md`
+alone drifted back to 44 fails exactly one, naming the file. Both exit 1; both restored.
+The gate also had a hole of its own on the first pass, and it was gotcha 43's shape: the section
+heading is the PRIMARY statement of the count and was being swallowed by the section it opens, so
+the gate would have passed while the list's own title was wrong. It is kept as a claim now.
+
+### The assertion that was kept, and why
+
+The throwaway case was deleted; **`bag_mirror_test.gd` was kept**, because it covers something
+genuinely missing. `Inventory.add` carries a comment saying `_publish()` runs *before* either
+signal, "so nothing woken by one reads a flag that still says the old number". `remove` has the
+identical ordering and no comment, and **nothing asserted it on either path** — so a listener that
+reacted to `item_gained` by reading `bag/<carrier>/<item>` would have read the previous count, with
+an off-by-one in whatever it drew as the only trace. Ten assertions, and the last is the
+interesting one: spending the LAST of a stack ERASES the row rather than zeroing it, so "current"
+there means absent, and an emission tally is what makes a missing row distinguishable from a
+handler that never ran.
+
+Planted on both sides. `_publish()` moved after `Events.item_lost.emit` gives
+`FAIL the flag already read the REMAINDER inside item_lost — expected 3, got 5` — the listener
+reading the old number, exactly the defect the comment warns about. After
+`Events.item_gained.emit` gives `expected 5, got -1`. **Nothing else in the suite failed on either
+plant**, which is the proof the invariant was uncovered rather than covered twice.
+
+One assertion of the ten caught the author rather than the code, and it is worth recording: the
+first version expected `0` from the erased row and got `-1`, because `_publish` erases rather than
+zeroes. The code was right and the assertion was wrong — which is what the second and third
+outcomes of `plan()` are for, and the plan itself caught a miscount in the same file
+(`planned 9 outcomes and produced 10`).
+
+### What was deliberately NOT done
+
+No windowed capture, and no temporary probe under `src/systems/debug/`. This package changes no
+rendering, no input path and no engine file at all — `git diff src/` is empty, the inventory
+plants having been fully restored — so a capture would be a screenshot of something it did not
+touch, which is ceremony that later reads as evidence. `git diff src/systems/debug/` is clean.
+
+No third mechanism in the runner. The plan, the watch and the manifest are enough once the watch
+is actually asked, and the run-level backstop is that asking. Adding a fourth would be a second
+thing to get wrong in the file whose job is judging whether things went wrong.
+
+### Verification
+
+Full ladder green, run locally. Rung 2 greps to zero `SCRIPT ERROR` / `Parse Error`; rung 3 ends
+`0 warnings, 0 errors`; rung 4 is `=== 1625 passed, 0 failed, 0 skipped ===`, up 17 from 1,608 —
+ten from `bag_mirror_test.gd`, six from `doc_counts_test.gd`, and one more because `docs_test.gd`
+COMPUTES its plan from the documents and this section names an additional `res://` path. All
+four checkers exit 0.
+
+**Stripped template, measured rather than inherited:** `=== 1551 passed, 0 failed, 25 skipped ===`,
+up 17 by the same arithmetic, and **the 25 skips are unchanged** — neither new case adds one,
+since fixtures work in a stripped checkout and the documents are still there. All four checkers
+exit 0 against `--path` as well.
+
+**Version bumped to 1.0.2; the tag for it was ASKED FOR AND DECLINED, 2026-09-04.** That is
+T4.1's precedent working rather than being suspended: the bump ships with the package, the tag
+is a separate request, and the owner answers it. `v1.0.0` and `v1.0.1` were both asked for the
+same way and both granted; this one was not, so `main` declares `1.0.2` with no tag naming it.
+The `## 1.0.2` CHANGELOG entry's *a consuming game does* line is honest about the one visible
+consequence: a game whose suite contains a case that does not compile will see rung 4 fail where
+it previously passed, and that is the bug being fixed rather than a new restriction — the case was
+never running.
+
+**CI green, runs `33840155182` and `33840636717` — the second on the final commit `91e2054`, because the closing doc commits change the suite total by changing what `docs_test.gd` computes its plan from. Job logs read rather than the tick (gotcha 26).** Both jobs report
+`success`. Full checkout `=== 1625 passed, 0 failed, 0 skipped ===`; stripped template
+`=== 1551 passed, 0 failed, 25 skipped ===` — byte-identical to the local measurements, and the
+25 skips unchanged from T4.3. All four checkers pass in both jobs. The only `error:` strings
+anywhere in the log are the workflow's own `::error::` echo lines for the failure path it did not
+take, plus the expected "couldn't open directory" notices for the content roots in the tree
+where that content is deliberately deleted.
+
+**Commit:** `29ba248` on `claude/t4-4-testing-perform`, PR #29, targeting `main`.
+
+## The board was closed, then reopened the same day — 2026-09-04
+
+**Closed by T4.4, on the owner's instruction:** the last consumer document had been performed,
+every phase was complete, and the two remaining candidates — WP-10 crafting, and nothing — were
+put to the owner, who chose nothing.
+
+**Reopened within the hour, and for a good reason.** Asked whether the SKELETON was actually
+finished, `ROADMAP.md` disagreed with the closing summary: **Phase 1 read COMPLETE while carrying
+three unticked exit criteria, and Phase 2 read IN PROGRESS with one.** T5.1 closed all four by
+proving them, and one was a missing FEATURE rather than a missing proof — the locale setting was
+wired to nothing at all. **When a summary and a state file disagree, the file with the checkboxes
+wins.** That is now a settled decision in `CONTEXT.md` rather than a lesson to relearn.
+
+**The board is a queue of criteria, not of ideas.** WP-10 remains OPTIONAL and unbuilt, kept as a
+record the way WP-15's remnant is. An unticked criterion is a row. A real defect is a row. A seam
+the owner's intent for the base actually needs is a row — which is what the next one is. A package
+invented so that there is one is how the previous project got a 3,983-line file, twenty reasonable
+lines at a time.
+
+## T5.1 · The skeleton's four open exit criteria, closed by proving them — **DONE**
+
+**The board had just been closed, and the base was not finished.** T4.4 put the choice to the
+owner and recorded the closure. The next question was whether the SKELETON was actually done, and
+the answer came from `ROADMAP.md` rather than from the closing summary: **Phase 1 read COMPLETE
+while carrying three unticked exit criteria, and Phase 2 read IN PROGRESS with one.** Nobody had
+lied — each criterion was ticked as it was proved, and the three awkward ones were left, then the
+phase was called done on the strength of everything else. **Every criterion in every phase is now
+ticked, and each of these four was proved rather than ticked.**
+
+### The one that was a missing FEATURE, not a missing proof
+
+Phase 2's *"switch language at runtime and see every visible string change"* could not pass, and
+reading the code would not have shown why, because `settings_screen.gd` does exactly the right
+thing: it offers `TranslationServer.get_loaded_locales()` and stores the choice through
+`Settings.set_value`. `Settings` then announces `setting_changed` — and **nothing anywhere calls
+`TranslationServer.set_locale`.** Grepped to be certain; the only hits were the settings screen
+reading the loaded list. So the language could be chosen, was validated, was persisted, survived a
+relaunch, and changed nothing at all. **Fifth instance of this project's most expensive shape** —
+declared, validated and read by nothing — after `Gate.locked_key`, `PathAction.refusal_key`,
+`ItemDb.reload` and `HD2DCameraRig`'s framing exports.
+
+**And there was nothing to switch to, which is why fixing the wiring alone would not have closed
+it.** The CSV had ONE locale column; `get_loaded_locales()` returned `["en"]`, measured. So the
+options screen's locale stepper had been cycling a list of one for as long as it had existed.
+
+Three changes, and the second is the one with teeth:
+
+- **`Settings._apply_locale`**, on `_apply_display`'s stated reasoning rather than by analogy with
+  it. That function's own comment says why it exists — *"nothing else owns the window"* — and the
+  identical sentence is true of `TranslationServer`. A consumer would have to be a system, and
+  "the language" is not one: every screen reads it, none owns it. **Not** skipped under headless,
+  which is the one way it differs from the display: a translation has no window in it, so the suite
+  asserts `tr()` instead of trusting a screenshot.
+- **`check_content.gd`'s CSV rule is now the header width.** It failed any row parsing to more than
+  TWO columns — the rule that catches WP-01's unquoted comma, which shipped a lever toast reading
+  *"Somewhere north"* for three packages — so **the second language would have failed the gate that
+  exists to protect the first.** It compares against the header now, and demands equality rather
+  than a maximum so a half-added locale filling only some rows is caught too. Planted with the
+  original bug: unquoting WP-01's own row gives `object.lever.gate.on has 4 column(s) where the
+  header has 3, so an unquoted comma has cut its text off at "The lever gives with a heavy clack.
+  Somewhere north"`, exit 1; restored, exit 0. The same defect, still caught, one column wider.
+- **`tools/gen_pseudolocale.gd`** generates an `en_XA` column, wrapping each English value as
+  `[~~English~~]`. A real second language is 218 rows the template has no business inventing and a
+  consuming game replaces anyway; a generated one proves the mechanism. **Same argument that
+  generates placeholder ART** rather than shipping art. It earns its keep afterwards: an
+  unbracketed string on screen never went through the CSV — `check_strings.gd`'s static rule made
+  visible, and covering anything computed — and the padding makes every label longer than its
+  English, so a layout that only just fits fails here rather than in a translated build. It writes
+  through `store_csv_line`, because that is what knows how to quote a comma and hand-writing the
+  file is how the WP-01 bug comes back.
+
+**Proved by two captures of the satchel at 12:00, differing only in that setting, and READ:**
+`Satchel / Key Items / Rose Key x1 / Enter to hold or stow · Escape to close` against
+`[~~Satchel~~] / [~~Key Items~~] / [~~[~~Rose Key~~] x1~~] / [~~Enter to hold or stow · Escape to
+close~~]`. The item row is **double-wrapped**, which is the interesting part: the row format and
+the item name are two separate table lookups, so both wrap. The HUD reads
+`[~~Day 1  |  12:00  |  [~~Midday~~]~~]` — one outer wrap with the phase wrapped inside and the
+numerals bare, which is correct: the CSV key is `Day {day}  |  {time}  |  {phase}`, a single format
+string with named placeholders, so the translator owns the separators and the order.
+
+### A capture flag that persists broke the suite in four unrelated files
+
+`--locale=` is routed through `Settings.set_value` deliberately, because a flag that set
+`TranslationServer` directly would photograph a path no player can take. `set_value` calls
+`save()`. So the `en_XA` capture left the setting on disk and the **next** suite run failed in
+`items_test` and `screens_test` — `expected fixture.fixture_stack.name x3, got
+[~~fixture.fixture_stack.name x3~~]` — four failures, in two files this package never touched,
+caused by a screenshot taken ten minutes earlier. `test_runner.gd` now pins the language for the
+same reason it already pins `Clock.paused`, reading
+`internationalization/locale/fallback` from `ProjectSettings` rather than hard-coding English so a
+consuming game whose default is another language gets a deterministic suite too. **Gotcha 50.**
+
+### Eight-direction facing: assertions, because a screenshot cannot judge it
+
+`art_contract_test.gd` proves the LAYOUT's quantisation for all eight sectors, but its MUST NOT
+line forbids asserting what a character looks like, and `character_depth_test.gd` owns attributes
+and surfaces — so nothing connected a direction of TRAVEL to a column, which is where an axis swap
+or a sign error lives. `tests/unit/facing_test.gd`, 21 assertions.
+
+**Every one is camera-yaw independent, on purpose.** `_screen_angle` subtracts the active camera's
+yaw so "towards the camera" is the front pose whatever angle an area frames from — a feature, and
+it makes "north-east is column 3" true for one camera only. So what is asserted is what holds for
+every camera: the eight directions stay DISTINCT, and one sector of turn advances the facing by
+exactly one.
+
+**Planted twice, and the second plant justifies the design.** Swapping the axes in `_screen_angle`
+(`atan2(y, x)` for `atan2(x, y)` — the actual slip) fails all eight with `expected 1, got 7`, the
+mirror — **and the distinctness and column-agreement assertions still PASS under it**, because a
+mirrored character is still eight distinct poses consistently drawn. Only the turn-direction
+assertion sees it, which is gotcha 28 in assertion form. Deleting the standing-still guard gives
+`expected 0, got 2`. Both exit 1; control `facing_test: 21/21`, exit 0.
+
+Then the walk-through, because the criterion says *walk*: a temporary `--face-all` probe drove the
+LIVE player through all eight directions in the courtyard against the real camera rig, reporting
+`facing=N column=N` for N in 0..7, with frame numbers logged so the shutter could be aimed —
+sector 3 spans frames 123-162, making a capture at 140 a checkable prediction. Read at 1920x1080:
+courtyard at midday, HUD `Day 1 | 12:00 | Midday`, prompt drawn, player drawn from BEHIND, which
+is what north-east should look like. Probe removed; `git diff src/systems/debug/` clean.
+
+**One thing the assertions deliberately do not claim.** The shipped placeholder sheet is the plain
+figure, not T2.1's pip-labelled one, so a column number cannot be read off this capture — that is
+what the labelled alt sheet and `frame_index()`'s own assertions are for. The capture shows the
+character rendering correctly in-area and facing away; the mapping is proved by the 21 assertions
+and the live probe, not by the screenshot.
+
+### The save criterion needed two processes
+
+`--cross-area-save` already saves and reloads IN PROCESS, and that cannot tell a value read back
+from disk from one that was never cleared — *quit and relaunch* is exactly the case where nothing
+is left in memory to be right by accident. `--save-state=<slot>` and `--load-state=<slot>` are
+that pair:
+
+```
+run 1  --save-state before: area='lantern_hall' at=0.00,-4.20 day=3 time=21:45 weather=4 carrying=1
+run 2  --load-state at boot: area=''            at=0.00,0.00  day=1 time=06:00 weather=0 carrying=0
+run 2  --load-state after:   area='lantern_hall' at=0.00,-4.20 day=3 time=21:45 weather=4 carrying=1
+```
+
+The middle line is the CONTROL and it is the whole point. **The weather is deliberately STORM (4)
+rather than CLEAR**, because CLEAR is the boot default: the first version of this probe reported
+`weather=0` on both sides and looked like a pass while proving nothing about weather at all.
+
+`save` and `load` joined `DevCommands` for this, since the settled decision is that the console and
+the command line are one implementation — six verbs now, zero-based slots matching `SaveSystem` and
+the save screen. **`dev_stage.gd` could not host the flag: it is at 248 of its 250 code lines**, so
+the pair went to `dev_probes.gd`, which owns scripted scenarios and already had `--cross-area-save`.
+
+The existing verb-count assertion caught the additions — `there are four verbs — expected 4, got 6`
+— which is it working rather than being in the way. It gained a companion that **cannot rot**: every
+verb in `VERBS` must dispatch. Planted with a seventh verb declared and unwired, and the dispatch
+assertion fails independently of the count, which is the case a dutifully bumped number hides.
+
+### The 30-second session had simply never been run
+
+The boot rung is 30 **frames** at the main menu (gotcha 31), so the criterion had been measuring
+nothing for the life of the project. A windowed **33.6-second** session that entered the courtyard,
+baked its navmesh (92 polygons), opened the satchel, cycled the sensor and interacted twice ended
+`0 warnings, 0 errors` with **zero** `SCRIPT ERROR`, `Parse Error` or leaked-RID lines across 53 log
+lines. An idle 30 seconds passed too, but a session in which nothing happens is not a play session
+and was not accepted as one.
+
+### Measured in passing, because the owner asked whether characters animate
+
+They do, and the numbers match the formula. Pressing the real movement action and reading the
+**Sprite3D cell being drawn** — not a private counter — gives `6 -> 14 -> 22 -> 30` for column 6
+(west), which is frames 0 to 3: `4.04m over 60 frames, 8 cell changes` walking against
+`1.50m, 4 changes` sneaking, and `standing still: drawn cell 6`, frame 0, the neutral pose. Two
+cycles per second walking, one sneaking, against
+`walk_fps 8.0 * clampf(speed / 3.2, 0.35, 2.0)`. **Two false starts are gotcha 51:** driving
+`update_from_velocity` from a probe measures nothing, because the controller overwrites the visual
+from its own velocity every physics frame; and `run` is a TOGGLE, so `action_press(RUN)` toggles it
+— the first "running" trial covered 0.75m against walking's 2.30m, having toggled off and walked
+into the dais.
+
+### What was deliberately NOT done
+
+No new autoload for the locale — that needs an ADR, and `Settings` already owned the value and had
+the precedent for applying one. No real second language: the template does not choose a game's
+languages, and 218 invented rows would be content masquerading as infrastructure. No pip-labelled
+sheet swapped onto the player to read a column off a capture; the assertions and the live probe
+answer that, and swapping the demo's art to test the engine would be the demo growing back.
+
+### Verification
+
+Rung 2 greps to zero `SCRIPT ERROR` / `Parse Error`. Rung 3 ends `0 warnings, 0 errors`. Rung 4 is
+`=== 1653 passed, 0 failed, 0 skipped ===`, exit 0 — up 28 from 1,625: 21 from `facing_test.gd`,
+6 from `core_test.gd`'s locale block, 1 from the new dispatch assertion. All four checkers exit 0.
+
+**Stripped template:** `=== 1579 passed, 0 failed, 25 skipped ===`, exit 0, up 28 by the same
+arithmetic, **the 25 skips unchanged** — no new skip to name, since `localization/` survives a strip
+and the locale block needs no demo content. All four checkers exit 0 with `--path`.
+
+**Version bumped to 1.1.0 — MINOR, and the tag not taken.** The base gained something a game may
+ignore, which is the CHANGELOG's own definition. Its *a consuming game does* line is actionable:
+`strings.csv` will conflict, as it always does, and after resolving it a game either reruns
+`gen_pseudolocale.gd` or deletes the `en_XA` entry from `project.godot` and drops the column —
+nothing under `src/` names it.
+
+### What this unblocks, and the next package
+
+The skeleton is complete in the sense the roadmap uses. The owner has since sharpened what the base
+is FOR: **reusable character infrastructure that future games inherit by swapping assets** — several
+idle formats, several movement styles — so a new game starts from something working rather than
+going in blind. That names the next package, and the seam is already half-built:
+**`SpriteSheetLayout.animation_for(moving: bool)` takes a BOOLEAN**, so a sheet can carry only idle
+and walk blocks and run/sneak just replay the walk row faster. Meanwhile `GameEnums.MoveState` has
+ten values and `Events.player_state_changed(state)` is declared **and emitted** and **listened to
+by nothing**. Choose the animation block by `MoveState` instead, and one sheet carries separate
+idle / walk / run / sneak / climb blocks that every future character — player or NPC, both use
+`CharacterVisual` unchanged — gets by asset swap with no code. Sixth instance of
+declared-validated-and-read-by-nothing.
+
+**CI green, run `33847717732`, job logs read rather than the tick (gotcha 26).** Both jobs report
+`success`. Full checkout `=== 1653 passed, 0 failed, 0 skipped ===`; stripped template
+`=== 1579 passed, 0 failed, 25 skipped ===` — byte-identical to the local measurements, and the 25
+skips unchanged from T4.4.
+
+**Commit:** `a1e1da6` on `claude/t5-1-close-the-skeleton`, PR #30, targeting `main`.
+
+## T5.2 · An animation block per GAIT — **DONE**
+
+**The owner's reframing, made concrete.** After T5.1 closed the last roadmap criteria, the owner
+said what the base is actually FOR: reusable character infrastructure that future games inherit by
+swapping assets — several idle formats, several movement styles — so that a new game starts from
+something working rather than going in blind. That named this row, and the seam turned out to be
+half-built already.
+
+### `animation_for` took a BOOLEAN
+
+So a sheet could hold an idle cycle and a walk cycle, and that was the ceiling. Run and sneak
+replayed the walk block at a different rate; there was nowhere to name a third. Meanwhile:
+
+- `GameEnums.MoveState` has **ten** values — `IDLE, WALK, RUN, SNEAK, JUMP, FALL, CLIMB, SWIM,
+  BUSY, LOCKED` — and has since WP-01.
+- `Events.player_state_changed(state)` is declared **and emitted** by `PlayerController`.
+- **Nothing listened to it.** Grep found the declaration and the emit and no subscriber.
+
+So the information the sprite needed existed, was announced every time it changed, and had no
+route to the thing that would have drawn it. **Sixth instance of this project's most expensive
+shape** — declared, validated, read by nothing — after `Gate.locked_key`, `PathAction.refusal_key`,
+`ItemDb.reload`, `HD2DCameraRig`'s framing exports and T5.1's locale setting. The pattern is worth
+naming plainly: *this project's characteristic defect is not broken code, it is correct code with
+no consumer.*
+
+### What changed, and the fallback is the load-bearing part
+
+`animation_for(state: GameEnums.MoveState)`, with `run_row`, `sneak_row` and `climb_row` added as
+`@export`s defaulting to **-1**, meaning "replay the walk block".
+
+**`-1` rather than `0`, and this is the whole compatibility story.** Row 0 is a real row — normally
+the idle block — so a default of `0` would have drawn a *standing* character for anything running,
+on every sheet not yet updated. `-1` is the only value that can mean "I have not drawn this". The
+assertions are ordered to match: the fallback is asserted **before** the feature, because what must
+not break is that a two-block sheet keeps drawing exactly what it drew.
+
+States with no gait of their own fall to **idle**, not walk: there is no jumping and no swimming
+in this template, and `BUSY` / `LOCKED` mean something else is driving the character, which looks
+like standing there rather than walking on the spot.
+
+`problems()` now validates **every** named row by field name — `names run_row row 9, past its 3
+animation(s)` — because the draw call clamps to the last block, so an unreported typo animates
+plausibly and wrongly. That is gotcha 38's shape: a number the loader kept and nobody checked.
+
+### Who tells the visual what it is doing
+
+`CharacterVisual` is **told** its state and never reads `Events.player_state_changed` — every NPC
+uses the same class and none of them is the player, so a subscription would make every NPC in the
+world animate to the player's gait. The parameter defaults to `WALK`, so an un-updated caller
+behaves exactly as before: moving draws the walk block, standing draws the idle one.
+
+`NpcBrain` passes `WALK` or `IDLE` from whether it is stepping. It gets no `MoveState` field of its
+own — that would be a second state machine to keep in step with the brain — and it picks up a
+game's walk block for free without knowing that animation blocks exist.
+
+**And `PlayerController` now computes its state BEFORE drawing.** `_update_state(wish)` ran *after*
+`visual.update_from_velocity`, which was invisible for the life of the project because nothing read
+the state, and became a one-frame lag on every gait change the moment something did.
+
+### Proved three ways, because the claim is visual and the failure mode is plausible
+
+**Assertions (19).** The mapping, the fallback for all three unnamed gaits, the five states with no
+gait, the override when a row is named, the clamp, and that `-1` is not a reported problem while a
+row past the end is. Planted twice: removing the `>= 0` check gives
+`gait 2 with no row of its own inherits the walk block — expected 1, got 0`, which is the
+compatibility regression a consuming game would hit; dropping `run_row` from `problems()` gives
+`and it is a reported problem, not a silent clamp — expected true, got false`. Both exit 1, control
+`1676 passed, 0 failed`.
+
+**The asset, measured.** Sampling the generated sheet's own pixels: 256×576, and the torso of
+block 0/1/2 reads `(0.298, 0.447, 0.620)` blue, `(0.239, 0.518, 0.439)` green,
+`(0.620, 0.337, 0.298)` rust. This settled in one command what four captures had left ambiguous,
+and it is the lesson in gotcha 52: **a PNG on disk has no timing in it.**
+
+**The runtime, read off the real sprite.** A temporary probe reported `body.visual.sprite.frame` —
+what is actually being drawn, not a private counter — in the live courtyard:
+`idle: state=0 cell=0 block=0`, `walk: state=1 cell=38 block=1`, `run: state=2 cell=78 block=2`,
+each cycling within its own block. Probe removed; `git diff src/systems/debug/` clean.
+
+**Three captures, READ.** The placeholder sheet gained a cloth tint per block and a forward lean on
+the run, on the alt sheet's reasoning (gotcha 28): a running figure drawn from the walk block is
+still a person mid-stride, so the BLOCK has to be readable rather than judged. The walk capture is
+the decisive one — **the player is in green and the keeper NPC standing beside them is in blue, in
+the same frame, from the same sheet.** Two characters, two blocks. The run capture shows the player
+in rust with the NPC still blue.
+
+### What was deliberately NOT done
+
+No second idle, no turn-in-place, and no wholesale character swap — all three are now roadmap
+criteria under Phase T5 rather than notes, because the block seam is what they were waiting on and
+each is its own package. No `MoveState` field on `NpcBrain`. No subscription to
+`player_state_changed` from the visual, for the reason above — and it is worth recording that the
+signal STILL has no listener, which is correct: the visual is pushed to, and a listener would be a
+second path to the same fact.
+
+### Verification
+
+Rung 2 greps to zero `SCRIPT ERROR` / `Parse Error`; rung 3 ends `0 warnings, 0 errors`; rung 4 is
+`=== 1676 passed, 0 failed, 0 skipped ===`, exit 0 — up 23 from 1,653: 19 from the gait block in
+`art_contract_test.gd` and 4 more because `docs_test.gd` and `doc_counts_test.gd` compute their
+plans from the documents, and this package adds gait fields to `ART_CONTRACT.md` and a gotcha.
+All four checkers exit 0.
+
+**Stripped template:** `=== 1602 passed, 0 failed, 25 skipped ===`, exit 0, up 23 by the same
+arithmetic, **the 25 skips unchanged** — no new skip to name. All four checkers exit 0 with
+`--path`. Budgets: the layout went 34 → 62 of 250, `character_visual` 107 → 110,
+`gen_placeholders` 129 → 143, `npc_brain` 171 → 172.
+
+**One thing the suite caught that is worth quoting**, because it is the T4.4 guard earning its keep
+two packages later: changing the signature broke `art_contract_test.gd`, and the runner said
+`res://tests/unit/art_contract_test.gd is listed but does not parse, so it never ran` with the six
+parse errors quoted by file and line. Before T4.4 that would have been a green run with one case
+silently skipped.
+
+**Version bumped to 1.2.0 — MINOR, and untagged.** The base gained something a game may ignore.
+The *a consuming game does* line is honest about the one visible consequence: nothing changes unless
+you want the gaits, but if you were using the shipped placeholder it is now 256×576 with three
+blocks rather than 256×192 with one.
+
+---
+
+## T5.3 · Delivering the gaits that were already declared — **DONE**
+
+**The row exists because an audit went looking for this project's characteristic defect across the
+whole base and found the seventh instance in the package one row above.** T5.2 made
+`SpriteSheetLayout.animation_for` take a `MoveState` and shipped `run_row`, `sneak_row` and
+`climb_row` as authored data. Run and sneak work. **Climb never arrived.**
+
+`PlayerController._physics_process` opens with `if _climbing: climb_step(delta); return`, so the
+line that hands the state to the visual is unreachable for the duration of a climb, and
+`climb_step` touched the visual only after `_enter_state(IDLE)`. All three callers of
+`update_from_velocity` were checked: those two, plus `npc_brain.gd:108`, which passes `WALK` or
+`IDLE`. **No call site in the project could pass `CLIMB`**, so `climb_row` — exported, defaulted
+to -1, range-limited, matched in `animation_for`, counted by `distinct_gaits()`, validated by
+`problems()`, asserted by `art_contract_test.gd`, documented in `ART_CONTRACT.md` — could not be
+drawn by anything.
+
+**Why every gate stayed green, which is the transferable part and is now gotcha 54.** Both ends of
+the seam were asserted and the wire was not: `traversal_test.gd` asserted the body reports
+`state == CLIMB`, `art_contract_test.gd` asserted `animation_for(CLIMB)` returns the right row.
+Two green assertions that together read as coverage of a path that did not exist. And it was
+invisible in the demo, because the shipped sheet leaves `climb_row` at -1 and the fallback draws
+the walk block, which looks correct. The first observer would have been the first consuming game
+to draw a climb cycle — the exact audience Phase T5 exists for.
+
+**The second defect, same function.** The `else` branch pinned `_frame = 0` whenever horizontal
+speed was zero, so **no idle block had ever advanced a single cell**: three of the shipped sheet's
+four idle cells were undrawable, while *"more than one idle"* sat on the phase's exit criteria. The
+criterion as written would have added a second static pose and left a held pose. It has been
+reworded rather than closed.
+
+**What changed.** `climb_step` derives a velocity from the move it just applied and drives the
+visual on both legs (`_drive_visual`); `update_from_velocity` treats a climb as moving even with
+zero horizontal component, and does not re-aim on a vertical move so facing survives a ladder. An
+idle block that DIFFERS from the walk block advances at a new `idle_fps` export; a sheet whose idle
+*is* its walk block still holds cell 0, which is every sheet authored before T2.1 and is the same
+fallback reasoning as `run_row = -1` — the data answers and no flag is added. `_rate_for`,
+`_advance` and `_idle_animates` split out to stay inside the 40-line function budget.
+
+**Files:** `src/gameplay/character/character_visual.gd`,
+`src/gameplay/character/player_controller.gd`, `src/core/events/events.gd` (four false docstrings),
+`tests/unit/gaits_test.gd` (new, 12 assertions), `tests/unit/traversal_test.gd` (+6),
+`tests/test_runner.gd` (the CASES row), and the documents. No version bump: no game's files change,
+and a game that authored a climb cycle was already getting nothing.
+
+**Proved by planting the defect.** Fix reverted, tests kept: `=== 1688 passed, 6 failed ===`,
+exit 1, naming `a climb draws the climb block — expected 1, got 0`. Restored:
+`=== 1694 passed, 0 failed, 0 skipped ===`, exit 0. All four checkers exit 0.
+
+---
+
+
+---
+
+## T5.4 · The three missing enforcement gates — **DONE**
+
+**The row exists because the T5.3 audit found the structural cause rather than another instance.**
+Seven times this project has shipped correct code with no consumer through a fully green ladder.
+That is not seven mistakes. It is one missing question: **no gate anywhere asked whether a
+declared thing has a consumer.** Four gates stood — content, budgets, strings, the demo boundary —
+and every one of them validates a thing that EXISTS.
+
+Three gates close it, in three different places. Each was proved red by planting a real violation
+and green by removing it; the exit codes are in `DEVLOG.md` and are not repeated here.
+
+### 1. `tools/check_signals.gd` — every declared signal has an emitter
+
+Named `debug_command` on its first run: declared, typed, documented, never emitted. `item_used`
+passed because its doc block already said so. The exemption is the phrase `NO EMITTER` in the
+signal's own `##` block, not a list in the tool — the next reader of the declaration sees the
+decision without opening anything — and a signal carrying the phrase that DOES have an emitter
+fails too, because a stale exemption is how a gate rots into decoration.
+
+**The method trap is why this is not a grep.** `quest_started`, `quest_advanced` and
+`quest_completed` have **zero** direct `.emit` sites: they are handed as first-class `Signal`
+values to a helper that calls `fact.emit.callv(args)`. A naive scan reports three false positives
+on a correct registry. The gate reads a bare `Events.<name>` by what its FILE does with a
+`Signal`-typed identifier — `.emit` makes the file an emitter, `.connect` a listener, neither
+makes the reference count as nothing, which is the direction that can only over-report.
+
+It checks its own preconditions rather than assuming them: zero `[connection]` blocks in any
+`.tscn`, zero `emit_signal(` string calls. Either would let a signal be wired without the text
+this tool searches for, and a green run would then mean nothing.
+
+### 2. `tools/check_layers.gd` — the invariant that had no gate
+
+**The tree was not clean.** The brief for this package said it was; the first run said 55 upward
+references, exit 1. `ARCHITECTURE.md` has stated `core -> content -> systems -> gameplay -> ui`
+since Phase 0, gives the test in the next sentence — *could you delete the layer above and still
+compile?* — and nothing had ever run it.
+
+Forty-two were `src/systems/debug/`, the development harness, which `check_boundary.gd` already
+exempts on the same precondition. **Thirteen were real:** `interaction_sensor.gd` sat in
+`systems/` while typed on `Interactable`, which is `gameplay`. It was in the wrong layer — its
+own second line says it *"lives as a child of the player"*, and a player component is not a
+game-agnostic service — so the fix was to move it to `src/gameplay/interaction/`, not to grant an
+exemption. **The same shape as `const FIRST_AREA := &"courtyard"` in `core` before T1.2, with the
+roles reversed: there the gate existed and the rule did not; here the rule existed and the gate
+did not.** Gotcha 55.
+
+Nothing is listed that can be derived: layers from the path, `class_name` symbols from the files
+declaring them, autoloads from `project.godot`. That is what makes "the five autoloads under
+`src/systems/` are globals" automatic — they are layer 2, so `gameplay` and `ui` calling them is
+already downward, and no carve-out is needed or written.
+
+### 3. `localization/` demo content, in `check_boundary.gd` — gotcha 48 closed
+
+`check_content` and `check_strings` both open the CSV and both ask only whether a key a script
+names has a row. Neither asks whether a ROW names content that exists.
+
+**The two halves are asymmetric on purpose.** Presence is REPORTED — 218 rows, 51 in a content
+namespace (`object` 24, `talk` 10, `action` 6, `quest` 5, `item` 4, `area` 2; the audit's 59
+included the eight engine `item.category.*` rows) — because the template legitimately ships its
+own demo rows and a gate switched off where it lives is decoration. What FAILS is the ORPHAN: a
+row naming content that is not there, which is the actual T4.3 defect and is wrong in the
+template and in every game built on it.
+
+**The stripped CI job now performs `NEW_GAME.md`'s prune and then runs this gate**, so the prune
+list is itself checked by something derived from a different place. If a namespace goes missing
+from it again, CI goes red — which is the expiry story gotcha 48 said a tool could not have. It
+could not, as a list of engine prefixes; it can, by asking the opposite question.
+
+### What this package deliberately did not do
+
+- **It did not widen the consumer question past signals and CSV rows.** Settings, `@export`
+  properties, enum values and public methods are all still declarable-and-dead, and candidate B
+  is the largest of those by a distance.
+- **It did not gate `object.` and `action.` rows.** Nothing derives their ids, and the header
+  says so rather than letting a green run be read as more than it is.
+- **It wrote no ADR.** Two tools and a file moved one directory is not an architecture decision;
+  the layer rule was already decided in `ARCHITECTURE.md` and ADR-0001.
+
+## T5.5 · The twelve settings with no consumer — **DONE**
+
+**The row exists because twelve of twenty-three settings were declared, drawn to the player,
+translated in both languages, and read by nothing** — and because five of those twelve were a
+defect in the TEMPLATE rather than a missing feature of a game, which is a different and worse
+thing than the six declared-and-dead instances before them.
+
+### What made the `accessibility/*` five sharper than the rest
+
+The thing a text-size preference has to change is the project theme — `assets/theme/ui_theme.tres`,
+wired as `gui/theme/custom`, holding nine `font_sizes` — and every screen that draws from it lives
+under `src/ui/`. So a game forked from this base **could not** honour that setting without editing
+`src/`, which is the exact failure this template exists to prevent. The other seven were merely
+unfinished; these five were unfinishable from outside.
+
+### Nine wired, and the placement was decided by ownership rather than by tidiness
+
+| Setting | Consumer |
+|---|---|
+| `video/resolution_scale` | `Settings._apply_render_scale` — `scaling_3d_scale` is the viewport's, and no system owns the viewport |
+| `video/shadows` | `Settings._apply_shadows` — the shadow ATLAS; see below |
+| `video/bloom` | `EnvironmentDriver` — the `Environment` is that node's and nothing else may touch it |
+| `video/depth_of_field` | `HD2DCameraRig._on_setting_changed` — **`set_dof_enabled()`'s first ever caller** |
+| `gameplay/show_interact_hints` | `InteractPrompt._redraw` |
+| `accessibility/text_scale` | new `UiAccessibility` under `UILayer` |
+| `accessibility/high_contrast_prompts` | `InteractPrompt._apply_contrast` |
+| `accessibility/reduce_motion` | `DialogueScreen._on_line_changed` — the typewriter |
+| `accessibility/hold_to_confirm` | `InteractionSensor.hold_needed` |
+
+**`video/bloom` and `video/shadows` look like the same kind of setting and are not, and that is
+the most transferable thing in the row.** Bloom is one property of one `Environment` that one node
+owns, so it went to that node. Shadows are cast by **lights an area author placed** — the courtyard
+has four, and the two demo areas carry eight `shadow_enabled = true` between them — and **no node
+owns the set of them.** A driver that walked the tree collecting lights would be wrong for every
+light added after it was written, which is the god object ADR-0001 refuses. So it is applied at the
+atlas: `positional_shadow_atlas_size = 0` and `directional_shadow_atlas_set_size(0, true)`, after
+which every light in the world casts nothing, whoever placed it and whenever. **A game that adds a
+hundred lights gets the setting for free and writes no code.** That is the test of a template seam,
+and it is why the placement is beside `_apply_display` rather than in a listener invented to hold
+it.
+
+`accessibility/text_scale` scales the theme's font sizes from a CACHED base, never from the live
+value — multiplying the current size compounds and rounds on the way, so walking the row to 1.5 and
+on to 2.0 would not land where going straight to 2.0 does. `Window.content_scale_factor` is the
+one-line alternative and is wrong: it magnifies the HUD's layout and the dialogue frame's margins
+too, so a player who asked for bigger text gets less of the world.
+
+### Three settings removed, and that is a decision rather than a shortcut
+
+`gameplay/camera_shake`, `gameplay/autosave` and `accessibility/subtitles` have no machinery in
+this template to reach. There is no screen shake anywhere under `src/`; there is no autosave, and
+`SaveSystem` has no notion of the slot a run belongs to; nothing is voiced. Wiring them would have
+meant inventing three features inside a row about connecting existing ones. **A row drawn to the
+player that cannot do anything is worse than a dead constant, because the player is the one who
+finds out.** They are gone from `DEFAULTS` and from the CSV, which is all it took —
+`settings_screen.gd` is generated from `DEFAULTS` and needed no edit at all, which is the payoff
+of a decision made when that screen was written. Each returns in one line plus one CSV row the day
+its feature exists, and the reason each was removed is recorded in the `DEFAULTS` block itself,
+where the next person considering re-adding one will be standing. Screen shake and autosave are
+candidate rows below.
+
+### The four folded-in fixes
+
+- **`reset_to_defaults()` never called `_apply_locale()`.** One line, and a live bug: Reset wrote
+  `locale = "en"` and left the UI in the old language. Invisible to every other rung, because the
+  file on disk was correct — only the screen could tell.
+- **`set_dof_enabled()` had no caller.** It has one, and the rig now remembers what the area author
+  authored, so the setting is the player's VETO rather than a blanket yes: a rig shipping with DOF
+  off stays off however the setting moves.
+- **`Actions.JUMP` is gone entirely** — const, Space/pad binding, `REBINDABLE` entry and CSV row.
+  It was a rebinding row for a verb `player_controller.gd` says three times over this template does
+  not have, and nothing polled it. `GameEnums.MoveState.JUMP` is a different symbol and stays.
+- **`KeyBindings.rebind()` gates on `Actions.REBINDABLE`.** It gated on `InputMap.has_action`, so
+  `debug_console` could be written into `input.cfg` and then never reset, because `reset_bindings()`
+  re-declares only the four rebindable groups. This spends that file's MUST NOT line in exactly one
+  expression and the header says so: the alternative was a second copy of the list, and two lists
+  that drift is the defect this project keeps finding.
+
+### The seventh gate was deliberately not built, and the reason is not effort
+
+T5.4's own closing note said its three gates do not catch this class, because a setting is a string
+key read through `DictRead` — not a `class_name`, a `signal` or a CSV row. So the question had to be
+asked somewhere new. **It is asked as an assertion in `tests/unit/settings_consumers_test.gd`, and
+the deciding factor was what the two places can REACH.** A `check_*` tool reads text off disk and
+would have to reconstruct the key list by parsing `settings.gd`; a test has `Settings.DEFAULTS` as
+the engine actually loaded it. Where the subject of a rule is a runtime fact, the assertion is the
+truer place — and T5.4's three went to `tools/` for the mirror reason: which layer a path is in,
+and what a `.tscn` contains, no running game can see. CI runs the suite as its own step, so the
+coverage is identical either way.
+
+**Writing it found a third way to be a consumer, and the first version failed on nine correct
+settings.** The obvious rule — *some file other than `settings.gd` and `settings_screen.gd` names
+this key* — reported `video/vsync`, `audio/music` and seven more as dead. Both exclusions were
+wrong, in opposite directions: `audio_director.gd` handles `section == "audio"` wholesale and then
+computes each key as `"audio/%s" % bus_name.to_lower()`, so the five volume keys **appear nowhere as
+literals**; and `settings.gd` genuinely IS the consumer for five of them, for the reason its header
+has given since WP-01. For that file alone two mentions are required, because the `DEFAULTS`
+declaration is a mention.
+
+### Proof
+
+Eight plants, each a real reversion rather than a broken assertion, and each exit 1 — the full
+table is in `DEVLOG.md`. The two that matter as a pair: a NEW setting declared with no reader
+(`something consumes 'video/planted_knob' — expected true, got false`) and an EXISTING consumer
+that stops reading its key (`something consumes 'video/bloom'`). The headline assertion catches a
+dead setting arriving from either direction.
+
+**The ninth plant found a defect in this package's own work.** Mindful of gotcha 54, the test
+asserted not only that `UiAccessibility` works but that the running game instances one. The first
+version read `game_root.tscn` as TEXT — and when the node was deleted as a plant the suite stayed
+**green, byte-identical**, because an `[ext_resource]` line survives the removal of every node that
+used it and eight other nodes carry `parent="UILayer"`. Rewritten against `PackedScene.get_state()`,
+where a script is a PROPERTY of a node: replanted, exit 1. **That is gotcha 56 — writing the wire
+assertion was not the hard part, writing one that can fail was.**
+
+Six settings photographed in pairs, each pair differing by exactly one line in
+`user://settings.cfg`: text scale (20.9% of pixels, every font in the UI including the HUD clock),
+shadows (97.6%, every cast shadow in the frame gone), depth of field (21.2% — and the first crop
+showed nothing because the crate sits inside the in-focus band, so a per-block diff located the
+region first), bloom (99.9% at 21:00), render scale (76.6%), and the prompt's two. The outline
+width is **the one number in this package chosen by photograph rather than by taste**: 6 swamped an
+18px font and read worse than no outline at all, 2 was invisible against the courtyard's grass, 4
+survived.
+
+### What this package deliberately did not do
+
+- **It did not wire the three it removed.** Screen shake, autosave and subtitles are features, and
+  autosave needs a slot POLICY before it needs a trigger.
+- **It did not finish `reduce_motion`. CLOSED BY T5.7.** `ScreenFade` and the camera's `follow_lag` are motion too
+  and still ignore it. One consumer makes the setting honest, not complete.
+- **It did not read the authored shadow atlas size. CLOSED BY T5.7, AND IT WAS WORSE THAN THIS BULLET SAYS — the const was 2048 and the engine default is 4096, so it halved THIS repository, not a hypothetical fork.** `_apply_shadows` restores a `2048` const, so a
+  game that authored a different size in `project.godot` loses it the first time a player toggles
+  shadows. The fix is `HD2DCameraRig`'s `_authored_dof` pattern and costs two lines `settings.gd`
+  does not have — it is at 144 of its 150-line override.
+- **It wrote no ADR.** One node under `UILayer`, four settings applied where the thing they change
+  already lives, and one input list read instead of copied. `ARCHITECTURE.md` already says the
+  owning system reacts; this row only made that true for nine more settings.
+
+## T5.7 · `reduce_motion` finished, plus the shadow atlas — **DONE**
+
+Candidate I. Both halves were diagnosed by T5.5, written down as gaps, and deliberately skipped by
+T5.6 because folding them in would have put three unrelated diffs in the one row whose headline
+claim was *no file under `src/` changed*. Neither was hard. One of them was not what it was
+filed as.
+
+### The three motions
+
+`accessibility/reduce_motion` had one consumer — the dialogue typewriter — and T5.5 said in its
+own DEVLOG that one consumer makes a setting honest and not complete. It has three now.
+
+| Motion | Consumer | What reduce-motion does to it |
+|---|---|---|
+| animated TEXT | `DialogueScreen._on_line_changed` | the line arrives whole (T5.5) |
+| the screen FADE | `ScreenFade._on_fade_requested` | cuts, exactly as a fade of zero seconds does |
+| the CAMERA | `HD2DCameraRig._apply_reduce_motion` | `follow_lag` goes to zero, so the camera stops sliding after a stopped character |
+
+Each names the key as a `const` on itself, which is the convention that makes
+`settings_consumers_test._is_consumed` decidable rather than a heuristic, and an assertion now
+requires the three consts to agree with the declaration — three copies of a string are three
+chances to typo one into a key nothing sets.
+
+**THE CUT IS NOT A FASTER FADE, and that is a decision.** Halving a duration is still animation,
+and a preference that only makes motion briefer has not honoured the request. `DialogueScreen`
+made the same choice for the same reason a row earlier.
+
+**THE CAMERA TAKES THE VETO SHAPE and this is the half worth reading.** `_authored_lag` is read at
+`_ready` before the setting is folded in, exactly as `_authored_dof` is, so a rig an area author
+shipped rigid (`follow_lag = 0.0`) stays rigid however the setting moves. The setting may REMOVE
+smoothing an author authored; it may never ADD smoothing they refused. Assigned to `follow_lag`
+rather than clamped at the read site, because a second "effective lag" variable beside the
+exported one is two numbers that can disagree — the defect this project keeps finding.
+
+### The shadow atlas, which was not the defect it was filed as
+
+T5.5 recorded this as a portability worry: *a game that authored a different atlas size in
+`project.godot` would have it replaced the first time a player toggles shadows.* Measured, on a
+real display server, it is worse and nearer:
+
+```
+                       boot     off      back on
+with the 2048 const    2048     0        2048
+with ShadowAtlas       4096     0        4096
+```
+
+**The engine's default positional atlas is 4096, not 2048**, and `_apply_display()` runs at
+`_ready`, so this repository booted **every windowed session at half the shadow resolution the
+project authored**, before a player touched anything. Two things hid it for two rows. The OFF half
+is the half a wrong constant cannot break, and off is the only half T5.5 photographed. And
+`_apply_display()` returns early when `DisplayServer.get_name() == "headless"`, so **no rung below
+the windowed capture executes that code at all** — the suite could not have caught it however many
+assertions were pointed at the setting. That is gotcha 61.
+
+**WHERE IT WENT, WHICH THE ROW WAS ASKED TO DECIDE.** `settings.gd` was at 144 of its 150-line
+override, and the fix needs STATE — the authored sizes — which is the kind of thing every future
+setting will be tempted to add beside. So it is `ShadowAtlas`, a `RefCounted` in `core` that owns
+one property of the renderer and knows nothing about `video/shadows`, and `settings.gd` came DOWN
+to 139 because the two consts and four lines of body left with it. A const cannot be right there
+at all: the number is a project setting a consuming game is invited to change, so the only correct
+value is the one read back before the first zeroing.
+
+### What the verification found out about itself
+
+The row was told to think about what a still frame can prove before promising one, on T5.5's
+honest limit: *an instant reveal photographs identically to a finished one.* That limit holds for
+the fade and **fails for the camera**, and noticing why is the most transferable thing here.
+
+A fade converges. A camera following a MOVING character never does — `follow_lag` sets a steady
+trailing distance that persists for as long as the character keeps walking, so there is a picture
+to take. Two `--gait-shots` runs differing by one line of `settings.cfg`:
+
+- the whole world is translated **42 px** between them at run speed;
+- a brute-force offset search over a static band (rows 340–450, no HUD, no character) puts the
+  residual at **0.0268 at −42 px** against **0.0975 at zero** — a 3.6× drop, so it is a RIGID
+  SHIFT of the scene and not a lighting or content difference;
+- every static landmark agrees: the pillar edge, the platform edge, the crate and the low wall
+  all move together while the character stays put.
+
+The fade is proved by assertion only, and the reason is recorded rather than left as an omission:
+`Events.screen_fade_requested` is the node's only input and `run()` is synchronous, so a tween
+created inside the handler has not advanced when the next line reads `color.a`. A dissolve leaves
+the alpha where it started and a cut leaves it at the target — no awaits, no test-only accessor,
+and no reaching at the private tween.
+
+### What this package deliberately did not do
+
+- **It did not build screen shake**, which is candidate H, even though `reduce_motion` will have
+  to reach it. The pattern to copy is now written down on the rig.
+- **It did not touch `face_direction()`**, which is candidate C and the owner's seam decision.
+- **It wrote no ADR.** One `RefCounted` in `core`, two settings applied where the thing they
+  change already lives. No autoload, no new layer, no new seam concept.
+- **It did not fix what the owner saw.** Sideways movement reads as a slide, and it is the
+  placeholder SHEET rather than the camera or the animation code — candidate J, measured in this
+  row and left for its own.
+
+## T5.8 · A placeholder sheet whose facings are distinguishable — **DONE**
+
+Candidate J, and the only row on this board that came from the owner **playing the game** rather
+than from an audit. On 2026-09-05 they said sideways movement "just slides to the side". It did.
+
+### What was wrong, and it was not the code
+
+`character_placeholder.png` drew **one pose eight times**. Measured as the fraction of differing
+pixels in a cell, walk block, over the figure band:
+
+| pair | before | after |
+|---|---|---|
+| default sheet, least alike facings | **0.0000** — facings 2 and 3 byte-identical | 0.0747 |
+| default sheet, front against back | 0.0070 — the two eyes and nothing else | 0.3213 |
+| alt sheet, least alike facings | **0.0000** — three columns differed only by the pip tally | 0.2188 |
+
+`_aim` quantises the direction (`facing_test`), `column_for_angle` derives the sector from the
+layout (`art_contract_test`), `update_from_velocity` advances the cycle (`gaits_test`). All green,
+all correct. **The sheet had nothing different to draw**, so the facing system was invisible in
+every capture this project ever took — T5.2's, T5.3's and T5.6's — and the first observer was
+whoever played it. That is **gotcha 62**: gotcha 54 with the unwired middle made of pixels.
+
+### What it did
+
+**Five poses and a mirror**, in `tools/gen_placeholders.gd` and nowhere else: front,
+three-quarter, side, three-quarter back, back. The torso narrows and steps forward as the figure
+turns, the legs close into a front-to-back stride, the hair wraps further round the head, the eyes
+go 2, 2, 1, 0, 0, a profile grows a nose and hides its far arm, and a back is drawn in its own
+shadow. Facings 5-7 are 1-3 **flipped**. The four-facing sheet gets three of the same poses.
+
+A cell is now drawn into a CELL-SIZED image and blitted, which the mirror needed — and which makes
+**gotcha 57 structurally impossible** rather than asserted, because `_plot` now clips to the cell.
+
+**`tests/unit/sheet_facings_test.gd`** (8 assertions), and the floor was picked by measurement on
+T5.5's precedent: 0.05 is above the largest gap either OLD sheet could reach (0.0347) and below
+the smallest either new one reaches (0.0747). Four claims per sheet, each failing differently —
+the least alike pair clears the floor, front against back clears it under its own name, the
+mirrored half is a real mirror, and the cycle still advances (which refuses the cheap way to pass
+the first three).
+
+**Proved by planting the defect:** `FACING_TURN` back to all zeros, both sheets regenerated and
+re-imported → `=== 1823 passed, 6 failed ===`, **exit 1**. Removed → `=== 1829 passed, 0 failed
+===`, **exit 0**.
+
+**And photographed, which is what the row is for.** `--facing-shots=<dir>` on `dev_gait_shots.gd`
+walks the character north, east, south and west: columns **4, 2, 0 and 6** decoded out of
+`sprite.frame`, agreeing with four pictures that read as a back with no face, a right profile, a
+front, and the same profile mirrored. **T5.6 recorded that absence as its own gap** — every
+capture ever taken had been column 0 or column 1.
+
+### What it deliberately did not do
+
+- **It did not split `gen_placeholders.gd`**, which is now at 230 of its 250. A split plus a
+  rewrite in one diff makes the rewrite unreviewable. The seam is named in the DEVLOG and the next
+  row that touches a character sheet has to take it.
+- **It did not put pip tallies on the DEFAULT sheet.** They belong to the swap demonstration; on
+  the sheet the demo ships they would appear in every screenshot this project takes.
+- **It did not touch `face_direction()`**, which is candidate C and the owner's seam decision —
+  though it removes the argument against building one.
+- **It changed no art CONTRACT.** Same facings, frames, blocks and cells; both `.tres` untouched.
+
+## T5.9 · Screen shake, and the setting that scales it — **DONE**
+
+Candidate H, and the row T5.7 obliged: *when a shake exists, `reduce_motion` has to reach it in
+the same row rather than in a fourth one, or that setting is a gap again.* Both halves landed.
+Version 2.4.0.
+
+### What it built, and where each piece went
+
+| Piece | Where | Note |
+|---|---|---|
+| the motion | `HD2DCameraRig._offset_by_shake` | a decaying SINE along the camera's own axes, applied after `look_at` |
+| the ask | `Events.camera_shake_requested(strength, seconds)` | `_requested`, many askers by design, like `notify_requested` |
+| the asker | `Gate.perform` when `open_shake > 0.0` | **defaults to 0.0** — every gate already authored stays silent |
+| the author's number | `shake_metres`, `shake_hz` on the rig | 0.35 m, 18 Hz |
+| the player's veto | `gameplay/camera_shake`, 0..1 | back in `DEFAULTS`; one line plus one CSV row, and `settings_screen.gd` needed no edit |
+| the accessibility veto | `accessibility/reduce_motion` | removes it OUTRIGHT rather than scaling it |
+
+It stayed on `HD2DCameraRig`, which went 102 -> 138 of its 250. A `CameraShake` `RefCounted` on
+`ShadowAtlas`'s model was considered and refused: the offset is applied to a camera this node
+already places, inside a function it already calls every physics frame, and a class holding four
+floats would have been a seam invented to look like T5.7's.
+
+### The pattern was copied, not reinvented
+
+`_authored_shake` is read at `_ready` beside `_authored_dof` and `_authored_lag` — three authored
+values on one node now — and the player's scale is folded INTO `shake_metres` rather than kept in
+a second variable beside it, on T5.7's reasoning exactly. **A rig an area author shipped at
+`shake_metres = 0.0` never shakes, whoever asks and whatever the player prefers.** `SHAKE_SETTING`
+is a `const` on the consumer, which is what keeps `settings_consumers_test._is_consumed` decidable.
+
+**`reduce_motion` cuts rather than scales**, the third time this project has made that call after
+the typewriter and the fade: a quieter shake is still a shake.
+
+### WHO MAY ASK — the seam question, decided and recorded
+
+On the bus, with many askers by design: the thing that just happened knows how hard it hit and
+nothing about a camera; the rig knows how far it may move and nothing about gates. The template's
+own asker is **`Gate`**, because a heavy leaf grinding open is the one impact a game with no
+combat actually has, and because it is AUTHORED — `open_shake` is per gate and defaults to silent,
+so a garden gate and a portcullis are one class with different numbers. The demo courtyard's
+`NorthGate` sets `0.7`, in a `.tscn` and not under `src/`.
+
+### A sine and not noise, which is what made it provable
+
+Random jitter cannot be verified — two runs differ — so "exactly half as far" would have been an
+unassertable claim in the suite and an unmeasurable one in a capture. Five windowed runs of one
+command differing only by `user://settings.cfg`:
+
+| `camera_shake` | camera x | best rigid offset vs the control | residual there | residual at zero |
+|---|---|---|---|---|
+| (no shake asked for) | 0.000000 | — | — | — |
+| 1.0 | **0.302357** | **(+14, −12) px** | 0.0173 | 0.0513 |
+| 0.5 | **0.151178** | **(+8, −6) px** | 0.0125 | 0.0402 |
+| 0.0 | 0.000000 | (0, 0) | 0.0004 | 0.0004 |
+| `reduce_motion = true` | 0.000000 | (0, 0) | 0.0001 | 0.0001 |
+
+The picture halves when the number halves. **Looked at, not only measured:** the world is
+displaced while the HUD and the prompt sit at identical pixels — a camera shake and not a screen
+shake, which no log line could have said. **Gotcha 64** came out of reconciling the two columns.
+
+**Proved by planting, both exit codes recorded.** `_apply_shake_scale` reverted to ignoring both
+settings -> `1844 passed, 4 failed`, **exit 1**; the rig's `connect` line removed, leaving both
+ends of the wire green -> `1847 passed, 1 failed`, **exit 1**; both removed -> `1848 passed,
+0 failed`, **exit 0**. Suite 1,829 -> 1,848.
+
+### What it deliberately did not do
+
+- **It did not photograph a GATE opening.** The demo's north gate needs the lever and the key, so
+  it is not on a boot capture's path; `--shake=` on `dev_capture.gd` fires the same signal instead.
+  A `dev_probes.gd` row that unlocks the gate and shoots the frame after would close it.
+- **It did not assert `shake_hz`.** Every assertion measures the same instant of the wave, which
+  is what makes them comparable and also means a changed frequency would keep them all green.
+- **It did not make shakes additive.** A new request replaces a running one, so nothing repeatable
+  can drive the camera off the world. Four lines in `shake()` if a game wants layered rumble.
+- **It did not split `gen_placeholders.gd`**, still at 230 of its 250 and still next, because it
+  touched no character sheet.
+- **It wrote no ADR.** One signal, one method, two exports on the node that already owned the
+  camera.
+
+## T5.10 · Autosave, and the slot policy it needed first — **DONE**
+
+Candidate G, and the SECOND of the three settings version 2.0.0 removed to come back with the
+feature it was waiting for. Only `accessibility/subtitles` is still out. Version 2.5.0.
+
+### The design question was the SLOT, and the answer
+
+| Candidate | Verdict |
+|---|---|
+| rotate through the manual slots | **rejected** — an autosave can then destroy a save the player made on purpose |
+| reserve slot 5 of the six | **rejected** — same objection, plus it changes what slot 5 MEANS in every save file already on disk. A MAJOR bump paid for nothing |
+| **one past the six** (`AUTOSAVE_SLOT = MAX_SLOTS`, `user://saves/autosave.json`) | **taken.** No manual list can reach it, because every manual list iterates `MAX_SLOTS` and never counts that high — no filter to remember, no existing save touched, MINOR bump |
+
+**The read range is deliberately not the write range.** `latest_slot()` iterates
+`AUTOSAVE_SLOT + 1` and the save screen's writing half still iterates `MAX_SLOTS`: writing is
+manual-only, reading is everything. Continue resumes the autosave and the load list offers it as a
+row of its own, while the save list — built over the identical files — cannot name it.
+
+### What it built, and where each piece went
+
+| Piece | Where | Note |
+|---|---|---|
+| the policy | `Autosave` under `GameRoot`, `src/systems/autosave/` | a node, not an autoload — an autoload needs an ADR, and this is two connections and one decision |
+| the slot | `SaveSystem.AUTOSAVE_SLOT`, `AUTOSAVE_FILE`, `is_autosave()` | a slot number's legality and its path are facts about the store, so they belong to the store |
+| the occasions | `Events.game_ending`, `Events.area_entered` | both already on the bus. **No signal was added** |
+| the trigger for quit | `game_ending`, synchronous | the close button comes through the same path; `game_root.gd` gained nothing but lost a stale comment |
+| the trigger for arrival | `area_entered`, **one frame late** | see gotcha 65 — on the spot it would have been refused every time |
+| the player's veto | `gameplay/autosave`, back in `DEFAULTS`, default `true` | takes an occasion away, never adds one |
+| the indicator | `notify.autosaved` on the existing toast | `SYSTEMS_INVENTORY.md` item 6, photographed |
+| a game's own occasion | `Autosave.request()` | public, so a chapter break or a bed is one call and no edit to `src/` |
+
+### Gotcha 65, which is the thing here that will cost the next person an hour
+
+`Director._run_transition` emits `area_entered` and clears `_transitioning` **two statements
+later** — correctly, because that signal means "the area is in the tree and the player is placed"
+and the transition is not over until the curtain has been asked to lift. A handler reading
+`is_transitioning()` on the spot is therefore refused on **every arrival**, and the feature never
+fires once, with nothing red anywhere: both ends of the wire correct, the guard behaving exactly as
+specified, and a feature that does nothing. Gotcha 54's family with the unwired middle made of
+ORDERING. Fixed with one `await get_tree().process_frame`; the assertion that pins it emits
+`area_entered` inside a synchronous `run()`, where no frame ever comes, and requires that nothing
+was written.
+
+### Verified
+
+Six checkers exit 0, `1848 -> 1898` assertions, `0 warnings, 0 errors` on boot and on both
+captures. Four plants, each a real reversion, each exit 1 — the synchronous area handler
+(1 failed), the autosave reserving a manual slot (5 failed), `latest_slot()` blind to the autosave
+(1 failed), and the transition guard deleted (3 failed) — all removed, `1898 passed, 0 failed`.
+CI green on `0e99c86`, PR #39; stripped template 1,824, so all 50 new assertions survive the strip.
+**The layer gate caught this row's own trailing comment**: a `core` file naming `Autosave`, which
+is `systems`.
+
+**A save is a FILE, so most of this row is provable in the suite** in a way T5.7's and T5.9's
+camera work was not — including the policy's whole promise, driven end to end: write the autosave,
+then write into all six slots the save screen offers, and the autosave header is still `equal` to
+what it was. **What the capture carries is the INDICATOR.** Two runs of the standing regression
+command differing by one line of `settings.cfg`: with defaults, `[save] Slot 6 written`,
+`user://saves/autosave.json` on disk, and `Autosaved.` on the toast over an otherwise identical
+frame; with `autosave=false`, no log line, an **empty** saves directory, and no toast. The standing
+dusk capture now carries that toast, which is the feature and not a regression.
+
+### What it did NOT do, deliberately
+
+- **It did not photograph a LOAD of the autosave.** `load_from_slot` is the same call the load list
+  already makes and the autosave's row in that list is asserted, but no probe boots, autosaves,
+  quits, relaunches and continues into it. A `dev_probes.gd` row, the same shape as T5.9's
+  gate-opening gap, and the one claim here resting on "same code path" rather than a measurement.
+- **It did not add an "are you sure" on quitting**, `SYSTEMS_INVENTORY.md` item 7, now half
+  obsolete: with the autosave on there is less unsaved progress to warn about, and with it off
+  there is exactly as much as before.
+- **It did not make autosaves queue.** A second landing while the first is in flight is refused by
+  `_busy`, which is right for two occasions a frame or a session apart.
+- **It did not split `gen_placeholders.gd`**, still at 230 of its 250 and still next, because it
+  touched no character sheet.
+- **It wrote no ADR.** One node, two connections, one decision, and a slot number on the file that
+  already owns slot numbers.
+
+## T5.11 · Music ducking, built — and the alias beside it deleted — **DONE**
+
+Candidate E, and the row was explicitly "build it or delete it". **The answer is both**, split on
+one line. Version 3.0.0 — a MAJOR bump, because a public method was deleted.
+
+### The three dead methods, and what each got
+
+| Method | Verdict | Why |
+|---|---|---|
+| `duck()` / `unduck()` | **built** | The occasion already existed. `Events.dialogue_started` / `dialogue_finished` have been on the bus since Phase 0 with one emitter each, and lowering music under dialogue is what ducking IS. One node, no new signal — T5.10's shape exactly |
+| `stop_music()` | **deleted** | Two lines of alias over `play_music(null, fade)`, no caller in three phases, and no occasion this template has that the surviving spelling does not already serve. Two ways to say one thing in a file with a hard 150-line budget is a cost with nothing on the other side |
+
+**And it was not merely uncalled — it was WRONG, which only wiring it could reveal.** `duck()`
+tweened to an ABSOLUTE −8 dB, so against a player who had moved `audio/music` to 0.25 (−12 dB) it
+made the music four decibels LOUDER every time somebody spoke. `target_db(bus)` is the fix: the
+player's own level plus whatever duck is in force, with a muted bus staying muted. Three smaller
+defects fell out of the same wiring — a settings change lifted the duck, two ducks raced, and a
+positive "duck" would have worked.
+
+**The count is the design decision.** `DialogueDuck` holds while ANY conversation runs and releases
+after the LAST, because two overlapping conversations make a plain duck/unduck pair lift the music
+underneath one still running, with nothing red anywhere. `held()` is public so the balance is
+assertable as a count and not only as a decibel.
+
+**No new setting, deliberately.** Nothing was owed one — T5.9's and T5.10's keys were both settings
+2.0.0 had removed — and the player already owns the outcome through `audio/music` and
+`audio/ambience`, which the duck is now measured FROM rather than against.
+
+**Essentially all of it is proved in the suite**, because a bus volume in dB is a number the audio
+server hands back even under the dummy driver. Suite 1,898 → 1,935; five plants, each a real
+reversion, each exit 1. **Gotcha 66** retires an honest limit T5.7 recorded: `get_processed_tweens()`
+plus `Tween.custom_step()` make a fade distinguishable from a cut inside a synchronous `run()`.
+
+### What it did NOT do
+
+- **It did not build the fourth consumer gate**, and said so in writing. A public-method liveness
+  gate cannot be a text scan the way `check_signals.gd` is — methods are called through
+  `Callable`, `.bind`, `.tscn` properties and typed variables, and "has a caller in the suite" is
+  not "has a caller in the game". It is candidate K, a package rather than a paragraph.
+- **It did not prove anything can be HEARD.** There is no audio in the project at all, which is why
+  the inventory row stays `PART`.
+- **It did not add a `dev_probes.gd` probe.** One that opens the demo conversation and logs the
+  Music bus would close the last gap here, and it is the same probe row T5.9 and T5.10 both want.
+- **It did not split `gen_placeholders.gd`**, still at 230 of its 250 and still next.
+- **It wrote no ADR.** One node, two connections, one decision, and a method on the file that
+  already owns bus decibels.
+
+## T5.12 · Two capture gaps closed, and the third argued away — **DONE**
+
+**2026-09-06. Version 3.1.0.** Three consecutive rows — T5.9, T5.10 and T5.11 — closed with the
+same admission in their own Gaps section, each naming a probe as the fix. Three rows deferring the
+same work is the signal, and the first job was to ask whether all three deserved it.
+
+| Gap | Verdict | Why |
+|---|---|---|
+| T5.9 — the gate's own shake | **built** | `--shake=` emits the signal a gate emits, so it photographs the RIG. Nothing had ever shown a gate doing it, and `Gate.perform()`'s emit was proved by reading four lines |
+| T5.10 — the autosave read back | **built** | The row's own words: the only claim in it resting on "it is the same code path" |
+| T5.11 — the Music bus in dB | **NOT built** | **A still frame cannot show a decibel**, so the probe's whole output would be a log line — and this row's standard is that a log line does not close a capture gap. Gotcha 66 already retired the limit that made it look necessary, and the duck is measured end to end in the suite through a real `DialogueRunner`. The pause hazard that would have justified it was checked and does not exist: `AudioDirector` is `PROCESS_MODE_ALWAYS` and `DialogueScreen` sets `pauses_world = false` |
+
+**`src/systems/debug/dev_scenario_shots.gd` is the fifth debug file, 198 of its 250.** The budget
+forced the split and the seam was already there, for the third time in this directory:
+`dev_probes.gd` (205/250) prints a NUMBER, `dev_capture.gd` shoots at a FRAME NUMBER, and neither
+can photograph a moment that exists for six tenths of a second and only after a scripted sequence
+produced it. That is `dev_gait_shots.gd`'s question with the subject changed, which is why the
+shutter takes its shape rather than a new one.
+
+**THE PROBE FOUND TWO DEFECTS IN ITSELF BEFORE IT FOUND ANYTHING ELSE, both silent, both green.**
+Standing beside a thing does not SELECT it — the first run pressed interact on a barter action two
+metres away, the lever was never thrown, and the gate refused with `LOCKED`; cycling is what a
+player does about that. And `rest` sampled twenty frames after a teleport is the exponential
+smoothing tail, which the probe reported as a 0.4288 m "shake" of a gate that had not opened.
+`_camera_still()` now waits for the rig to park and reports **53 frames**.
+
+**0.154743 m against 0.000050 m**, the same command with one line of `settings.cfg` changed and
+`NorthGate opened` in both logs — and reproducible to the micrometre, because T5.9 chose a sine
+over noise and this is the first thing to depend on that. The picture carries what the number
+cannot: the world slid up and left with the HUD clock exactly where the control put it.
+
+**The autosave pair is two processes for `--save-state`'s reason**, and adds the OCCASION and the
+DOOR — written by `Events.area_entered`, read by pressing the main menu's own Continue row.
+Run A's last report and run B's are identical; run B's boot report between them reads
+`area='' day=1 time=06:00 weather=0 carrying=0`. `autosave_continued.png` shows **Day 4 | 22:15 |
+Night** and a toast reading "Autosaved." A restored `Clock.hour` is a number in a log; a hall lit
+for night is the photograph that says it reached a renderer.
+
+**12 assertions, neither group about the probes' own behaviour.** `interaction_test.gd` +6: a gate
+asks for exactly the amplitude its author wrote and for `Gate.SHAKE_SECONDS`, and **a gate left at
+the default zero opens and asks for nothing** — the half a bare `emit` would keep green.
+`dev_tools_test.gd` +6: every script under `src/systems/debug/` that reads
+`OS.get_cmdline_user_args()` has a node in `game_root.tscn`, because a debug file with no node is
+not a broken tool but an absent one. Suite 1,935 → 1,947. Two plants, each a real reversion, each
+**exit 1** with its control at **exit 0**.
+
+**3.1.0 and not a PATCH on one line.** Nothing under `src/` outside the debug directory changed,
+which is the PATCH condition — but `game_root.tscn` gained a node, and that is a file a consuming
+game has to merge. **Found and not fixed:** the main menu's Continue row reads "Continue — Slot 7"
+for the autosave, which is the reading T5.10's file naming was chosen to avoid. It is a wording
+question on a UI string and belongs to whoever owns that screen's copy.
+
+## T5.13 · A public-method liveness gate — **DONE**
+
+**2026-09-06. Version 4.0.0.** Candidate K, the fourth consumer question, and the last of the four
+with no enforcement. `tools/check_methods.gd` is rung 11: a public method declared at column 0
+under `src/` whose name is written nowhere else in the repository fails the build.
+
+**The design question was which methods it is even asked of, and the answer is what makes the
+tool possible.** T5.11 recorded, correctly, that a method is called through `Callable`, `.bind`,
+`.tscn` properties and typed variables a scan cannot resolve. **None of that matters, because the
+gate does not resolve calls.** It asks the narrowest question a text scan can answer soundly —
+*did anybody write this name down at all*, on any non-comment line, in `.gd`, `.tscn` or `.tres`.
+Every one of those dispatch forms writes the name out, including the one an earlier draft got
+wrong: an unqualified inherited call, `set_available(false)` in a subclass, which made `perform`,
+`add_row`, `push` and `request_close` all look dead.
+
+**First run: exit 1, twelve violations of 316 public methods.**
+
+| Verdict | Count | Which |
+|---|---|---|
+| **deleted** | 2 | `DialogueNode.has_choices()` — an alias over `not choices.is_empty()`, which both real readers already write. `ItemDefinition.is_equippable()` — its doc claimed "an `Equipment` component and a UI row both ask this" and **neither ever did**; the one place that asks writes `slot_of(id) != NONE`, which also answers for an id with no definition |
+| **wired** | 1 | `NpcBrain.current_activity()` — `activity_name()` indexed the private field beside it and now reads the accessor |
+| **exempt** | 9 | A log level, the untyped `Flags` hatch, a `PersistentState` typed family of three, a `Readable`'s persisted read flag, a `Footsteps` pair, and `Director.reload_current_area()`, which was the close call and is recorded as such |
+
+**A gate for dead code found two false claims in prose**, which is not what it was built for and
+is the most useful thing it did: `is_equippable()` named callers that never existed and
+`Footsteps.current_surface()` said "read by the probe" when no probe has ever read it.
+
+**Proved against the case that motivated it.** At `7a162ca`, the merge base before T5.11,
+`git grep -w` for `duck`, `unduck` and `stop_music` returns five hits: three declaration headers
+and two comment lines, one of them the word "duck-typed" in an unrelated file. The tool drops
+comments and declaration headers before counting, so it would have failed on the day each landed.
+
+**What it deliberately does NOT fail on is the other half of the design.** 86 of the 314 public
+methods are reached only from `tests/` or `tools/`, and "has a caller in the suite" is genuinely
+not "has a caller in the game" — but a template declares accessors a consuming game calls and this
+repository never will, so failing there would be answered with a fake caller in `src/`, which the
+gate would then certify as green. Reported on every run, never failed: `check_signals.gd`'s
+asymmetry for a listener, with the subject changed. **The gate under-reports and cannot
+over-report** — 37 names are declared in more than one file and are treated as one — so a green
+run is not a proof while a red run is always real.
+
+**One precondition, and it fired on this row's own test file.** No line may both dispatch
+(`call(`, `callv(`, `call_deferred(`, `Callable(`, `has_method(`) and build a string, because a
+name assembled at runtime is the one form the scan cannot see. `gates_test.gd`, asserting that
+exact classifier, wrote the opaque sample out whole; the gate was right and the test was the
+violation. The sample is now split across two constants. **Gotcha 69**, and it waits for every
+gate whose evidence is a line of text.
+
+**+23 assertions, 1,947 → 1,970, all on the CLASSIFIERS** and none on today's tree: what a
+declaration is, what a reference is, the two kinds of line thrown away first, the precondition
+classifier, and that every use of the exemption phrase in the whole engine tree sits in a comment.
+Three plants — a restored dead method, a stale exemption, a built name — each **exit 1**, control
+**exit 0**.
+
+**4.0.0 and not a PATCH, on the two deletions.** A new tool under `tools/` that changes nothing
+under `src/` carries a consuming game no obligation and would be a PATCH; two public methods gone
+is a MAJOR bump by the rule 3.0.0 set for `stop_music()`, and the `CHANGELOG.md` entry names the
+one-line replacement for each.
+
+### What it did NOT do
+
+- **It did not answer the 86.** A method kept alive only by its own test is exactly the class
+  `duck()` was in, and this gate cannot see into it. A run of the game with a call recorder could;
+  that is a package of its own and is not on the board yet.
+- **It did not touch `face_direction()`**, which is candidate C and the owner's seam decision. It
+  is one of the 86, which is now a measured fact rather than an impression.
+- **It did not split `gen_placeholders.gd`**, still at 230 of its 250 and still next.
+- **It did not fix the "Continue — Slot 7" wording** T5.12 found in `MainMenuScreen._fill`.
+- **It wrote no ADR.** One tool, one exemption phrase copied from an existing gate.
+
+## Candidate rows — ranked. ALL ARE DONE — T5.4-T5.15, and F was the last
+
+These are the audit's findings that are packages rather than one-line corrections. Ranked by value
+to a consuming game per unit of work. Each is sized to one chat.
+
+| # | Candidate | Why it is worth a row |
+|---|---|---|
+| ~~C~~ | ~~**A turn in place** — but the seam decision first~~ | **DONE — T5.14, 2026-09-06. The SEAM DECISION was the package and the owner made it.** The answer was BOTH, and the reason settled the shape: the case the owner described — an NPC that notices the player, walks over and stops them — has no interactable in it, so no asker inside the interaction path could serve it. That rules out a method call and leaves the bus. **`Events.turn_requested(character, towards)`**, on `camera_shake_requested`'s shape; `CharacterVisual` listens and answers only for the character the request NAMES; `InteractionSensor` asks for the player while STILL, `Speaker` asks for whoever you talk to, and a third asker needs nothing added. **The hold flag the estimate assumed does not exist**: `update_from_velocity` re-aims only while moving, so a turn given to a standing character simply persists — an NPC is still looking at you when the box closes, for free. Photographed to T5.8's standard: column 3 to column 5, **0.7666 of the crop's pixels changed against a 0.1838 no-turn control**. **Gotcha 70**: the stillness-gate plant PASSED on the first draft of its own test, because the case never staged a target changing mid-walk — a green plant is evidence about the test |
+| ~~D~~ | ~~**A wholesale character swap, photographed**~~ | **DONE — T5.6, 2026-09-05.** The alt sheet gained its gait set, the player was pointed at it and all five gaits were photographed with nothing under `src/` changed. Phase T5's third exit criterion is ticked and the phase is closable at the owner's word — the two boxes that remain are a second idle block and candidate C, which is the owner's seam decision |
+| ~~E~~ | ~~**Music ducking, or delete it**~~ | **DONE — T5.11, 2026-09-05.** Both halves of the either/or, split on one line: `duck()` and `unduck()` were BUILT, because `Events.dialogue_started` / `dialogue_finished` were already on the bus with one emitter each and no signal had to be added; `stop_music()` was DELETED, being two lines of alias over `play_music(null, fade)` with no caller and no occasion. A MAJOR bump, 3.0.0, and the entry names the one-line replacement. **The methods were not merely uncalled, they were wrong** — `duck()` tweened to an ABSOLUTE −8 dB, so at `audio/music` 0.25 it made the music LOUDER; `target_db()` measures the duck from the player’s own level instead. `DialogueDuck` COUNTS conversations, because a plain pair lifts the music underneath a second one still running. **Gotcha 66**: `get_processed_tweens()` + `Tween.custom_step()` tell a fade from a cut inside a synchronous `run()` |
+| ~~F~~ | ~~**The `Button` styleboxes**~~ | **DONE — T5.15, 2026-09-06. FOUR PACKAGES REFUSED THIS ROW FOR THE SAME REASON AND THE REASON WAS RIGHT** — a stylebox has to be *designed*, and the only palette to design against is the placeholder one, so populating it ships a decision as a default. **The fix answers that reason rather than overruling it: nothing in `src/ui/root/ui_row_styles.gd` designs a colour. It designs the RELATIONSHIP between the five states** and takes every colour from the palette, at boot, into `MenuRow` and `ChoiceRow`. **`hover` is `surface` moved TOWARD `text`, and that word is the package**: the one expression lightens a dark row and darkens a light one, so the fix survives a palette this base does not ship — which is the half of the stated defect a hard-coded lighten would have left in place, and **the plant proves it, passing every dark assertion and failing only the light ones**. `pressed` moves toward `accent` (a press is an act, so a hue rather than a shade); `disabled` keeps the hue and drops the alpha; **`focus` draws NO CENTRE**, only an accent ring, so it composes with whatever is under it — the state a mouse user never sees and a gamepad player navigates by. **ONE palette token added and argued**: `dim` and `solid` are the panel a row sits ON, `muted` already means "present but lesser", so there was no token for a button SURFACE. Photographed twice: on the shipped palette a row's separation from its panel goes **0.0981 -> 0.3490 summed channel delta (3.6x), with all 61,998 changed pixels inside the row band and none outside**; then the whole thing again on parchment, from six palette lines and no code. MINOR, **4.2.0** — a game that authored its own `styles/normal`, or ships a palette with no `surface`, is left exactly as it was, and both refusals are asserted. **Found and fixed as its own line:** the Continue row said "Continue — Slot 7" for the autosave, the reading T5.10's file naming was chosen to avoid |
+| ~~G~~ | ~~**Autosave**~~ | **DONE — T5.10, 2026-09-05.** The SLOT was the design question and it is answered: a dedicated slot ONE PAST the manual six (`SaveSystem.AUTOSAVE_SLOT`, `user://saves/autosave.json`), so no manual save can reach it and no save already on disk changes meaning — a MINOR bump, where reserving slot 5 would have been a MAJOR one for nothing. The policy is a node under `GameRoot`, not a second job for `SaveSystem` and not an autoload; the occasions are `game_ending` and one frame after `area_entered`, both already on the bus, so **no signal was added and `game_root.gd` gained nothing**. Three refusals — the player's veto, a transition in flight, no run in progress — each proved by the absence of a file. `gameplay/camera_shake` and `gameplay/autosave` have both now come back with their features; only `accessibility/subtitles` is left. **Gotcha 65**: `area_entered` is emitted two statements before `_transitioning` is cleared, so the obvious guard would have refused every arrival, silently |
+| ~~H~~ | ~~**Screen shake**~~ | **DONE — T5.9, 2026-09-05.** Built on `HD2DCameraRig` as a decaying sine, asked for through `Events.camera_shake_requested` with `Gate.open_shake` as the template's own asker, and `gameplay/camera_shake` is back in `DEFAULTS` as its 0..1 scale — the FIRST of the three settings 2.0.0 removed to return with the feature it was waiting for. `accessibility/reduce_motion` reaches it in the same row, which is the obligation T5.7 recorded. Photographed: the same command at scale 1.0 / 0.5 / 0.0 moves the camera 0.302357 / 0.151178 / 0.000000 m and the picture (+14,-12) / (+8,-6) / (0,0) px, with the HUD unmoved throughout |
+| ~~I~~ | ~~**`reduce_motion` finished**~~ | **DONE — T5.7, 2026-09-05.** Both halves landed. The setting reaches all three motions, and the shadow atlas turned out to be a live defect rather than a portability worry: the `2048` const halved this repository's own atlas on every windowed boot, because the engine's default is 4096. Gotcha 61 |
+| ~~J~~ | ~~**A placeholder sheet whose facings are distinguishable**~~ | **DONE — T5.8, 2026-09-05.** Both sheets now draw five poses and a mirror instead of one pose repeated. The worst facing pair went from 0.0000 — facings 2 and 3 were byte-identical — to 0.0747 on the default sheet and 0.2188 on the alt one, and the same character was photographed walking north, east, south and west, which nothing here had ever captured. The code was correct throughout, which is **gotcha 62**: gotcha 54 with the unwired middle made of pixels. No file under `src/` changed except the debug capture tool |
+| ~~K~~ | ~~**A public-method liveness gate — the fourth consumer question**~~ | **DONE — T5.13, 2026-09-06.** `tools/check_methods.gd` is rung 11, and the design question — which methods it is even asked of — has the answer that made it buildable: not "is it called on a value of the right type", which no text scan can know, but "did anybody write this name down at all", which every dispatch form satisfies, including the unqualified inherited call an earlier draft missed. **First run: 12 violations of 316, exit 1** — two deleted (a MAJOR bump, 4.0.0, with the one-line replacement named for each), one wired, nine exempted with an argued sentence each, and **two of the twelve carried doc comments naming callers that never existed**. Proved against `duck()`: at `7a162ca` it had zero references outside its own declaration, so it would have failed on the day it landed. **86 of 314 are reached only from tests/ or tools/ and that is REPORTED, never failed** — the distinction is real, but 86 exemptions on day one is decoration and would be answered with a fake caller. Exemption is `NO CALLER` in the method own `##` block; a stale one fails too. **Gotcha 69**: the precondition fired on the test file that quoted its own trigger pattern, and the gate was right |

@@ -47,6 +47,11 @@ func set_flag(flag: StringName, value: Variant) -> void:
 	Events.flag_changed.emit(flag, value)
 
 
+## THE UNTYPED ESCAPE HATCH. NO CALLER here, because everything in this template stores a bool,
+## an int, a String, a float, an Array or a Dictionary, and each of those has a typed accessor
+## below that is better in every way. It survives for the type this template did not anticipate:
+## a game storing a Vector3 or a custom Resource on a flag has no other way to read it back, and
+## the typed accessors cannot be widened to cover a type they cannot check.
 func get_flag(flag: StringName, default: Variant = null) -> Variant:
 	return _values.get(flag, default)
 
@@ -55,7 +60,7 @@ func has_flag(flag: StringName) -> bool:
 	return _values.has(flag)
 
 
-## Typed accessors. Use these rather than get_flag, so a wrong type is caught here instead
+## Typed accessors. Prefer these over the untyped hatch above, so a wrong type is caught here instead
 ## of surfacing as a strange bug three systems away.
 func get_bool(flag: StringName, default: bool = false) -> bool:
 	var value: Variant = _values.get(flag, default)

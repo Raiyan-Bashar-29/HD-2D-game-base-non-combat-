@@ -64,9 +64,3 @@ func category_name() -> String:
 	var names: Array = GameEnums.ItemCategory.keys()
 	var raw: String = names[category]
 	return raw
-
-
-## Whether this item can occupy an equipment slot at all. One question, one place: an `Equipment`
-## component and a UI row both ask this rather than each comparing against NONE themselves.
-func is_equippable() -> bool:
-	return equip_slot != GameEnums.EquipSlot.NONE

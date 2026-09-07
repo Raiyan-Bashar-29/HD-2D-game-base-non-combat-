@@ -47,10 +47,11 @@ const STYLED_SCREENS: Array[String] = [
 
 
 func run() -> void:
-	plan(87)
+	plan(106)
 	_the_sheet_geometry_is_derived_from_the_facing_count()
 	_the_frame_index_matches_the_constants_it_replaced()
 	_a_layout_reports_its_own_problems()
+	_every_move_state_maps_to_a_block()
 	_the_committed_layouts_match_the_committed_sheets()
 	_the_theme_is_wired_through_the_project_setting()
 	_the_theme_carries_every_value_the_screens_ask_for()
@@ -100,10 +101,13 @@ func _the_frame_index_matches_the_constants_it_replaced() -> void:
 	equal("4x3x2: idle frame 0, column 0", four.frame_index(0, 0, 0), 0)
 	equal("a frame past the cycle wraps", four.frame_index(0, 3, 0), four.frame_index(0, 0, 0))
 	equal("a column past the count wraps", four.frame_index(4, 0, 0), four.frame_index(0, 0, 0))
-	equal("standing still plays the idle block", four.animation_for(false), 0)
-	equal("moving plays the walk block", four.animation_for(true), 1)
+	equal("standing still plays the idle block",
+		four.animation_for(GameEnums.MoveState.IDLE), 0)
+	equal("walking plays the walk block",
+		four.animation_for(GameEnums.MoveState.WALK), 1)
 	four.walk_row = 9
-	equal("a block past the end clamps to the last", four.animation_for(true), 1)
+	equal("a block past the end clamps to the last",
+		four.animation_for(GameEnums.MoveState.WALK), 1)
 
 
 func _a_layout_reports_its_own_problems() -> void:
@@ -129,7 +133,7 @@ func _the_committed_layouts_match_the_committed_sheets() -> void:
 	equal("the default layout is 8 facings", main.facings, 8)
 	equal("the default layout is 4 frames", main.frames, 4)
 	equal("the alt layout is 4 facings", alt.facings, 4)
-	equal("the alt layout is 3 frames in 2 blocks", [alt.frames, alt.animations], [3, 2])
+	equal("the alt layout is 3 frames in 5 blocks", [alt.frames, alt.animations], [3, 5])
 	equal("the alt layout has a separate walk block", alt.walk_row != alt.idle_row, true)
 	# The swap has to BE a swap: two layouts agreeing on the numbers would prove nothing.
 	equal("the two layouts disagree on the cell", main.cell_size != alt.cell_size, true)
@@ -219,6 +223,69 @@ func _project_theme() -> Theme:
 	return load(str(ProjectSettings.get_setting(THEME_SETTING, ""))) as Theme
 
 
+
+
+## EVERY MOVE STATE MAPS TO A BLOCK, AND AN UNSET GAIT INHERITS THE WALK ONE. This is the whole
+## of T5.2's seam: `animation_for` took a BOOLEAN until then, so a sheet could hold an idle cycle
+## and a walk cycle and nothing else, and run and sneak replayed the walk block faster.
+##
+## THE FALLBACK IS ASSERTED BEFORE THE FEATURE, deliberately. A sheet authored before this existed
+## sets none of the three new rows, and the thing that must not break is that it keeps drawing
+## exactly what it drew - so the first assertions here are that a two-block sheet answers WALK for
+## run, sneak and climb, and only then that naming a row overrides it.
+func _every_move_state_maps_to_a_block() -> void:
+	var sheet: SpriteSheetLayout = _layout(8, 4, 4, Vector2i(32, 48))
+	sheet.idle_row = 0
+	sheet.walk_row = 1
+
+	equal("idle draws the idle block", sheet.animation_for(GameEnums.MoveState.IDLE), 0)
+	equal("walk draws the walk block", sheet.animation_for(GameEnums.MoveState.WALK), 1)
+	# The compatibility half: three gaits, no rows named, all of them the walk block.
+	for gait: GameEnums.MoveState in [
+		GameEnums.MoveState.RUN, GameEnums.MoveState.SNEAK, GameEnums.MoveState.CLIMB,
+	]:
+		equal("gait %d with no row of its own inherits the walk block" % int(gait),
+			sheet.animation_for(gait), 1)
+	# A state this template has no gait for at all falls to idle rather than to the walk block: a
+	# character held by a dialogue box is standing there, not walking on the spot.
+	for held: GameEnums.MoveState in [
+		GameEnums.MoveState.JUMP, GameEnums.MoveState.FALL, GameEnums.MoveState.SWIM,
+		GameEnums.MoveState.BUSY, GameEnums.MoveState.LOCKED,
+	]:
+		equal("state %d with no gait falls to idle" % int(held),
+			sheet.animation_for(held), 0)
+	equal("a two-block sheet draws two distinct gaits", sheet.distinct_gaits(), 2)
+
+	# And the feature half: naming a row overrides the inheritance, one gait at a time.
+	sheet.run_row = 2
+	equal("naming a run row draws it", sheet.animation_for(GameEnums.MoveState.RUN), 2)
+	equal("and does not disturb the walk block",
+		sheet.animation_for(GameEnums.MoveState.WALK), 1)
+	sheet.sneak_row = 3
+	equal("naming a sneak row draws it", sheet.animation_for(GameEnums.MoveState.SNEAK), 3)
+	equal("climb still inherits, because it was not named",
+		sheet.animation_for(GameEnums.MoveState.CLIMB), 1)
+	equal("four named blocks are four distinct gaits", sheet.distinct_gaits(), 4)
+
+	# A row past the end clamps rather than indexing off the sheet, and says so.
+	sheet.run_row = 9
+	equal("a gait row past the end clamps to the last block",
+		sheet.animation_for(GameEnums.MoveState.RUN), 3)
+	equal("and it is a reported problem, not a silent clamp",
+		_problem_names(sheet.problems(), "run_row"), true)
+	sheet.run_row = -1
+	equal("and -1 is not a problem, because it MEANS inherit",
+		sheet.problems().size(), 0)
+
+
+## Whether any problem line names a given field. The message is prose, so this asks the question
+## the assertion actually cares about rather than comparing a whole sentence.
+func _problem_names(problems: PackedStringArray, field: String) -> bool:
+	for line: String in problems:
+		if line.contains(field):
+			return true
+	return false
+
 func _layout(facings: int, frames: int, animations: int, cell: Vector2i) -> SpriteSheetLayout:
 	var made := SpriteSheetLayout.new()
 	made.facings = facings
@@ -226,3 +293,5 @@ func _layout(facings: int, frames: int, animations: int, cell: Vector2i) -> Spri
 	made.animations = animations
 	made.cell_size = cell
 	return made
+
+

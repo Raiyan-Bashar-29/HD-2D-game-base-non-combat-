@@ -285,6 +285,7 @@ object_id = &"north_gate"
 label_key = "object.gate.north.label"
 requires_flag = &"area/courtyard/gate_unlocked"
 opened_key = "object.gate.north.opened"
+open_shake = 0.7
 
 [node name="RoseKey" parent="Interactables" instance=ExtResource("10_pickup")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.6, 0, 1.6)

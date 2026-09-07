@@ -11,7 +11,7 @@ extends Node
 ##
 ## OWNS: the settings file, the default values, and applying the ones that belong to the
 ## window and the display server.
-## MUST NOT: apply audio or gameplay settings itself. It announces a change through
+## MUST NOT: apply audio, world or gameplay settings itself. It announces a change through
 ## Events.setting_changed and the owning system reacts. That keeps this file from growing a
 ## branch for every feature that ever gains an option.
 
@@ -19,6 +19,25 @@ const PATH: String = "user://settings.cfg"
 
 ## Every setting the game has, with its default. This is also the validation list: a key
 ## that is not here is rejected, so a typo cannot silently create a dead setting.
+##
+## AND EVERY KEY HERE IS READ BY SOMETHING. `settings_screen.gd` generates its rows FROM this
+## dictionary, so a key added here is drawn to the player immediately - which makes a key with no
+## consumer worse than a dead constant: the player is shown a control that does nothing. Twelve
+## of twenty-three were in that state until T5.5. Nine were wired; three were REMOVED, because
+## honouring them would have meant inventing a feature rather than connecting one - and ONE OF
+## THREE HAVE NOW COME BACK WITH THEIR FEATURE, which is what that decision was for:
+##   `gameplay/camera_shake`   - RESTORED at T5.9. It had no shake to scale; `HD2DCameraRig` has
+##                               one now, names this key as `SHAKE_SETTING`, and reads it as a
+##                               0..1 veto on the amplitude the area author gave that rig.
+##   `gameplay/autosave`       - RESTORED at T5.10. There was no autosave and `SaveSystem` had no
+##                               notion of the slot a run belongs to, so `true` meant nothing.
+##                               `SaveSystem.AUTOSAVE_SLOT` is that notion and `Autosave` is the
+##                               policy; this key is the player's veto over it and nothing more.
+##   `accessibility/subtitles` - still out. Nothing is voiced, so there is nothing to caption.
+## The one left is one line here plus one CSV row to bring back the day its feature exists; the
+## screen needs no edit at all, which the shake and the autosave have now both proved literally
+## rather than by claim. `tests/unit/settings_consumers_test.gd` is what refuses a key with no
+## reader, so do not re-add one before its consumer.
 const DEFAULTS: Dictionary = {
 	"video/window_mode": 0,          # 0 windowed, 1 borderless fullscreen, 2 exclusive
 	"video/vsync": 1,                # matches DisplayServer.VSyncMode
@@ -33,24 +52,34 @@ const DEFAULTS: Dictionary = {
 	"audio/sfx": 0.9,
 	"audio/ui": 0.8,
 	"gameplay/text_speed": 1.0,      # dialogue characters per tick multiplier
-	"gameplay/autosave": true,
 	"gameplay/run_is_toggle": false, # hold to run by default
 	"gameplay/show_interact_hints": true,
-	"gameplay/camera_shake": 1.0,
+	"gameplay/camera_shake": 1.0,    # 0..1 scale on whatever amplitude a rig authored
+	"gameplay/autosave": true,       # a veto on the policy's occasions, never a new one
 	"accessibility/text_scale": 1.0,
 	"accessibility/reduce_motion": false,
 	"accessibility/high_contrast_prompts": false,
-	"accessibility/subtitles": true,
 	"accessibility/hold_to_confirm": false,
 	"locale": "en",
 }
 
+## Shadow map sizes are NOT a const here any more. They were, and the number was wrong: 2048 was
+## described as "the engine's own default" and the engine's default is 4096, so toggling
+## `video/shadows` halved the atlas of this very repository. `ShadowAtlas` reads what the project
+## authored instead, on `HD2DCameraRig._authored_dof`'s pattern. See that file's header.
+
+## The one setting with no section, and the second this file applies without a system owning it.
+const LOCALE: String = "locale"
+
 var _config: ConfigFile = ConfigFile.new()
+## RefCounted, so it needs no freeing and leaks no RID. It holds the two authored sizes.
+var _shadows: ShadowAtlas = ShadowAtlas.new()
 
 
 func _ready() -> void:
 	_load_from_disk()
 	_apply_display()
+	_apply_locale()
 	Log.info("settings", "Loaded %d settings" % DEFAULTS.size())
 
 
@@ -110,6 +139,8 @@ func set_value(path: String, value: Variant) -> void:
 	Events.setting_changed.emit(parts[0], parts[1], value)
 	if parts[0] == "video":
 		_apply_display()
+	elif path == LOCALE:
+		_apply_locale()
 
 
 func save() -> void:
@@ -123,6 +154,7 @@ func reset_to_defaults() -> void:
 	_config.clear()
 	save()
 	_apply_display()
+	_apply_locale()
 	for path: String in DEFAULTS:
 		var parts: PackedStringArray = _split(path)
 		Events.setting_changed.emit(parts[0], parts[1], DEFAULTS[path])
@@ -139,12 +171,14 @@ func _load_from_disk() -> void:
 		Log.warn("settings", "%s unreadable (%s) — using defaults" % [PATH, error_string(err)])
 
 
-## The only settings this file applies directly, because nothing else owns the window.
+## Applied here rather than announced, because nothing else owns the window.
 func _apply_display() -> void:
 	if DisplayServer.get_name() == "headless":
 		return
 	_apply_vsync(get_int("video/vsync"))
 	Engine.max_fps = get_int("video/max_fps")
+	_apply_render_scale(get_float("video/resolution_scale"))
+	_apply_shadows(get_bool("video/shadows"))
 	match get_int("video/window_mode"):
 		1:
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
@@ -173,3 +207,54 @@ func _apply_vsync(mode: int) -> void:
 			DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_MAILBOX)
 		_:
 			DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED)
+
+
+## THE SECOND SETTING THIS FILE APPLIES ITSELF, and for `_apply_display`'s reason rather than by
+## analogy with it: nothing else owns `TranslationServer` either. A consumer would have to be a
+## system, and "the language" is not one - every screen reads it, none of them owns it.
+##
+## NOT skipped under headless, which is the one way this differs from the display. A translation
+## has no window in it, so the suite can and does assert against `tr()` - and the criterion this
+## closes ("switch language at runtime and see every visible string change") would otherwise be
+## provable only by eye.
+##
+## An empty or unknown locale is left alone rather than forced: `TranslationServer` falls back to
+## the project's default, and a settings file hand-edited to nonsense should not blank the UI.
+func _apply_locale() -> void:
+	var wanted: String = get_string(LOCALE)
+	if wanted == "":
+		return
+	TranslationServer.set_locale(wanted)
+	Log.info("settings", "Locale -> %s" % TranslationServer.get_locale())
+
+
+## THE THIRD THING THIS FILE APPLIES ITSELF, on `_apply_display`'s reasoning: the render scale is
+## a property of the VIEWPORT, and no system owns the viewport either. Announcing it would mean
+## inventing a listener whose only job is to set one property on a node it does not own.
+##
+## Clamped, because `scaling_3d_scale` at 0.0 renders a zero-pixel image and a hand-edited
+## settings file must not be able to blank the game.
+func _apply_render_scale(scale: float) -> void:
+	var viewport: Viewport = get_viewport()
+	if viewport == null:
+		return
+	viewport.scaling_3d_scale = clampf(scale, 0.25, 2.0)
+
+
+## AND THE FOURTH, for the reason that decided where `video/bloom` went and then pointed the other
+## way. Bloom belongs to `EnvironmentDriver` because the Environment is that node's. But shadows
+## are cast by LIGHTS AN AREA AUTHOR PLACED - the courtyard has four - and no node owns the set of
+## them. Enumerating lights would mean a driver that walks the scene tree and gets it wrong for
+## every light added after it, which is the shape of the god object ADR-0001 refuses.
+##
+## So it is applied at the ATLAS instead: a shadow map of size zero means every light in the world
+## casts nothing, whoever placed it and whenever. A game that adds a hundred lights gets this
+## setting for free and writes no code, which is the whole test of a template seam.
+##
+## THE RESTORE HALF WAS WRONG UNTIL T5.7, and only the OFF half was ever photographed. Turning
+## shadows back on wrote a 2048 const, and 4096 is what this project — and the engine — actually
+## authors, so a player who toggled the setting once got half the shadow resolution back and
+## nothing said so. `ShadowAtlas` remembers the authored sizes before the first zeroing, which is
+## the only moment they can still be read.
+func _apply_shadows(enabled: bool) -> void:
+	_shadows.apply(get_viewport(), enabled)

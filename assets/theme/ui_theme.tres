@@ -81,3 +81,21 @@ UiMetrics/constants/box_margin = 36
 UiMetrics/constants/separation = 14
 UiMetrics/constants/row_separation = 8
 UiMetrics/constants/tight_separation = 6
+; The face of a pressable row at rest, and the ONLY colour a button state is designed from.
+; Added by T5.15, the first entry here that needed a SURFACE rather than a mark on one: `dim` and
+; `solid` are the panel BEHIND a row, so a row drawn in either vanishes into it, and `muted`
+; already means "present but lesser" — a whole menu drawn in it would say every row is
+; half-earned. The other four states are derived from this one, from `text` and from `accent` at
+; runtime rather than authored here, because a theme resource has no variables and five
+; hand-picked surfaces are five things a consuming game must re-pick instead of one. The
+; derivation, and what happens when this entry is missing, are in src/ui/root/ui_row_styles.gd.
+UiPalette/colors/surface = Color(0.15, 0.14, 0.19, 1)
+
+; Side inset INSIDE a pressable row, between its border and its text. A row whose text starts at
+; its own edge reads as a label that happens to have a box round it. The top and bottom inset is
+; `tight_separation` and is deliberately not a fourth number: a row is wider than it is tall.
+UiMetrics/constants/row_padding = 18
+; The width of the ring drawn round the row holding keyboard or gamepad focus. Its own constant
+; rather than shared with anything, because it is the one measurement in this file that a player
+; navigating without a mouse depends on being able to see.
+UiMetrics/constants/focus_border = 2

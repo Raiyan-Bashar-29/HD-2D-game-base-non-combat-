@@ -12,7 +12,7 @@ var _mover: PlayerController = null
 
 
 func run() -> void:
-	plan(50)
+	plan(56)
 	Flags.clear_all()
 	SaveSystem.unregister(&"world")
 	_trigger_fires_once()
@@ -130,11 +130,37 @@ func _drive_climb(destination: Vector3) -> void:
 	equal("the climb starts", _mover.begin_climb(destination), true)
 	equal("a climb in progress refuses a second", _mover.begin_climb(destination), false)
 	equal("the body is climbing", _mover.state, GameEnums.MoveState.CLIMB)
+	# THE ASSERTION THAT WAS MISSING. `_mover.state` above and `animation_for(CLIMB)` in
+	# art_contract_test each proved one END of the seam, and nothing proved the WIRE: while a
+	# climb owns the body `_physics_process` returns early, so the visual never heard about a
+	# climb at all and `climb_row` could not be drawn. Assert the drawn BLOCK, not the state.
+	var visual: CharacterVisual = _mover.visual
+	var idle_block: int = _block_drawn(visual)
+	_mover.climb_step(1.0 / 60.0)
+	equal("a climb draws the climb block", _block_drawn(visual), _climb_block(visual))
+	var first: int = visual.sprite.frame
 	var steps: int = 0
 	while _mover.is_climbing() and steps < 600:
 		_mover.climb_step(1.0 / 60.0)
 		steps += 1
 	equal("the climb finished within its budget", _mover.is_climbing(), false)
+	equal("and its cycle actually advanced", visual.sprite.frame != first, true)
+	equal("standing still went back to the idle block", _block_drawn(visual), idle_block)
+
+
+## Which animation BLOCK the sprite is drawing, decoded from the one number the sheet exposes.
+## `frame_index` is `(animation * frames + frame) * facings + column`, so the block is the
+## frame index divided by a row of facings and then by the cycle length.
+func _block_drawn(visual: CharacterVisual) -> int:
+	var layout: SpriteSheetLayout = visual.layout
+	return (visual.sprite.frame / layout.facings) / layout.frames
+
+
+## The block a climb SHOULD draw for this sheet. The shipped placeholder leaves `climb_row` at
+## -1, so this is the walk block - which is the point: the fallback is what most sheets use, and
+## it still has to be reached. A sheet that draws its own climb cycle is asserted separately.
+func _climb_block(visual: CharacterVisual) -> int:
+	return visual.layout.animation_for(GameEnums.MoveState.CLIMB)
 
 
 func _make_trigger(object_id: StringName, once: bool) -> TriggerVolume:

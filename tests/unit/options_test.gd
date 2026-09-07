@@ -32,7 +32,7 @@ var _stack: UiRoot = null
 
 
 func run() -> void:
-	plan(156)
+	plan(152)
 	_stack = UiRoot.new()
 	attach(_stack)
 	_settings_covers_every_row()

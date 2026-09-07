@@ -74,14 +74,18 @@ awk '!/^(area|talk|action|object|quest)\./ && (!/^item\./ || /^item\.category\./
    three packages. `tools/check_content.gd` fails any row that parses to more than two columns.
 2. **`ui.menu.title` holds the game's NAME**, not a UI label. It is an engine key with a
    game-specific value — change the value, keep the key.
-3. **NO GATE CHECKS THIS FILE FOR DEMO ROWS, so a prefix missing from the list above ships.**
-   `check_boundary.gd` guards `src/`, `tests/framework/` and `tests/unit/` — not `localization/`
-   — and a leftover row is nobody's error: it is a translation for content you deleted, so
-   nothing loads it and nothing complains. `quest.` was missing from this list from WP-08 until
-   T4.3, and a fork that followed this document shipped the demo's `quest.keepers_errand.*`
-   rows — "The Keeper's Errand", "three rose petals" — inside its own game, with all four
-   checkers and the whole suite green. The list above is the only thing standing between you and
-   that, so after pruning, grep the result for the demo's vocabulary and expect nothing back:
+3. **A GATE CHECKS THIS FILE NOW, AND IT DID NOT UNTIL T5.4.** `check_boundary.gd` fails on an
+   ORPHAN row — one translating content that is not in `data/` or `scenes/areas/` — so if you
+   delete the demo and miss a prefix above, **rung 7 goes red and names the row**. That is what
+   the paragraph here used to say was impossible. It came from a real failure: `quest.` was
+   missing from this list from WP-08 until T4.3, and a fork that followed this document shipped
+   the demo's `quest.keepers_errand.*` rows — "The Keeper's Errand", "three rose petals" —
+   inside its own game, with all four checkers and the whole suite green.
+
+   **Two namespaces are still yours to check by eye.** `object.` and `action.` keys are authored
+   freely and match no id, so nothing can derive whether they are orphaned. The gate reports
+   them in its count and cannot fail on them. So after pruning, still grep the result for the
+   demo's vocabulary and expect nothing back:
 
 ```bash
 grep -niE 'keeper|gardener|courtyard|lantern|rose|petal|dais' localization/strings.csv

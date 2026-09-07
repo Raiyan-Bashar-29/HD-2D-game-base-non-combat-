@@ -34,6 +34,8 @@ extends Node
 ## MUST NOT: contain assertions of its own, or any game logic.
 
 const CASE_DIR: String = "res://tests/unit"
+## The language the suite runs in, read from the project rather than assumed.
+const FALLBACK_LOCALE: String = "internationalization/locale/fallback"
 
 const CASES: Array[String] = [
 	"res://tests/unit/core_test.gd",
@@ -44,6 +46,7 @@ const CASES: Array[String] = [
 	"res://tests/unit/traversal_test.gd",
 	"res://tests/unit/ui_test.gd",
 	"res://tests/unit/screens_test.gd",
+	"res://tests/unit/row_styles_test.gd",
 	"res://tests/unit/transitions_test.gd",
 	"res://tests/unit/dialogue_test.gd",
 	"res://tests/unit/npc_test.gd",
@@ -53,6 +56,8 @@ const CASES: Array[String] = [
 	"res://tests/unit/options_test.gd",
 	"res://tests/unit/export_test.gd",
 	"res://tests/unit/art_contract_test.gd",
+	"res://tests/unit/character_swap_test.gd",
+	"res://tests/unit/sheet_facings_test.gd",
 	"res://tests/unit/quests_test.gd",
 	"res://tests/unit/equipment_test.gd",
 	"res://tests/unit/world_map_test.gd",
@@ -64,9 +69,21 @@ const CASES: Array[String] = [
 	"res://tests/unit/dev_tools_test.gd",
 	"res://tests/unit/version_test.gd",
 	"res://tests/unit/docs_test.gd",
+	"res://tests/unit/bag_mirror_test.gd",
+	"res://tests/unit/facing_test.gd",
+	"res://tests/unit/turn_test.gd",
+	"res://tests/unit/gaits_test.gd",
+	"res://tests/unit/doc_counts_test.gd",
+	"res://tests/unit/gates_test.gd",
+	"res://tests/unit/settings_consumers_test.gd",
+	"res://tests/unit/settings_effects_test.gd",
+	"res://tests/unit/audio_duck_test.gd",
 ]
 
 var _passed: int = 0
+## Engine script errors already blamed on a named case, so the backstop can tell which ones
+## nothing accounted for.
+var _attributed: int = 0
 var _failed: int = 0
 var _skipped: int = 0
 var _failures: Array[String] = []
@@ -85,6 +102,14 @@ func _ready() -> void:
 	Log.info("test", "=== test run starting ===")
 	# Determinism: a clock that advances mid-assertion makes time assertions flaky.
 	Clock.paused = true
+	# AND SO IS THE LANGUAGE, for the same reason one step further out. Several cases compare
+	# `tr()` output, so a developer who left the pseudolocale selected - or any consuming
+	# game whose default is not English - would fail assertions that have nothing to do with
+	# their change. T5.1 hit exactly that: a `--locale=en_XA` capture PERSISTS the setting,
+	# because a language choice should, and the next suite run failed in four unrelated cases.
+	# The fallback is read rather than hard-coded, so this pins the project's own language.
+	var declared: Dictionary = {"locale": ProjectSettings.get_setting(FALLBACK_LOCALE, "en")}
+	TranslationServer.set_locale(DictRead.get_string(declared, "locale", "en"))
 	if not Fixtures.has_demo_content():
 		Log.info("test", "no demo content in this checkout — demo-only cases will skip")
 
@@ -92,6 +117,7 @@ func _ready() -> void:
 	for path: String in CASES:
 		_run_case(path)
 
+	_no_unattributed_errors()
 	_report()
 	get_tree().quit(1 if _failed > 0 else 0)
 
@@ -124,6 +150,16 @@ func _run_case(path: String) -> void:
 	var script: GDScript = load(path) as GDScript
 	if script == null:
 		_record_failure("%s could not be loaded" % path)
+		return
+	# A SCRIPT THAT DOES NOT PARSE IS NOT NULL. `load()` hands back a GDScript that exists and
+	# cannot be instantiated, so this function used to walk straight into `script.new()` - whose
+	# failure is a runtime error, and gotcha 24 says that aborts only THIS frame. The
+	# `does not extend TestCase` failure below was therefore never reached, the loop in `_ready`
+	# moved on, and a LISTED case that did not compile reported `0 failed` and exit 0 - the same
+	# false green `_manifest_is_complete` exists to close, through the one door it does not watch.
+	# Found by performing `docs/TESTING.md`, whose rule 5 already named this failure shape.
+	if not script.can_instantiate():
+		_record_failure("%s is listed but does not parse, so it never ran" % path)
 		return
 	# Object, then a cast: casting a Variant directly would trip the unsafe_cast warning.
 	var instance: Object = script.new()
@@ -168,8 +204,24 @@ func _no_script_errors(case_name: String, before: int) -> void:
 	var raised: int = _watch.script_errors - before
 	if raised == 0:
 		return
+	_attributed += raised
 	_record_failure("%s raised %d engine script error(s): %s" % [
 		case_name, raised, str(_watch.descriptions),
+	])
+
+
+## THE BACKSTOP FOR AN ERROR RAISED OUTSIDE A CASE. `_no_script_errors` is read per case from
+## inside `_run_case`, AFTER `run()` returns - so an engine script error raised on the way in,
+## while loading or instantiating, is counted by the watch and read by nobody. That is precisely
+## how the parse-error hole stayed open for the life of the suite: the watch saw the error and
+## nothing ever asked it. Guarding `can_instantiate()` closes the case that was found; this
+## closes the CLASS, because the next one will not be a parse error.
+func _no_unattributed_errors() -> void:
+	var unattributed: int = _watch.script_errors - _attributed
+	if unattributed <= 0:
+		return
+	_record_failure("%d engine script error(s) were raised outside any case: %s" % [
+		unattributed, str(_watch.descriptions),
 	])
 
 

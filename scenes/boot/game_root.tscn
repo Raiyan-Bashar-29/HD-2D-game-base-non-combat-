@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=21 format=3]
 
 [ext_resource type="Script" path="res://src/core/boot/game_root.gd" id="1_root"]
 [ext_resource type="Script" path="res://src/ui/hud/screen_fade.gd" id="2_fade"]
@@ -15,6 +15,12 @@
 [ext_resource type="Script" path="res://src/systems/quest/quest_tracker.gd" id="13_quests"]
 [ext_resource type="Script" path="res://src/systems/world_map/world_map.gd" id="14_map"]
 [ext_resource type="Script" path="res://src/ui/hud/perf_overlay.gd" id="15_perf"]
+[ext_resource type="Script" path="res://src/ui/root/ui_accessibility.gd" id="16_access"]
+[ext_resource type="Script" path="res://src/systems/debug/dev_gait_shots.gd" id="17_gait"]
+[ext_resource type="Script" path="res://src/systems/autosave/autosave.gd" id="18_autosave"]
+[ext_resource type="Script" path="res://src/systems/audio/dialogue_duck.gd" id="19_duck"]
+[ext_resource type="Script" path="res://src/systems/debug/dev_scenario_shots.gd" id="20_scenario"]
+[ext_resource type="Script" path="res://src/ui/root/ui_row_styles.gd" id="21_rows"]
 
 [node name="GameRoot" type="Node"]
 script = ExtResource("1_root")
@@ -44,6 +50,12 @@ script = ExtResource("6_ui")
 
 [node name="ScreenKeys" type="Node" parent="UILayer"]
 script = ExtResource("8_keys")
+
+[node name="UiAccessibility" type="Node" parent="UILayer"]
+script = ExtResource("16_access")
+
+[node name="UiRowStyles" type="Node" parent="UILayer"]
+script = ExtResource("21_rows")
 
 [node name="ScreenFade" type="ColorRect" parent="UILayer"]
 anchors_preset = 15
@@ -79,3 +91,15 @@ script = ExtResource("14_map")
 [node name="PerfOverlay" type="CanvasLayer" parent="."]
 layer = 101
 script = ExtResource("15_perf")
+
+[node name="DevGaitShots" type="Node" parent="."]
+script = ExtResource("17_gait")
+
+[node name="Autosave" type="Node" parent="."]
+script = ExtResource("18_autosave")
+
+[node name="DialogueDuck" type="Node" parent="."]
+script = ExtResource("19_duck")
+
+[node name="DevScenarioShots" type="Node" parent="."]
+script = ExtResource("20_scenario")

@@ -30,7 +30,8 @@ row 5   walk.2   ...
 So the sheet is `facings` cells wide and `frames * animations` cells tall, and an animation is
 addressed by **index**, not by its first row — move the walk block down and you do not recount.
 
-`animations = 1` with both row fields at `0` is a single-cycle sheet with no separate idle. That
+`animations = 1` with every row field at `0` or `-1` is a single-cycle sheet: no separate idle
+and no separate gaits. That
 is legal, it is what this project shipped before the layout resource existed, and every such sheet
 still works unchanged.
 
@@ -47,10 +48,13 @@ One `.tres` beside the texture:
 script = ExtResource("1_layout")
 facings = 8
 frames = 4
-animations = 1
+animations = 3
 cell_size = Vector2i(32, 48)
 idle_row = 0
-walk_row = 0
+walk_row = 1
+run_row = 2
+sneak_row = -1
+climb_row = -1
 ```
 
 | Field | Means |
@@ -59,7 +63,42 @@ walk_row = 0
 | `frames` | cells down within one animation: the length of its cycle. 1–64 |
 | `animations` | how many blocks are stacked down the sheet. 1–32 |
 | `cell_size` | one cell in texture pixels |
-| `idle_row` / `walk_row` | which block plays standing still, and which moving. Equal means no separate idle |
+| `idle_row` / `walk_row` | which block plays standing still, and which walking |
+| `run_row` / `sneak_row` / `climb_row` | the other gaits. **-1 means "replay the walk block"** |
+
+### A block per GAIT, and the ones you leave out
+
+**Since 1.2.0 the block is chosen by what the character is DOING, not by whether it is moving.**
+`SpriteSheetLayout.animation_for` takes a `GameEnums.MoveState`, so a sheet can carry a separate
+cycle for each gait, and **every character in the game picks them up by asset swap with no code** —
+the player and every NPC draw through the same `CharacterVisual`.
+
+| Field | Means | Leave it at |
+|---|---|---|
+| `idle_row` | standing still | `0` |
+| `walk_row` | walking | its own block if you have one |
+| `run_row` | running | **`-1`** to replay the walk block |
+| `sneak_row` | sneaking | **`-1`** to replay the walk block |
+| `climb_row` | on an authored climb | **`-1`** to replay the walk block |
+
+**`-1` means "replay the walk block", and it is the default for a reason.** A sheet that names none
+of the three behaves exactly as every sheet did before 1.2.0, when `animation_for` took a boolean
+and run and sneak had nowhere to go. So you can ship one walk cycle and add a run later by drawing
+one and naming its row — nothing else changes, in your project or in the base.
+
+**`0` would have been the wrong default.** Row 0 is a real row — normally the idle block — so a
+default of `0` would have drawn a *standing* character for anything running, on every sheet that
+had not been updated. `-1` is the only value that can mean "I have not drawn this".
+
+**States with no gait of their own fall back to idle**, not to walk: `JUMP`, `FALL`, `SWIM`, `BUSY`
+and `LOCKED`. There is no jumping and no swimming in this template; `BUSY` and `LOCKED` mean
+something else is driving the character — a dialogue box, a cutscene — which looks like standing
+there rather than walking on the spot.
+
+**A row past the end of the sheet is a reported problem**, not a silent clamp. `problems()` names
+the field — `names run_row row 9, past its 3 animation(s)` — because the draw call clamps to the
+last block, so without the report a mis-typed row animates plausibly and wrongly. That is gotcha
+38's shape: a number the loader kept and nobody checked.
 
 **The cell size is declared, not divided out of the texture.** A sheet of the wrong size is then a
 named problem — `expects a (256, 192) sheet; the texture is (240, 192)` — instead of every
@@ -135,20 +174,96 @@ fails the suite rather than a screenshot six months later.
 
 ### The two placeholders, and why one of them counts its own cells
 
-- `character_placeholder.png` — 8 facings × 4 frames, 32×48 cells, one animation block. 256×192.
-- `character_alt.png` — 4 facings × 3 frames in **2** blocks, 24×40 cells. 96×240. It disagrees
-  with the first on every number, and exists so the "swap a sheet, change no code" claim can be
-  demonstrated rather than asserted.
+- `character_placeholder.png` — 8 facings × 4 frames in **3** blocks (idle, walk, run),
+  32×48 cells. 256×576. Each block wears a different cloth tint and the run leans forward,
+  so which GAIT is drawn can be READ off a capture rather than guessed at — see the
+  labelling note below, and gotcha 28 for why that matters.
+- `character_alt.png` — 4 facings × 3 frames in **5** blocks (idle, walk, run, sneak, climb),
+  24×40 cells. 96×600. It disagrees with the first on every number, and exists so the "swap a
+  sheet, change no code" claim can be demonstrated rather than asserted. **It is also the only
+  layout in the project that leaves no gait at `-1`**, so it is the only one that draws a sneak
+  and a climb from rows of their own rather than from the walk block.
 
 **Every cell of the alt sheet labels itself**, and the reason generalises to any art you make for
 testing this seam. A day/night system that lights nothing is at least obviously wrong on screen; a
 character drawn from the *wrong cell* still looks like a character — upright, lit, facing *some*
-direction. So a capture of it cannot be judged, it has to be **read**. Each cell carries
-`column + 1` bright pips down its left edge and `frame + 1` along its foot, and the two blocks wear
-different body tints. Four left pips and two foot pips on an orange body is block 1, frame 1,
-column 3 — index `(1*3 + 1) * 4 + 3 = 19` — and no amount of plausible pixel art fakes that number.
+direction. So a capture of it cannot be judged, it has to be **read**. Each cell carries three
+tallies: `column + 1` yellow pips down its left edge, `frame + 1` across its foot, and
+`block + 1` **white** pips down its right edge. Two left pips, two foot pips and four right pips
+on a purple crouching body is column 1, frame 1, block 3 — index `(3*3 + 1) * 4 + 1 = 41` — and no
+amount of plausible pixel art fakes that number.
 
-Regenerate both with `tools/gen_placeholders.gd`.
+Two things about those tallies that cost an hour each, and both are in your way if you make a
+sheet of your own. The foot tally sits at `cell.y - 7` and not at the very bottom, because a
+sprite anchored by its feet has its last rows **occluded by the ground plane** and a tally drawn
+there photographs short (gotcha 58). And nothing may overrun its cell: the generator's `_plot`
+clips to the image rather than to the cell, so a stride that reaches past the bottom row draws a
+stray limb above the head of the block below (gotcha 57). `character_swap_test.gd` asserts both.
+
+### Performing the swap yourself
+
+This is the whole of it, and it is worth doing once on your own sheet before you trust it:
+
+```
+# scenes/characters/player.tscn — two lines, and nothing else anywhere
+[ext_resource type="Texture2D" path="res://assets/placeholder/character_alt.png" id="3_tex"]
+[ext_resource type="Resource" path="res://assets/placeholder/character_alt_layout.tres" id="6_layout"]
+```
+
+Then photograph it, because `--headless` shades nothing:
+
+```
+godot_console --resolution 960x540 --quit-after 600 -- --new-game --time=13:00 --freeze-time \
+    --gait-shots=<dir>
+```
+
+That drives the character through all five gaits through the real input path, writes a full frame
+and an ×5 nearest-neighbour crop for each, and logs the block, column and cell decoded out of
+`sprite.frame`. **Check that the log and the pips agree** — the number without the picture does
+not prove it reached a screen, and the picture without the number does not prove it was the right
+cell. T5.6 wrote its run to `user://shots/gaits/`; captures are not committed on this project, so
+re-take them with the command above rather than looking for a PNG. Run it once on the default
+sheet too: there, sneak and climb both draw block 1, because that sheet leaves their rows at
+`-1`.
+
+### Every facing is a different figure, and until T5.8 none of them was
+
+Both sheets drew **one pose per gait, repeated across every column**. Measured over the figure
+band, `character_placeholder.png`'s back view differed from its front by **0.7%** of a cell — the
+two eyes and nothing else — and facings 2 and 3 were byte-identical; three of the alt sheet's four
+columns differed only by their column tally. The facing CODE was correct the whole time, so a
+system asserted at both ends was invisible on screen for five phases and the first observer was an
+owner playing the game (gotcha 62).
+
+**What a facing has to show, and it is the low bar rather than a style.** Front, three-quarter,
+side and back should tell themselves apart at a glance. The placeholders do it with five poses:
+the torso narrows and steps forward as the figure turns, the legs close into a front-to-back
+stride, the hair wraps further round the head, the eyes go 2, 2, 1, 0, 0, a profile grows a nose
+past the edge of the face and hides its far arm, and a back is drawn in its own shadow. **The west
+half of each sheet is the east half mirrored** — that is what makes east differ from west by a
+whole asymmetric figure rather than by which shoulder a mark sits on.
+
+`tests/unit/sheet_facings_test.gd` holds the line: **every facing of a shipped sheet must differ
+from every other by more than 5% of the cell**, same block and same frame, measured over the
+figure with four columns ignored down each edge (the alt sheet's pip tallies live there and are
+deliberately not mirrored). The floor was picked by measurement — the old sheets' best pair was
+3.5% and the new sheets' worst is 7.5%. If you add your own sheets to that case, note that two
+transparent pixels count as the same pixel: `process/fix_alpha_border` rewrites the RGB under
+transparency at import, so an imported sheet is not the PNG (gotcha 63).
+
+And photograph it, because the assertion only says the cells are DIFFERENT and not that the pose
+matches the direction — no pixel test can say that:
+
+```
+godot_console --resolution 960x540 --quit-after 600 -- --new-game --time=13:00 \
+    --freeze-time --facing-shots=<dir>
+```
+
+That walks the character north, east, south and west and writes a full frame, an ×5 crop and the
+decoded column for each. On the base at T5.8 those were columns 4, 2, 0 and 6, reading as a back
+with no face, a right profile, a front and the same profile mirrored.
+
+Regenerate both sheets with `tools/gen_placeholders.gd`.
 
 ---
 
@@ -192,25 +307,42 @@ Edit that one file. Six lines is a complete change of look: the palette's four c
 a title size. This was demonstrated with captures before and after — the main menu and the
 inventory screen both restyled, and the HUD clock followed without being mentioned.
 
-### The known gap: no `Button` styleboxes
+### The five states of a row — closed at 4.2.0, and derived rather than authored
 
-**The theme sets font sizes for `MenuRow` and `ChoiceRow` but no styleboxes, so every menu row and
-every dialogue reply draws Godot's default dark panel.**
+**Until 4.2.0 the theme set font sizes for `MenuRow` and `ChoiceRow` and no styleboxes at all, so
+every menu row and every dialogue reply drew Godot's fallback panel** — invisible against the
+shipped near-black palette, and immediately wrong against a light one. It was declared here for
+four packages, on the reasoning that a stylebox has to be *designed* and the only palette to
+design against was the placeholder one.
 
-Against the shipped near-black palette that is invisible. Against a **light palette it is
-immediately wrong** — dark-on-light rows in an otherwise parchment UI, legible but plainly not
-restyled with the rest. A consuming game that picks a light look hits this in its first capture.
+**`src/ui/root/ui_row_styles.gd` closes it without designing a colour.** It designs the
+*relationship* between the five states and takes every colour from the palette:
 
-The seam is right and it is in the same file — `MenuRow/styles/normal`, `hover`, `pressed`,
-`focus` and the same for `ChoiceRow`, taking `StyleBoxFlat` sub-resources, no code anywhere. It is
-simply unpopulated, because the template has no look to populate it with and a stylebox authored
-against the placeholder palette would be a *decision* shipped as a *default*. Populate it when you
-choose your look; that is one edit to `ui_theme.tres` and nothing else.
+| State | Is | Why |
+|---|---|---|
+| `normal` | `surface` | the new palette entry, and the only one this reads at rest |
+| `hover` | `surface` toward `text` | **directional**: lightens a dark row, darkens a light one, from one expression |
+| `pressed` | `surface` toward `accent` | a press is an act, so it takes a hue rather than another shade |
+| `disabled` | `surface` at 35% alpha | the same row faded, not a different one |
+| `focus` | `accent` ring, **no centre** | composes with whichever of the other four is under it |
 
-This is stated rather than hidden because it was found by a capture that was looked at, and
-because a gap you are told about costs ten minutes while a gap you discover costs an afternoon of
-suspecting the theme system.
+`_mirrored` (right-to-left layouts) and `hover_pressed` are set to the same boxes, because left
+unset they are the two ways back to the fallback bar from inside a fully styled menu.
 
+**So restyling a row is still an edit to `ui_theme.tres` and nothing else.** Change
+`UiPalette/colors/surface` and the four other palette entries; the five states follow, and so do
+the font colours, which were the other half of the light-palette defect — an unset `font_color`
+takes the fallback theme's near-white, which is invisible on a pale ground whatever the boxes do.
+
+**Two ways out, both deliberate.** A variation that declares its own `styles/normal` is left
+completely alone — a game that authored its own rows has already made this decision. And a
+palette with no `surface` entry is left alone entirely, with one `WARN` at boot: there is nothing
+to derive from, and inventing a surface would be the base picking a colour for you after all.
+Deleting the `UiRowStyles` node from `game_root.tscn` is the third.
+
+**What has NOT changed is that the base has no look.** `surface` is a placeholder like every
+other colour in that palette. What 4.2.0 removed is not the need to choose one — it is the
+possibility of choosing one and finding the rows ignored it.
 ---
 
 ---

@@ -14,12 +14,27 @@ extends Area3D
 ## the player is facing it. Ties are broken by node name so the order is stable frame to
 ## frame rather than dependent on physics callback order.
 ##
-## OWNS: the candidate set, the ranking, the cycle override, and hold timing.
-## MUST NOT: know what any interactable does, or contain any object's behaviour.
+## OWNS: the candidate set, the ranking, the cycle override, hold timing, and the MOMENT the
+## player is asked to turn towards what they have selected.
+## MUST NOT: know what any interactable does, or contain any object's behaviour. It asks for a
+## turn on `Events.turn_requested` naming the body it hangs under; it does not know that body
+## has a sprite, a sheet or a facing, and must not learn.
 ##
 ## NOTE ON INPUT: this reads input directly. It is a component of the player, and the
 ## alternative - routing interaction input through PlayerController - would force the
 ## controller to know about interaction, which its own MUST NOT line forbids.
+
+## THE CONSUMER OF `accessibility/hold_to_confirm`, and the only file that could be. What an
+## interaction COSTS in input is this component's business: `Interactable.hold_seconds` is the
+## author's per-object answer, and this setting is the player's floor under all of them.
+const HOLD_TO_CONFIRM: String = "accessibility/hold_to_confirm"
+## The hold a player who asked for one gets on an object the author gave none. Long enough that
+## a brushed key cannot fire it, short enough not to feel like the 1.5s a chest asks for.
+const FLOOR_SECONDS: float = 0.4
+## The speed below which the player counts as standing still, for deciding whether a turn
+## towards the prompt's target is worth asking for. Deliberately the same 0.05 m/s
+## `CharacterVisual.update_from_velocity` uses to decide whether to re-aim.
+const STILL_SPEED: float = 0.05
 
 ## How far the player can reach. The Area3D shape should be at least this big.
 @export var max_distance: float = 2.4
@@ -41,6 +56,10 @@ var _announced_id: int = 0
 var _cycle: int = 0
 var _hold: float = 0.0
 var _facing: Vector3 = Vector3.FORWARD
+## Whether the player was moving on the previous physics frame, so a turn can be asked for at
+## the moment they COME TO REST beside something - which is the ordinary way a player arrives
+## at an object, and the moment a target-changed test alone would miss entirely.
+var _was_moving: bool = false
 var _body: CharacterBody3D = null
 ## Held by whatever has taken interaction away: an open screen, a conversation. Tokens rather
 ## than a boolean for the same reason the player controller uses them - two holders must not
@@ -69,11 +88,13 @@ func _physics_process(delta: float) -> void:
 	_track_facing()
 	_prune()
 	var best: Interactable = _select()
-	if best != _current:
+	var changed: bool = best != _current
+	if changed:
 		_current = best
 		_cycle = 0
 		_hold = 0.0
 		_announce()
+	_turn_to_target(changed)
 	_handle_input(delta)
 
 
@@ -82,11 +103,55 @@ func current() -> Interactable:
 	return _current
 
 
+## TURN THE PLAYER TOWARDS WHAT THE PROMPT IS OFFERING, at the two moments it means anything:
+## the target changed, or they just came to a stop with one selected.
+##
+## THE STILLNESS GATE IS NOT TASTE, it is the shape of `CharacterVisual`.
+## `update_from_velocity` re-aims from velocity every physics frame while the character moves,
+## so a turn asked for mid-walk is overwritten on the next frame: it would cost a one-frame
+## flicker and buy nothing. And a player crossing a courtyard past a row of objects should keep
+## facing where they are going rather than snapping at each one as it takes the prompt.
+##
+## THE SENSOR ASKS, IT DOES NOT TURN. It emits `Events.turn_requested` naming the body it hangs
+## under and lets whatever draws that body answer, so this file still knows nothing about a
+## sprite, a sheet or a facing enum - which is what keeps it inside its own MUST NOT line.
+func _turn_to_target(target_changed: bool) -> void:
+	var still: bool = _is_still()
+	var just_stopped: bool = still and _was_moving
+	_was_moving = not still
+	if not still or not (target_changed or just_stopped):
+		return
+	if _body == null or not is_instance_valid(_current):
+		return
+	Events.turn_requested.emit(_body, _current.focus_point())
+
+
+## Below the same speed `CharacterVisual` treats as standing still, and the constant says so,
+## because two files disagreeing by a hundredth about what "moving" means is a turn that is
+## asked for and silently undone on the very next frame.
+func _is_still() -> bool:
+	if _body == null:
+		return true
+	var flat := Vector2(_body.velocity.x, _body.velocity.z)
+	return flat.length_squared() <= STILL_SPEED * STILL_SPEED
+
+
 ## 0.0 to 1.0 while a hold-to-confirm interaction is in progress. The UI draws this.
 func hold_progress() -> float:
-	if _current == null or _current.hold_seconds <= 0.0:
+	var needed: float = hold_needed()
+	if needed <= 0.0:
 		return 0.0
-	return clampf(_hold / _current.hold_seconds, 0.0, 1.0)
+	return clampf(_hold / needed, 0.0, 1.0)
+
+
+## How long the current target must be held for, which is the AUTHOR'S value or the player's
+## floor, whichever is longer. One function so the progress the prompt draws and the threshold
+## that fires can never disagree - reading the setting in both places is how they would.
+func hold_needed() -> float:
+	if _current == null:
+		return 0.0
+	var floor_seconds: float = FLOOR_SECONDS if Settings.get_bool(HOLD_TO_CONFIRM) else 0.0
+	return maxf(_current.hold_seconds, floor_seconds)
 
 
 func _handle_input(delta: float) -> void:
@@ -104,12 +169,16 @@ func _handle_input(delta: float) -> void:
 		_hold = 0.0
 		_current = _select()
 		_announce()
+		# Cycling is a deliberate change of target and always deserves the turn, on the same
+		# terms as any other: only while standing, which a cycling player always is.
+		_turn_to_target(true)
 		return
 
-	if _current.hold_seconds > 0.0:
+	var needed: float = hold_needed()
+	if needed > 0.0:
 		if Input.is_action_pressed(Actions.INTERACT):
 			_hold += delta
-			if _hold >= _current.hold_seconds:
+			if _hold >= needed:
 				_hold = 0.0
 				_current.attempt(_body)
 		else:

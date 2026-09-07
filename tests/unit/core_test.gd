@@ -8,14 +8,21 @@ extends TestCase
 var _probe_value: int = 0
 
 
+## Engine chrome, not demo content: the HUD clock exists in a stripped template too.
+const CHROME_KEY: String = "ui.hud.clock"
+const SOURCE_LOCALE: String = "en"
+const PSEUDO_LOCALE: String = "en_XA"
+
+
 func run() -> void:
-	plan(49)
+	plan(55)
 	_dict_read()
 	_flags()
 	_flags_hands_out_copies()
 	_save_round_trip()
 	_game_config()
 	_game_naming()
+	_the_locale_setting_applies()
 
 
 func _dict_read() -> void:
@@ -189,3 +196,35 @@ func _game_naming() -> void:
 			safe = false
 	equal("slug is safe in a file name", safe, true)
 	equal("slug has no leading or trailing underscore", slug.trim_prefix("_").trim_suffix("_"), slug)
+
+
+## PHASE 2'S LAST CRITERION, in the only part of it an assertion can reach. "Switch language at
+## runtime and see every visible string change" needs a capture for the SEEING; what belongs here
+## is that the setting is wired to `TranslationServer` at all, which it was not until T5.1 -
+## `settings_screen.gd` cycled a locale, stored it, and nothing ever read it back.
+##
+## The locale is GLOBAL and this case mutates it, so it is put back before returning. Several
+## other cases compare `tr()` output, and leaving the pseudolocale switched on would fail them
+## somewhere else entirely - which is a worse bug than the one being tested.
+func _the_locale_setting_applies() -> void:
+	var was: String = Settings.get_string(Settings.LOCALE)
+	var locales: PackedStringArray = TranslationServer.get_loaded_locales()
+	equal("the template ships a second language to switch to", locales.size() >= 2, true)
+
+	Settings.set_value(Settings.LOCALE, SOURCE_LOCALE)
+	var english: String = tr(CHROME_KEY)
+	equal("setting the locale reaches TranslationServer", TranslationServer.get_locale(),
+		SOURCE_LOCALE)
+
+	Settings.set_value(Settings.LOCALE, PSEUDO_LOCALE)
+	var pseudo: String = tr(CHROME_KEY)
+	equal("and switching it again reaches it again", TranslationServer.get_locale(),
+		PSEUDO_LOCALE)
+	equal("a visible string really does change with the language", pseudo != english, true)
+	# The generator WRAPS rather than replaces, so the English survives inside the pseudo. That is
+	# what makes an unbracketed string on screen a hard-coded one rather than a short translation.
+	equal("the pseudolocale is derived from the source language", pseudo.contains(english), true)
+
+	Settings.set_value(Settings.LOCALE, was)
+	equal("and the language is put back for every case after this one",
+		TranslationServer.get_locale(), was)

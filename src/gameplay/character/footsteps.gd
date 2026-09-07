@@ -130,12 +130,16 @@ func is_grounded() -> bool:
 	return _ray != null and _ray.is_colliding()
 
 
-## The last surface a step was actually taken on. Read by the probe, and the natural hook for a
-## future dust puff, which is why it is a query and not a signal: nothing needs it yet.
+## The last surface a step was actually taken on. NO CALLER — and the line that used to stand
+## here said "read by the probe", which was never true of any probe this repository has. It is a
+## query and not a signal for the stated reason: it is the hook a dust puff or a footprint decal
+## reads on the frame it spawns, and this template has neither.
 func current_surface() -> StringName:
 	return _surface
 
 
+## NO CALLER, for the same reason and as the same pair: a distance-walked achievement, a tutorial
+## that fires on the tenth step, or a debug overlay all read this, and none of the three is here.
 func steps_taken() -> int:
 	return _steps
 

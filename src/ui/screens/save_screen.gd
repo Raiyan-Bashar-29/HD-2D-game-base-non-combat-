@@ -22,6 +22,11 @@ const SAVE_TITLE_KEY: String = "ui.save.title"
 const LOAD_TITLE_KEY: String = "ui.load.title"
 const SLOT_KEY: String = "ui.save.slot"
 const EMPTY_KEY: String = "ui.save.empty"
+## The autosave reads as its own row and not as "Slot 7", because it is not one: it is outside
+## the numbering the six manual rows share, and a number would invite the player to look for
+## six others like it.
+const AUTOSAVE_KEY: String = "ui.save.autosave"
+const AUTOSAVE_EMPTY_KEY: String = "ui.save.autosave_empty"
 const SAVED_KEY: String = "notify.game_saved"
 const FAILED_KEY: String = "notify.save_failed"
 const HINT_KEY: String = "ui.save.hint"
@@ -50,6 +55,10 @@ static func for_saving() -> SaveScreen:
 	return screen
 
 
+## THE TWO DIRECTIONS LIST DIFFERENT THINGS, and that asymmetry IS the slot policy made visible.
+## `MAX_SLOTS` is the manual range, so the writing half cannot offer the autosave slot and this
+## screen needs no filter to avoid it — it simply never counts that high. The reading half adds
+## it, because an autosave the player cannot come back to is not an autosave.
 func _fill() -> void:
 	for slot: int in SaveSystem.MAX_SLOTS:
 		if SaveSystem.has_slot(slot):
@@ -58,15 +67,23 @@ func _fill() -> void:
 			add_row(tr(EMPTY_KEY).format({"slot": slot + 1}), _on_slot.bind(slot))
 		else:
 			add_note(tr(EMPTY_KEY).format({"slot": slot + 1}))
+	if writing:
+		return
+	var auto: int = SaveSystem.AUTOSAVE_SLOT
+	if SaveSystem.has_slot(auto):
+		add_row(slot_text(auto), _on_slot.bind(auto))
+	else:
+		add_note(slot_text(auto))
 
 
 ## What one slot's row says. Public so a test asserts the string the player reads rather than
 ## re-deriving the format and then asserting its own arithmetic.
 func slot_text(slot: int) -> String:
 	var info: Dictionary = SaveSystem.slot_info(slot)
+	var auto: bool = SaveSystem.is_autosave(slot)
 	if info.is_empty():
-		return tr(EMPTY_KEY).format({"slot": slot + 1})
-	return tr(SLOT_KEY).format({
+		return tr(AUTOSAVE_EMPTY_KEY) if auto else tr(EMPTY_KEY).format({"slot": slot + 1})
+	return tr(AUTOSAVE_KEY if auto else SLOT_KEY).format({
 		"slot": slot + 1,
 		"when": DictRead.get_string(info, "saved_utc", ""),
 		"played": played_as_text(DictRead.get_float(info, "playtime_seconds", 0.0)),

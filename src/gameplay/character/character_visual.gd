@@ -32,6 +32,12 @@ extends Node3D
 ## OWNS: the sprite, its facing, its sheet column, and its animation frame.
 ## MUST NOT: read input, move the character, contain game rules, or hold any sheet dimension of
 ## its own. It is told a velocity and a state, and it draws.
+##
+## THE SECOND WAY IT IS TOLD, since T5.14, is `Events.turn_requested` - a turn asked for by
+## somebody else and answered only when the request names THIS character. Still being told;
+## still no rule of its own. The reason it listens rather than being called is in that signal's
+## own block, and the reason listening is safe here when `player_state_changed` is not is on
+## `_on_turn_requested`.
 
 ## The layout assumed when the @export below is unwired. Not a fallback anybody should rely on:
 ## it exists so an unwired node draws a recognisable character while the log says it is unwired,
@@ -51,6 +57,10 @@ const DEFAULT_CELL: Vector2i = Vector2i(32, 48)
 @export var pixel_size: float = 0.035
 ## How many sheet frames per second at full walking speed.
 @export var walk_fps: float = 8.0
+## How many sheet frames per second while STANDING STILL, for sheets whose idle is a real cycle
+## rather than a pose. Slower than a walk on purpose: an idle at walking pace reads as marching.
+## Only used when the sheet's idle block differs from its walk block - see `_idle_animates`.
+@export var idle_fps: float = 3.0
 ## Movement speed treated as "full walk" for animation timing.
 @export var reference_speed: float = 3.2
 ## Lifts the sprite so its feet sit on the ground rather than its centre.
@@ -67,6 +77,12 @@ var _column: int = 0
 var _frame_time: float = 0.0
 var _frame: int = 0
 var _moving: bool = false
+## WHAT THE CHARACTER IS DOING, which decides which animation BLOCK is drawn while `_moving`
+## decides whether the block advances. The two were one boolean until T5.2, which is why a
+## running character replayed the walk cycle faster and a sheet had nowhere to put a run.
+## Pushed in by whoever drives this visual - never read from `Events.player_state_changed`,
+## because every NPC uses this class and none of them is the player.
+var _state: GameEnums.MoveState = GameEnums.MoveState.IDLE
 
 
 func _ready() -> void:
@@ -77,6 +93,9 @@ func _ready() -> void:
 		sprite.name = "Sprite3D"
 		add_child(sprite)
 	_configure_sprite()
+	# ONE LISTENER PER CHARACTER, filtered by who the request names. Freeing the node
+	# disconnects it, which is why nothing here undoes it.
+	Events.turn_requested.connect(_on_turn_requested)
 
 
 func _configure_sprite() -> void:
@@ -102,27 +121,72 @@ func _configure_sprite() -> void:
 
 
 ## Called every physics frame by whatever drives this character.
-## `velocity` is world-space; only the horizontal part is used.
-func update_from_velocity(velocity: Vector3, delta: float) -> void:
+## `velocity` is world-space; only the horizontal part decides FACING and pace.
+## `state` defaults to WALK so a caller that has not been updated behaves exactly as before:
+## moving draws the walk block, standing still draws the idle one.
+func update_from_velocity(velocity: Vector3, delta: float,
+		state: GameEnums.MoveState = GameEnums.MoveState.WALK) -> void:
 	var flat: Vector2 = Vector2(velocity.x, velocity.z)
 	var speed: float = flat.length()
-	_moving = speed > 0.05
+	# A CLIMB IS MOVING EVEN WHEN `flat` IS ZERO. Going up a ladder is entirely vertical, so
+	# deriving "moving" from horizontal speed alone pinned the frame at 0 and left `climb_row`
+	# undrawable for the whole of T5.2: the block was addressable and nothing ever advanced it.
+	var climbing: bool = state == GameEnums.MoveState.CLIMB
+	_moving = speed > 0.05 or climbing
+	# A state that is not moving is IDLE whatever the caller said, so a character held still by
+	# a dialogue box does not stand there playing its run cycle in place.
+	_state = state if _moving else GameEnums.MoveState.IDLE
 
-	if _moving:
+	# Only a HORIZONTAL move turns anybody. Aiming on a vertical climb would quantise a zero
+	# vector and swing the character round to face south halfway up a ladder.
+	if speed > 0.05:
 		_aim(flat)
-		var rate: float = walk_fps * clampf(speed / maxf(0.01, reference_speed), 0.35, 2.0)
-		_frame_time += delta * rate
-		while _frame_time >= 1.0:
-			_frame_time -= 1.0
-			_frame = (_frame + 1) % _layout.frames
+	if _moving:
+		_advance(delta, _rate_for(speed))
+	elif _idle_animates():
+		_advance(delta, idle_fps)
 	else:
-		# Settle on the neutral pose rather than freezing mid-stride.
+		# Settle on the neutral pose rather than freezing mid-stride. A sheet with no idle
+		# block of its own has nothing to play here, so holding frame 0 is the honest answer.
 		_frame = 0
 		_frame_time = 0.0
 	_apply_frame()
 
 
-## Face a direction without moving, for dialogue and scripted moments.
+## Frames per second for a gait at `speed`. Clamped at both ends: a crawl still animates, and
+## a sprint does not strobe.
+func _rate_for(speed: float) -> float:
+	return walk_fps * clampf(speed / maxf(0.01, reference_speed), 0.35, 2.0)
+
+
+## Step the cycle. WITHIN the current block only - which block is drawn is `_state`'s business
+## and `_apply_frame` reads both.
+func _advance(delta: float, fps: float) -> void:
+	_frame_time += delta * fps
+	while _frame_time >= 1.0:
+		_frame_time -= 1.0
+		_frame = (_frame + 1) % _layout.frames
+
+
+## MAY A STANDING CHARACTER BREATHE? Only if its sheet actually has an idle block of its own.
+## `idle_row == walk_row` is legal and was the only possibility before T2.1, and animating that
+## case would replay the WALK cycle on the spot - which is the bug T5.2 fixed for run and sneak,
+## arriving from the other direction. So the SHEET decides, exactly as it decides the gaits.
+func _idle_animates() -> bool:
+	if _layout == null or _layout.frames <= 1:
+		return false
+	return _layout.animation_for(GameEnums.MoveState.IDLE) \
+			!= _layout.animation_for(GameEnums.MoveState.WALK)
+
+
+## Face a direction without moving, for dialogue and scripted moments. `direction` is a
+## world-space XZ vector, the same shape `update_from_velocity` derives from a velocity.
+##
+## ITS CALLER IS THE BUS, not any one system. Until T5.14 this method had only test callers -
+## one of the 86 suite-only methods `check_methods.gd` reports - because nothing had decided
+## WHO may ask for a turn. `Events.turn_requested` is that answer, and it is deliberately not
+## a single owner: the player turning to a prompt and an NPC turning to whoever spoke are the
+## same motion asked for by two unrelated systems, and a third will come along.
 func face_direction(direction: Vector2) -> void:
 	if direction.length_squared() < 0.0001:
 		return
@@ -132,6 +196,28 @@ func face_direction(direction: Vector2) -> void:
 
 func facing() -> GameEnums.Facing:
 	return _facing
+
+
+## THE BUS ASKED SOMEBODY TO TURN. Answer only for the character this visual draws, because
+## every character in the area hears the same signal.
+##
+## THIS IS NOT THE THING `_state`'s COMMENT FORBIDS, and the difference is the whole design.
+## `Events.player_state_changed` is about THE PLAYER, so a class every NPC also uses must not
+## listen to it. `turn_requested` NAMES the character it is for, so listening is safe for
+## exactly as many characters as exist - and putting the answer here rather than in
+## `PlayerController` and `NpcBrain` separately is what keeps it one implementation.
+func _on_turn_requested(character: Node3D, towards: Vector3) -> void:
+	if character == null or not _draws(character):
+		return
+	var to: Vector3 = towards - global_position
+	face_direction(Vector2(to.x, to.z))
+
+
+## Is `character` the body this visual belongs to? An ANCESTOR rather than the parent exactly,
+## because a game may hang its visual under an offset node or a rig and nothing here should
+## care - and `self`, for a visual attached with no body above it, which is what a test builds.
+func _draws(character: Node3D) -> bool:
+	return character == self or character.is_ancestor_of(self)
 
 
 ## Map a world-space XZ direction to a GameEnums.Facing, corrected for camera yaw so that
@@ -192,7 +278,7 @@ func _camera_yaw() -> float:
 func _apply_frame() -> void:
 	if sprite == null or _layout == null:
 		return
-	sprite.frame = _layout.frame_index(_column, _frame, _layout.animation_for(_moving))
+	sprite.frame = _layout.frame_index(_column, _frame, _layout.animation_for(_state))
 
 
 ## Diagnostic for the dev capture tool. Cheap, and the first thing worth knowing when a

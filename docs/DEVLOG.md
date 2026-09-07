@@ -7937,3 +7937,58 @@ were always going to — `quest_chain_test.gd` is fixtures all the way down and 
 content — but the whole point of quoting the stripped number is that "always going to" is a
 prediction and this is the measurement. First package to land through branch protection, which
 required both jobs before the merge button was live.
+
+---
+
+## 2026-09-07 — T5.17 · Reconciling the record with what the gates now do
+
+**Did.** Six documentation defects, all found by the same audit that produced T5.16, all of them
+prose disagreeing with shipped behaviour rather than anything broken. No code changed.
+
+1. **`CONTEXT.md`'s "Not built" list still said the `Button` styleboxes were unbuilt** — three
+   hundred lines below its own header announcing that T5.15 built them. The file's second
+   paragraph says *"When it drifts from reality, fix it in the same commit as the change"*, and
+   this is what happens when a package updates the top of the file and not the middle.
+2. **`quest.` was missing from the prefix tables in `TEMPLATE.md` and `AUTHORING.md`.** T4.3 added
+   it to `NEW_GAME.md` only, and `AUTHORING.md` routes the reader to `TEMPLATE.md` as canonical —
+   so the canonical copy was the wrong one. Both now name all six content prefixes and say they
+   are exactly what `check_boundary.gd` derives `CONTENT_NAMESPACES` from, which is the sentence
+   that stops the two rotting apart again: the gate fails if they disagree.
+3. **`keys.*` was listed as an engine prefix in three documents and has ZERO rows in the CSV.**
+   The rebinding labels are `ui.action.*`. A keep-list naming content that does not exist is the
+   same decay as a prune-list missing content that does — gotcha 48 in the other direction.
+4. **`TEMPLATE.md` promised an `OPTIONAL` status in `SYSTEMS_INVENTORY.md` that never arrived.**
+   Promised 2026-08-26, absent from the status key and from every row for eleven packages, while
+   crafting was marked OPTIONAL only on the board. The status now exists and `Harvestables` — the
+   one row WP-10 would fill — carries it instead of `TODO`, which is the difference between "not
+   started" and "not this base's business".
+5. **`AUTHORING.md`'s gate table described THREE of seven checkers.** Its command block ran four
+   and its table explained three; `check_layers`, `check_signals` and `check_methods` did not
+   appear anywhere in the document a consumer is told to author from, though all three fail their
+   build. The block now runs seven and the table explains seven, each with the phrase that grants
+   its exemption (`NO EMITTER`, `NO CALLER`) since that is the thing an author needs and cannot
+   guess.
+6. **`check_boundary`'s row did not mention its localization half**, added at T5.4 — the half
+   that turns an unfinished prune into a build error instead of a silent ship, which is precisely
+   the thing `NEW_GAME.md`'s reader most needs to know is now guarded.
+
+**Why this is its own row and not folded into T5.16.** T5.16 is a behaviour change with a plant
+and a control; this is prose with no assertions of its own. Mixing them would have put six
+unverifiable edits inside a commit whose whole claim is that one specific thing was measured.
+Same reasoning that splits a test file by QUESTION.
+
+**Verified.** Suite `2059 passed, 0 failed, 0 skipped`; all seven checkers exit 0; `--import`
+clean; boot `0 warnings, 0 errors`. **`docs_test.gd` earned its keep during T5.16 and is why
+item 5 was findable at all**: it failed on `TESTING.md` spelling the gotcha count as
+seventy-one, which is T4.4's *"three documents gave three different gotcha counts"* now gated.
+It cannot gate items 1 to 4 or 6 — those are claims, not paths — which is stated here rather
+than implied.
+
+**Gaps.**
+- **Nothing gates a prose claim, and nothing can.** `docs_test.gd` validates `res://` paths and
+  worked-example field names. Five of these six defects were invisible to it and would have been
+  invisible to any tool: a sentence saying a thing is unbuilt is well-formed whether or not it is
+  true. The expiry story is a reader, which is the same answer T4.3 reached for the prune list.
+- **The audit's remaining findings are on the board as candidates**, not fixed here: the
+  template-default vs game-choice taxonomy, a narrative-staging seam, time above one day, the
+  save loader's untested refusal branches, and the scene-level interaction test.

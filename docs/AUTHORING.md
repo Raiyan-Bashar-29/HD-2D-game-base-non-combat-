@@ -1041,8 +1041,10 @@ overriding a property on the instance's *root* (like `schedule_id` above) needs 
 
 `localization/strings.csv`, header row `keys,en`. Which prefixes are yours and which are the
 engine's is the table in [`TEMPLATE.md`](TEMPLATE.md): `area.*`, `object.*`, `item.*`
-(except `item.category.*`), `talk.*` and `action.*` are content; `ui.*`, `verb.*`, `refusal.*`,
-`notify.*`, `weather.*`, `time.*`, `keys.*` are engine.
+(except `item.category.*`), `talk.*`, `action.*` and `quest.*` are content; `ui.*`, `verb.*`,
+`refusal.*`, `notify.*`, `weather.*` and `time.*` are engine. Those six content prefixes are
+exactly what `check_boundary.gd` derives `CONTENT_NAMESPACES` from, so the table and the gate
+cannot disagree without the build going red.
 
 ```
 area.my_area.name,My Area
@@ -1070,6 +1072,9 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --script tools/check_boundary.gd
 "$G" --headless --script tools/check_budgets.gd
 "$G" --headless --script tools/check_strings.gd
+"$G" --headless --script tools/check_layers.gd
+"$G" --headless --script tools/check_signals.gd
+"$G" --headless --script tools/check_methods.gd
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=shot.png --shot-frame=70 \
      --time=12:00 --freeze-time
 ```
@@ -1080,9 +1085,13 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 | boot run | that the game boots clean to its main menu. **It does not enter an area** — see below |
 | test suite | a missing required child, an area with no spawn, an interior that follows the sun, a schedule waypoint no area has, a quest with no steps, an area on the map with no scene, a map dot whose `arrival_spawn` no area has |
 | `check_content` | a duplicate `object_id`, a `_key` with no CSV row, an unquoted comma, a dangling dialogue link, an id that disagrees with its file name, a stray `ItemDefinition`, a quest step whose objective has no CSV row, a gate whose `locked_key` has no row, an `AreaDef` whose `name_key` has no row, **a quest step counting an item no `.tres` declares, or counting zero of one**, **a missing `[editable]` marker** |
-| `check_boundary` | your content id appearing in `src/` or in `tests/unit/`. A content id is matched as a WHOLE WORD, so an item called `pear` does not collide with the word `appeared`; a whole-word hit is a real one, and it is a bug in the *engine* rather than in your content |
+| `check_boundary` | your content id appearing in `src/` or in `tests/unit/`. Since T5.4 it also fails a CSV ROW that translates content which is not there, which is what makes an unfinished prune a build error rather than a silent ship. A content id is matched as a WHOLE WORD, so an item called `pear` does not collide with the word `appeared`; a whole-word hit is a real one, and it is a bug in the *engine* rather than in your content |
 | `check_budgets` | 250 code lines per file, 40 per function. Markdown is not counted |
-| windowed capture | everything the other six cannot see |
+| `check_strings` | a player-facing literal reaching `.text` without `tr()`, and a `*_KEY` const naming a CSV row that does not exist |
+| `check_layers` | a dependency pointing the wrong way through `core -> content -> systems -> gameplay -> ui`. You will not trip this authoring content; you will the moment you add a script |
+| `check_signals` | a signal declared in `events.gd` that nothing emits. Say `NO EMITTER` in its `##` block if that is deliberate — and it then fails if one ever appears |
+| `check_methods` | a public method under `src/` that nothing calls. The exemption is the phrase `NO CALLER` in its own `##` block, with a reason beside it |
+| windowed capture | everything the other ten cannot see |
 
 ### Nothing above ever enters your area, and that surprises everyone once
 

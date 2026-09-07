@@ -12,6 +12,7 @@ and where it stands today.
 | PART | Skeleton exists and runs; scope deliberately incomplete |
 | TODO | Not started |
 | LATER | Deliberately deferred, with a reason given |
+| OPTIONAL | A genre choice, not a requirement of every game built on this base. Not started, and not a gap — `TEMPLATE.md` § Optional modules promised this status and T5.17 is where it arrived |
 
 The **Boundary** column is the anti-god-object column. It records what a system is forbidden
 to know, and it is the single most important column in this document. Every monolith in the
@@ -92,7 +93,7 @@ previous project started as a system that was allowed to know one thing too many
 | Readables | Signs, books, notes | Interactable, Localization | — | DONE |
 | Switches and levers | Toggle world state | Interactable, Flags | what the state causes | DONE |
 | Trigger volumes | Fire on entry, once or every time, persisted by object_id | Layers, Flags, Events | what its firing causes | DONE |
-| Harvestables | Gather with a regrowth timer | Interactable, Clock, Inventory | — | TODO |
+| Harvestables | Gather with a regrowth timer | Interactable, Clock, Inventory | — | **OPTIONAL** — WP-10, and a genre choice per `TEMPLATE.md`: a game that wants gathering wants it, and a game that does not is not missing anything. Blocks nothing and never has |
 | Sittables and beds | Rest, and skip time through `Clock.skip_to_hour` | Interactable, Clock | why the hour it jumps to matters | DONE |
 | Climbables | Ladders and authored climb points, two markers per object | Player controller | how to move a body — it asks the mover | DONE |
 | Physics props | Push, drop, stack | Layers | — | TODO |

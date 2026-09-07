@@ -19,6 +19,39 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 4.2.1
+
+*2026-09-07 — a quest whose start condition is written by another quest's completion did not
+reliably start. Whether it did depended on the order the content directory happened to be
+scanned in, and nothing in the ladder could see it.*
+
+**A consuming game does: nothing, and gains a guarantee it did not have.** No field, method or
+signal changed, and no file a game wrote is affected. A game that authored a chain of quests was
+already relying on this working; on the unlucky scan order it silently was not.
+
+**The defect.** `QuestTracker.evaluate()` guards against re-entrancy, because a listener on
+`Events.quest_completed` legitimately writes flags — beginning the next chapter is the case the
+guard's own comment names. It guarded by RETURNING, which discards the re-derivation the new flag
+asked for. That is only harmless if the pass already running still reaches the newly-startable
+quest, and whether it does depends on where that quest sits in `QuestDb.all()` — insertion order
+from `ContentScan`, which does not sort. So a chapter that begins when the previous one ends
+started or did not start according to filenames.
+
+**The fix.** A re-entrant call now sets a pending bit and the outer pass drains it, re-deriving
+until nothing more moves. The pass bound is DERIVED from `QuestDb.count()` rather than picked, so
+it cannot go stale as a game authors its sixtieth quest, and exceeding it logs an error rather
+than hanging.
+
+**Why no rung caught it, which is the part worth reading.** The demo has one quest, so it cannot
+chain; and `quests_test.gd` states in its own header that it drives `evaluate()` and
+`Flags.set_flag` directly *"rather than through the signal chain a running game uses"* — which is
+correct for asking what a step means, and is exactly why it could not reach the guard, since a
+re-entrant call can only arrive on `flag_changed`. `tests/unit/quest_chain_test.gd` is the case
+that goes through the signal, and it asserts BOTH scan orders, because the benign one passed
+while the defect was live and a case that tested only that would have looked like proof.
+
+---
+
 
 ## 4.2.0
 

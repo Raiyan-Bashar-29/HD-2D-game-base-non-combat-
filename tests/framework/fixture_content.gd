@@ -66,6 +66,21 @@ const CARRIER: StringName = &"fixture_carrier"
 const COUNT_NEEDED: int = 3
 ## An item id no catalogue declares, for the step that names one. It is deliberately never
 ## written to disk by `items()`, which is the whole of what makes it absent.
+
+## THE CHAINING PAIR, AND THE POINT OF IT IS THE SCAN ORDER. `fixture_chain_lead` sorts before
+## `fixture_chain_next`, so choosing which of the two is the DEPENDENT covers BOTH relative
+## orders from one pair — a dependent scanned before its trigger, and after it. That distinction
+## is the whole of the defect `quest_chain_test.gd` exists for, so it belongs in the names.
+##
+## Both start on a FLAG rather than on ALWAYS, for the reason `count_quest()` gives: a quest that
+## is active in every case which clears the flags would break "nothing is active yet" elsewhere.
+const CHAIN_LEAD: StringName = &"quest/fixture_chain_lead"
+const CHAIN_NEXT: StringName = &"quest/fixture_chain_next"
+const CHAIN_LEAD_START: StringName = &"fixture/chain_lead_asked"
+const CHAIN_LEAD_FLAG: StringName = &"fixture/chain_lead_done"
+const CHAIN_NEXT_START: StringName = &"fixture/chain_next_asked"
+const CHAIN_NEXT_FLAG: StringName = &"fixture/chain_next_done"
+const CHAIN_STEP: StringName = &"only"
 const ABSENT_ITEM: StringName = &"item/fixture_absent"
 
 ## Two mapped places, and each exists to make a different rule observable: one KNOWN FROM START
@@ -234,6 +249,8 @@ static func quests() -> Array[Quest]:
 	var out: Array[Quest] = []
 	out.append(quest())
 	out.append(count_quest())
+	out.append(chain_quest(CHAIN_LEAD, CHAIN_LEAD_START, CHAIN_LEAD_FLAG))
+	out.append(chain_quest(CHAIN_NEXT, CHAIN_NEXT_START, CHAIN_NEXT_FLAG))
 	return out
 
 
@@ -293,4 +310,20 @@ static func area_def(id: StringName, at: Vector2, known_from_start: bool,
 	made.map_position = at
 	made.known_from_start = known_from_start
 	made.arrival_spawn = arrival_spawn
+	return made
+
+
+## ONE OF THE CHAINING PAIR, and both are the same shape on purpose: a flag to start, one step,
+## a flag to finish. Which one is the dependent is the TEST's choice rather than the fixture's,
+## and that symmetry is what lets two quests assert both scan orders instead of four.
+static func chain_quest(id: StringName, start: StringName, done: StringName) -> Quest:
+	var made := Quest.new()
+	made.id = id
+	made.name_key = "fixture.chain.name"
+	made.summary_key = "fixture.chain.summary"
+	made.condition_flag = start
+	made.condition_test = GameEnums.FlagTest.IS_TRUE
+	var steps: Array[QuestStep] = []
+	steps.append(quest_step(CHAIN_STEP, done))
+	made.steps = steps
 	return made

@@ -55,6 +55,15 @@ var _step: Dictionary[StringName, StringName] = {}
 ## listener on `quest_completed` legitimately might — starting the next chapter is the obvious
 ## case — and that would land back in `evaluate()` half way through this one.
 var _evaluating: bool = false
+## AND THE RE-ENTRANT CALL IS REMEMBERED RATHER THAN DROPPED, which is the whole of the fix
+## below. Returning on a re-entrant call is only correct if the pass already running is going to
+## see the flag that arrived; whether it does depends on where the newly-startable quest sits in
+## `QuestDb.all()`, so a chapter that begins when the previous one ends used to start or not
+## start according to the order the content directory happened to be scanned in. Silently, and
+## with nothing able to see it: the demo has one quest, so it cannot chain, and `quests_test.gd`
+## drives `evaluate()` directly rather than through `flag_changed`, which is the only path a
+## re-entrant call can arrive on. `quest_chain_test.gd` is the case that goes through the signal.
+var _pending: bool = false
 
 
 func _ready() -> void:
@@ -126,10 +135,26 @@ func ids_in_state(state: GameEnums.QuestState) -> Array[StringName]:
 ## re-fired consequence at worst.
 func evaluate(announce: bool = true) -> void:
 	if _evaluating:
+		_pending = true
 		return
 	_evaluating = true
-	for quest_id: StringName in QuestDb.all():
-		_evaluate_one(QuestDb.quest(quest_id), announce)
+	_pending = true
+	## A chain can be no longer than the number of quests, because a quest advances at most once
+	## per pass and never goes backwards — so the bound is DERIVED from the catalogue rather
+	## than picked, and cannot go stale as a game authors its sixtieth quest. The margin is for
+	## the settling pass that finds nothing left to do. Exceeding it means a listener is writing
+	## a flag on every pass, which is a live loop and worth an error rather than a hang.
+	var limit: int = QuestDb.count() + 2
+	var passes: int = 0
+	while _pending:
+		_pending = false
+		passes += 1
+		if passes > limit:
+			Log.error(CATEGORY, "did not settle in %d pass(es) — a listener is writing a flag "
+					% limit + "every pass; abandoning")
+			break
+		for quest_id: StringName in QuestDb.all():
+			_evaluate_one(QuestDb.quest(quest_id), announce)
 	_evaluating = false
 
 

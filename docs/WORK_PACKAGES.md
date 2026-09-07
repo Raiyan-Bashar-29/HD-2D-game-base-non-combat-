@@ -84,6 +84,7 @@ original board rather than continuing it.
 | T5.5 | **The twelve settings with no consumer** | **DONE** — 12 of 23 settings were declared, drawn to the player, translated in both languages and read by nothing. **Nine wired**, each placed by who owns the thing that has to change: the viewport and the shadow ATLAS to `Settings` itself, bloom to `EnvironmentDriver`, DOF to `HD2DCameraRig` (**`set_dof_enabled()`'s first ever caller**), the prompt's two to `InteractPrompt`, the typewriter's to `DialogueScreen`, the hold floor to `InteractionSensor`, and `accessibility/text_scale` to a new `UiAccessibility`. **Three REMOVED** — screen shake, autosave and subtitles have no machinery here to reach, and a row drawn to the player that cannot do anything is worse than a dead constant. **Five of the twelve were a TEMPLATE defect**: a fork could not wire `accessibility/*` without editing `src/`. Plus the four one-liners — `reset_to_defaults()` never re-applied the locale, `Actions.JUMP` is gone, `rebind()` gates on `REBINDABLE`. **The seventh gate was deliberately not built**: the consumer question is an ASSERTION, because `Settings.DEFAULTS` is a runtime fact. Writing it found **gotcha 56: a text search for a wire stays green after the wire is cut.** Eight plants each exit 1; six settings photographed in pairs. 1,782 assertions (stripped 1,708, so all 64 survive the strip); version 2.0.0. CI green, PR #34. See below |
 | T5.6 | **A wholesale character swap, photographed** | **DONE** — Phase T5's last unmet exit criterion, and the only one of the three that was a proof rather than a feature. The repository held a sheet with a different GRID (`character_alt.png`, 4 facings, 24×40, two blocks) and a sheet with GAITS (the default, 8 facings, 32×48, three blocks) and **never one with both**, so the phase's claim had only ever been demonstrated in halves. The alt sheet is now five blocks — idle, walk, run, sneak, climb, 96×600 — and its layout is **the only one in the project that leaves no gait at -1**. The player was pointed at the pair, driven through all five gaits through the real input path, and photographed; **no file under `src/` changed for the swap**, which is the claim the row exists to test, and the swap is two `ExtResource` paths in `player.tscn`. **The CONTROL is the strongest evidence**: the same probe on the DEFAULT sheet draws blocks 0, 1, 2, **1, 1** — sneak and climb falling back to the walk block, which is the `-1` contract measured in the live game for the first time rather than in an assertion. Four defects, three of them this row's own and all four invisible to any rung that does not open a window — **gotchas 57 to 60**: a generator that clips to the image draws into the next cell; a foot-anchored sprite's bottom rows are eaten by the ground plane so a tally there cannot be read; reading `sprite.frame` before the post-draw await measures a different moment from the photograph; and `unproject_position` answers in the viewport's LOGICAL size. Two plants, each exit 1, and **plant 2 re-created T5.3's defect exactly** (`climb_row = -1` → `expected [2, 3, 4], got [2, 3, -1]`), which makes good the row's own claim that this sheet would have caught it. New `character_swap_test.gd` (14) and `dev_gait_shots.gd`. 1,798 assertions; version 2.1.0. See below |
 | T5.7 | **`reduce_motion` finished, plus the shadow atlas** | **DONE** — candidate I, both halves already diagnosed by T5.5 and deliberately skipped by T5.6. `accessibility/reduce_motion` now reaches **all three** motions this template draws: `ScreenFade` cuts instead of dissolving and `HD2DCameraRig.follow_lag` goes to zero, each naming the key as a `const` on itself and each taking `_authored_dof`'s **veto** shape — the setting may remove smoothing an area author authored and may never add smoothing they refused. **The shadow half was a LIVE DEFECT, not the portability worry it was filed as.** `_apply_shadows` restored `const POSITIONAL_ATLAS: int = 2048` under a comment calling 2048 "the engine's own default"; **it is 4096**, so this repository booted every windowed session at half the shadow resolution the project authored — measured `boot = 2048` against `boot = 4096` on a real display server, before a player touches anything. New `ShadowAtlas` in `core` reads the authored sizes before the first zeroing (a const cannot be right there at all, because the number is a project setting a game is invited to change), and `settings.gd` came DOWN to 139 of its 150. That is **gotcha 61**, and its transferable half is that `_apply_display()` returns early under `--headless`, so **no rung below the windowed capture executes that code** — the suite could not have caught it however many assertions were aimed at the setting. **AND THE CAMERA MOTION WAS PHOTOGRAPHABLE, WHICH THIS ROW PREDICTED IT WOULD NOT BE**: T5.5's honest limit (an instant reveal photographs identically to a finished one) holds for the fade and fails for the camera, because a camera following a moving character has no finished state — two `--gait-shots` runs differing by one line of `settings.cfg` translate the whole world **42 px**, residual 0.0268 at −42 px against 0.0975 at zero, so it is a rigid shift and not a lighting change. Four plants, each exit 1, one of them re-proving **gotcha 56** on a second node. `settings_consumers_test.gd` hit 269/250 and split; `settings_effects_test.gd` is the new half, divided by QUESTION — *is the key reached* against *does the effect happen*. 1,798 → 1,821 assertions. See below |
+| T5.16 | **Quest chaining — a correctness defect, and the stack landed first** | **DONE** — `4.2.1`, and OFF THIS PHASE'S THEME ON PURPOSE: a correctness bug in the base does not wait for a thematic slot. Found by auditing the base rather than by a rung. `QuestTracker.evaluate()` guarded re-entrancy by RETURNING, discarding the re-derivation a listener on `quest_completed` legitimately asked for — **the case the guard's own comment names** — so a quest whose start condition another quest writes started or silently did not according to `ContentScan` insertion order, which is not sorted. Eight rungs and 2,051 assertions were green over it because the demo has ONE quest, so it cannot chain, and `quests_test.gd` drives `evaluate()` directly by design while a re-entrant call can only arrive on `flag_changed`. Fixed with a pending bit drained by the outer pass, bound by `QuestDb.count() + 2`. **The plant fails exactly 1 of 8, and the 1 is the adversarial order** — which is what proves the two order blocks are not the same test. Gotcha 72. **Also landed the 16-PR T5 stack on `main` as one fast-forward (`16e8bfd`) and turned on branch protection**; see below
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -4377,3 +4378,89 @@ to a consuming game per unit of work. Each is sized to one chat.
 | ~~I~~ | ~~**`reduce_motion` finished**~~ | **DONE — T5.7, 2026-09-05.** Both halves landed. The setting reaches all three motions, and the shadow atlas turned out to be a live defect rather than a portability worry: the `2048` const halved this repository's own atlas on every windowed boot, because the engine's default is 4096. Gotcha 61 |
 | ~~J~~ | ~~**A placeholder sheet whose facings are distinguishable**~~ | **DONE — T5.8, 2026-09-05.** Both sheets now draw five poses and a mirror instead of one pose repeated. The worst facing pair went from 0.0000 — facings 2 and 3 were byte-identical — to 0.0747 on the default sheet and 0.2188 on the alt one, and the same character was photographed walking north, east, south and west, which nothing here had ever captured. The code was correct throughout, which is **gotcha 62**: gotcha 54 with the unwired middle made of pixels. No file under `src/` changed except the debug capture tool |
 | ~~K~~ | ~~**A public-method liveness gate — the fourth consumer question**~~ | **DONE — T5.13, 2026-09-06.** `tools/check_methods.gd` is rung 11, and the design question — which methods it is even asked of — has the answer that made it buildable: not "is it called on a value of the right type", which no text scan can know, but "did anybody write this name down at all", which every dispatch form satisfies, including the unqualified inherited call an earlier draft missed. **First run: 12 violations of 316, exit 1** — two deleted (a MAJOR bump, 4.0.0, with the one-line replacement named for each), one wired, nine exempted with an argued sentence each, and **two of the twelve carried doc comments naming callers that never existed**. Proved against `duck()`: at `7a162ca` it had zero references outside its own declaration, so it would have failed on the day it landed. **86 of 314 are reached only from tests/ or tools/ and that is REPORTED, never failed** — the distinction is real, but 86 exemptions on day one is decoration and would be answered with a fake caller. Exemption is `NO CALLER` in the method own `##` block; a stale one fails too. **Gotcha 69**: the precondition fired on the test file that quoted its own trigger pattern, and the gate was right |
+
+---
+
+## T5.16 · Quest chaining, and the stack landed first — **DONE**
+
+**2026-09-07. Version 4.2.1, a PATCH.** Two things, and the first was not a package.
+
+**THE STACK WAS LANDED BEFORE ANYTHING WAS BUILT ON IT.** `main` had not moved since 2026-09-03
+and still declared `1.0.1`, while sixteen CI-green PRs (#29-#44) carried T4.4 and T5.1 through
+T5.15 and declared `4.2.0`. `CONTEXT.md` records the 26-PR stack of T4.3 as history and says
+*"stop stacking"*; it had recurred at 16, three days after being resolved. `origin/main` was an
+ancestor of the tip and `rev-list tip..main` was **0**, so retargeting PR #44 to `main` landed
+all of it as one fast-forward — 31 commits, 115 files, `+13243/-593`, `16e8bfd`. Verified on
+`main` afterwards rather than trusted: `2051 passed, 0 failed, 0 skipped`, seven checkers exit 0,
+CI green, zero open PRs. Three PRs auto-closed as **Merged**; the other twelve hit the identical
+GitHub refusal T4.3 documented, which was TESTED on #32 rather than assumed.
+
+**AND ONE STRANDED COMMIT WAS ABANDONED ON PURPOSE, WHICH IS THE INTERESTING HALF.** Three
+docs-only commits on `t5-11`/`t5-12` were not in the tip. `3eb8e59` was cherry-picked and
+hand-resolved. **`f7d57cd` was not**: it recorded the owner's turn-in-place answer as *"the NPC
+half lives on `NpcBrain`"*, and T5.14 shipped it via `Events.turn_requested` with `Speaker` as
+the asker. Restoring a superseded decision into the *"do not re-litigate"* list is worse than
+losing it — a wrong entry there is authoritative by position.
+
+**THE DEFECT, AND IT WAS ANNOUNCED BY ITS OWN COMMENT.** `QuestTracker.evaluate()` guarded
+re-entrancy with a bare `return`. The guard's comment says a listener on `quest_completed`
+*"legitimately might"* write a flag and names *"starting the next chapter"* as the obvious case —
+and returning DISCARDS the re-derivation that flag asked for. It is harmless only if the running
+pass still reaches the newly-startable quest, and that depends on where the quest sits in
+`QuestDb.all()`: `ContentScan` insertion order, which **does not sort**. So an authored chain
+worked or did not according to filenames, and differently on two machines.
+
+**WHY EIGHT RUNGS AND 2,051 ASSERTIONS WERE GREEN, and it is not that the suite was weak.** Two
+independent reasons, both structural. The demo has ONE quest, so it cannot chain at all. And
+`quests_test.gd` states in its own header that it drives `evaluate()` and `Flags.set_flag`
+directly *"rather than through the signal chain a running game uses"* — which is the right choice
+for asking what a step MEANS, and is exactly why no number of assertions in that file could have
+found this: **a re-entrant call can only arrive on `flag_changed`.** The suite was pointed at a
+different question. That is gotcha 44's family, and gotcha 72 states the general form.
+
+**THE FIX IS FOUR LINES AND THE BOUND IS DERIVED.** A re-entrant call sets `_pending`; the outer
+pass drains until nothing moves. The pass limit is `QuestDb.count() + 2` rather than a picked
+number — a chain can be no longer than the catalogue, because a quest advances at most once per
+pass and never goes backwards — so it cannot go stale at a game's sixtieth quest. Exceeding it
+logs an error instead of hanging. Same reasoning that derives the facing sectors from the facing
+count rather than writing 8 in a second place.
+
+**Files.** `src/systems/quest/quest_tracker.gd` (114 -> 126 code lines) ·
+`tests/framework/fixture_content.gd` (+1 helper, +7 consts, 182 -> 202) ·
+`tests/unit/quest_chain_test.gd` (new, 55 code lines, 8 assertions) · the `CASES` entry ·
+`project.godot` and `docs/CHANGELOG.md` for the bump. No new signal, no new autoload, no new
+registry, no CSV row — there is no player-facing text in a re-entrancy fix.
+**2,051 -> 2,059 assertions.**
+
+**TWO FIXTURE QUESTS COVER BOTH SCAN ORDERS, WHICH IS WHY THERE ARE NOT FOUR.** `chain_lead` and
+`chain_next` are the same shape — a flag to start, one step, a flag to finish — so which one is
+the DEPENDENT is the test's choice. Making `next` the trigger puts the dependent FIRST in the
+scan (adversarial); making `lead` the trigger puts it second (benign). The scan order itself is
+**asserted, not assumed**, because `ContentScan` does not sort and "lead is first" is an
+observation about this machine: if it ever stops holding, the two blocks quietly swap meaning and
+both test the benign case. That assertion is the thing standing between this case and gotcha 44.
+
+**PROVED RED, THEN GREEN, WITH THE REAL FAILURE SHAPE (gotcha 23).** Planting the original bare
+`return`: exit 1, `2058 passed, 1 failed`, failing on
+`the dependent scanned BEFORE its trigger started anyway — expected 1, got 0` while *"the trigger
+completed"* and *"the listener fired once"* both still pass — the mechanism, not a symptom.
+**Exactly 1 of 8 failed**, which is the load-bearing number: the benign order passes while the
+defect is live, so a case that had happened to test only that order would have looked like proof.
+Control restored: `2059 passed, 0 failed`, exit 0.
+
+**Ladder, all green.** `--import` with zero `SCRIPT ERROR`/`Parse Error` lines; boot
+`0 warnings, 0 errors`; suite `2059 passed, 0 failed, 0 skipped` with `quest_chain_test 8/8`;
+`check_budgets`, `check_content`, `check_boundary`, `check_strings`, `check_layers`,
+`check_signals`, `check_methods` all exit 0.
+
+**Deferred, with reasons, not silently.**
+- **The drain's pass bound is unasserted**, and the case says so in its header. No listener this
+  template can construct reaches it — a flag-per-flag listener recurses through the signal before
+  the drain is re-entered, and a quest completes at most once. Asserting it would need a probe
+  fabricating a state the system cannot reach, which proves the probe.
+- **A re-entrant call inherits the outer pass's `announce`.** Correct for the one caller that
+  passes false, and a coincidence rather than a rule. Stated in `DEVLOG.md`.
+- **No gate.** Gotcha 72 names the tell — ask whether the caller wanted a RETRY or wanted to be
+  REFUSED — and that is prose. A gate would have to understand intent.
+- **`ROADMAP.md` untouched.** No exit criterion covers a defect fix and inventing one to tick is
+  what T5.1 spent a package undoing.

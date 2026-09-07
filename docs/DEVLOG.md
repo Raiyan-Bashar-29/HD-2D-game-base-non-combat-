@@ -7831,3 +7831,109 @@ possibility of choosing one and finding the rows had not followed.
   three new public methods did not move it. Answering the 86 needs a call recorder on a real run,
   which is a package of its own and is not on the board yet.
 - **The candidate board is now empty.** C through K are all closed.
+
+---
+
+## 2026-09-07 — T5.16 · Quest chaining, and the guard that discarded what it was warned about
+
+**Did.** Two things, and the first was not a package. **Landed the sixteen-package T5 stack on
+`main`**: PR #44 was retargeted from `claude/t5-14-face-target` to `main` and merged as
+`16e8bfd` — a clean fast-forward of 31 commits, 115 files, `+13243/-593`, carrying T4.4 and T5.1
+through T5.15. `main` had not moved since 2026-09-03 and still declared `1.0.1` while the work
+declared `4.2.0`. Then **fixed a correctness defect in `QuestTracker`** found by auditing the
+base rather than by any rung, bumped to `4.2.1`, and added `tests/unit/quest_chain_test.gd`.
+
+**Why (the landing).** `CONTEXT.md` records the 26-PR stack of T4.3 as history and says *"stop
+stacking"*; it had recurred at 16, three days later. Every PR was CI-green and `origin/main` was
+an ancestor of the tip with `rev-list tip..main` = 0, so the whole thing was one fast-forward and
+the cost of landing it was zero — while the cost of not landing it was that every doc a new
+session is told to trust described a base four days and fifteen versions stale.
+
+**Why (the defect).** `evaluate()` guarded re-entrancy by RETURNING. A listener on
+`quest_completed` that writes the next chapter's start flag — **the case the guard's own comment
+names** — landed back in `evaluate()` mid-pass and was discarded. That is harmless only if the
+running pass still reaches the newly-startable quest, and whether it does depends on where that
+quest sits in `QuestDb.all()`, which is `ContentScan` insertion order and is not sorted. So a
+chapter that begins when the previous one ends started, or silently did not, according to
+filenames — and on two machines with different directory listings, differently.
+
+**Connects.** `Flags.set_flag` emits `flag_changed` synchronously (`flags.gd:47`);
+`_on_flag_changed` calls `evaluate()` synchronously; `quest_completed` is emitted from
+`_evaluate_one` INSIDE the loop. Those three facts are the whole mechanism, and each was read
+rather than assumed. The fix is a pending bit drained by the outer pass, with the pass limit
+`QuestDb.count() + 2` — derived from the catalogue rather than picked, so it cannot go stale at a
+game's sixtieth quest, on the same reasoning that derives the facing sectors from the facing count.
+
+**Verified.** Ladder green on the fix: `--import` 0 `SCRIPT ERROR`/`Parse Error` lines; boot
+`0 warnings, 0 errors`; suite **`2059 passed, 0 failed, 0 skipped`** with `quest_chain_test 8/8`;
+all seven checkers exit 0. **PROVED RED WITH THE REAL FAILURE SHAPE (gotcha 23).** Planting the
+original bare `return` back: exit 1, `2058 passed, 1 failed`, and the failure is
+`FAIL the dependent scanned BEFORE its trigger started anyway — expected 1, got 0` while *"the
+trigger completed"* and *"the listener fired once"* both still pass — which is the mechanism, not
+a symptom. **Exactly 1 of 8 failed**, and that is the load-bearing detail: the benign scan order
+passes while the defect is live, so the two order blocks are demonstrably not testing the same
+thing. Control restored: exit 0.
+
+**On the landing, verified rather than assumed.** `main` re-run after the merge:
+`2051 passed, 0 failed, 0 skipped`, all seven checkers exit 0, CI green on both commits, zero
+open PRs. Three of the sixteen PRs auto-closed as **Merged** (#29-#31, whose base was already
+`main`); the other twelve hit the identical GitHub refusal T4.3 documented — *"There are no new
+commits between base branch 'main' and head branch"* — which was TESTED on #32 rather than
+assumed, so they read **Closed** with a comment pointing at #44.
+
+**One stranded commit was deliberately NOT restored.** Three commits on `t5-11`/`t5-12` were not
+in the tip, all docs-only. `3eb8e59` (T5.12's CI record) was cherry-picked, conflicting across
+548 lines because T5.13-T5.15 had been appended since; resolved by hand, placing the block at the
+end of T5.12's entry rather than taking either side. **`f7d57cd` was abandoned on purpose**: it
+recorded the owner's turn-in-place answer as *"the NPC half lives on `NpcBrain`"*, and T5.14
+shipped it via `Events.turn_requested` with `Speaker` as the asker. Restoring it would have put a
+false statement into the *"do not re-litigate"* list, which is the worst place in the repository
+for one. Confirmed absent from `main` before deciding.
+
+**A trap worth recording for anyone resolving a DEVLOG conflict.**
+`grep '^<<<<<<<' docs/DEVLOG.md` finds **documented example** conflict markers at line 4648 — the
+`UPGRADING.md` CSV walkthrough quotes a real merge, including its markers. They are content.
+Locate the genuine conflict by the marker that names the commit being applied.
+
+**Also.** `main` now has **branch protection** requiring both `Ladder` jobs, force-pushes and
+deletions blocked, admins deliberately NOT enforced so a solo owner keeps an emergency direct
+push. It needed the repository to be public — both the protection and the rulesets APIs return
+`403 Upgrade to GitHub Pro or make this repository public` on a free private plan — which was the
+owner's decision, taken explicitly. This retires `CONTEXT.md`'s *"Not built: branch protection"*
+line, which was a plan limitation rather than an oversight the whole time.
+
+**`CONTEXT.md`'s header block was compacted from 494 lines to 35.** It had accumulated the full
+narrative of T5.9 to T5.15 in a file whose second paragraph says *"Keep it short"*. Every line of
+it is duplicated in this file's own per-package entries (15 of them for T5) and in the board's 12
+detail sections, both checked before deleting. The compacted shape matches what the header looked
+like before the stack — a short block plus one parenthetical naming the previous package.
+
+**Unblocks.** Authored quest chains, which is the normal shape of a game with more than a handful
+of quests, and which is what the flag-condition design was always supposed to make free. Also
+unblocks building on `main` again at all.
+
+**Gaps.**
+- **The drain's pass bound is UNASSERTED, and the case says so out loud.** No listener this
+  template can construct reaches it: a flag-written-per-flag listener recurses through the signal
+  before the drain is re-entered, and a quest completes at most once, so a chain always settles.
+  The bound exists so a consuming game's listener cannot hang the game. This is
+  `export_test.gd`'s honesty applied to a loop bound — asserting it would have needed a probe
+  that fabricates a condition the system cannot reach, which proves the probe and not the code.
+- **The re-entrant call inherits the OUTER pass's `announce`.** A re-entrant call always wants
+  `announce = true`, and during a save re-seed (`evaluate(false)`) it is silently downgraded.
+  That is correct for the only caller that passes false — a restore must not toast progress made
+  an hour ago — but it is a coincidence of there being one such caller, not a designed rule.
+- **`ROADMAP.md` is untouched.** No exit criterion covers a defect fix, and inventing one to have
+  something to tick would be the ticking-without-proving this project spent T5.1 undoing.
+- **Not a gate.** Nothing stops the next re-entrancy guard being written as a bare `return`;
+  gotcha 72 states the tell (ask whether the caller wanted a RETRY or wanted to be REFUSED) and
+  that is prose, not enforcement. A gate would have to understand intent.
+
+**CI GREEN ON `4d101b2`, PR #45, MERGEABLE / CLEAN** — both jobs pass. Full checkout
+`=== 2059 passed, 0 failed, 0 skipped ===`; **stripped template
+`=== 1985 passed, 0 failed, 25 skipped ===`**, and that is the number worth reading: T5.15 left
+the stripped run at 1,977, so **all 8 of this row's assertions survive the demo strip.** They
+were always going to — `quest_chain_test.gd` is fixtures all the way down and names no authored
+content — but the whole point of quoting the stripped number is that "always going to" is a
+prediction and this is the measurement. First package to land through branch protection, which
+required both jobs before the merge button was live.

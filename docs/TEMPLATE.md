@@ -69,7 +69,7 @@ boundary that accumulates silently.
 | `tools/`, `tests/framework/` | **Engine.** | Keep. |
 | `data/**` | **Demo.** Every `.tres`. | Delete, and author your own in the same folders. |
 | `scenes/areas/**` | **Demo.** | Delete, and author your own. |
-| `localization/strings.csv` | **Mixed.** `verb.*`, `refusal.*`, `ui.*`, `time.phase.*`, `item.category.*` are engine; `object.*`, `item.*`, `talk.*`, `action.*`, `area.*` are demo. | Prune the demo half. |
+| `localization/strings.csv` | **Mixed.** `verb.*`, `refusal.*`, `ui.*`, `notify.*`, `weather.*`, `time.*`, `item.category.*` are engine; `object.*`, `item.*`, `talk.*`, `action.*`, `area.*` and `quest.*` are demo — the six `check_boundary.gd` derives its CONTENT_NAMESPACES from, which is the list that fails a build. | Prune the demo half. |
 | `tests/unit/` | **Engine**, as of T1.3. Cases build what they need from `tests/framework/`, and the blocks that genuinely assert things about a game skip themselves and say so. | Keep. |
 | `project.godot` | **Mixed, and the one place a demo id belongs.** `[game] world/first_area` names the starting area; `[template] base/version` is the BASE's own version and is not a game's to touch. | Rename the four `application/config/*` fields and point `first_area` at your own. Leave `base/version` alone — [`UPGRADING.md`](UPGRADING.md) § 1. |
 

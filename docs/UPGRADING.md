@@ -117,7 +117,7 @@ item.lamp_oil.name,Lamp oil
 **Keep both sides.** These are rows in a key-value file, not competing edits to one value. The
 only real collision is the base and your game choosing the *same key*, which the key prefixes make
 unlikely: engine rows are `ui.*`, `verb.*`, `refusal.*`, `notify.*`, `weather.*`, `time.*`,
-`keys.*` and `item.category.*`; yours are everything else. **Two traps carry over from
+`item.category.*`; yours are everything else. **Two traps carry over from
 [`NEW_GAME.md`](NEW_GAME.md) § 3** — a value containing a comma must stay quoted, and
 `ui.menu.title` is an engine key holding *your* game's name, so keep your side of that one.
 

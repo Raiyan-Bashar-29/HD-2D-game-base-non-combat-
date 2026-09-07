@@ -295,10 +295,7 @@ point, which is a game policy rather than a mechanism · branch protection, so C
 red branch merging · no CI export rung (a GPU-less runner has no platform template) · export
 presets for platforms other than Windows · a release-build content readout, since the debug gate
 means a release export prints nothing · a counted step whose CARRIER is validated by a gate — the
-item id is checked, the carrier is an `@export` in a scene `check_content` does not open. The theme does not yet set the
-`Button` styleboxes, so a light palette leaves every menu row drawing Godot's default dark
-panel — the seam is right and in the same file, simply unpopulated. Third package to leave
-them, each time for a stated reason.
+item id is checked, the carrier is an `@export` in a scene `check_content` does not open.
 Git LFS stays off, and T3.2 turned that from an omission into a written refusal with the reason
 and the turn-on steps — stated once, in `ART_CONTRACT.md`.
 

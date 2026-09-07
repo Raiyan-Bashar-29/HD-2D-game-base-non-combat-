@@ -60,7 +60,7 @@ item.        — EXCEPT every item.category.* row, which is engine
 ```
 
 Everything else is engine and stays: `ui.*`, `verb.*`, `refusal.*`, `notify.*`, `weather.*`,
-`time.*`, `keys.*`, `item.category.*`.
+`time.*` and `item.category.*`. (There are no `keys.*` rows — the rebinding labels are `ui.action.*`.)
 
 ```bash
 awk '!/^(area|talk|action|object|quest)\./ && (!/^item\./ || /^item\.category\./)' \

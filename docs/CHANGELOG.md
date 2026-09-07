@@ -19,6 +19,39 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 4.3.0
+
+*2026-09-07 — the save loader's refusals are asserted, and its migration path is documented as
+structurally unreachable. **No production code changed**: `save_system.gd` is byte-identical.*
+
+**A consuming game does: nothing, and should read one line.** The base gained a test case, which
+is a gain a game may ignore — except in one situation worth naming. **If your fork modified
+`SaveSystem`, `tests/unit/save_recovery_test.gd` may go red on merge.** That is the case doing
+its job rather than a defect in your game: it asserts that a corrupt envelope is refused while a
+corrupt SECTION is skipped, and a fork that made either one behave like the other has changed how
+much of a player's save survives a bad file.
+
+**What was unasserted.** `core_test.gd` owns the round trip and covered exactly one refusal — an
+empty slot. Nothing in the suite had ever written a MALFORMED save file, so six branches were
+carried by review alone: a file that is not JSON, a missing `version` field, a save from a newer
+build, a non-Dictionary section, a section predating per-section versioning, and a section absent
+altogether. All six are now asserted, and two were proved by planting a reversion.
+
+**The migration mechanism is unreachable, and that is arithmetic.** `_migrate` is called only when
+`version != SCHEMA_VERSION`, and it refuses `<= 0` and `> SCHEMA_VERSION`. At `SCHEMA_VERSION == 1`
+no integer is all three of not-one, above-zero and at-most-one — so its success path, including its
+`"Migrated save from v%d to v%d"` line, cannot be entered by any file. This is not a bug: there
+genuinely are no migrations at v1, and the comment telling a future author where to add one is
+correct. What was wrong was `SYSTEMS_INVENTORY.md` describing migration as DONE, which read as
+"exercised" when it meant "written". That row now says so.
+
+**And it expires by itself.** The new case pins `SCHEMA_VERSION` to 1. Ship a v2 schema and the
+suite fails with *"SCHEMA_VERSION is still 1, so _migrate has no reachable success path"* — which
+is the reminder to write the migration test at the moment one first becomes possible, rather than
+a note in a document nobody rereads.
+
+---
+
 ## 4.2.1
 
 *2026-09-07 — a quest whose start condition is written by another quest's completion did not

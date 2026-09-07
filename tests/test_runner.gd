@@ -39,6 +39,7 @@ const FALLBACK_LOCALE: String = "internationalization/locale/fallback"
 
 const CASES: Array[String] = [
 	"res://tests/unit/core_test.gd",
+	"res://tests/unit/save_recovery_test.gd",
 	"res://tests/unit/world_test.gd",
 	"res://tests/unit/interaction_test.gd",
 	"res://tests/unit/items_test.gd",

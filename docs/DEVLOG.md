@@ -7992,3 +7992,88 @@ than implied.
 - **The audit's remaining findings are on the board as candidates**, not fixed here: the
   template-default vs game-choice taxonomy, a narrative-staging seam, time above one day, the
   save loader's untested refusal branches, and the scene-level interaction test.
+
+---
+
+## 2026-09-07 — T5.18 · The save loader's refusals, and a path nothing can enter
+
+**Did.** Added `tests/unit/save_recovery_test.gd` (17 assertions), corrected the Save system row
+in `SYSTEMS_INVENTORY.md`, and bumped to `4.3.0`. **`save_system.gd` is byte-identical to `main`**
+— `git diff` on it is empty. Also took four tags: `v2.0.0`, `v3.0.0`, `v4.0.0`, `v4.2.1`.
+
+**Why.** Chosen over the taxonomy row, the narrative-staging seam and the interaction test, and
+the reasoning is worth keeping because it inverted the plan's own ranking. The plan ranked the
+taxonomy first because it decides the scope of three other rows, which is still true. It lost on
+one point: **prose cannot be proved by running the engine**, and non-negotiable #1 is that nothing
+is done until the engine has run it. The save loader won on four counts nothing else combines: a
+false DONE in the record, the only candidate that can lose a player's data, provable by running,
+and independent of the unanswered taxonomy question.
+
+**What was actually unasserted.** `core_test.gd` owns the round trip and covered exactly one
+refusal — an empty slot. A grep for `ERR_FILE_CORRUPT` across `tests/` returned NOTHING, and no
+test anywhere had written a malformed save file. Six branches were carried by review: a file that
+is not JSON, a missing `version`, a save from a newer build, a non-Dictionary section, a section
+predating per-section versioning, and a section absent altogether.
+
+**THE DISTINCTION THE CASE EXISTS TO PIN, and it is a policy rather than a detail.** A corrupt
+ENVELOPE is refused outright; a corrupt SECTION is logged and skipped while the rest of the save
+loads. That is the difference between a player losing a setting and a player losing forty hours,
+and it was implemented correctly and asserted nowhere — so nothing stopped a later change
+collapsing the two. Three blocks assert the skip side, and each asserts BOTH that the load returned
+`OK` and that the applier was never called, because those are different claims and only the second
+one answers "was the bad section skipped".
+
+**Connects.** `_migrate` is called only from `load_from_slot`, and only when
+`version != SCHEMA_VERSION`. It then refuses `from_version <= 0` and `from_version > SCHEMA_VERSION`.
+**At `SCHEMA_VERSION == 1` no integer satisfies all three of not-one, above-zero and at-most-one**,
+so the success path cannot be entered by any file a player can have. The `"Migrated save from v%d
+to v%d"` line has never printed and cannot. That is not a defect — there are no migrations at v1,
+and the comment telling a future author where to add one is correct. The defect was the RECORD:
+`SYSTEMS_INVENTORY.md` said migration was DONE, which reads as *exercised* and meant *written*.
+Eighth appearance of declared-and-not-reached, and the first where the thing unreached is a
+control-flow path rather than a field, a signal or a method.
+
+**AND IT EXPIRES BY ITSELF, which is the half worth copying.** The case asserts the version
+boundary exhaustively — `-1`, `0`, `2` refused, `1` loads — and then PINS `SCHEMA_VERSION` to 1. A
+v2 schema gives `_migrate` its first reachable success case and simultaneously makes that
+exhaustive block incomplete, so the suite fails with *"SCHEMA_VERSION is still 1, so _migrate has
+no reachable success path"* at exactly the moment a migration test first becomes possible. Same
+shape as `check_signals.gd` failing a `NO EMITTER` exemption that acquires an emitter: the
+exemption cannot rot because gaining what it excuses is itself the failure.
+
+**Verified.** `--import` clean; boot `0 warnings, 0 errors`; suite **`2076 passed, 0 failed, 0
+skipped`** with `save_recovery_test 17/17`; all seven checkers exit 0.
+
+**PROVED RED TWICE, IN OPPOSITE DIRECTIONS (gotcha 23, and gotcha 42's reason for bothering).**
+These assert EXISTING behaviour and passed first run, which proves nothing on its own.
+(1) The `from_version > SCHEMA_VERSION` guard deleted from `_migrate`: exit 1, `2074 passed, 2
+failed` — *"a save from a newer build is refused — expected 16, got 0"* AND *"one past the schema
+is refused"*, so the exhaustiveness block caught it independently of the block written for it.
+(2) The non-Dictionary section's `continue` changed to `return ERR_FILE_CORRUPT`: exit 1, `2075
+passed, 1 failed` — *"a section that is not a Dictionary does not fail the load — expected 0, got
+16"*. **The opposite sign is the point**: a case that had confused refuse-the-file with
+skip-the-section would pass one plant and fail the other. Control after restoring: `2076 passed, 0
+failed`, and `git diff src/core/save/save_system.gd` empty.
+
+**The tags, and why four.** The base declared `4.2.1` while the newest tag was `v1.0.1`, three
+MAJOR bumps back — and a MAJOR is precisely what `UPGRADING.md` tells a consuming game it must
+read before merging. Tagging only the tip would leave those three reachable solely by grepping
+history; now `git diff v3.0.0..v4.0.0` shows a fork what broke. Each tag was verified against
+T4.3's condition before being cut: `git show <commit>:project.godot` must declare the version the
+tag claims. All four did, and all four are ancestors of `main`.
+
+**Unblocks.** Any change to the save format, which now has a regression net under its failure
+modes rather than only under its happy path.
+
+**Gaps.**
+- **`SAVE_DIR` is a `const` with no redirect**, so this case writes a real slot in the developer's
+  own `user://saves` and deletes it on every path, exactly as `core_test.gd` does. It is on the
+  candidate list now; `save_system.gd` has 14 lines of budget left, so it is small.
+- **A write that fails mid-flight is still unasserted.** `_write_atomic`'s error branch needs a
+  read-only directory or a full disk, which no assertion can arrange portably. Named rather than
+  implied, on `export_test.gd`'s precedent.
+- **`slot_info()` parses the WHOLE save file**, and `latest_slot()` does it for all six slots on
+  every menu build. Found in the same audit, untouched here because it is a performance change to
+  a file with 14 lines of headroom and belongs in its own row.
+- **No windowed capture.** Nothing in this package is visual: every claim is a return code or a
+  call count, and the honest ladder for it ends at the suite.

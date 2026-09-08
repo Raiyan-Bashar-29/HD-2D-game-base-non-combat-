@@ -5,9 +5,10 @@ extends TestCase
 ## The game's version is the game's business and nothing in the template reads it. The BASE's
 ## version is a promise made to a fork — `docs/UPGRADING.md` tells a consuming game to compare it
 ## against what it merged last — and a promise nothing checks decays into a number somebody
-## forgot to bump. Two facts are checkable and both rot silently: the setting in `project.godot`
-## disagreeing with `docs/CHANGELOG.md`, and the boot banner quietly losing the value, which is
-## the only way a fork's bug report says which base it was built on.
+## forgot to bump. THREE facts are checkable and all three rot silently: the setting in
+## `project.godot` disagreeing with `docs/CHANGELOG.md`, the boot banner quietly losing the value,
+## which is the only way a fork's bug report says which base it was built on, and `CONTEXT.md`
+## stating a version it stopped being — which it did, for two majors, until T5.19.
 ##
 ## THE BANNER IS ASSERTED BY A TEXT SCAN, AND THE ANCHOR IS UNIQUE ON PURPOSE. `Log._ready()`
 ## has already run by the time any case does, and calling it again would open a second log file.
@@ -24,10 +25,12 @@ const LOG_SOURCE: String = "res://src/core/log/log.gd"
 ## Unique in that file, and it has to stay that way — see the header.
 const BANNER_ANCHOR: String = "| base %s |"
 const CHANGELOG: String = "res://docs/CHANGELOG.md"
+const CONTEXT: String = "res://docs/CONTEXT.md"
 
 
 func run() -> void:
-	plan(27)
+	var stated: Array[String] = _bold_versions(CONTEXT)
+	plan(28 + stated.size())
 	_the_setting_is_what_the_class_reports()
 	_the_parts_agree_with_the_string()
 	_is_semver_refuses_everything_that_is_not_three_integers()
@@ -35,6 +38,7 @@ func run() -> void:
 	_an_absent_setting_reads_as_unknown()
 	_the_boot_banner_names_the_base_version()
 	_the_changelog_top_entry_is_this_version()
+	_the_context_states_this_version(stated)
 
 
 func _the_setting_is_what_the_class_reports() -> void:
@@ -118,3 +122,24 @@ func _the_changelog_top_entry_is_this_version() -> void:
 			break
 	equal("the changelog has a versioned entry", newest != "", true)
 	equal("its newest entry is the declared version", newest, TemplateVersion.current())
+
+
+## THE FILE EVERY SESSION IS TOLD TO READ FIRST STATES THIS VERSION, AND IT STATED `2.4.0` FOR
+## TWO MAJORS. `CLAUDE.md` sends a new session to `CONTEXT.md` before anything else, so a stale
+## version there is the first thing a reader believes and the last thing anybody re-checks. The
+## convention that makes it assertable is `doc_counts_test.gd`'s, applied to a version instead of
+## a count: a BOLD semver is a claim about the CURRENT version, and every other spelling — a
+## backticked tag, a bare number in a sentence about what some earlier package bumped — is a
+## record of what WAS true. So there is no list of exceptions here to rot in turn.
+func _the_context_states_this_version(stated: Array[String]) -> void:
+	equal("CONTEXT.md states the template version", stated.size() > 0, true)
+	for version: String in stated:
+		equal("CONTEXT.md states the declared version", version, TemplateVersion.current())
+
+
+func _bold_versions(path: String) -> Array[String]:
+	var found: Array[String] = []
+	var matcher := RegEx.create_from_string("[*][*]([0-9]+[.][0-9]+[.][0-9]+)[*][*]")
+	for hit: RegExMatch in matcher.search_all(FileAccess.get_file_as_string(path)):
+		found.append(hit.get_string(1))
+	return found

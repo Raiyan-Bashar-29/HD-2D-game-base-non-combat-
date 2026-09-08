@@ -3,11 +3,24 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-07 · **T5.18 (the save loader's refusals) complete. The base is at
-4.3.0, a MINOR — and `save_system.gd` is BYTE-IDENTICAL, so this package is assertions and one
-corrected claim, nothing else.** Tags now exist for every version a consuming game must read:
-`v2.0.0`, `v3.0.0`, `v4.0.0` and `v4.2.1`, each verified to name a tree that genuinely declares
-its own version, which is T4.3's condition.
+**Last updated:** 2026-09-08 · **T5.19 (reconciling the record, and gating its shape) complete.
+The base is at 4.3.1, a PATCH — no production code changed, so this package is twelve corrected
+claims and two gates.** The file you are reading was the worst of the twelve: it stated template
+version `2.4.0` two majors after the fact and named an already-shipped package as the next one to
+build. Tags exist for `v2.0.0`, `v3.0.0`, `v4.0.0` and `v4.2.1`, each verified to name a tree that
+genuinely declares its own version, which is T4.3's condition.
+**THE RECORD HAD DRIFTED IN TWELVE PLACES, AND T5.17 EXISTED TO STOP EXACTLY THAT.** One package
+after a reconciliation, `CONTEXT.md` was two majors stale on its own version, `ARCHITECTURE.md`
+was 348 assertions behind and pointed at "rung 9" for a capture that is rung 12,
+`SYSTEMS_INVENTORY.md` had T5.15's `Row styles` row stranded at line 1 ABOVE the title — its only
+copy, so the system was absent from its table — and T5.17 itself had no row on the board. **The
+answer was not a third manual reconcile.** Two of the twelve are STRUCTURE rather than prose, and
+structure is assertable: `record_shape_test.gd` now fails if a document does not open with its own
+title or a package the log records has no board row, and `version_test.gd` gained a third fact —
+a **bold** semver in `CONTEXT.md` must equal `project.godot`'s. **The counts were corrected and
+deliberately NOT gated**, and the DEVLOG says why: a case cannot know the suite's own total while
+it is still running.
+
 
 **SIX REFUSAL BRANCHES IN THE LOADER HAD NO ASSERTIONS, AND NOTHING IN THE SUITE HAD EVER WRITTEN
 A MALFORMED SAVE FILE.** `core_test.gd` owns the round trip and covered one refusal, an empty
@@ -72,23 +85,23 @@ game built on this will need, so a new game is content and data rather than new 
 
 ## Where it stands
 
-Phase 0 complete, Phase 1 COMPLETE, Phase 2 well under way, **Phase T1 COMPLETE, Phase T2 COMPLETE
-as of T2.2, Phase T3 COMPLETE as of WP-14b, and PHASE T4 COMPLETE as of T4.3 — all three exit
-criteria are ticked and the repository is tagged.**
+Phase 0, Phase 1 and Phase 2 are complete, **Phase T1, T2, T3 and T4 are COMPLETE, and Phase T5 —
+the base as a reusable CHARACTER kit — has ONE exit criterion left**: a second idle block and a
+chooser between them. That is the only unticked box in `ROADMAP.md`, and closing the phase on it
+is the owner's call.
 
 **WP-15 IS CLOSED and WP-10 stays OPTIONAL, so nothing is blocking.** The two rows that stood
 between the board and Phase T4 are settled: the owner closed WP-15's remnant on 2026-09-02 rather
 than build credits and an accessibility pass, both of which belong to a consuming game; crafting
 was already optional and blocks nothing.
 
-**THE RELEASE TAG IS TAKEN.** `v1.0.0`, on `648bac1` — the merge commit that landed WP-01 through
-T4.2 on `main` as one 71-commit linear chain. It was refused on 2026-09-02 for a reason that had
-not expired by the time it was asked again: `origin/main` was still at `d0bf153` and nothing had
-merged, so the tag would have named either a commit lacking the version it claimed or an unmerged
-branch. Landing the stack first is what made it honest. **Tagging is still a release action and
-still the owner's** — T4.3 bumped `base/version` to `1.0.1` for its own fixes and deliberately did
-NOT tag that, which is T4.1's precedent: stating a version is engineering, cutting a release is
-not.
+**THE RELEASE TAGS ARE TAKEN, AND TAGGING IS STILL THE OWNER'S.** `v1.0.0` on `648bac1` landed
+WP-01 through T4.2 as one 71-commit linear chain, and `v2.0.0`, `v3.0.0`, `v4.0.0` and `v4.2.1`
+followed it, each verified to name a tree that genuinely declares the version it claims. **Stating
+a version is engineering; cutting a release is not** — T4.3 bumped `base/version` to `1.0.1` and
+deliberately did NOT tag it, and `1.0.2`'s tag was asked for and DECLINED on 2026-09-04. So several
+versions this repository declares carry no tag naming them, and that is the policy working rather
+than a gap to close.
 
 **THE BOARD WAS CLOSED ON 2026-09-04 AND REOPENED THE SAME DAY, AND BOTH DECISIONS WERE RIGHT.**
 T4.4 put the choice to the owner — every phase closed, every document performed, nothing blocking
@@ -97,39 +110,39 @@ very next question was whether the SKELETON was actually finished, and reading `
 instead of the closing summary answered no: **Phase 1 read COMPLETE while carrying three unticked
 exit criteria, and Phase 2 read IN PROGRESS with one.** T5.1 closed all four by PROVING them, and
 one turned out to be a genuinely missing FEATURE — the locale setting was wired to nothing at all.
-**Every exit criterion in every phase is now ticked, and each was proved rather than asserted.**
+**Every exit criterion in Phases 0 through T4 is ticked, and each was proved rather than
+asserted** — Phase T5's second-idle box is the one that still stands open.
 
-**So the base is v1.1-complete, and what it is FOR has been sharpened.** The owner's intent is
+**So the base is 4.3.1-complete, and what it is FOR has been sharpened.** The owner's intent is
 reusable CHARACTER infrastructure that future games inherit by swapping assets — several idle
 formats, several movement styles — so that a new game starts from a working base rather than going
-in blind. That reframing names the next package rather than leaving it to taste, and the seam it
-needs is already half-built: see the first gap below.
+in blind. Phase T5 delivered it: gaits are data, a whole character swaps by pointing at another
+sheet, and every facing draws a different figure.
 
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version stays UNTAGGED at `1.1.0`** — 1.0.0 and 1.0.1 were each asked for separately and
-granted, 1.0.2 and 1.1.0 were not.
+**The version is** **4.3.1**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+the owner's to close or to leave.
 
-**THE NEXT PACKAGE, and it is the owner's reframing made concrete.**
-`SpriteSheetLayout.animation_for(moving: bool)` takes a **BOOLEAN**, so a sheet can carry only an
-idle block and a walk block — run and sneak replay the walk row faster and nothing else. Meanwhile
-`GameEnums.MoveState` has ten values, and `Events.player_state_changed(state)` is declared **and
-emitted** by `PlayerController` and **listened to by nothing**. So the animation block should be
-chosen by `MoveState` rather than by a bool, and then one sheet carries separate idle / walk / run
-/ sneak / climb blocks and every future character — player or NPC, since both use `CharacterVisual`
-unchanged — gets them by asset swap with no code. That is the **sixth** instance in this project of
-something declared, validated and read by nothing, after `Gate.locked_key`,
-`PathAction.refusal_key`, `ItemDb.reload`, `HD2DCameraRig`'s framing exports and the locale setting
-T5.1 just fixed.
+**THE NEXT PACKAGE IS A CHOICE, NOT A QUEUE.** Nothing is blocking. The strongest rows, in the
+order this file recommends them: a **scene-level interaction test**, which `interaction_test.gd`
+says in writing belongs there and which closes a false-confidence gap that a run can actually
+close; **a second idle block and a chooser**, the last Phase T5 exit criterion; the
+**template-default vs game-choice taxonomy**, which gates three rows below it and is honestly weak
+in that it is prose and cannot be proved by running the engine; a **narrative-staging seam**,
+`Cutscenes` being the only `TODO` in `SYSTEMS_INVENTORY.md` with no stated reason; and **time above
+the scale of one day**. Two files are near their budget: `src/systems/debug/dev_stage.gd` at
+**248 of its 250** is the urgent one, and `tools/gen_placeholders.gd` at 230 has merely been
+called next for longer.
 
 
-151 files, 13,728 code lines, 16 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
+161 files, 15,161 code lines, 17 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
 three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 3 on the default one**,
 1 shared area material, **21 settings and 21 consumers**.
-Template version **2.4.0**, and that version is deliberately UNTAGGED — `v1.0.0` and
-`v1.0.1` are the tags, each naming the tree that declares it.
+Template version **4.3.1**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 
 **Works, and verified by running it:** logging with rotation · signal registry (`events.gd`) ·
@@ -165,7 +178,7 @@ which is `check_strings.gd`'s static rule made visible and including anything co
 **A SAVE THAT SURVIVES A REAL RELAUNCH**, proved in TWO PROCESSES rather than one reload:
 `--save-state` / `--load-state` in `dev_probes.gd`, with the fresh process's boot line as
 the control and the weather deliberately STORM because CLEAR is the boot default ·
-placeholder art generator · line-budget checker · a headless test suite (1,798 assertions) that
+placeholder art generator · line-budget checker · a headless test suite (2,076 assertions) that
 builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
 returns early, asserts nothing, or is not listed in the runner ·
 an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
@@ -173,7 +186,7 @@ a LOCALIZATION gate that fails on a literal reaching a text sink and on any `*_K
 CSV row — the second half proved to catch what nothing else could, since a planted typo passed
 `check_content`, `check_boundary` and 1,517 assertions ·
 a SMOKE TEST that drives a session end to end from fixtures and asserts it logged nothing ·
-**CI that runs seven of the eight rungs on every push, PR and manual dispatch**, in two jobs (full
+**CI that runs ten of the twelve rungs on every push, PR and manual dispatch**, in two jobs (full
 checkout and a stripped template), on a downloaded engine whose SHA512 and build string are both
 verified — proved red on a broken assertion and green again ·
 interaction sensor with ranking and Tab-cycling · Interactable contract · localized prompt and
@@ -289,8 +302,8 @@ objective markers on the map — `quest_advanced` has an emitter, so markers are
 more marker state · **a quest step that TAKES the items it counted** — a step can REQUIRE N of an
 item id since T3.3, and WP-08's layer refusal is unchanged: a completed quest emits
 `quest_completed` and stops, so handing anything over is a listener's job · a DEPARTURE-side travel
-point, which is a game policy rather than a mechanism · branch protection, so CI reports but nothing stops a
-red branch merging · no CI export rung (a GPU-less runner has no platform template) · export
+point, which is a game policy rather than a mechanism ·
+no CI export rung (a GPU-less runner has no platform template) · export
 presets for platforms other than Windows · a release-build content readout, since the debug gate
 means a release export prints nothing · a counted step whose CARRIER is validated by a gate — the
 item id is checked, the carrier is an `@export` in a scene `check_content` does not open.

@@ -247,7 +247,7 @@ Every rung is proven working on this machine. Nothing here is aspirational.
 | 1. Parse and type gate | `--headless --check-only --script <file>` | Type errors, unknown functions, with file and line |
 | 2. Import gate | `--headless --import` | Broken scenes, resources, asset references |
 | 3. Headless run | `--headless --quit-after 30` | Boot order, null references, real `_process` frames |
-| 4. Tests | `--headless res://tests/test_runner.tscn --quit-after 400` | Logic, save round-trips. 1,728 assertions, exit 1 on failure |
+| 4. Tests | `--headless res://tests/test_runner.tscn --quit-after 400` | Logic, save round-trips. 2,076 assertions, exit 1 on failure |
 | 5. check_budgets | `--headless --script tools/check_budgets.gd` | File and function line budgets, stray `print()` |
 | 6. check_content | `--headless --script tools/check_content.gd` | Broken items, duplicate object ids, missing CSV keys, a missing `[editable]` |
 | 7. check_boundary | `--headless --script tools/check_boundary.gd` | Any demo name in a code line under `src/` or `tests/`; a CSV row translating content that is not there |
@@ -267,7 +267,7 @@ compile (`Compile Error: Identifier not found: Log`), so no test touching a syst
 that way. Also: anything created with `.new()` and not freed prints a wall of
 `RID allocations were leaked at exit`, which drowns real errors.
 
-**Rung 9 is the important one.** `--headless` uses a dummy rasteriser and shades nothing, so
+**Rung 12 is the important one.** `--headless` uses a dummy rasteriser and shades nothing, so
 visual work needs a real window. `DevCapture` makes that repeatable: it forces the clock and
 the weather from the command line and writes the viewport to a PNG. This is what closes the
 "multi-resolution HD-2D presentation cannot be verified" item that the previous project could

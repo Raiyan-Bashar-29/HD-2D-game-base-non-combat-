@@ -19,6 +19,45 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 4.3.1
+
+*2026-09-08 — twelve places where the record disagreed with the repository, and two gates so the
+two structural ones cannot recur. **No production code changed**: this release is documentation
+and tests.*
+
+**A consuming game does: nothing.** No field, method, signal, scene or setting changed, and no
+file a game wrote is affected. Everything here is either a document this base ships or a test
+case that reads one.
+
+**What was wrong.** `CONTEXT.md` — the file `CLAUDE.md` orders every session to read first — was
+stating template version `2.4.0` two majors after the fact, still called `1.1.0` untagged, still
+listed branch protection as unbuilt after T5.16 turned it on, and still carried a **"THE NEXT
+PACKAGE"** paragraph describing work T5.2 had already shipped. `ARCHITECTURE.md` was 348
+assertions behind and pointed at "rung 9" for a capture that is rung 12. `SYSTEMS_INVENTORY.md`
+had T5.15's `Row styles` row stranded at line 1 ABOVE the document's own title, which was the
+row's only copy — so the system was missing from its table. T5.17 had shipped with no row on the
+board at all.
+
+**What now stops two of them coming back.** `tests/unit/record_shape_test.gd` is new and owns
+STRUCTURE, which is the part of a document that is not prose: every document must open with its
+own title, and every package the log records must have a row on the board. `version_test.gd`
+gained a third fact — a **bold** semver in `CONTEXT.md` is a claim about the current version and
+must equal `project.godot`'s. **A fork that keeps this base's `docs/` gains all three checks, and
+one that REWRITES those documents is fine** — every case is computed from what the scan finds
+rather than from a list of expected files. **A fork that DELETES `docs/` outright will see
+`record_shape_test.gd` go red on its "the log records packages to check" precondition**, which is
+the same thing `docs_test.gd` and `doc_counts_test.gd` have always done in that situation: delete
+the three cases together, or keep the documents. The precondition is deliberate — a doc gate that
+silently passes because it found nothing to check is worse than no gate.
+
+**What is deliberately NOT gated, and why.** The assertion count and the public-method count both
+drifted too, and both were corrected by hand. Neither got a gate: a case cannot know the suite's
+own final total while the suite is still running, and re-deriving the method count would duplicate
+`check_methods.gd`'s scan inside a test. T5.17's *"nothing gates a prose claim"* stands for
+sentences; structure and a bold version are the exceptions, and the counts need a checker rung
+rather than a case.
+
+---
 ## 4.3.0
 
 *2026-09-07 — the save loader's refusals are asserted, and its migration path is documented as

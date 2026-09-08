@@ -8093,3 +8093,104 @@ branches in `load_from_slot` against test scenarios — and that is exactly why 
 wrong to carry a number at all: two documents disagreeing on one is the defect T4.4 found in the
 gotcha counts, arriving in a file written the same day. It now names the set rather than counting
 it, which cannot drift. `6defa01`.
+
+## 2026-09-08 — T5.19 · Reconciling the record, and gating the part of it that is not prose
+
+**Did.** Corrected twelve places where the record disagreed with the repository, added
+`tests/unit/record_shape_test.gd` (63 assertions), and gave `version_test.gd` a third fact
+(3 assertions). No production code changed — `src/` and `tools/` are byte-identical. Version
+`4.3.0` → `4.3.1`, a PATCH.
+
+**Why.** The session opened on a stale chip: it handed over candidate C ("a turn in place") as
+unbuilt, with a seam decision stated as settled. Candidate C had already shipped as T5.14 — and
+with a DIFFERENT seam than the chip described, because the owner's reasoning had moved on. The
+whole 16-PR stack had merged, plus T5.16–T5.18, and there was nothing to build. What the check
+turned up instead was that the RECORD had drifted in twelve places, one package after T5.17
+existed to reconcile exactly that.
+
+**The twelve.** `CONTEXT.md` — the file `CLAUDE.md` orders every session to read FIRST — stated
+template version `2.4.0`, two majors late; said the version "stays UNTAGGED at `1.1.0`"; still
+listed branch protection under "Not built" after T5.16 turned it on (verified against the GitHub
+API: `Ladder (full checkout)` and `Ladder (stripped template)`, strict); said the suite had 1,798
+assertions; said CI ran "seven of the eight rungs" when the ladder is twelve and CI runs ten; and
+carried a **"THE NEXT PACKAGE"** paragraph describing `animation_for(moving: bool)` — T5.2's work,
+long shipped. `ARCHITECTURE.md` said 1,728 assertions, 348 behind, and **"Rung 9 is the important
+one"** about the visual capture, which is rung 12; the numbers shifted when checkers were inserted
+and the prose did not follow. `ROADMAP.md` said "Two boxes remain" when T5.14 had ticked one, and
+Phase T2's header carried no COMPLETE marker though every criterion under it is `[x]`.
+`ROADMAP.md` and `SYSTEMS_INVENTORY.md` both said "86 of the 314" where `check_methods.gd` now
+prints 316. `SYSTEMS_INVENTORY.md` had T5.15's `Row styles` row at **LINE 1, above the document's
+own `# Systems Inventory` title** — and it was the row's ONLY copy, so `UiRowStyles` was absent
+from the table it belonged in. T5.17 had **no row on the board at all**, against the board's own
+closing rule 6.
+
+**Why a gate and not a third reconcile.** T5.17's recorded gap says *"Nothing gates a prose claim,
+and nothing can."* That is right about prose and wrong about two of these twelve. A file either
+opens with its own title or it does not; a package either has a row or it does not. Neither
+question has a reading or a tone, which is exactly why they are assertable when the sentences
+around them are not. Structure is a third kind of fact, after "what a document claims exists"
+(`docs_test.gd`) and "a count" (`doc_counts_test.gd`).
+
+**Connects.** Three document gates now exist and each owns one kind of fact, because each has a
+different thing behind it. Neither existing file could host this: `docs_test.gd`'s MUST NOT line
+forbids asserting anything about what the documents SAY, and `doc_counts_test.gd`'s forbids
+growing a second number. `CLAUDE.md` rule 4 says add a system rather than widen a boundary, so
+`record_shape_test.gd` is a third case with its own. The version check went to `version_test.gd`
+instead of a new file because that file's OWNS line already reads "the template's own version
+**and the places that repeat it**" — `CONTEXT.md` is such a place, so this is the boundary
+working rather than being widened.
+
+**The convention that makes a version assertable** is `doc_counts_test.gd`'s, moved from a count
+to a version: a **bold** semver in `CONTEXT.md` is a claim about the CURRENT version, and every
+other spelling — a backticked tag, a bare number in a sentence about what an earlier package
+bumped — is a record of what WAS true. There is no exception list to rot. `CONTEXT.md` had exactly
+one bold semver when the rule was written; the second version claim was re-spelled to match so
+that both are covered.
+
+**Verified.** `--import` exit 0; boot `0 warnings, 0 errors`; suite **2,076 → 2,143**, 0 failed,
+0 skipped, exit 0; all seven checkers exit 0. No windowed capture: nothing here is visual.
+
+**Three plants, each the real reversion.**
+
+| Plant | Result |
+|---|---|
+| The `Row styles` row put back above the title | **exit 1** — `FAIL SYSTEMS_INVENTORY.md opens with its title — expected true, got false` |
+| The T5.17 board row deleted | **exit 1** — `FAIL T5.17 has a row on the board — expected true, got false` |
+| `CONTEXT.md`'s bold version set back to `4.3.0` | **exit 1** — `FAIL CONTEXT.md states the declared version — expected 4.3.1, got 4.3.0` |
+| Control, all three reverted | **exit 0** — 2,142 passed, which is the total BEFORE this entry existed: the log is what the board check reads, so writing T5.19 down added its own assertion and the final figure is 2,143 |
+
+**GOTCHA 70 CAUGHT ME, ON THE GATE BUILT TO CATCH DRIFT.** Plant 3 passed the first time, exit 0.
+Not because the assertion was weak but because the `sed` addressed line 143 and the version claim
+was on 144, so the plant changed nothing and I nearly recorded a green run as evidence. A plant
+that passes is evidence about the PLANT before it is evidence about the code — the same shape
+T5.14 hit and wrote down, met again two packages later by someone who had read the entry.
+
+**Unblocks.** A future package can trust `CONTEXT.md`'s stated version and the board's
+completeness without re-deriving either.
+
+**Gaps.**
+
+- **The assertion count and the method count were corrected but NOT gated, and this is a real
+  limit rather than an omission.** A case cannot know the suite's own final total while the suite
+  is still running — the number does not exist until after the last case — and re-deriving the
+  method count inside a test would duplicate `check_methods.gd`'s scan and then rot separately
+  from it. Both need a CHECKER that runs the thing and reads its output, which is a rung-12 change
+  and its own row. Until then those two numbers are review's problem, and they drifted by 348 and
+  by 2 respectively in five packages.
+- **Nothing gates the CURRENCY of a narrative.** The "THE NEXT PACKAGE" paragraph was the most
+  misleading of the twelve — it sent a reader to redo shipped work — and no tool can know a
+  paragraph has stopped being true. T5.17's sentence stands for exactly this case.
+- **`record_shape_test.gd` fails on a fork that DELETES `docs/`**, on its "the log records
+  packages to check" precondition. That is deliberate and matches `docs_test.gd` and
+  `doc_counts_test.gd`, which have always behaved that way: a doc gate that passes because it
+  found nothing to check is worse than no gate. The CHANGELOG entry says so in the fork's own
+  terms.
+- **`src/systems/debug/dev_stage.gd` is at 248 of its 250 code lines** — two lines of headroom,
+  measured with `check_budgets.gd`'s own rule. The docs have called `tools/gen_placeholders.gd`
+  (230, twenty spare) "the next file to split" for ten packages while the actually urgent file
+  went unnamed. `CONTEXT.md` now names both in the right order. Neither was split here: doing it
+  inside a documentation package would blow the one-package-per-chat rule.
+- **The board's index table still skips T5.8–T5.15**, which exist only inside the candidate table.
+  The new gate asserts a package is FINDABLE on the board, not that it has an index row, because
+  "findable" is the property that matters and a stricter rule would have failed eight packages
+  that are genuinely recorded.

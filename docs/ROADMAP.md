@@ -217,7 +217,7 @@ Exit criteria:
       went green: `911 passed, 0 failed, 0 skipped` full, `861 passed, 0 failed, 12 skipped`
       stripped
 
-## Phase T2 — Make it swappable
+## Phase T2 — Make it swappable · **COMPLETE, as of T2.2**
 
 *Goal: a second, visually different game starts from this without editing `src/`.*
 
@@ -743,12 +743,12 @@ because the first row exposed how much of it was declared and unread.
       `sprite.frame`; the same probe on the default sheet draws sneak and climb from the WALK
       block, which is the `-1` fallback measured live. Captures are re-takeable with `--gait-shots=<dir>` rather than committed, which is this project's standing practice for screenshots.
 
-**THE PHASE IS CLOSABLE, AND CLOSING IT IS THE OWNER'S.** Two boxes remain and neither is a
-defect: a second idle block is a chooser on top of machinery that now works, and **a turn in
-place is explicitly a seam decision the owner has not made** — WHO may ask for a turn. T5.3 and
-T5.5 both declined to pick one silently and T5.6 and T5.7 decline too. If the owner answers that
-question the phase has one small row left; if the owner says the two remaining boxes belong to a
-consuming game rather than to the base, the phase closes today.
+**THE PHASE IS CLOSABLE, AND CLOSING IT IS THE OWNER'S.** ONE box remains and it is not a defect:
+a second idle block is a chooser on top of machinery that already works. The other box that stood
+here — **a turn in place, and WHO may ask for one** — was a seam decision T5.3, T5.5, T5.6 and
+T5.7 each declined to make silently; the owner made it on 2026-09-06 and T5.14 built it. If the
+owner says the last box belongs to a consuming game rather than to the base, the phase closes
+today.
 
 **AND A THIRD THING THE OWNER SAW THAT NO EXIT CRITERION ASKS FOR — FIXED, T5.8, 2026-09-05.** On
 2026-09-05 the owner reported that sideways movement "just slides to the side". It did, and **the
@@ -858,7 +858,7 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   **two of the twelve carried doc comments naming callers that never existed** — a gate for dead
   code finding false claims in prose. Proved against its own motivating case: at `7a162ca`,
   `duck`, `unduck` and `stop_music` had zero references outside their declarations, so it would
-  have failed on the day each landed. **86 of the 314 are reached only from `tests/` or `tools/`
+  have failed on the day each landed. **86 of the 316 are reached only from `tests/` or `tools/`
   and that is REPORTED, never failed** — "a caller in the suite" is not "a caller in the game",
   but a template declares accessors this repository will never call, and a gate that starts out
   mostly exemptions is decoration. Suite 1,947 -> 1,970; three plants, each exit 1, control exit

@@ -3,39 +3,49 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-07 · **T5.18 (the save loader's refusals) complete. The base is at
-4.3.0, a MINOR — and `save_system.gd` is BYTE-IDENTICAL, so this package is assertions and one
-corrected claim, nothing else.** Tags now exist for every version a consuming game must read:
-`v2.0.0`, `v3.0.0`, `v4.0.0` and `v4.2.1`, each verified to name a tree that genuinely declares
-its own version, which is T4.3's condition.
+**Last updated:** 2026-09-09 · **T5.20 (a scene-level interaction test) complete. The base is at
+4.4.0, a MINOR — and the test found a defect in the code it was written to cover, which is the
+whole argument for the row.** Tags exist for every version a consuming game must read: `v2.0.0`,
+`v3.0.0`, `v4.0.0` and `v4.2.1`, each verified to name a tree that genuinely declares its own
+version, which is T4.3's condition.
 
-**SIX REFUSAL BRANCHES IN THE LOADER HAD NO ASSERTIONS, AND NOTHING IN THE SUITE HAD EVER WRITTEN
-A MALFORMED SAVE FILE.** `core_test.gd` owns the round trip and covered one refusal, an empty
-slot. A file that is not JSON, a missing `version`, a save from a newer build, a non-Dictionary
-section, a section predating per-section versioning and a section absent altogether were all
-carried by review. `tests/unit/save_recovery_test.gd` asserts all six, split by QUESTION on
-T5.7's precedent: `core_test.gd` asks *does a good save survive*, this asks *what happens to a bad
-one*. **The load-bearing distinction it pins is that a corrupt ENVELOPE is refused outright while
-a corrupt SECTION is skipped and the rest loads** — the difference between a player losing a
-setting and a player losing forty hours. Both directions were planted: removing the newer-build
-guard fails 2 of 17, and making a bad section fail the whole load fails 1 — `expected 0, got 16`,
-the opposite sign, which is what proves the two are not confused.
+**THE RANKING EVERY INTERACTABLE RESTS ON HAD NO ASSERTIONS, AND `interaction_test.gd` SAID SO IN
+WRITING FOR FOUR PHASES.** Its MUST NOT line has read since WP-02 that the sensor's ranking "needs
+real geometry and belongs in a scene-level test", and that test was never written — so the decision
+the sensor's own header calls the actual problem it solves ("detection is trivial; selection is
+not") was unasserted in a suite of two thousand. `tests/unit/selection_test.gd` is 24 assertions
+on it: priority over proximity, proximity between equals, facing between equidistant objects, the
+name tie-break, what falls out of the candidate set, the cycle override and its wrap, and the two
+prefabs `AUTHORING.md` tells a consumer to place — `Readable` and `Speaker` — which nothing had
+asserted at all. **Gotcha 54's shape at the top of the interaction stack**: `interaction_test.gd`
+proved what an object does once chosen and `turn_test.gd` proved the turn once it is, and between
+them sat the decision neither made.
 
-**THE MIGRATION MECHANISM IS UNREACHABLE, AND IT IS ARITHMETIC RATHER THAN AN OPINION.** `_migrate`
-runs only when `version != SCHEMA_VERSION`, then refuses `<= 0` and `> SCHEMA_VERSION`. At
-`SCHEMA_VERSION == 1` **no integer is all three of not-one, above-zero and at-most-one**, so its
-success path — including its `"Migrated save from v%d to v%d"` line — cannot be entered by any file
-a player can have. Not a bug: there are no migrations at v1 and the comment telling a future author
-where to add one is right. What was wrong is that `SYSTEMS_INVENTORY.md` called migration **DONE**,
-which reads as *exercised* and meant *written* — the eighth appearance of declared-and-not-reached,
-in a new costume. **The case PINS `SCHEMA_VERSION`, so shipping v2 fails the suite and names what
-to write**, which is an expiry story rather than a note in a document nobody rereads.
+**AND THE TIE-BREAK WAS BROKEN, BY A LANGUAGE DETAIL RATHER THAN A LOGIC ERROR — GOTCHA 73.**
+`_select()` compared `a.name < b.name`. `Node.name` is a `StringName`, and `<` on two of those
+compares their **interned addresses, not their text**, so ties were ordered by whichever name the
+engine interned first — script and scene load order. Measured both ways in one run, same pair:
+`StringName` said `Z_later < A_earlier` and `String` said the opposite. **The comment above the
+line was half true, which is why it survived**: an address does not move, so the order was stable
+within a run and the flicker it worried about never happened — it simply was never the NAME, so an
+author numbering two overlapping objects to choose between them was ignored. Fixed with one cast.
+Eight rungs and 2,076 assertions were green over it because the demo has no two interactables at
+an exact tie. **The first probe of the comparison said the language was innocent** and agreed by
+coincidence, which is the second half of gotcha 73 and gotcha 70 turned around.
 
-*(Previously: T5.16 fixed quest chaining — `evaluate()` guarded re-entrancy with a bare `return`,
-discarding the re-derivation a listener on `quest_completed` legitimately asks for, so a quest
-whose start condition another quest writes started or silently did not according to directory scan
-order. Gotcha 72. T5.17 reconciled six prose defects, including `quest.` missing from the two
-prefix tables that `AUTHORING.md` calls canonical.)*
+**`InteractionSensor` GAINED ONE PUBLIC METHOD, `cycle()`**, and the reason is that the suite
+provably cannot press a key: `Input.parse_input_event` is buffered until a main-loop flush that
+never comes mid-run, and `Input.action_press` does land but then leaves the action reading
+`is_action_just_pressed() == true` for the whole run — measured — which would cycle every other
+case's sensor. Same reasoning as `is_suspended()`. The binding is still proved windowed by
+`dev_stage.gd --cycle`. **Five plants, each failing a different set**: the tie-break reverted
+fails 3, the priority term deleted fails 1, the facing term 1, the cycle offset ignored 4, and the
+lone-candidate guard 1 — which is what says they are not the same assertion five times.
+
+*(Previously: T5.18 asserted the save loader's six refusal branches and recorded that `_migrate`'s
+success path is unreachable by arithmetic. T5.16 fixed quest chaining — `evaluate()` guarded
+re-entrancy with a bare `return`, discarding the re-derivation a listener on `quest_completed`
+legitimately asks for. Gotcha 72. T5.17 reconciled six prose defects.)*
 
 > **This is a TEMPLATE, not a game.** Read [`TEMPLATE.md`](TEMPLATE.md) — it is short, and the
 > roadmap, the board and parts of this file were written before that reframing. The courtyard and
@@ -1022,7 +1032,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 2,076 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 2,100 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content, and no orphan CSV row
@@ -1033,7 +1043,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Seventy-two gotchas that each cost an hour
+## Seventy-three gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -1878,6 +1888,33 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     system and still not reach the path**. `quests_test.gd` drove `evaluate()` directly by
     design, and a re-entrant call can only arrive on `flag_changed`, so no number of assertions
     in that file could ever have found this.
+
+73. **`<` ON TWO `StringName`s COMPARES THEIR INTERNED ADDRESSES, NOT THEIR TEXT — SO SORTING BY
+    `node.name` SORTS BY LOAD ORDER AND LOOKS LIKE SORTING BY NAME.** `InteractionSensor._select()`
+    broke a scoring tie with `a.name < b.name`, and its header promised "ties are broken by node
+    name so the order is stable frame to frame rather than dependent on physics callback order."
+    `Node.name` is a `StringName`. Measured both ways inside one run, on the same pair: the
+    `StringName` comparison said `Z_later < A_earlier` and `String(a) < String(b)` said the
+    opposite. **The half that makes this expensive is that the comment was not wrong, only
+    half true** — an interned address does not move while the node lives, so the order IS stable
+    within a run and the flicker the comment worried about genuinely never happened. What was
+    false is that it was ever the NAME: an author numbering two overlapping objects `sign_a` and
+    `sign_b` to choose between them was ignored, and because intern order is script and scene
+    load order, the same two objects could tie differently when reached another way. Eight rungs
+    and 2,076 assertions were green over it, because the demo has no two interactables at an
+    exact tie. The fix is one cast, `String(a.name) < String(b.name)`.
+
+    **AND THE PROBE THAT CHECKED THIS THE FIRST TIME SAID THE OPPOSITE, WHICH IS THE REAL
+    LESSON.** A standalone `--script` probe created two nodes, compared their names, and printed
+    alphabetical order — so the language looked innocent and the defect looked like a broken
+    fixture. It agreed by coincidence: with only those two names interned, their addresses
+    happened to fall in alphabetical order. **A probe of an ordering must run in the context
+    whose order is in question**, because the thing being measured is a property of the whole
+    process, not of the two values. This is gotcha 70 turned around — there a plant PASSED and
+    was evidence about the plant; here a probe passed and was evidence about the probe. The tell
+    for both is the same: a result that contradicts a measurement taken somewhere else is a
+    question about the two contexts before it is an answer about the code.
+
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the
@@ -1887,8 +1924,8 @@ names the exact files that chat should read, so a session loads a few hundred li
 package never has to read upward.
 
 
-**Next package: NOTHING IS BLOCKING, AND THE AUDIT'S LIST IS NOW THREE ROWS SHORTER.** T5.16,
-T5.17 and T5.18 each came off it. What remains is a real choice, not a queue:
+**Next package: NOTHING IS BLOCKING, AND THE AUDIT’S LIST IS NOW FOUR ROWS SHORTER.** T5.16,
+T5.17, T5.18 and T5.20 each came off it. What remains is a real choice, not a queue:
 
 - **The template-default vs game-choice taxonomy.** `TEMPLATE.md` § *"The one constraint nobody
   has scoped"* has said since 2026-08-26 that *"what is missing is the distinction between a
@@ -1905,12 +1942,6 @@ T5.17 and T5.18 each came off it. What remains is a real choice, not a queue:
   repeats one identical day forever and a Saturday is inexpressible; `Clock` publishes no flag
   namespace, so no authored condition can read the time at all — including the shop hours the
   Clock's own header names. Also gated by the taxonomy question.
-- **A scene-level interaction test.** `interaction_test.gd` says in writing that ranking and
-  Tab-cycling *"belongs in a scene-level test"*, and that test was never written, so the rule
-  every interactable rests on is asserted nowhere. Would also cover `Speaker` and `Readable`, two
-  of the eleven prefabs `AUTHORING.md` tells a consumer to place and which nothing asserts. This
-  is the strongest of the remaining rows on T5.18's own reasoning: a false-confidence gap that a
-  run can close.
 - **A redirectable `SAVE_DIR`.** T5.18 wrote to a real slot because `SaveSystem.SAVE_DIR` is a
   `const` with no redirect, unlike the five content roots `Fixtures` repoints. It works and cleans
   up after itself, but the suite touching a developer's real save directory is a seam worth
@@ -1948,7 +1979,7 @@ you can press to travel back to once you have — and every one of those walks n
 depending on whether you are crossing grass, the wooden dais or stone. Every one of those changes
 survives a save and a
 reload, including from the far side of an area that is no longer loaded. All of it is covered
-by 1,676 headless assertions.
+by 2,100 headless assertions.
 
 **Next, and for the first time it is not an ordered queue.** Every blocking row is done: Phase T3
 closed with WP-14b, WP-15 was CLOSED by the owner, and T4.1 shipped the version and the upgrade

@@ -894,6 +894,36 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   dark-palette assertion in the file and fails only the light ones, which is why the light
   palette had to be asserted rather than only photographed.
 
+- **T5.20 A scene-level interaction test, and the defect it found — DONE, 2026-09-09.** Taken
+  because another file asked for it in writing: `interaction_test.gd`'s MUST NOT line has read
+  since WP-02 that the sensor's ranking *"needs real geometry and belongs in a scene-level test"*,
+  and that test was never written. So the rule every interactable rests on — the one the sensor's
+  own header calls the actual problem it solves, *"detection is trivial; selection is not"* — had
+  no assertion in a suite of 2,076, and `Speaker` and `Readable`, two of the eleven prefabs
+  `AUTHORING.md` tells a consuming game to place, had no scene-level assertions at all.
+  **Gotcha 54's shape at the top of the interaction stack**: `interaction_test.gd` proved what an
+  object does once chosen, `turn_test.gd` proved the turn once it is, and between them sat the
+  decision neither made. `tests/unit/selection_test.gd`, 24 assertions with real geometry —
+  priority over proximity, proximity between equals, the facing term including whether velocity
+  reaches `_facing` at all, the name tie-break, what leaves the ranking without leaving the
+  candidate set, and the cycle with its wrap. **AND IT FOUND A REAL DEFECT ON ITS FIRST RUN,
+  gotcha 73**: `_select()` tied on `a.name < b.name`, but `Node.name` is a `StringName` and `<`
+  on two of those compares **interned addresses, not text**, so ties followed script and scene
+  load order while the comment above the line promised the NAME. The comment was half true, which
+  is why it survived eight rungs — an address does not move, so the order WAS stable within a run;
+  it simply was never the name, so an author numbering two overlapping objects to choose between
+  them was ignored. One cast fixes it. **The first probe of the comparison said the language was
+  innocent and agreed by coincidence** — gotcha 70 turned around, and the second half of 73.
+  `InteractionSensor` gained one public method, `cycle()`, because the synchronous suite provably
+  cannot press a key: `Input.parse_input_event` is buffered until a flush that never comes
+  mid-run, and `Input.action_press` lands but then leaves the action reading
+  `is_action_just_pressed() == true` for the whole run, which would cycle every other case's
+  sensor. Same reasoning as `is_suspended()`; the binding is still proved windowed by
+  `dev_stage.gd --cycle`. **MINOR, 4.4.0.** Suite 2,076 -> 2,100; twelve rungs and seven checkers
+  green. **Five plants, each failing a DIFFERENT set** — tie-break reverted 3, priority term 1,
+  facing term 1, cycle offset ignored 4, lone-candidate guard 1 — which is what says they are not
+  one assertion five times.
+
 ## Sequencing rules
 
 1. **Breadth of systems, one shallow proof each.** This *replaces* "depth before breadth", which

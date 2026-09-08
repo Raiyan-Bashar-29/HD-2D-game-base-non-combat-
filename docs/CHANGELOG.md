@@ -19,6 +19,41 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 4.4.0
+
+*2026-09-09 — the sensor's SELECTION rule gets the scene-level test it has been asking for in
+writing since WP-02, and that test found a defect in the tie-break on its first run.*
+
+**A consuming game does: nothing, unless it has two interactables that overlap EXACTLY, in
+which case which one gets the prompt may change — for the better.** `InteractionSensor` breaks
+a scoring tie by node name, and `_select()` compared `a.name < b.name`. `Node.name` is a
+`StringName`, and `<` on two of those compares their **interned addresses, not their text**, so
+ties were ordered by whichever name the engine happened to intern first — script and scene load
+order. Measured both ways in one run: for the same pair of names, the `StringName` comparison
+said `Z_later < A_earlier` and the `String` comparison said the opposite. The fix is one cast,
+`String(a.name) < String(b.name)`.
+
+**What that changes for a game.** The documented rule now actually holds: naming two
+overlapping objects `sign_a` and `sign_b` chooses between them, which it did not before. If your
+game had two objects at an exact tie and relied on the old winner, it may swap — but it could not
+have relied on it, because the old winner depended on intern order and could differ between a
+fresh boot and the same objects reached another way. Nothing outside an exact tie is affected:
+priority, then proximity, then facing all rank as they always did.
+
+**`InteractionSensor` gained one public method, `cycle()`.** It is the Tab override extracted
+from `_handle_input` so it can be called without a keypress, and it returns false when there is
+only one candidate. A subclass that overrode nothing is unaffected. It exists because the suite
+is synchronous and provably cannot press a key: `Input.parse_input_event` is buffered until a
+main-loop flush that never comes mid-run, and `Input.action_press` does land but then leaves the
+action reading `is_action_just_pressed() == true` for the whole run, which would cycle every
+other case's sensor. The key binding itself is still proved windowed by `dev_stage.gd --cycle`.
+
+**And `tests/unit/selection_test.gd` is new**, 24 assertions on the ranking, the candidate set,
+the cycle and the two prefabs — `Readable` and `Speaker` — that `AUTHORING.md` tells you to place
+and which nothing had asserted at all. If your fork changed the ranking, it may go red on merge;
+that is the case doing its job.
+
+---
 ## 4.3.0
 
 *2026-09-07 — the save loader's refusals are asserted, and its migration path is documented as

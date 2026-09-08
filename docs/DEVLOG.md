@@ -8077,3 +8077,19 @@ modes rather than only under its happy path.
   a file with 14 lines of headroom and belongs in its own row.
 - **No windowed capture.** Nothing in this package is visual: every claim is a return code or a
   call count, and the honest ladder for it ends at the suite.
+
+**CI GREEN ON `6defa01`, PR #47, MERGEABLE / CLEAN** — both jobs pass. Full checkout
+`=== 2076 passed, 0 failed, 0 skipped ===`; **stripped template
+`=== 2002 passed, 0 failed, 25 skipped ===`**, and that is the number worth reading: T5.17 left
+the stripped run at 1,985, so **all 17 of this row's assertions survive the demo strip.** They
+were always going to — the case names no content and writes its own save files — but the reason
+this project quotes the stripped number is that "always going to" is a prediction and this is the
+measurement.
+
+**One follow-up commit, and it is a small instance of the thing this row is about.** The case
+header read *"five more refusal branches and both of `_migrate`'s"*, which sums to SEVEN under one
+reading while this entry, the board and the PR all say six. Both counts are defensible — code
+branches in `load_from_slot` against test scenarios — and that is exactly why the sentence was
+wrong to carry a number at all: two documents disagreeing on one is the defect T4.4 found in the
+gotcha counts, arriving in a file written the same day. It now names the set rather than counting
+it, which cannot drift. `6defa01`.

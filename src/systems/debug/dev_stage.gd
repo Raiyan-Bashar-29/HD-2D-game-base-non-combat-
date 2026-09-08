@@ -1,18 +1,27 @@
 extends Node
 ## Staging: put the game into the state a photograph needs, then get out of the way.
 ##
-## THE SEAM, AND WHY THERE ARE NOW THREE DEBUG FILES
+## THE SEAM, AND WHY THERE ARE NOW SIX DEBUG FILES
 ## `dev_capture.gd` answers "what does the game LOOK like under condition X" and owns the
 ## shutter. `dev_probes.gd` answers "does sequence Y actually work" and owns the measurements.
-## This file answers "put the player THERE, holding THAT, with THIS person feeling THAT way" so
-## the other two have something worth looking at. All three were one file until the budget
-## checker refused it twice, at 310 and then at 320 of the 250 allowed code lines — and both
-## times the seam it exposed was already there in the reasoning. That is the tool working.
+## `dev_gait_shots.gd` and `dev_scenario_shots.gd` answer "WHEN does the shutter open" for a
+## moment that has no still frame to aim at. This file answers "put the player THERE, holding
+## THAT, with THIS person feeling THAT way" so the others have something worth looking at. The
+## first three were one file until the budget checker refused it twice, at 310 and then at 320 of
+## the 250 allowed code lines — and both times the seam it exposed was already there in the
+## reasoning. That is the tool working.
+##
+## THE THIRD TIME IT REFUSED THIS FILE, at 248 of 250 with the next change due, the seam it
+## exposed was WHAT IS TRUE IN THE WORLD versus WHAT IS DRAWN OVER IT. The five flags that end
+## in a `UiRoot.open()` — `--open-inventory`, `--talk`, `--talk-advance`, `--open-menu` and
+## `--console` — moved to `dev_screens.gd`, which is also the only debug staging file that names
+## the `ui` layer at all. Nothing here pushes a screen, and nothing there poses world state.
 ##
 ## EVERY FLAG HERE GOES THROUGH THE REAL PATH. Standing is set through `Flags` on the key
 ## `Standing` publishes, an interaction is a real `InputEventAction` through
-## `Input.parse_input_event`, a conversation opens through the same bus signal a `Speaker`
-## emits. A staging tool that reached past the game to pose it would photograph a mock.
+## `Input.parse_input_event`, an item is equipped through `Equipment.equip` and so obeys the
+## same refusal a screen would. A staging tool that reached past the game to pose it would
+## photograph a mock.
 ##
 ## THE FLAGS RUN CONCURRENTLY, and each waits a different number of frames before acting, which
 ## is what orders them: --stand-by settles first, --cycle after it, --interact last. That is
@@ -26,10 +35,6 @@ extends Node
 ##   --equip=<list>       put items IN HAND, after the area lands: --equip=item/lantern. The
 ##                        carrier must already hold them, so --give comes first on the line.
 ##                        Equipment is a flag, and --new-game clears flags — see gotcha 32.
-##   --open-inventory     push the inventory screen over a stopped world. Apply --give first,
-##                        or the capture shows an empty bag.
-##   --talk=<id>          open a conversation: --talk=talk/gardener
-##   --talk-advance=<n>   press through n lines, to capture a branch rather than the opening.
 ##   --goto=<area>        travel somewhere else once the boot load has settled.
 ##   --stand-by=<name>    put the player beside a named node and let the sensor settle on it.
 ##   --flag=<key>:<value> forge a plot flag AFTER the area lands: --flag=met/someone:true,
@@ -45,30 +50,29 @@ extends Node
 ##                        success look identical until the button is pressed.
 ##   --new-game           start a game. Since WP-12 the boot goes to the main menu, not to an
 ##                        area, so without this there is no world to photograph.
-##   --open-menu=<list>   push menus by name, innermost last: main_menu, pause, settings,
-##                        saves, controls, journal, map. `--open-menu=pause,settings` puts
-##                        settings over the pause menu, and `--goto=X --open-menu=map` shows the
-##                        map from X.
 ##   --npc-settle=<n>     let NPCs walk for n physics frames, so a screenshot shows them AT
 ##                        their posts rather than halfway there.
-##   --console=<lines>    open the debug console and run lines through it, separated by ';':
-##                        --console="time 18:40;flag met/someone:true". The lines go through
-##                        DebugConsoleScreen.submit(), which is the same path the enter key
-##                        takes, so a capture shows a real transcript. Waits for the world to
-##                        stay still - gotcha 35, this puts something on screen.
+##
+## THE FLAGS THAT PUSH A SCREEN LIVE NEXT DOOR, in `dev_screens.gd`, and this file deliberately
+## knows nothing about them: `--open-inventory`, `--talk`, `--talk-advance`, `--open-menu` and
+## `--console`. They draw OVER what the flags above pose, which is why `DevScreens` sits after
+## `DevStage` in `game_root.tscn`.
 ##
 ## OWNS: putting the world into a named state for a capture.
-## MUST NOT: be depended upon by gameplay, measure anything, or reach past the game to pose it.
-## Deleting this file must not break the game.
+## MUST NOT: be depended upon by gameplay, measure anything, push a screen, or reach past the
+## game to pose it. Deleting this file must not break the game.
 
-## How long the world must stay settled before a staging flag that puts something on SCREEN acts.
+## How long the world must stay settled before `--stand-by` resolves a node NAME. Gotcha 35's
+## rule covers anything that draws, and those flags are in `dev_screens.gd` now — but the rule's
+## other half is this one: resolving a name in the tree while a transition is in flight finds it
+## in the DEPARTURE area, which is exactly what T4.2 spent a package discovering.
 ## Generous on purpose: it costs a capture a fraction of a second and it removes a race that
 ## costs an hour to diagnose.
 const SETTLE_FRAMES: int = 20
 
-var _talk_advance: int = 0
-## Set by --new-game, read by --open-menu: a menu pushed before the transition lands is closed
-## again by it, because ScreenKeys unwinds the stack on every travel.
+## Set by --new-game, read by every flag that poses state a fresh game resets: `start_new_game()`
+## empties the bag and clears the flags, so anything staged during argument parsing is thrown
+## away a frame later. Gotcha 32.
 var _fresh_game: bool = false
 
 
@@ -88,12 +92,6 @@ func _parse_arguments() -> void:
 			_give(argument.trim_prefix("--give="))
 		elif argument.begins_with("--equip="):
 			_equip(argument.trim_prefix("--equip="))
-		elif argument == "--open-inventory":
-			_open_inventory()
-		elif argument.begins_with("--talk-advance="):
-			_talk_advance = maxi(0, argument.trim_prefix("--talk-advance=").to_int())
-		elif argument.begins_with("--talk="):
-			_talk(StringName(argument.trim_prefix("--talk=")))
 		elif argument.begins_with("--goto="):
 			_goto(StringName(argument.trim_prefix("--goto=")))
 		elif argument.begins_with("--stand-by="):
@@ -109,10 +107,6 @@ func _parse_arguments() -> void:
 		elif argument == "--new-game":
 			_fresh_game = true
 			_new_game()
-		elif argument.begins_with("--open-menu="):
-			_open_menu(argument.trim_prefix("--open-menu="))
-		elif argument.begins_with("--console="):
-			_console(argument.trim_prefix("--console="))
 		elif argument.begins_with("--npc-settle="):
 			_npc_settle(maxi(1, argument.trim_prefix("--npc-settle=").to_int()))
 
@@ -194,28 +188,6 @@ func _equip(list: String) -> void:
 		])
 
 
-## Pushes the inventory screen so a windowed capture can show a real screen over a real, stopped
-## world. Deferred by two frames: UiRoot is a sibling built in the same _ready() pass as this
-## node, and --give needs its own frame before this one reads the bag.
-##
-## AND THEN FOR THE AREA, when --new-game is on the same line. Without that it drew over the
-## title screen and the arriving transition unwound it — the same shape as gotcha 32, and the
-## third flag to need this wait after --open-menu and --flag. Any new flag that puts something on
-## screen needs it too.
-func _open_inventory() -> void:
-	await get_tree().process_frame
-	await get_tree().process_frame
-	if _fresh_game:
-		await _wait_for_area()
-	var stack: UiRoot = UiRoot.find(self)
-	if stack == null:
-		Log.error("test", "--open-inventory found no UiRoot in the tree")
-		return
-	var opened: bool = stack.open(InventoryScreen.for_carrier(Director.player))
-	Log.info("test", "--open-inventory pushed the inventory screen: %s" % str(opened))
-
-
-
 ## Travel back and forth `count` times and report what it cost. A leak in a transition is
 ## invisible in a single trip and obvious over twenty, which is why the criterion is twenty
 ## and why this is a RUN rather than an assertion: TestCase.run() is synchronous and cannot
@@ -229,40 +201,6 @@ func _goto(area_id: StringName) -> void:
 	Log.info("test", "--%s" % DevCommands.travel_to(String(area_id)))
 	await _settled()
 	Log.info("test", "--goto arrived in '%s'" % Director.current_area_id)
-
-
-## Open a conversation for a capture. Goes through the SAME bus signal a Speaker emits, so what
-## is photographed is the real path and not a screen posed by hand.
-func _talk(talk_id: StringName) -> void:
-	await _wait_for_area()
-	Events.dialogue_requested.emit(talk_id)
-	await get_tree().process_frame
-	var stack: UiRoot = UiRoot.find(self)
-	var screen: DialogueScreen = stack.top() as DialogueScreen
-	if screen == null:
-		Log.error("test", "--talk opened no dialogue screen for '%s'" % talk_id)
-		return
-	Log.info("test", "--talk opened '%s' at node '%s'" % [
-		talk_id, screen.runner.current_node().node_id,
-	])
-	for _i: int in _talk_advance:
-		await _reveal_done(screen)
-		screen.runner.advance()
-		await get_tree().process_frame
-	await _reveal_done(screen)
-	Log.info("test", "--talk resting on node '%s', %d choices" % [
-		screen.runner.current_node().node_id, screen.runner.available_choices().size(),
-	])
-
-
-## Let the typewriter finish. A capture taken mid-reveal photographs half a sentence, which
-## looks like a truncation bug rather than the feature it is.
-func _reveal_done(screen: DialogueScreen) -> void:
-	for _i: int in 240:
-		if screen.reveal_complete():
-			return
-		await get_tree().process_frame
-
 
 
 ## Step the clock through a whole day and report where every NPC actually stands at each hour.
@@ -387,6 +325,8 @@ func _press_interact(times: int) -> void:
 		for _f: int in 20:
 			await get_tree().physics_frame
 	Log.info("test", "--interact done, keeper standing is %d" % Standing.of(&"keeper"))
+
+
 func _distance_to_intent(brain: NpcBrain) -> float:
 	var markers: Node = _waypoints_node()
 	if markers == null:
@@ -414,34 +354,6 @@ func _all_npcs() -> Array[Node]:
 	return out
 
 
-## Spawn a crowd and measure. The criterion is that thirty NPCs do not MEASURABLY cost frame
-## time, so both numbers are reported and the comparison is left visible rather than asserted
-## against a threshold that would be meaningless on another machine.
-
-
-## Open the debug console and run lines through it, so a capture shows a real transcript rather
-## than an empty box. Goes through `submit()`, which is precisely what the enter key calls — the
-## key itself cannot be pressed by anything but a probe (gotcha 15), and the WP-14b probe that
-## did press it is quoted in DEVLOG.md.
-##
-## `_settle_stable`, not `_wait_for_area`, and gotcha 35 is why: this puts something on screen,
-## and any staging flag that does leaves `_wait_for_area` on the same frame as `--goto` and races
-## it. Sixth flag to need this after --open-menu, --flag, --open-inventory, --give and --equip.
-func _console(script: String) -> void:
-	await get_tree().process_frame
-	if _fresh_game:
-		await _wait_for_area()
-		await _settle_stable(SETTLE_FRAMES)
-	var stack: UiRoot = UiRoot.find(self)
-	var screen: DebugConsoleScreen = ScreenKeys.menu_for(
-		DebugConsoleScreen.SCREEN_ID) as DebugConsoleScreen
-	if stack == null or screen == null or not stack.open(screen):
-		Log.error("test", "--console found no stack, or no console to open")
-		return
-	for line: String in script.split(";", false):
-		Log.info("test", "--console '%s' -> %s" % [line, screen.submit(line)])
-
-
 ## Start a game. Since WP-12 the boot sequence goes to the main menu rather than straight into
 ## an area, which is exactly what makes this a base rather than a demo — but it means a capture
 ## of the world needs this flag first.
@@ -449,28 +361,3 @@ func _new_game() -> void:
 	await get_tree().process_frame
 	Director.start_new_game()
 	Log.info("test", "--new-game requested '%s'" % GameConfig.first_area())
-
-
-## Push menus by name for a capture, innermost last.
-##
-## Waits for the transition when --new-game is on the same line, because `ScreenKeys` unwinds
-## the stack on every travel — a menu pushed before the area lands is closed again by it.
-##
-## AND THEN FOR THE WORLD TO STAY STILL, which is what makes `--goto=X --open-menu=map` a usable
-## pair: `_wait_for_area` alone returns on the same frame `--goto` asks to travel, and the travel
-## unwinds the menu that was pushed a moment earlier. See `_settle_stable`.
-func _open_menu(list: String) -> void:
-	await get_tree().process_frame
-	await get_tree().process_frame
-	if _fresh_game:
-		await _wait_for_area()
-		await _settle_stable(SETTLE_FRAMES)
-	var stack: UiRoot = UiRoot.find(self)
-	for menu_id: String in list.split(",", false):
-		var screen: UiScreen = ScreenKeys.menu_for(StringName(menu_id))
-		if stack == null or screen == null:
-			Log.error("test", "--open-menu=%s found no stack or no such menu" % menu_id)
-			return
-		Log.info("test", "--open-menu %s pushed: %s" % [menu_id, str(stack.open(screen))])
-
-

@@ -19,6 +19,54 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.0.0
+
+*2026-09-09 — `src/systems/debug/dev_stage.gd` was at 248 of its 250 allowed code lines, so the
+five staging flags that push a SCREEN moved into a new sixth debug file, `dev_screens.gd`. No
+behaviour changed; the same invocations produce the same logs, byte for byte.*
+
+**A consuming game does ONE thing: add the `DevScreens` node to `game_root.tscn`.** That is the
+whole obligation, and it is a MAJOR rather than a MINOR because skipping it does not cost you a
+new feature — it silently REMOVES five flags you may already be using. `--open-inventory`,
+`--talk=`, `--talk-advance=`, `--open-menu=` and `--console=` are parsed by the new node and by
+nothing else, so without it every one of them is read by no `_parse_arguments` at all: no error,
+no warning, and a capture that comes back looking like a game that was never asked to do
+anything. Compare version 3.1.0, which added a debug file whose absence merely meant going
+without something new.
+
+The one-line replacement, immediately after the existing `DevStage` node:
+
+```
+[node name="DevScreens" type="Node" parent="."]
+script = ExtResource("22_screens")
+```
+
+with its resource line beside the others in the header, and `load_steps` incremented by one:
+
+```
+[ext_resource type="Script" path="res://src/systems/debug/dev_screens.gd" id="22_screens"]
+```
+
+**The order matters and is not cosmetic.** `DevScreens` must sit AFTER `DevStage`, because these
+flags draw over what that file poses — `--give` fills the bag that `--open-inventory` photographs.
+Node order is `_ready` order, so putting it earlier lets a screen resume a frame before the state
+it is meant to show. If your `game_root.tscn` has diverged and the merge conflicts, that is the
+only constraint to preserve.
+
+**If you subclassed or called into `dev_stage.gd`, five private methods are no longer there:**
+`_open_inventory`, `_talk`, `_reveal_done`, `_console` and `_open_menu`, along with the
+`_talk_advance` field. They are unchanged in `dev_screens.gd`. Nothing public moved, and
+`SETTLE_FRAMES` still exists in both files.
+
+**Everything else is internal.** `dev_stage.gd` is 248 → 175 code lines and `dev_screens.gd` is
+102, so both have room again; `_parse_arguments` fell from 32 of its 40-line function budget to
+22. `tests/unit/dev_tools_test.gd` gained a gate worth knowing about if you maintain your own
+debug flags: **no two debug nodes may dispatch the same flag**, with `--new-game` the one stated
+exception, because the failure mode of a split like this one is leaving the branch behind in both
+parsers and dispatching twice. 2,143 → 2,148.
+
+---
+
 ## 4.3.1
 
 *2026-09-08 — twelve places where the record disagreed with the repository, and two gates so the

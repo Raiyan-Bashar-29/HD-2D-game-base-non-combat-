@@ -8194,3 +8194,142 @@ completeness without re-deriving either.
   The new gate asserts a package is FINDABLE on the board, not that it has an index row, because
   "findable" is the property that matters and a stricter rule would have failed eight packages
   that are genuinely recorded.
+
+## 2026-09-09 — T5.20 · Splitting the staging surface, and the gate that makes a split safe
+
+**Did.** Moved the five staging flags that push a screen out of `src/systems/debug/dev_stage.gd`
+into a new sixth debug file, `src/systems/debug/dev_screens.gd`: `--open-inventory`, `--talk=`,
+`--talk-advance=`, `--open-menu=` and `--console=`, with the `_talk_advance` field and the
+`_settled` / `_wait_for_area` / `_settle_stable` helpers they need. Added the `DevScreens` node to
+`scenes/boot/game_root.tscn` immediately after `DevStage`. Bumped the base to `5.0.0`. Added one
+gate to `tests/unit/dev_tools_test.gd` and repaired another that the move would have broken.
+
+**Why.** `dev_stage.gd` stood at **248 of its 250** allowed code lines, so the next change to it
+would have failed rung 5. Two lines is not headroom.
+
+**The docs were pointing at the wrong file, for ten rows.** `CONTEXT.md` and the candidate list
+had called `tools/gen_placeholders.gd` "the next file to split" since WP-14. It is at 230 of 250 —
+**twenty** lines spare. T5.19 measured every file with `check_budgets.gd`'s own counting rule and
+found `dev_stage.gd` was the one actually against the wall. That is the measurement earning its
+keep: ten packages of prose had accumulated a recommendation nobody had checked with a tool.
+
+**The seam was chosen by QUESTION, because that is what this family's precedent does.** The debug
+surface has split three times already and every split cut along a question, never down the middle
+of a file. `dev_capture.gd:46` records that it and `dev_probes.gd` "were one file until it hit 310
+of its 250 allowed code lines", `dev_stage.gd:9` that "the budget checker refused it twice, at 310
+and then at 320", and `dev_gait_shots.gd` **declined** a fourth split on the grounds that it would
+have bought "a more accurate FILE NAME, which is not worth four duplicated gotchas". So the
+question here had to be a real one, and it is: `dev_stage.gd` answers *what is TRUE in the world* —
+where the player stands, what is in the bag, what is in hand, what a flag says, who thinks what of
+them — and `dev_screens.gd` answers *what is DRAWN OVER it*. Every flag that moved ends in a
+`UiRoot.open()`; not one that stayed does.
+
+**And the seam is a dependency fact, which is what distinguishes it from a filing preference.**
+Those five flags were the only staging in the file that named the `ui` layer at all — `UiRoot`,
+`ScreenKeys`, `InventoryScreen`, `DialogueScreen`, `DebugConsoleScreen`. What is left reaches
+`Director`, `Flags`, `Standing`, `Equipment` and the interaction sensor and now names no screen
+anywhere: `grep` for those five symbols in `dev_stage.gd` returns one header comment and no code.
+The upward references that `check_layers.gd` exempts this directory for are now in one file
+instead of spread across two.
+
+**One dividend worth naming.** Gotcha 35's rule — any staging flag that puts something on SCREEN
+waits for a SETTLED area, not merely for an area — was stated in a header shared with eleven flags
+that do not draw, which is exactly how `--stand-by` went four packages without following it (T4.2,
+and it made every object in an authored area unphotographable). In `dev_screens.gd` that rule is
+the file's whole subject, so a seventh screen flag inherits it by being in the right place rather
+than by somebody remembering.
+
+**Verified.** `--headless --import` first, per gotcha 53, and again after the A/B checkout below.
+
+- `--check-only` on all three changed scripts: the only errors are `Identifier not found` for
+  `Director` and `Flags`, which is the expected autoload behaviour CLAUDE.md documents.
+- `--headless --quit-after 30`: *"Session ended after 0.6s — 0 warnings, 0 errors"*.
+- Suite: **2,143 → 2,148 passed, 0 failed, 0 skipped**; `dev_tools_test` 43 → 46.
+  **Five, not the three this package wrote**, and the other two are computed plans doing their
+  job rather than a miscount: `record_shape_test` gained one for T5.20's own DEVLOG heading
+  needing a board row, and `docs_test` gained one for `dev_screens.gd` — a new `res://` path the
+  documents now name, which that case checks actually exists. Both are exactly the "adding a
+  document or a package should not mean editing a number" design those two files state.
+- All seven checkers exit 0. `dev_stage.gd` **175 / 250**, `dev_screens.gd` **102 / 250**.
+  163 files, 15,274 code lines, 0 warnings, 0 violations.
+
+**THE EVIDENCE FOR A REFACTOR IS THAT BEHAVIOUR DID NOT CHANGE, and `check_budgets.gd` exiting 0
+proves only the line count.** Five invocations were logged before the split and re-run after it,
+and the staging output is byte-identical in all five — `diff` reports no difference:
+
+```
+--new-game --give=item/rose_key,item/rose_petal:3 --open-inventory
+--new-game --goto=lantern_hall --open-menu=map
+--new-game --talk=talk/gardener --talk-advance=2
+--new-game --console="time 18:40;flag met/someone:true"
+--new-game --give=item/brass_lantern --equip=item/brass_lantern --flag=count/lit:3 \
+    --standing=keeper:40 --npc-settle=30
+```
+
+The first two are the ones that matter, because they are the CROSS-FILE orderings: `--give` fills
+the bag that `--open-inventory` photographs, and `--goto` races the `--open-menu` that
+`_settle_stable` exists to protect. Both still log the same thing in the same order.
+
+**A sixth pair was run for the one deliberate difference.** `dev_screens.gd` reads `_fresh_game`
+in a pre-pass — `arguments.has("--new-game")` — where `dev_stage.gd` sets it in the dispatch loop.
+Those are equivalent because every reader awaits at least one frame before reading it, by which
+point the loop has finished; but "equivalent by reasoning" is what this project distrusts, so it
+was measured. `--open-inventory --new-game` and `--open-menu=pause,settings --new-game`, both with
+the screen flag typed BEFORE `--new-game`, were captured against the pre-split code by committing
+the work and checking out `origin/claude/t5-19-record-gate` over it. Identical.
+
+**Planted, in both directions.**
+
+1. **The new gate.** Left an `--open-menu=` branch behind in `dev_stage.gd`'s parser, which is
+   precisely the defect a split like this produces: `FAIL the only flag two debug nodes both read
+   is the one that is meant to be — expected ["--new-game"], got ["--new-game", "--open-menu="]`.
+   Exit 1 against an exit-0 control. **This is the failure mode nothing else would have caught** —
+   both files parse, both budgets pass, both nodes exist, `check_methods` is happy, and one
+   `--open-menu=map` simply dispatches twice. Gotcha 2's family in the shape a split makes.
+2. **The repaired gate.** `SETTLE_SITES` in `dev_tools_test.gd` scanned three function signatures
+   against one hard-coded `STAGE_PATH`, and two of those three functions moved. Pointing
+   `_console`'s row back at `dev_stage.gd` fails TWO assertions — "is present" first, then the
+   settle guard — because `_function_body` returns `""` for a function that is not in the file.
+   So the list could not have rotted silently, and the row now carries its own path, the same
+   shape `GATE_SITES` above it already used. **The first draft of that comment claimed a bare list
+   "would have gone GREEN", and the plant proved it goes RED**; the comment was corrected to say
+   what actually happens rather than what read well.
+
+**Also fixed, in passing.** An orphaned `##` block in `dev_stage.gd` — *"Spawn a crowd and
+measure..."* — documented a function deleted in an earlier split and attached to nothing at all.
+Costs no budget, since comments do not count, and misleads every reader. Removed. Also gave
+`_distance_to_intent` the two blank lines every other function has; it had been butted directly
+against `_press_interact`'s last line.
+
+**Connects.** Third split in this family and the second to be forced by the checker rather than
+chosen. `dev_commands.gd` (WP-14b) was the first, and its inventory row records that
+`dev_stage.gd` "had been sitting at exactly 250/250 code lines" then too — so this file has now
+hit its ceiling twice, which is a fact about how much staging a demo needs.
+
+**Unblocks.** `dev_stage.gd` has 75 lines of headroom and `dev_screens.gd` 148, so a new staging
+flag no longer needs a package of its own to make room for it.
+
+**AND ONE WINDOWED CAPTURE, BECAUSE THE SPLIT PUT THE SHUTTER AND THE STATE IN DIFFERENT NODES.**
+The log proves both `_parse_arguments` bodies ran; it cannot prove the screen reached a screen,
+and gotcha 2 is that `--headless` shades nothing. So the cross-file case was photographed:
+
+```
+--resolution 960x540 --quit-after 120 -- --new-game \
+    --give=item/rose_key,item/rose_petal:3 --open-inventory \
+    --shot=<path> --shot-frame=100 --time=18:40 --freeze-time
+```
+
+*"Captured 960x540 … camera at (0.0, 8.498142, 14.66422)"*, `0 warnings, 0 errors`, and the image
+shows the Satchel open over a lit courtyard at 18:40 Dusk with **Rose Key x1** under Key Items and
+**Rose Petal x3** under Materials. Two nodes, one frame: `DevStage` filled the bag and `DevScreens`
+drew the screen that lists it. That is the claim the log could not make.
+
+**Gaps.**
+- **`--stand-by`, `--cycle` and `--interact` were not re-run**, because the demo node names they
+  need were not to hand and the flags did not move. They share `_wait_for_area` and
+  `_settle_stable` with what did move, and those helpers are byte-identical in both files.
+- **The tightest file is now `src/systems/scene_director/director.gd` at 187 of 190** — three
+  lines, and on an override WP-14 already raised once. That is a smaller margin than the one this
+  package existed to fix, but it is not the same problem: raising an override is a decision about
+  whether a concern deserves more room, and splitting a scene director is not a mechanical move.
+  `CONTEXT.md` now names it first and says so. `gen_placeholders.gd` stays on the list at 230.

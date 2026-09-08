@@ -29,22 +29,34 @@ const OUT_DIR: String = "res://assets/placeholder"
 const CELL: Vector2i = Vector2i(32, 48)
 const DIRECTIONS: int = 8
 const FRAMES: int = 4
-## THREE BLOCKS SINCE T5.2: idle, walk, run. The sheet had ONE, because `animation_for` took a
-## boolean and there was nowhere for a third to be named - so the template shipped an art
-## CONTRACT that could not express the gaits its own controller already had.
-const ANIMATIONS: int = 3
+## FOUR BLOCKS: idle, walk, run, and - since the second-idle row - an idle BREAK. It had ONE
+## until T5.2, because `animation_for` took a boolean and there was nowhere for a third to be
+## named, so the template shipped an art CONTRACT that could not express the gaits its own
+## controller already had. The fourth is not a gait: it is the block a standing character
+## drops into every `idle_break_after` seconds, and it is here rather than left to a game
+## because a chooser with nothing to choose cannot be photographed.
+const ANIMATIONS: int = 4
 const IDLE_BLOCK: int = 0
 const WALK_BLOCK: int = 1
 const RUN_BLOCK: int = 2
+const IDLE_BREAK_BLOCK: int = 3
 ## How far the legs and arms travel in each block. Idle barely moves, a run overreaches -
-## these are the numbers that make the three cycles tell themselves apart in a capture.
-const BLOCK_SWING: Array[int] = [1, 2, 5]
+## these are the numbers that make the cycles tell themselves apart in a capture. The break
+## barely travels either, because its whole difference is in the ARM and a break that also
+## strode would read as a walk in a funny colour.
+const BLOCK_SWING: Array[int] = [1, 2, 5, 1]
 ## And a cloth tint per block, on the ALT sheet's reasoning (gotcha 28): a running figure
 ## drawn from the walk block is still a person mid-stride, so the BLOCK has to be readable
 ## rather than judged. This is what turns a gait capture into a checkable prediction.
 const BLOCK_TINT: Array[Color] = [
 	Color(0.30, 0.45, 0.62), Color(0.24, 0.52, 0.44), Color(0.62, 0.34, 0.30),
+	Color(0.66, 0.58, 0.24),
 ]
+## HOW FAR THE BREAK RAISES THE FAR ARM, in cell pixels. The break's silhouette has to differ
+## from the idle's by something a person can see in a still frame at x5, and a stretch above
+## the head is the one change that alters the figure's OUTLINE rather than its colour - which
+## matters because gotcha 28 says a recolour alone is a judgement and not a reading.
+const BREAK_ARM_LIFT: int = 11
 
 # THE EIGHT FACINGS ARE EIGHT POSES, AND UNTIL T5.8 THEY WERE ONE POSE DRAWN EIGHT TIMES.
 # Measured on the sheet this replaces, over the figure band: facing 4 - the BACK, 180 degrees
@@ -161,9 +173,10 @@ func _initialize() -> void:
 	quit(0)
 
 
-## A full gait sheet: 8 facings across, and THREE 4-frame blocks down - idle, walk, run. Rows run
-## idle.0-3, walk.0-3, run.0-3, which is the order `frame_index` reads and `SpriteSheetLayout`
-## names through `idle_row`, `walk_row` and `run_row`.
+## A full gait sheet: 8 facings across, and FOUR 4-frame blocks down - idle, walk, run, and the
+## idle break. Rows run idle.0-3, walk.0-3, run.0-3, break.0-3, which is the order
+## `frame_index` reads and `SpriteSheetLayout` names through `idle_row`, `walk_row`, `run_row`
+## and `idle_break_row`.
 ##
 ## EACH CELL IS DRAWN INTO A CELL-SIZED IMAGE AND BLITTED, for two reasons. The mirror is then
 ## free - `flip_x` on a cell is the whole west half of the sheet - and `_plot`'s bounds check
@@ -196,6 +209,9 @@ func _character_cell(turn: int, frame: int, block: int) -> Image:
 	var swing: int = [0, 1, 0, -1][frame] * BLOCK_SWING[block]
 	# A run leans into it, which reads at a glance even before the tint is noticed.
 	var lean: int = -1 if block == RUN_BLOCK else 0
+	# A BREAK STRETCHES, and only on the second half of its cycle - so the block is not one
+	# pose held for four cells, and `_an_idle_break_advances` has something to measure.
+	var lift: int = BREAK_ARM_LIFT if block == IDLE_BREAK_BLOCK and frame >= 2 else 0
 	# A back is a back because it is in its own shadow, not only because it has no face.
 	var body: Color = BLOCK_TINT[block].darkened(0.30) if turn >= TURN_AWAY else BLOCK_TINT[block]
 	var sleeve: Color = body.darkened(0.35)
@@ -210,8 +226,8 @@ func _character_cell(turn: int, frame: int, block: int) -> Image:
 	# A profile shows the NEAR arm only. Drawing the far one anyway is part of what made every
 	# facing on the old sheet the same width and the same silhouette.
 	if turn != TURN_SIDE:
-		_rect(cell, Vector2i(left - 3, 22 - swing), Vector2i(3, 12), sleeve)
-	_rect(cell, Vector2i(left + width, 22 + swing), Vector2i(3, 12), sleeve)
+		_rect(cell, Vector2i(left - 3, 22 - swing - lift), Vector2i(3, 12), sleeve)
+	_rect(cell, Vector2i(left + width, 22 + swing - lift), Vector2i(3, 12), sleeve)
 	_draw_head(cell, turn, HEAD_X[turn] + lean * 2, 13, 7)
 	if turn != TURN_FRONT and turn != TURN_BACK:
 		_rect(cell, Vector2i(left + width - 4, 21), Vector2i(4, 4), FLASH)

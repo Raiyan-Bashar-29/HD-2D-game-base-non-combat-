@@ -3,8 +3,47 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-09 · **T5.22 (a redirectable `SAVE_DIR`) complete. The base is at
-5.2.0, a MINOR, and a consuming game does nothing** — `SaveSystem.SAVE_DIR` became the settable
+**Last updated:** 2026-09-09 · **T5.23 (a second idle block and a chooser) complete — the LAST
+PHASE T5 EXIT CRITERION, at 5.3.0, a MINOR.** T5.2 made gaits data, so idle, walk, run, sneak and
+climb are separate cycles a SHEET names; what did not exist was more than one IDLE and anything to
+choose between them, so a character stood in exactly one way forever.
+
+**THE GAP WAS NEVER THE BLOCK.** `SpriteSheetLayout` could address 32 animations and
+`frame_index` could draw any of them since T2.1 — a sheet could always CARRY a second idle. What
+was missing is that every block in this template is chosen by a `GameEnums.MoveState`, and
+standing still is one state, so nothing would ever ask for one. **The row is therefore a chooser,
+and the chooser is DWELL TIME with its threshold on the SHEET**: `idle_break_row` names the block,
+`idle_break_after` says how many seconds of unbroken standing start it, the block plays ONCE and
+hands back, and the clock restarts from the END of the break rather than from its start.
+
+**WHY DWELL AND NOT WEATHER, A SCHEDULE OR AN AREA TAG.** Those were the other three candidates,
+and each of them needs an autoload — `Weather`, `Clock`, `Flags` — which `sprite_sheet_layout.gd`'s
+MUST NOT line forbids outright and `character_visual.gd`'s forbids from the other side, it being
+*told* a velocity and a state. Dwell is the one trigger derivable from what the visual is ALREADY
+handed every frame, so it is the only one of the four that needs no new dependency anywhere.
+Nothing is lost: a game that wants a rain idle pushes a MoveState, or swaps the layout resource.
+
+**THE WINDOWED CAPTURE IS THE CLAIM, AND IT CAME BACK WITH THREE NUMBERS RATHER THAN A
+JUDGEMENT.** A new `--idle-shots=<dir>` pass on `dev_gait_shots.gd` presses nothing at all — the
+whole input is standing still — and it WATCHES rather than aiming a frame number, because the
+moment of interest is decided by a threshold on the sheet the probe must not know (gotcha 52's
+shape again). Sampling six times a second for eight seconds, the decoded block went
+`0x12, 3x8, 0x18, 3x8, 0x2`: the break ran 1.33s, which is 4 cells at 3fps exactly, and the gap
+between two breaks was 18 samples — **3.0s, the authored number, measured from the END of the
+previous break**, confirming the restart decision windowed and independently of the suite. And the
+crops: the idle block's own cycle moves 0.0949 of the crop, the break's own cycle 0.1406, and the
+two BLOCKS differ by **0.6184** — four to six times either cycle's internal motion, which is what
+says a second idle was photographed and not a recolour with a wobble.
+
+**AND THE PLANTS FOUND A HOLE IN THE NEW TEST ITSELF — GOTCHA 75.** "Interrupted standing does not
+accumulate into a break" PASSED under the very defect it was written for: with the dwell never
+reset by movement the break duly started, and then FINISHED inside the same stand, so the case
+read the idle block and agreed by coincidence. Gotcha 70's shape, one row along from T5.22's, and
+the fix is timing rather than logic — the second stand is now short enough that a wrongly-started
+break is still on screen when it is measured. **Seven plants, seven different failure sets.**
+`tests/unit/idle_break_test.gd` is 26 assertions. **2,192 → 2,221, which is +26 +2 +1**: 26 are the new case's own plan, 2 are `docs_test.gd` newly asserting that `idle_break_row` and `idle_break_after` exist on the class now that `ART_CONTRACT.md`'s worked example names them, and 1 is `record_shape_test.gd` gaining a package from this row's DEVLOG heading.
+
+*(Previously: T5.22 made `SAVE_DIR` redirectable, a MINOR, and a consuming game does nothing)* — `SaveSystem.SAVE_DIR` became the settable
 `save_dir`, but all six of its uses were inside `save_system.gd`, so the rename reaches nothing a
 game wrote.
 
@@ -121,13 +160,14 @@ sheet, and every facing draws a different figure.
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version is** **5.2.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+**The version is** **5.3.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
 the owner's to close or to leave.
 
-**THE NEXT PACKAGE IS A CHOICE, NOT A QUEUE.** Nothing is blocking. The strongest rows, in the
-order this file recommends them: **a second idle block and a chooser**, the last Phase T5 exit
-criterion and now the strongest thing left that a RUN can settle; the **template-default vs
-game-choice taxonomy**, which gates three rows below it and is honestly weak in that it is prose
+**THE NEXT PACKAGE IS A CHOICE, NOT A QUEUE.** Nothing is blocking, and **Phase T5 now has no
+unticked exit criterion** — T5.23 took the last one. The strongest rows, in the order this file
+recommends them: **reconciling `ROADMAP.md`'s missing run of T5.16 to T5.20**, which is the only
+KNOWN record gap left and is partly gated already by `record_shape_test.gd`; the
+**template-default vs game-choice taxonomy**, which gates three rows below it and is honestly weak in that it is prose
 and cannot be proved by running the engine; a **narrative-staging seam**, `Cutscenes` being the
 only `TODO` in `SYSTEMS_INVENTORY.md` with no stated reason; and **time above the scale of one
 day**. **T5.21 took the scene-level interaction test off this list**, and it is worth recording
@@ -135,17 +175,21 @@ what that row returned: a false-confidence gap that a run could close, closed, w
 found in the code the test was written to cover. **The tightest file is now
 `src/systems/scene_director/director.gd` at 187 of its 190** — three lines, on an override WP-14
 already raised once, so raising it again is a decision rather than a mechanical move.
-`tools/gen_placeholders.gd` stays on the list at 230 of 250. T5.20 split `dev_stage.gd`, which was
+`tools/gen_placeholders.gd` stays on the list, now at 234 of 250 — T5.23 added its fourth
+animation block, and four of its twenty spare lines went with it. T5.20 split `dev_stage.gd`, which was
 the urgent one at 248, down to 175.
 **T5.22 took the redirectable `SAVE_DIR` off it as well**, and what that row returned was a
 gotcha rather than a defect: the case that proved it passed its own plant first.
+**T5.23 took the second idle off it and closed Phase T5**, and returned a gotcha of exactly that
+family one number along — a new assertion that passed its own plant by coincidence of timing.
 
 
 166 files, 15,552 code lines, 17 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
 three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
-3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 3 on the default one**,
+3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 4 on the default one, the
+fourth being a second IDLE rather than a gait**,
 1 shared area material, **21 settings and 21 consumers**.
-Template version **5.2.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+Template version **5.3.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
 recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 

@@ -29,7 +29,8 @@ extends Node3D
 ## `layout` @export, and every number that depends on them — hframes, vframes, the foot offset,
 ## the frame wrap, the direction sectors — is read from it. See that class for the grid.
 ##
-## OWNS: the sprite, its facing, its sheet column, and its animation frame.
+## OWNS: the sprite, its facing, its sheet column, its animation frame, and how long it has
+## been standing still.
 ## MUST NOT: read input, move the character, contain game rules, or hold any sheet dimension of
 ## its own. It is told a velocity and a state, and it draws.
 ##
@@ -83,6 +84,13 @@ var _moving: bool = false
 ## Pushed in by whoever drives this visual - never read from `Events.player_state_changed`,
 ## because every NPC uses this class and none of them is the player.
 var _state: GameEnums.MoveState = GameEnums.MoveState.IDLE
+## HOW LONG THIS CHARACTER HAS BEEN STANDING STILL, and whether it is mid-break. The whole of
+## the second idle's chooser lives in these two numbers, and neither is a rule: the THRESHOLD
+## they are compared against is on the sheet, so what this file decides is only "has that many
+## seconds passed", which is arithmetic on the `delta` it is already handed. See
+## `SpriteSheetLayout.idle_break_row` for why dwell and not the weather or the clock.
+var _dwell: float = 0.0
+var _breaking: bool = false
 
 
 func _ready() -> void:
@@ -142,14 +150,14 @@ func update_from_velocity(velocity: Vector3, delta: float,
 	if speed > 0.05:
 		_aim(flat)
 	if _moving:
+		# MOVING ENDS A BREAK IMMEDIATELY AND RESETS THE CLOCK. A fidget is what a character
+		# does INSTEAD of standing there, so a player who walks off mid-stretch must get the
+		# walk block on that same frame, and must then have to stand still all over again.
+		_dwell = 0.0
+		_breaking = false
 		_advance(delta, _rate_for(speed))
-	elif _idle_animates():
-		_advance(delta, idle_fps)
 	else:
-		# Settle on the neutral pose rather than freezing mid-stride. A sheet with no idle
-		# block of its own has nothing to play here, so holding frame 0 is the honest answer.
-		_frame = 0
-		_frame_time = 0.0
+		_stand(delta)
 	_apply_frame()
 
 
@@ -161,11 +169,53 @@ func _rate_for(speed: float) -> float:
 
 ## Step the cycle. WITHIN the current block only - which block is drawn is `_state`'s business
 ## and `_apply_frame` reads both.
-func _advance(delta: float, fps: float) -> void:
+##
+## IT RETURNS WHETHER THE CYCLE CAME BACK ROUND, which is the one fact an idle BREAK needs and
+## nothing else does: a break plays once and stops, so somebody has to notice the end of it,
+## and the only place that knows is the loop that wrapped the frame. Every other caller
+## discards the answer, which `project.godot` permits deliberately - `return_value_discarded`
+## is the one warning in the static-enforcement block set to 0.
+func _advance(delta: float, fps: float) -> bool:
+	var wrapped: bool = false
 	_frame_time += delta * fps
 	while _frame_time >= 1.0:
 		_frame_time -= 1.0
 		_frame = (_frame + 1) % _layout.frames
+		wrapped = wrapped or _frame == 0
+	return wrapped
+
+
+## STANDING STILL, WHICH IS THREE DIFFERENT THINGS DEPENDING ON THE SHEET. It is a held pose
+## on a single-block sheet, a breathing cycle on a sheet with an idle of its own, and since this
+## row it is a breathing cycle that is INTERRUPTED every `idle_break_after` seconds by a second
+## block that plays once and hands back.
+##
+## THE BREAK OUTRANKS `_idle_animates()` RATHER THAN NESTING INSIDE IT, and getting this the
+## other way round is the bug worth naming: a sheet may legally have `idle_row == walk_row` -
+## every sheet authored before T2.1 does - and a game that gives such a sheet a fidget block
+## still wants the fidget. So the break is checked first, and the hold is what happens only
+## when there is neither a distinct idle nor a break running. Between breaks that sheet holds
+## its pose exactly as it always did, because animating its idle IS walking on the spot.
+func _stand(delta: float) -> void:
+	if _layout == null:
+		return
+	_dwell += delta
+	if not _breaking and _layout.has_idle_break() and _dwell >= _layout.idle_break_after:
+		_breaking = true
+		_frame = 0
+		_frame_time = 0.0
+	if not _breaking and not _idle_animates():
+		# Settle on the neutral pose rather than freezing mid-stride. A sheet with no idle
+		# block of its own has nothing to play here, so holding frame 0 is the honest answer.
+		_frame = 0
+		_frame_time = 0.0
+		return
+	# ONE CYCLE AND OUT. The dwell restarts from the end of the break, not from the start of
+	# it, so the gap a player sees between two fidgets is the authored number rather than that
+	# number minus however long the block takes to play.
+	if _advance(delta, idle_fps) and _breaking:
+		_breaking = false
+		_dwell = 0.0
 
 
 ## MAY A STANDING CHARACTER BREATHE? Only if its sheet actually has an idle block of its own.
@@ -278,7 +328,12 @@ func _camera_yaw() -> float:
 func _apply_frame() -> void:
 	if sprite == null or _layout == null:
 		return
-	sprite.frame = _layout.frame_index(_column, _frame, _layout.animation_for(_state))
+	# A BREAK IS NOT A MoveState, so it cannot be asked for through `animation_for` - that is
+	# the whole reason `idle_break_animation()` exists as a second question rather than an
+	# eleventh enum value. `_breaking` is only ever true while standing, so this cannot
+	# override a gait.
+	var block: int = _layout.idle_break_animation() if _breaking 			else _layout.animation_for(_state)
+	sprite.frame = _layout.frame_index(_column, _frame, block)
 
 
 ## Diagnostic for the dev capture tool. Cheap, and the first thing worth knowing when a

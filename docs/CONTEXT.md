@@ -3,12 +3,32 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-08 · **T5.19 (reconciling the record, and gating its shape) complete.
-The base is at 4.3.1, a PATCH — no production code changed, so this package is twelve corrected
-claims and two gates.** The file you are reading was the worst of the twelve: it stated template
-version `2.4.0` two majors after the fact and named an already-shipped package as the next one to
-build. Tags exist for `v2.0.0`, `v3.0.0`, `v4.0.0` and `v4.2.1`, each verified to name a tree that
-genuinely declares its own version, which is T4.3's condition.
+**Last updated:** 2026-09-09 · **T5.20 (splitting the staging surface) complete. The base is at
+5.0.0, a MAJOR, and the one obligation on a consuming game is to add the `DevScreens` node to
+`game_root.tscn`.** `src/systems/debug/dev_stage.gd` stood at **248 of its 250** allowed code
+lines, so the five staging flags that push a SCREEN — `--open-inventory`, `--talk=`,
+`--talk-advance=`, `--open-menu=`, `--console=` — moved to a sixth debug file, `dev_screens.gd`.
+248 → 175, new file 102. **It is a MAJOR and not the MINOR its 3.1.0 precedent used, because
+skipping the node does not cost a game a new feature — it silently REMOVES five flags that game
+may already invoke**, with nothing red anywhere.
+**AND THE DOCUMENT YOU ARE READING HAD NAMED THE WRONG FILE FOR TEN ROWS.** `gen_placeholders.gd`
+was called "next to split" since WP-14 and has twenty lines spare; T5.19's measurement found the
+file actually against the wall. **The seam was chosen by QUESTION, on this family's own
+three-way precedent** — *what is TRUE in the world* stays, *what is DRAWN OVER it* moved — and it
+is a dependency fact too, those five being the only staging that named the `ui` layer at all.
+**A refactor, so the evidence is that behaviour did not change**: five invocations byte-identical
+before and after, both cross-file orderings among them, plus a sixth pair proving the `_fresh_game`
+pre-pass equivalent on reverse-order arguments, plus a windowed capture of the Satchel drawn by
+one node over a bag filled by the other.
+The new gate is the split’s own failure mode —
+no two debug nodes may dispatch the same flag, `--new-game` the one stated exception. 2,143 → 2,148.
+
+**T5.19 RECONCILED THE RECORD AND GATED THE PART OF IT THAT IS NOT PROSE**, at `4.3.1`, a PATCH —
+no production code changed, so that package was twelve corrected claims and two gates. The file
+you are reading was the worst of the twelve: it stated template version `2.4.0` two majors after
+the fact and named an already-shipped package as the next one to build. Tags exist for `v2.0.0`,
+`v3.0.0`, `v4.0.0` and `v4.2.1`, each verified to name a tree that genuinely declares its own
+version, which is T4.3's condition.
 **THE RECORD HAD DRIFTED IN TWELVE PLACES, AND T5.17 EXISTED TO STOP EXACTLY THAT.** One package
 after a reconciliation, `CONTEXT.md` was two majors stale on its own version, `ARCHITECTURE.md`
 was 348 assertions behind and pointed at "rung 9" for a capture that is rung 12,
@@ -113,7 +133,7 @@ one turned out to be a genuinely missing FEATURE — the locale setting was wire
 **Every exit criterion in Phases 0 through T4 is ticked, and each was proved rather than
 asserted** — Phase T5's second-idle box is the one that still stands open.
 
-**So the base is 4.3.1-complete, and what it is FOR has been sharpened.** The owner's intent is
+**So the base is 5.0.0-complete, and what it is FOR has been sharpened.** The owner's intent is
 reusable CHARACTER infrastructure that future games inherit by swapping assets — several idle
 formats, several movement styles — so that a new game starts from a working base rather than going
 in blind. Phase T5 delivered it: gaits are data, a whole character swaps by pointing at another
@@ -122,7 +142,7 @@ sheet, and every facing draws a different figure.
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version is** **4.3.1**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+**The version is** **5.0.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
 the owner's to close or to leave.
 
 **THE NEXT PACKAGE IS A CHOICE, NOT A QUEUE.** Nothing is blocking. The strongest rows, in the
@@ -132,16 +152,17 @@ close; **a second idle block and a chooser**, the last Phase T5 exit criterion; 
 **template-default vs game-choice taxonomy**, which gates three rows below it and is honestly weak
 in that it is prose and cannot be proved by running the engine; a **narrative-staging seam**,
 `Cutscenes` being the only `TODO` in `SYSTEMS_INVENTORY.md` with no stated reason; and **time above
-the scale of one day**. Two files are near their budget: `src/systems/debug/dev_stage.gd` at
-**248 of its 250** is the urgent one, and `tools/gen_placeholders.gd` at 230 has merely been
-called next for longer.
+the scale of one day**. **The tightest file is now `src/systems/scene_director/director.gd` at
+187 of its 190** — three lines, on an override WP-14 already raised once, so raising it again is a
+decision rather than a mechanical move. `tools/gen_placeholders.gd` stays on the list at 230 of
+250. T5.20 split `dev_stage.gd`, which was the urgent one at 248, down to 175.
 
 
-161 files, 15,161 code lines, 17 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
+163 files, 15,274 code lines, 17 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
 three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 3 on the default one**,
 1 shared area material, **21 settings and 21 consumers**.
-Template version **4.3.1**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+Template version **5.0.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
 recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 
@@ -1931,7 +1952,12 @@ T5.17 and T5.18 each came off it. What remains is a real choice, not a queue:
 - **A second idle block and a chooser between them.** The last unticked Phase T5 exit criterion.
 - **A call recorder, to answer the 86.** T5.13's gate reports 86 public methods reached only from
   `tests/` or `tools/`, and a text scan cannot shrink that number.
-- **Split `tools/gen_placeholders.gd`**, at 230 of its 250. Next to split for ten rows now.
+- **Split `tools/gen_placeholders.gd`**, at 230 of its 250 — twenty lines spare, so it is a want
+  rather than a need. T5.20 corrected the ten-row-old claim that it was the tightest file; it was
+  not, and `check_budgets.gd` had the number all along.
+- **`src/systems/scene_director/director.gd` at 187 of its 190** is the tightest file in the repo
+  after T5.20. Its override was already raised once by WP-14, so the row is really the question of
+  whether a scene director deserves more room or a seam — not a mechanical split.
 - **WP-10 crafting**, if a game wants it. Still OPTIONAL per `TEMPLATE.md`.
 - **Nothing at all**, which stays legitimate for a base that has answered every question it set
   out to.

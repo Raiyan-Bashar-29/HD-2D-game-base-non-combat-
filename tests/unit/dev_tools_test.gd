@@ -26,6 +26,7 @@ extends TestCase
 ## contract), or reach into a private field to arrange state a public call could.
 
 const STAGE_PATH: String = "res://src/systems/debug/dev_stage.gd"
+const SCREENS_PATH: String = "res://src/systems/debug/dev_screens.gd"
 const FLAG_A: StringName = &"fixture/console/set"
 const FLAG_B: StringName = &"fixture/console/count"
 ## THE THREE PLACES A DEV TOOL CAN BE REACHED, and the EXACT code each must carry.
@@ -47,7 +48,7 @@ const GATE_SITES: Array[Array] = [
 
 
 func run() -> void:
-	plan(43)
+	plan(46)
 	_the_verbs_are_the_command_lines_own()
 	_a_malformed_argument_is_refused_whole()
 	_the_console_runs_a_line_and_keeps_a_transcript()
@@ -55,6 +56,7 @@ func run() -> void:
 	_every_dev_tool_is_gated_on_a_debug_build()
 	_staging_that_draws_waits_for_a_settled_area()
 	_every_debug_flag_has_a_node_to_parse_it()
+	_no_flag_is_dispatched_by_two_nodes()
 
 
 ## The vocabulary, and that a typed line reaches the verb it names. `run()` takes the SAME
@@ -196,17 +198,30 @@ func _flag_int(line: String) -> int:
 ## green with the `--stand-by` call deleted — gotcha 43's rule, that a scan-for-a-guard must
 ## anchor on a fragment appearing exactly once, met here by narrowing the TEXT rather than the
 ## fragment.
-const SETTLE_SITES: Array[String] = [
-	"func _stand_by(node_name: String) -> void:",
-	"func _console(script: String) -> void:",
-	"func _open_menu(list: String) -> void:",
+## EACH ROW CARRIES ITS OWN PATH, and it has to since T5.20 split the staging surface: two of
+## these three functions moved to `dev_screens.gd` when `dev_stage.gd` ran out of budget. Same
+## shape as GATE_SITES above, and for the same reason — the row names the file it is about.
+##
+## THE PRESENCE ASSERTION IS WHAT MADE THAT SPLIT SAFE, and it was proved rather than assumed:
+## pointing `_console`'s row back at `dev_stage.gd` fails TWO assertions, "is present" first and
+## the settle guard second, because `_function_body` returns "" for a function that is not in
+## the file. So a split that moved a function and forgot this list could not have passed
+## quietly — which is the opposite of gotcha 2's family and the reason the first assertion is
+## not redundant with the second. The honest repair is to follow the function to its new file,
+## never to delete the row.
+const SETTLE_SITES: Array[Array] = [
+	[STAGE_PATH, "func _stand_by(node_name: String) -> void:"],
+	[SCREENS_PATH, "func _console(script: String) -> void:"],
+	[SCREENS_PATH, "func _open_menu(list: String) -> void:"],
 ]
 
 
 func _staging_that_draws_waits_for_a_settled_area() -> void:
-	for signature: String in SETTLE_SITES:
-		var body: String = _function_body(STAGE_PATH, signature)
-		equal("%s is present in dev_stage.gd" % signature.get_slice("(", 0),
+	for site: Array in SETTLE_SITES:
+		var path: String = site[0]
+		var signature: String = site[1]
+		var body: String = _function_body(path, signature)
+		equal("%s is present in %s" % [signature.get_slice("(", 0), path.get_file()],
 			body.is_empty(), false)
 		equal("%s settles rather than only waiting for an area"
 			% signature.get_slice("(", 0),
@@ -266,7 +281,51 @@ func _every_debug_flag_has_a_node_to_parse_it() -> void:
 		wired += 1
 		equal("%s has a node in game_root.tscn" % path.get_file(),
 			parent_of_script(GAME_ROOT, path), ".")
-	equal("every debug script that reads the command line was checked", wired, 5)
+	equal("every debug script that reads the command line was checked", wired, 6)
+
+
+## NO TWO DEBUG FILES DISPATCH THE SAME FLAG, AND T5.20 IS WHY THIS EXISTS. That package split
+## the staging surface, moving five flags out of `dev_stage.gd` into `dev_screens.gd` — and the
+## failure mode of an edit like that is not a crash, it is leaving the branch behind in BOTH
+## parsers. One `--open-menu=map` then dispatches twice and pushes the screen twice. Nothing
+## anywhere goes red: both files parse, both budgets are fine, both nodes exist, and the capture
+## comes back looking very nearly right. Gotcha 2's family again, in the shape a split makes.
+##
+## THE ONE SHARED FLAG IS `--new-game`, and it is shared for a stated reason rather than by
+## accident: `dev_stage.gd` ACTS on it by starting the game, while `dev_screens.gd` only READS it
+## to learn whether it must wait for an arriving area first. So the assertion is not "no flag is
+## shared" — which would be false — but "the shared set is EXACTLY this", which is the form that
+## makes a new sharer announce itself instead of slipping in under a blanket exemption.
+const SHARED_FLAGS: Array[String] = ["--new-game"]
+
+
+func _no_flag_is_dispatched_by_two_nodes() -> void:
+	var owners: Dictionary[String, int] = {}
+	for path: String in _debug_scripts():
+		for flag: String in _parsed_flags(path):
+			owners[flag] = owners.get(flag, 0) + 1
+	var shared: Array[String] = []
+	for flag: String in owners:
+		if owners[flag] > 1:
+			shared.append(flag)
+	shared.sort()
+	equal("the only flag two debug nodes both read is the one that is meant to be",
+		shared, SHARED_FLAGS)
+	# Guards the scan itself: an extractor that silently matched nothing would satisfy the
+	# assertion above with an empty dictionary, which is gotcha 43's rule applied to a counter.
+	equal("and the extractor actually found the flag surface", owners.size() > 20, true)
+
+
+## The flag literals one debug file's `_parse_arguments` names. Reads the FUNCTION rather than the
+## file, because every one of these files also documents its flags in a `##` header — and a scan
+## that counted those would report every flag as shared between its parser and its own prose.
+func _parsed_flags(path: String) -> Array[String]:
+	var found: Array[String] = []
+	var body: String = _function_body(path, "func _parse_arguments() -> void:")
+	for piece: String in body.split("\""):
+		if piece.begins_with("--") and not found.has(piece):
+			found.append(piece)
+	return found
 
 
 ## The directory as it is on disk, not a list to keep in step with it.

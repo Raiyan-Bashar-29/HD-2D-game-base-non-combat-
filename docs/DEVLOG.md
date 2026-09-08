@@ -8333,3 +8333,132 @@ drew the screen that lists it. That is the claim the log could not make.
   package existed to fix, but it is not the same problem: raising an override is a decision about
   whether a concern deserves more room, and splitting a scene director is not a mechanical move.
   `CONTEXT.md` now names it first and says so. `gen_placeholders.gd` stays on the list at 230.
+
+## 2026-09-09 — T5.21 · A scene-level interaction test, and the defect it found
+
+**Did.** Wrote `tests/unit/selection_test.gd` — 24 assertions on `InteractionSensor`'s selection,
+driven with real geometry — and fixed the tie-break defect it found on its first run. Extracted
+`InteractionSensor.cycle()` as a public method so the override could be asserted at all. Bumped
+the base to `4.4.0`. Recorded gotcha 73.
+
+**Why.** `interaction_test.gd`'s MUST NOT line has read since WP-02 that the sensor's ranking
+*"needs real geometry and belongs in a scene-level test"*. That was an accurate note about a test
+nobody wrote, and four phases went by. The consequence was that the rule every interactable rests
+on — the one the sensor's own header calls the actual problem it solves, because *"detection is
+trivial; selection is not"* — had no assertion anywhere in a suite of 2,076, and that `Speaker`
+and `Readable`, two of the eleven prefabs `AUTHORING.md` tells a consuming game to place, had no
+scene-level assertions of any kind. `CONTEXT.md`'s own next-package list called this the strongest
+remaining row, in its words *"a false-confidence gap that a run can close."* It was.
+
+**Gotcha 54's shape at the top of the interaction stack.** `interaction_test.gd` proves what an
+object does once it is chosen; `turn_test.gd` proves the turn once it is. Between them sat the
+decision neither one makes, with a green assertion on either side — which is exactly the
+configuration gotcha 54 warns reads as coverage of the whole path.
+
+**THE DEFECT — GOTCHA 73.** `_select()` broke a scoring tie with `a.name < b.name`, under a
+comment promising *"ties are broken by node name so the order is stable frame to frame rather than
+dependent on physics callback order."* `Node.name` is a `StringName`, and `<` on two of those
+compares their **interned addresses, not their text.** Measured both ways in one run, same pair:
+
+```
+TIE StringName Z<A=true A<Z=false | String Z<A=false A<Z=true
+```
+
+So ties were ordered by whichever name the engine interned first — script and scene load order.
+**The comment was not wrong, only half true, and that is why it survived eight rungs.** An
+interned address does not move while the node lives, so the order genuinely was stable within a
+run and the flicker the comment worried about never happened. What was false is that it was ever
+the NAME: an author numbering two overlapping objects `sign_a` and `sign_b` to choose between them
+was ignored, and because intern order is load order the same two objects could tie differently
+when reached another way. 2,076 assertions were green over it because the demo has no two
+interactables at an exact tie. Fixed with one cast, `String(a.name) < String(b.name)`.
+
+**And the first probe said the language was innocent.** A standalone `--script` probe made two
+nodes, compared their names, printed alphabetical order — so the failing assertion looked like a
+broken fixture, and I was one step from recording "StringName compares alphabetically" as a
+finding. It agreed by coincidence: with only those two names interned, their addresses happened to
+fall in alphabetical order. Re-measured inside the suite, both comparisons side by side, and they
+disagreed. **This is gotcha 70 turned around** — there a plant PASSED and was evidence about the
+plant; here a probe passed and was evidence about the probe. The tell is identical in both: a
+result contradicting a measurement taken somewhere else is a question about the two contexts
+before it is an answer about the code. A probe of an ORDERING has to run in the context whose
+order is in question, because the property belongs to the process, not to the two values.
+
+**`cycle()`, and why the test could not press Tab.** The cycle lived inline in `_handle_input`
+behind `Input.is_action_just_pressed`. Two facts, measured rather than assumed, with a throwaway
+case in `CASES` that was then removed:
+
+- `Input.parse_input_event` is **buffered** until a main-loop flush that never comes mid-run — the
+  action reads back `pressed=false` immediately after the call, so a faked press does nothing;
+- `Input.action_press` **does** land, but the process-frame counter never advances inside one
+  `_ready()`, so the action then reads `is_action_just_pressed() == true` for the **rest of the
+  run**. `turn_test.gd` also drives a sensor with more than one candidate, so that stuck key would
+  have cycled its selection and corrupted a case I did not write.
+
+So the override was genuinely unassertable through input, which is why the note in
+`interaction_test.gd` had survived. It is now a public `cycle()` returning false when there is
+nowhere to go — `_handle_input` calls it on the keypress, so `check_methods.gd` is satisfied by a
+real game caller and not by an exemption. Same reasoning that already made `is_suspended()`
+public, in that method's own words: so a test can assert the hand-over without faking input. The
+**binding** is still proved windowed by `dev_stage.gd --cycle`, and that limit is named in the
+file rather than left implied.
+
+**Connects.** `interaction_test.gd` (its MUST NOT line now points here instead of asking for it);
+`turn_test.gd`, whose hand-driven sensor is the precedent this file follows and whose stillness
+gate is deliberately not re-asserted; `InteractionSensor._select`/`cycle`; `Readable` and
+`Speaker`; `AUTHORING.md`'s prefab list; gotchas 8, 54, 56, 70 and now 73.
+
+**Verified.** Twelve rungs, seven checkers, all exit 0.
+
+- `--headless --import` → exit 0, run first and again after the source edits (gotcha 53).
+- `--check-only` on both changed files → only `Identifier not found: Events`, which is gotcha 1.
+- `--headless --quit-after 30` → `Session ended after 0.5s — 0 warnings, 0 errors`.
+- Suite → **`2100 passed, 0 failed, 0 skipped`**, exit 0. Was `2076 passed, 0 failed` on `main`.
+- `check_budgets` (`162 files, 15344 code lines, 0 warnings, 0 violations`), `check_content`,
+  `check_boundary`, `check_strings`, `check_layers`, `check_signals`, `check_methods` → all
+  exit 0. `interaction_sensor.gd` is 173 → 177 of its 250; `selection_test.gd` is 178.
+- Windowed capture at `960x540`, `--time=18:40 --freeze-time` → `0 warnings, 0 errors`, and the
+  prompt in frame reads a real selection at dusk. Not load-bearing; nothing here is visual.
+
+**The plants — five, each failing a DIFFERENT set**, which is what says they are not one assertion
+five times. Every one confirmed to have genuinely modified the source before its run was trusted,
+per gotcha 70, and every one reverted to `2100 passed, 0 failed` with the file byte-identical:
+
+| Plant | Exit | Failed |
+|---|---|---|
+| tie-break reverted to `a.name < b.name` (the real defect) | **1** | 3 |
+| authored-priority term deleted from `_score` | **1** | 1 |
+| facing term deleted from `_score` | **1** | 1 |
+| `_select` returns `ranked[0]`, ignoring the cycle offset | **1** | 4 |
+| `cycle()`'s lone-candidate guard removed | **1** | 1 |
+| **none — the shipped tree** | **0** | 0 |
+
+The priority plant fails only *"an authored priority takes the prompt from a nearer object"* and
+not its partner, which is correct: the partner asserts the nearer object wins once the priority is
+gone, and with the term deleted that is still true. The cycle-offset plant fails 4 including the
+prefab-order assertion and **not** *"cycling past the end comes back round to the first"* — also
+correct, because `ranked[0]` and the wrap coincide. Both are cases where the plant fails less than
+it might and the reason is the assertion being specific rather than weak.
+
+**Unblocks.** The remaining rows on `CONTEXT.md`'s list are unchanged; this one is off it, and the
+list is now four rows shorter than the audit left it. A redirectable `SAVE_DIR` is the next
+cheapest honest slice and now has the strongest claim, since the taxonomy row above it is prose
+and cannot be proved by running the engine — the same reasoning that put T5.18 and this row ahead
+of it twice.
+
+**Gaps, named rather than left implied.**
+
+- **The Tab BINDING is not in the suite and cannot be**, for the two measured input facts above.
+  `cycle()` is asserted; that Tab reaches it is proved windowed only.
+- **`_score`'s weights are not asserted as numbers**, deliberately. The assertions are about which
+  object wins, not about `priority_weight` being 100.0 — a consuming game may retune all three
+  `@export`s, and a case pinning them would fail a game that did nothing wrong.
+- **Physics detection is still bypassed.** Candidates arrive by emitting `area_entered`, as in
+  `turn_test.gd`; that the collision shapes actually overlap at those distances is a separate
+  claim, and `dev_probes.gd --stand-by` is what exercises it.
+- **`Readable.has_been_read()` remains `NO CALLER`** by design, and this package did not change
+  that — the read side belongs to a consuming game.
+- **Nine other prefabs still have no scene-level assertions.** This row covered the two the
+  `CONTEXT.md` line named; `Gate`, `Lever`, `Chest`, `Pickup`, `AreaDoor`, `RestPoint`,
+  `ClimbPoint`, `TriggerVolume` and `PathAction` are reached by `interaction_test.gd` and others
+  through direct calls, which is a weaker claim than this file makes about the two it covers.

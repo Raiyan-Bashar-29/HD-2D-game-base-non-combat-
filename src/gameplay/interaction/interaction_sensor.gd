@@ -103,6 +103,32 @@ func current() -> Interactable:
 	return _current
 
 
+## SELECT PAST THE CURRENT TARGET, and report whether there was anywhere to go. Returns false
+## when the player is beside a single object, which is the ordinary case and not a failure: the
+## caller then falls through to the interact key rather than swallowing it.
+##
+## PUBLIC, AND FOR THE REASON `is_suspended()` IS. The cycle used to live inline in
+## `_handle_input`, reachable only by pressing Tab — and the suite is synchronous, so it cannot
+## press anything: `Input.parse_input_event` is buffered until a main-loop flush that never
+## comes mid-run, and `Input.action_press` does land but leaves the action reading
+## `is_action_just_pressed() == true` for the whole run, because the process-frame counter never
+## advances inside one `_ready()`. That stuck key then cycles every OTHER case's sensor. So the
+## override that every overlapping object rests on was unassertable, and said so in
+## `interaction_test.gd`'s own MUST NOT line for four phases. The key binding is still proved
+## windowed, by `dev_stage.gd --cycle`; this is the decision it makes.
+func cycle() -> bool:
+	if _candidates.size() <= 1:
+		return false
+	_cycle += 1
+	_hold = 0.0
+	_current = _select()
+	_announce()
+	# Cycling is a deliberate change of target and always deserves the turn, on the same
+	# terms as any other: only while standing, which a cycling player always is.
+	_turn_to_target(true)
+	return true
+
+
 ## TURN THE PLAYER TOWARDS WHAT THE PROMPT IS OFFERING, at the two moments it means anything:
 ## the target changed, or they just came to a stop with one selected.
 ##
@@ -164,14 +190,7 @@ func _handle_input(delta: float) -> void:
 		_hold = 0.0
 		return
 
-	if Input.is_action_just_pressed(Actions.INTERACT_CYCLE) and _candidates.size() > 1:
-		_cycle += 1
-		_hold = 0.0
-		_current = _select()
-		_announce()
-		# Cycling is a deliberate change of target and always deserves the turn, on the same
-		# terms as any other: only while standing, which a cycling player always is.
-		_turn_to_target(true)
+	if Input.is_action_just_pressed(Actions.INTERACT_CYCLE) and cycle():
 		return
 
 	var needed: float = hold_needed()
@@ -199,11 +218,21 @@ func _select() -> Interactable:
 		return null
 	# Stable order: score descending, then name, so physics callback order cannot reshuffle
 	# the prompt between frames.
+	#
+	# `String(...)`, AND THE CAST IS THE WHOLE OF WHY THIS LINE IS CORRECT. `Node.name` is a
+	# StringName, and `<` on two StringNames compares their INTERNED ADDRESSES rather than
+	# their text — so this read `a.name < b.name` for four phases and ordered ties by whichever
+	# name the engine happened to intern first, which is script and scene load order. Measured
+	# both ways in one run: for the same pair, StringName said `Z_later < A_earlier` and String
+	# said the opposite. The comment above was therefore half true — the order was stable within
+	# a run, because an address does not move — and half false, because it was never the NAME,
+	# so an author numbering two overlapping objects to choose between them was ignored, and the
+	# answer could differ between a fresh boot and the same objects reached another way.
 	ranked.sort_custom(func(a: Interactable, b: Interactable) -> bool:
 		var sa: float = _score(a)
 		var sb: float = _score(b)
 		if is_equal_approx(sa, sb):
-			return a.name < b.name
+			return String(a.name) < String(b.name)
 		return sa > sb)
 	return ranked[posmod(_cycle, ranked.size())]
 

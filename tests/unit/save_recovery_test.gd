@@ -4,9 +4,9 @@ extends TestCase
 ## WHY THIS IS SEPARATE FROM `core_test.gd`. That case owns the save ROUND TRIP — write, read
 ## back, restore. This one owns the refusals, and they are a different question: not "does a good
 ## save survive" but "what happens to a bad one". `core_test.gd` asserted exactly one of them (an
-## empty slot) and nothing in the suite had ever written a MALFORMED save file, so five more
-## refusal branches and both of `_migrate`'s were carried by review alone. Split by QUESTION, on
-## T5.7's precedent.
+## empty slot) and nothing in the suite had ever written a MALFORMED save file, so every OTHER
+## refusal in `load_from_slot`, and both of `_migrate`'s, were carried by review alone.
+## Split by QUESTION, on T5.7's precedent.
 ##
 ## ONE BAD SECTION MUST NOT COST THE WHOLE FILE, and three blocks below are about that line. A
 ## corrupt envelope is refused outright; a corrupt SECTION is logged and skipped while the rest of

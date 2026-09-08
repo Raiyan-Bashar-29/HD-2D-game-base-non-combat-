@@ -8609,3 +8609,24 @@ after it.
 - **The windowed capture proves nothing about this row.** It was run and is green, but every claim
   here is a path, a return code or a file's contents. Recorded so the ladder is not read as
   stronger evidence than it is.
+
+**CI, recorded rather than assumed.** Run
+[`34286344135`](https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-/actions/runs/34286344135),
+both jobs green on PR #53:
+
+- **Ladder (full checkout)** — `2192 passed, 0 failed, 0 skipped`, matching the local run exactly.
+- **Ladder (stripped template)** — `2118 passed, 0 failed, 25 skipped`, the standing baseline. The
+  file survives the deletion `docs/NEW_GAME.md` tells a consuming game to perform on day one, and
+  it should: nothing in `save_dir_test.gd` or `save_fixture.gd` names authored content, which is
+  what `check_boundary.gd` passing actually gates. The stripped total alone would not isolate this
+  file's contribution — CI logs at INFO and the per-case line is DEBUG — so the boundary checker is
+  the claim and the total is not.
+
+**The package is numbered T5.22 rather than T5.21**, and the reason belongs in the record. A
+parallel session took T5.21 for the scene-level interaction test while this row was in flight, and
+the two sessions also produced competing PRs carrying the same tree: both had independently
+renumbered that test to `5.1.0`, and `src/`, `tests/` and `project.godot` were byte-identical
+between them, so the duplicate was closed and the branch with the richer documentation kept. The
+transferable half is the same one T5.21's own DEVLOG entry drew from the other direction: **a
+stack is invisible from `main`**, so run `gh pr list --state open` before branching, and prefer
+one package in flight at a time.

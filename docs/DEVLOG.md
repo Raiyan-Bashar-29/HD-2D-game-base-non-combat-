@@ -8497,15 +8497,21 @@ of it twice.
   `ClimbPoint`, `TriggerVolume` and `PathAction` are reached by `interaction_test.gd` and others
   through direct calls, which is a weaker claim than this file makes about the two it covers.
 
-**CI, recorded rather than assumed — and the recorded run is now the PRE-REBASE one.** Run
-[`34262856018`](https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-/actions/runs/34262856018),
-both jobs green on PR #50 when it still sat on `main` at `4.4.0`:
+**CI ON THE REBASED BRANCH, recorded rather than assumed.** Run
+[`34282187912`](https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-/actions/runs/34282187912),
+both jobs green on PR #50 now that it targets T5.20's branch at `5.1.0`:
 
-- **Ladder (full checkout)** — `2100 passed, 0 failed, 0 skipped`.
-- **Ladder (stripped template)** — `2026 passed, 0 failed, 25 skipped`, and **`selection_test.gd`
-  contributes its full 24 with nothing skipped in either job.** That is the claim worth recording
-  for this row specifically: the file names no demo content, so it survives the deletion
-  `docs/NEW_GAME.md` tells a consuming game to perform on day one. The two prefabs it instances,
-  `sign.tscn` and `speaker.tscn`, are template objects rather than demo content — the same
-  distinction `interaction_test.gd` already relies on for `gate.tscn` and `lever.tscn` — and the
-  conversation the `Speaker` names comes from `FixtureContent`, not from `data/`.
+- **Ladder (full checkout)** — `2173 passed, 0 failed, 0 skipped`, matching the local run exactly.
+- **Ladder (stripped template)** — `2099 passed, 0 failed, 25 skipped`. The file survives the
+  deletion `docs/NEW_GAME.md` tells a consuming game to perform on day one: the two prefabs it
+  instances, `sign.tscn` and `speaker.tscn`, are template objects rather than demo content — the
+  same distinction `interaction_test.gd` already relies on for `gate.tscn` and `lever.tscn` — and
+  the conversation the `Speaker` names comes from `FixtureContent`, not from `data/`. **The gate
+  that actually proves that is `check_boundary.gd`, which passes**, not the stripped total: CI logs
+  at INFO and the per-case `--- selection_test: 24/24 ---` line is DEBUG, so the stripped job's
+  totals alone do not isolate this file's contribution. The pre-rebase record claimed they did,
+  which was one inference too far, and the claim is narrowed here rather than restated.
+
+**The pre-rebase CI run was [`34262856018`](https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-/actions/runs/34262856018)**
+— `2100` full, `2026` stripped, green on `main` at `4.4.0`. It is kept because it is what the
+package was first accepted on, and labelled because it no longer describes this tree.

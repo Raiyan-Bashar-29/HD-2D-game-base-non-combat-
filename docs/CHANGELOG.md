@@ -19,6 +19,43 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.2.0
+
+*2026-09-09 — the save store becomes redirectable, so the suite stops writing into the
+developer's own save directory. One `const` became a `var`; the rest is tests.*
+
+**A consuming game does: nothing.** `SaveSystem.SAVE_DIR` is gone, but nothing outside
+`save_system.gd` ever referenced it — the search that preceded this change found six uses and all
+six were in that file. If your game DID reference it, the replacement is `SaveSystem.save_dir`
+and the shipped default is `SaveSystem.DEFAULT_SAVE_DIR`; that is the only rename in this
+release, which is why it is a MINOR rather than a MAJOR.
+
+**What was wrong.** `tests/framework/fixtures.gd` repoints five content roots under
+`user://test_fixtures` so a run reads fixture content instead of the game's. The save store was
+the sixth root and the only one left out, because its directory was a `const`. So
+`save_recovery_test.gd` — which exists to write MALFORMED save files — and `core_test.gd`'s round
+trip both wrote real slots into whatever `user://saves` resolves to on the machine running the
+suite. Both delete what they write, which is not the same as never having written it: a case that
+crashes between the write and the delete leaves the file behind, and the slot numbers the suite
+picks are slot numbers a player may have filled.
+
+**What a game gains, and it is why this is public rather than test-only.** `save_dir` is settable
+at runtime and creates the directory when assigned, so a portable build that wants its saves
+beside its executable is now one assignment rather than a fork of `save_system.gd`. A test-only
+backdoor was the alternative and is the thing `fixtures.gd`'s own header refuses to add.
+
+**New: `tests/framework/save_fixture.gd`**, with `activate()` / `deactivate()` / `is_active()` on
+`Fixtures`' shape, emptying the scratch directory on the way in as well as out. `test_runner.gd`
+calls `SaveFixture.deactivate()` after every case unconditionally, for the reason the existing
+`Fixtures.deactivate()` call states: a case that crashed part way through would otherwise hand
+the next one a redirected store.
+
+**And `tests/unit/save_dir_test.gd` is new**, 18 assertions split by QUESTION from the two cases
+either side of it — `core_test.gd` asks *does a good save survive*, `save_recovery_test.gd` asks
+*what happens to a bad one*, and this asks *which directory did it go in*. A fork that changed
+where saves live will go red here; that is the case doing its job.
+
+---
 ## 5.1.0
 
 *2026-09-09 — the sensor's SELECTION rule gets the scene-level test it has been asking for in

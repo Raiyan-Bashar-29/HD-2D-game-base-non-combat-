@@ -22,10 +22,12 @@ extends TestCase
 ## and says what to write. An unreachable path is not a bug — but `SYSTEMS_INVENTORY.md` calling
 ## migration DONE was describing a mechanism nothing can enter.
 ##
-## THE SAVE DIRECTORY IS REAL, because `SaveSystem.SAVE_DIR` is a `const` with no redirect, the
-## way `Fixtures` redirects the five content roots. So this case writes a real slot and deletes it
-## on every path, exactly as `core_test.gd` does, and uses a slot of its own so the two cannot
-## collide.
+## THE SAVE DIRECTORY IS A SCRATCH ONE, as of T5.22. It was the developer's real save directory
+## until then, because `SaveSystem.SAVE_DIR` was a `const` with no redirect — the one content
+## root `Fixtures` could not repoint. `SaveFixture.activate()` now points the store at
+## `user://test_saves` for the whole case and the runner points it back. This case still deletes
+## what it writes on every path and still uses a slot of its own: the redirect removes the
+## consequence of a leftover file, not the reason not to leave one.
 ##
 ## OWNS: assertions about a save file the loader must refuse, or must partially skip.
 ## MUST NOT: assert the round trip (that is `core_test.gd`), or name authored content.
@@ -43,6 +45,10 @@ var _applied: int = 0
 
 func run() -> void:
 	plan(FIXED)
+	# Every block below writes a REAL file to assert what the loader does with it. Redirected so
+	# that file lands in a scratch directory rather than the developer's own saves; the runner
+	# deactivates unconditionally afterwards.
+	SaveFixture.activate()
 	_a_file_that_is_not_json_is_refused()
 	_a_save_with_no_version_field_is_refused()
 	_a_save_from_a_newer_build_is_refused()
@@ -137,7 +143,6 @@ func _the_migration_path_has_no_reachable_success_case() -> void:
 func _arm(text: String) -> void:
 	_applied = 0
 	SaveSystem.register(PROBE, _probe_collect, _probe_apply, 1)
-	DirAccess.make_dir_recursive_absolute(SaveSystem.SAVE_DIR)
 	var file: FileAccess = FileAccess.open(SaveSystem.slot_path(SLOT), FileAccess.WRITE)
 	file.store_string(text)
 	file.close()

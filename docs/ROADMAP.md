@@ -924,6 +924,25 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   facing term 1, cycle offset ignored 4, lone-candidate guard 1 — which is what says they are not
   one assertion five times.
 
+- **T5.22 — a redirectable `SAVE_DIR`.** DONE. The suite was writing into the developer's own save
+  directory, and the store was the last content root that still could: `fixtures.gd` repoints five,
+  and this was the sixth, left out because `SaveSystem.SAVE_DIR` was a `const`. Two cases wrote
+  real slots through it, `save_recovery_test.gd` — whose whole purpose is writing MALFORMED save
+  files — and `core_test.gd`'s round trip. **They cleaned up after themselves, which is not the
+  same as never having been there**: the run that fails to clean up is the run that crashed.
+  `const SAVE_DIR` became `const DEFAULT_SAVE_DIR` plus `var save_dir`, whose setter creates the
+  directory so boot and redirect share one path. **Public rather than test-only**, because a
+  portable build writing beside its executable wants the same seam and a suite-only backdoor is
+  what `fixtures.gd`'s header already refuses. New `tests/framework/save_fixture.gd` on `Fixtures`'
+  shape; `test_runner.gd` deactivates after EVERY case. `save_system.gd` 166 -> 172 of its 180,
+  measured BEFORE the row started. **MINOR, 5.2.0.** Suite 2,173 -> 2,192; twelve rungs and seven
+  checkers green. **AND THE FIRST VERSION OF THE LOAD-BEARING CASE PASSED THE PLANT — gotcha 74**:
+  it compared the untouched file byte-for-byte against a copy taken before the redirected write,
+  and the full reversion passed, both writes having landed on the same path in the same second
+  with only second-resolution `saved_utc` and tenth-snapped `playtime_seconds` varying. Different
+  markers fixed it; the same plant now fails 4. **Two plants, different sets** — full reversion 4,
+  runner deactivate removed 3.
+
 ## Sequencing rules
 
 1. **Breadth of systems, one shallow proof each.** This *replaces* "depth before breadth", which

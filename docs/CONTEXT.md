@@ -3,111 +3,51 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-09 · **T5.21 (a scene-level interaction test) complete. The base is at
-`5.1.0`, a MINOR — and the test found a defect in the code it was written to cover, which is the
-whole argument for the row.** `interaction_test.gd`'s MUST NOT line had said since WP-02 that the
-sensor's ranking *"needs real geometry and belongs in a scene-level test"*, and that test was
-never written — so the decision the sensor's own header calls the actual problem it solves,
-because *"detection is trivial; selection is not"*, was asserted nowhere.
-`tests/unit/selection_test.gd` is 24 assertions on the ranking, on what falls out of the candidate
-set, on the cycle override, and on `Readable` and `Speaker` — two of the eleven prefabs
-`AUTHORING.md` tells a consuming game to place, and neither had a scene-level assertion at all.
-**AND IT FOUND A REAL DEFECT ON ITS FIRST RUN — gotcha 73.** `_select()` broke a scoring tie with
-`a.name < b.name`, but `Node.name` is a `StringName` and `<` on two of those compares their
-INTERNED ADDRESSES, not their text — so ties were ordered by script and scene load order while the
-comment above the line promised the NAME. **The comment was half true, which is why it survived
-eight rungs**: an interned address does not move while the node lives, so the order genuinely was
-stable within a run; what was false is that it was ever the name, so an author numbering two
-overlapping objects to choose between them was ignored. One cast fixes it.
-**And the first probe of the comparison agreed by coincidence**, reporting the language innocent —
-gotcha 70 turned around, and the reason is worth carrying: a probe of an ORDERING has to run in
-the context whose order is in question, because the property belongs to the process and not to the
-two values. `InteractionSensor` gained one public method, `cycle()`, because the suite provably
-cannot press a key; both measurements are in that method's own header. 2,148 → 2,173.
+**Last updated:** 2026-09-09 · **T5.22 (a redirectable `SAVE_DIR`) complete. The base is at
+5.2.0, a MINOR, and a consuming game does nothing** — `SaveSystem.SAVE_DIR` became the settable
+`save_dir`, but all six of its uses were inside `save_system.gd`, so the rename reaches nothing a
+game wrote.
 
-**THIS PACKAGE WAS AUTHORED OFF `main` WHILE TWO PACKAGES WERE OPEN, AND WAS REBASED ONTO THEM.**
-It first declared `4.4.0` on a tree containing neither T5.19 nor T5.20, and now sits on top of
-both at `5.1.0`. **Not one line of its code moved** — every one of the five conflicts was record:
-this file, the CHANGELOG, the DEVLOG, the board, and `project.godot`'s version. The lesson is the
-cheap one to state and the expensive one to skip: **check `gh pr list --state open` before
-branching**, because a stack is invisible from `main`.
+**THE SUITE WAS WRITING INTO THE DEVELOPER'S OWN SAVE DIRECTORY, AND IT WAS THE LAST ROOT THAT
+COULD.** `fixtures.gd` repoints five content roots under `user://test_fixtures`; the save store
+was the sixth and the only one left out, because its directory was a `const`. So
+`save_recovery_test.gd` — the case that exists to write MALFORMED save files — and `core_test.gd`'s
+round trip both wrote real slots. **They cleaned up after themselves, which is not the same as
+never having been there**: the run that fails to clean up is the run that crashed, and the slot
+numbers the suite picks are slot numbers a player may have filled. `tests/framework/save_fixture.gd`
+now points the store at `user://test_saves`, and `test_runner.gd` points it back after EVERY case
+rather than only the ones that switched — `fixtures.gd`'s own discipline, and its reason verbatim.
+**`save_dir` is PUBLIC rather than test-only**, because a portable build writing beside its
+executable wants exactly this seam, and a backdoor that exists for the suite alone is what
+`fixtures.gd`'s header refuses to add. `save_system.gd` went 166 → 172 of its 180, measured
+BEFORE the row was started because the row's own justification was that it is small.
 
-**T5.20 SPLIT THE STAGING SURFACE**, at `5.0.0`, a MAJOR whose one obligation on a consuming game
-is to add the `DevScreens` node to `game_root.tscn`. `src/systems/debug/dev_stage.gd` stood at
-**248 of its 250** allowed code
-lines, so the five staging flags that push a SCREEN — `--open-inventory`, `--talk=`,
-`--talk-advance=`, `--open-menu=`, `--console=` — moved to a sixth debug file, `dev_screens.gd`.
-248 → 175, new file 102. **It is a MAJOR and not the MINOR its 3.1.0 precedent used, because
-skipping the node does not cost a game a new feature — it silently REMOVES five flags that game
-may already invoke**, with nothing red anywhere.
-**AND THE DOCUMENT YOU ARE READING HAD NAMED THE WRONG FILE FOR TEN ROWS.** `gen_placeholders.gd`
-was called "next to split" since WP-14 and has twenty lines spare; T5.19's measurement found the
-file actually against the wall. **The seam was chosen by QUESTION, on this family's own
-three-way precedent** — *what is TRUE in the world* stays, *what is DRAWN OVER it* moved — and it
-is a dependency fact too, those five being the only staging that named the `ui` layer at all.
-**A refactor, so the evidence is that behaviour did not change**: five invocations byte-identical
-before and after, both cross-file orderings among them, plus a sixth pair proving the `_fresh_game`
-pre-pass equivalent on reverse-order arguments, plus a windowed capture of the Satchel drawn by
-one node over a bag filled by the other.
-The new gate is the split’s own failure mode —
-no two debug nodes may dispatch the same flag, `--new-game` the one stated exception. 2,143 → 2,148.
+**AND THE FIRST VERSION OF THE LOAD-BEARING CASE PASSED THE PLANT.** It compared the untouched
+directory's file byte-for-byte against a copy taken before the redirected write, and the full
+reversion — every use back to the constant — passed it: both writes landed on the same path
+inside the same second, and `saved_utc` is second-resolution while `playtime_seconds` snaps to a
+tenth, so the overwrite was byte-identical to what it overwrote. The two saves now carry
+different markers. **Gotcha 74**, and it is gotcha 70's shape one turn on: a plant that passes
+against an edit you have CONFIRMED applied is evidence about the case, and the answer is a harder
+case rather than a weaker claim.
 
-**T5.19 RECONCILED THE RECORD AND GATED THE PART OF IT THAT IS NOT PROSE**, at `4.3.1`, a PATCH —
-no production code changed, so that package was twelve corrected claims and two gates. The file
-you are reading was the worst of the twelve: it stated template version `2.4.0` two majors after
-the fact and named an already-shipped package as the next one to build. Tags exist for `v2.0.0`,
-`v3.0.0`, `v4.0.0` and `v4.2.1`, each verified to name a tree that genuinely declares its own
-version, which is T4.3's condition.
-**THE RECORD HAD DRIFTED IN TWELVE PLACES, AND T5.17 EXISTED TO STOP EXACTLY THAT.** One package
-after a reconciliation, `CONTEXT.md` was two majors stale on its own version, `ARCHITECTURE.md`
-was 348 assertions behind and pointed at "rung 9" for a capture that is rung 12,
-`SYSTEMS_INVENTORY.md` had T5.15's `Row styles` row stranded at line 1 ABOVE the title — its only
-copy, so the system was absent from its table — and T5.17 itself had no row on the board. **The
-answer was not a third manual reconcile.** Two of the twelve are STRUCTURE rather than prose, and
-structure is assertable: `record_shape_test.gd` now fails if a document does not open with its own
-title or a package the log records has no board row, and `version_test.gd` gained a third fact —
-a **bold** semver in `CONTEXT.md` must equal `project.godot`'s. **The counts were corrected and
-deliberately NOT gated**, and the DEVLOG says why: a case cannot know the suite's own total while
-it is still running.
+**AND THE STACK LESSON COST A SECOND TIME, WHICH IS WHY IT IS HERE AND NOT ONLY IN A DEVLOG.**
+T5.21 was authored off `main` while T5.19 and T5.20 were open, declared `4.4.0` on a tree
+containing neither, and had to be rebased onto both — five conflicts, all of them RECORD rather
+than code. This package then hit the same wall from the other side: a second session, working in
+parallel, landed the stack and opened a competing PR carrying the same tree. Both had independently
+reached `5.1.0`, and the trees were byte-identical under `src/`, `tests/` and `project.godot`, so
+the duplicate was closed and the richer branch kept. **Run `gh pr list --state open` before
+branching, and prefer one package in flight at a time** — a stack is invisible from `main`, and
+two sessions on one row is the same defect wearing a second hat.
 
-
-**THE RANKING EVERY INTERACTABLE RESTS ON HAD NO ASSERTIONS, AND `interaction_test.gd` SAID SO IN
-WRITING FOR FOUR PHASES.** Its MUST NOT line has read since WP-02 that the sensor's ranking "needs
-real geometry and belongs in a scene-level test", and that test was never written — so the decision
-the sensor's own header calls the actual problem it solves ("detection is trivial; selection is
-not") was unasserted in a suite of two thousand. `tests/unit/selection_test.gd` is 24 assertions
-on it: priority over proximity, proximity between equals, facing between equidistant objects, the
-name tie-break, what falls out of the candidate set, the cycle override and its wrap, and the two
-prefabs `AUTHORING.md` tells a consumer to place — `Readable` and `Speaker` — which nothing had
-asserted at all. **Gotcha 54's shape at the top of the interaction stack**: `interaction_test.gd`
-proved what an object does once chosen and `turn_test.gd` proved the turn once it is, and between
-them sat the decision neither made.
-
-**AND THE TIE-BREAK WAS BROKEN, BY A LANGUAGE DETAIL RATHER THAN A LOGIC ERROR — GOTCHA 73.**
-`_select()` compared `a.name < b.name`. `Node.name` is a `StringName`, and `<` on two of those
-compares their **interned addresses, not their text**, so ties were ordered by whichever name the
-engine interned first — script and scene load order. Measured both ways in one run, same pair:
-`StringName` said `Z_later < A_earlier` and `String` said the opposite. **The comment above the
-line was half true, which is why it survived**: an address does not move, so the order was stable
-within a run and the flicker it worried about never happened — it simply was never the NAME, so an
-author numbering two overlapping objects to choose between them was ignored. Fixed with one cast.
-Eight rungs and 2,148 assertions were green over it because the demo has no two interactables at
-an exact tie. **The first probe of the comparison said the language was innocent** and agreed by
-coincidence, which is the second half of gotcha 73 and gotcha 70 turned around.
-
-**`InteractionSensor` GAINED ONE PUBLIC METHOD, `cycle()`**, and the reason is that the suite
-provably cannot press a key: `Input.parse_input_event` is buffered until a main-loop flush that
-never comes mid-run, and `Input.action_press` does land but then leaves the action reading
-`is_action_just_pressed() == true` for the whole run — measured — which would cycle every other
-case's sensor. Same reasoning as `is_suspended()`. The binding is still proved windowed by
-`dev_stage.gd --cycle`. **Five plants, each failing a different set**: the tie-break reverted
-fails 3, the priority term deleted fails 1, the facing term 1, the cycle offset ignored 4, and the
-lone-candidate guard 1 — which is what says they are not the same assertion five times.
-
-*(Previously: T5.18 asserted the save loader's six refusal branches and recorded that `_migrate`'s
-success path is unreachable by arithmetic. T5.16 fixed quest chaining — `evaluate()` guarded
-re-entrancy with a bare `return`, discarding the re-derivation a listener on `quest_completed`
-legitimately asks for. Gotcha 72. T5.17 reconciled six prose defects.)*
+*(Previously: T5.21 wrote the scene-level interaction test `interaction_test.gd` had asked for in
+writing since WP-02, and it found a real defect on its first run — `<` on two `StringName`s
+compares interned addresses, not text, so `_select()`'s tie-break sorted by load order while its
+comment promised the name. Gotcha 73, and its second half is that a probe of an ORDERING must run
+in the context whose order is in question. T5.20 split the staging surface at `5.0.0`, a MAJOR
+whose one obligation is adding the `DevScreens` node to `game_root.tscn`. T5.19 reconciled twelve
+record defects and gated the two that are structure.)*
 
 > **This is a TEMPLATE, not a game.** Read [`TEMPLATE.md`](TEMPLATE.md) — it is short, and the
 > roadmap, the board and parts of this file were written before that reframing. The courtyard and
@@ -181,7 +121,7 @@ sheet, and every facing draws a different figure.
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version is** **5.1.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+**The version is** **5.2.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
 the owner's to close or to leave.
 
 **THE NEXT PACKAGE IS A CHOICE, NOT A QUEUE.** Nothing is blocking. The strongest rows, in the
@@ -197,13 +137,15 @@ found in the code the test was written to cover. **The tightest file is now
 already raised once, so raising it again is a decision rather than a mechanical move.
 `tools/gen_placeholders.gd` stays on the list at 230 of 250. T5.20 split `dev_stage.gd`, which was
 the urgent one at 248, down to 175.
+**T5.22 took the redirectable `SAVE_DIR` off it as well**, and what that row returned was a
+gotcha rather than a defect: the case that proved it passed its own plant first.
 
 
-164 files, 15,457 code lines, 17 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
+166 files, 15,552 code lines, 17 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
 three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 3 on the default one**,
 1 shared area material, **21 settings and 21 consumers**.
-Template version **5.1.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+Template version **5.2.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
 recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 
@@ -1097,7 +1039,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 2,173 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 2,192 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content, and no orphan CSV row
@@ -1108,7 +1050,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Seventy-three gotchas that each cost an hour
+## Seventy-four gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -1968,6 +1910,18 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     load order, the same two objects could tie differently when reached another way. Eight rungs
     and 2,148 assertions were green over it, because the demo has no two interactables at an
     exact tie. The fix is one cast, `String(a.name) < String(b.name)`.
+74. **A FILE COMPARED BYTE-FOR-BYTE AGAINST ITS OWN OVERWRITE CAN BE EQUAL TO IT, SO "UNTOUCHED"
+    IS NOT A BYTE COMPARISON.** `save_dir_test.gd`'s load-bearing case asserts that a write while
+    the store is redirected leaves the previous directory alone. The first version took a copy of
+    the earlier file, wrote again, and compared the two — and the full reversion, every use of
+    `save_dir` put back to the constant, PASSED it. Both writes landed on the same path inside
+    the same second, and the only fields that vary are `saved_utc`, which is second-resolution,
+    and `playtime_seconds`, which `snappedf` rounds to a tenth: the overwrite was byte-identical
+    to what it overwrote. The two saves now carry different markers through the probe's section,
+    and the same plant fails 4. **This is gotcha 70 one turn on** — that one says a plant that
+    passes is evidence about the plant; this one says a plant that passes against a genuinely
+    applied edit is evidence about the CASE. Both end the same way: the answer is a harder case,
+    never a weaker claim.
 
     **AND THE PROBE THAT CHECKED THIS THE FIRST TIME SAID THE OPPOSITE, WHICH IS THE REAL
     LESSON.** A standalone `--script` probe created two nodes, compared their names, and printed
@@ -2007,10 +1961,6 @@ T5.17, T5.18 and T5.20 each came off it. What remains is a real choice, not a qu
   repeats one identical day forever and a Saturday is inexpressible; `Clock` publishes no flag
   namespace, so no authored condition can read the time at all — including the shop hours the
   Clock's own header names. Also gated by the taxonomy question.
-- **A redirectable `SAVE_DIR`.** T5.18 wrote to a real slot because `SaveSystem.SAVE_DIR` is a
-  `const` with no redirect, unlike the five content roots `Fixtures` repoints. It works and cleans
-  up after itself, but the suite touching a developer's real save directory is a seam worth
-  closing — and `save_system.gd` has 14 lines of budget left, so it is genuinely small.
 - **A second idle block and a chooser between them.** The last unticked Phase T5 exit criterion.
 - **A call recorder, to answer the 86.** T5.13's gate reports 86 public methods reached only from
   `tests/` or `tools/`, and a text scan cannot shrink that number.
@@ -2049,7 +1999,7 @@ you can press to travel back to once you have — and every one of those walks n
 depending on whether you are crossing grass, the wooden dais or stone. Every one of those changes
 survives a save and a
 reload, including from the far side of an area that is no longer loaded. All of it is covered
-by 2,173 headless assertions.
+by 2,192 headless assertions.
 
 **Next, and for the first time it is not an ordered queue.** Every blocking row is done: Phase T3
 closed with WP-14b, WP-15 was CLOSED by the owner, and T4.1 shipped the version and the upgrade

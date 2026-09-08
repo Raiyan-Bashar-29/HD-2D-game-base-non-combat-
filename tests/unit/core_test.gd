@@ -104,6 +104,9 @@ func _flags_hands_out_copies() -> void:
 func _save_round_trip() -> void:
 	# Director's section asks for an area change on restore, which needs a world root a test
 	# has no business building. The transition path is covered by the boot run instead.
+	# The round trip writes a real slot; redirected so it is not the developer's own. The
+	# runner deactivates after this case.
+	SaveFixture.activate()
 	SaveSystem.unregister(&"world")
 	SaveSystem.register(&"test_probe", _probe_collect, _probe_apply, 3)
 

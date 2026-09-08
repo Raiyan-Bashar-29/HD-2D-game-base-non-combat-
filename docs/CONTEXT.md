@@ -91,7 +91,7 @@ engine interned first — script and scene load order. Measured both ways in one
 line was half true, which is why it survived**: an address does not move, so the order was stable
 within a run and the flicker it worried about never happened — it simply was never the NAME, so an
 author numbering two overlapping objects to choose between them was ignored. Fixed with one cast.
-Eight rungs and 2,076 assertions were green over it because the demo has no two interactables at
+Eight rungs and 2,148 assertions were green over it because the demo has no two interactables at
 an exact tie. **The first probe of the comparison said the language was innocent** and agreed by
 coincidence, which is the second half of gotcha 73 and gotcha 70 turned around.
 
@@ -199,7 +199,7 @@ already raised once, so raising it again is a decision rather than a mechanical 
 the urgent one at 248, down to 175.
 
 
-163 files, 15,274 code lines, 17 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
+164 files, 15,457 code lines, 17 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
 three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 3 on the default one**,
 1 shared area material, **21 settings and 21 consumers**.
@@ -240,7 +240,7 @@ which is `check_strings.gd`'s static rule made visible and including anything co
 **A SAVE THAT SURVIVES A REAL RELAUNCH**, proved in TWO PROCESSES rather than one reload:
 `--save-state` / `--load-state` in `dev_probes.gd`, with the fresh process's boot line as
 the control and the weather deliberately STORM because CLEAR is the boot default ·
-placeholder art generator · line-budget checker · a headless test suite (2,076 assertions) that
+placeholder art generator · line-budget checker · a headless test suite (2,173 assertions) that
 builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
 returns early, asserts nothing, or is not listed in the runner ·
 an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
@@ -1097,7 +1097,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 2,100 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 2,173 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content, and no orphan CSV row
@@ -1966,7 +1966,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     false is that it was ever the NAME: an author numbering two overlapping objects `sign_a` and
     `sign_b` to choose between them was ignored, and because intern order is script and scene
     load order, the same two objects could tie differently when reached another way. Eight rungs
-    and 2,076 assertions were green over it, because the demo has no two interactables at an
+    and 2,148 assertions were green over it, because the demo has no two interactables at an
     exact tie. The fix is one cast, `String(a.name) < String(b.name)`.
 
     **AND THE PROBE THAT CHECKED THIS THE FIRST TIME SAID THE OPPOSITE, WHICH IS THE REAL
@@ -2049,7 +2049,7 @@ you can press to travel back to once you have — and every one of those walks n
 depending on whether you are crossing grass, the wooden dais or stone. Every one of those changes
 survives a save and a
 reload, including from the far side of an area that is no longer loaded. All of it is covered
-by 2,100 headless assertions.
+by 2,173 headless assertions.
 
 **Next, and for the first time it is not an ordered queue.** Every blocking row is done: Phase T3
 closed with WP-14b, WP-15 was CLOSED by the owner, and T4.1 shipped the version and the upgrade

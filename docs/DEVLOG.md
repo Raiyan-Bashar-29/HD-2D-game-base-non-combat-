@@ -8339,13 +8339,34 @@ drew the screen that lists it. That is the claim the log could not make.
 **Did.** Wrote `tests/unit/selection_test.gd` — 24 assertions on `InteractionSensor`'s selection,
 driven with real geometry — and fixed the tie-break defect it found on its first run. Extracted
 `InteractionSensor.cycle()` as a public method so the override could be asserted at all. Bumped
-the base to `4.4.0`. Recorded gotcha 73.
+the base to `5.1.0`. Recorded gotcha 73.
+
+**AND REBASED, WHICH IS HALF OF WHAT THIS ENTRY RECORDS.** The package was authored against `main`
+while T5.19 and T5.20 were both open, so it first shipped as `4.4.0` on a tree that contained
+neither. It now sits on top of both as `5.1.0`, a MINOR over T5.20's `5.0.0`. **Not one line of
+its production or test code moved in the rebase** — all five conflicts were record: `CONTEXT.md`,
+`CHANGELOG.md`, this file, the board, and `project.godot`'s version. What DID have to change is
+every number the package stated, because each was measured against `main`: the suite delta was
+`2,076 → 2,100` and is `2,148 → 2,173`, and `check_budgets` read `162 files, 15344 code lines` and
+reads `164 files, 15457`.
+
+**The delta is 25 for a file of 24 assertions, and the extra one is not a miscount.**
+`record_shape_test.gd` computes its plan as `docs + packages + 2` and asserts every package the
+log records has a row on the board; adding T5.21 to this file adds one package, so it adds one
+assertion. `version_test.gd` plans `28 + <bold semvers in CONTEXT.md>` and stayed at 30, because
+both bold semvers were rewritten rather than added to. A package that touches the record can
+therefore grow the total by more than the cases it writes, and the arithmetic has to be shown
+rather than asserted.
+
+**The lesson is cheap to state and was expensive to skip: run `gh pr list --state open` before
+branching.** A stack is invisible from `main` — nothing in a clean checkout of `main` says that
+two packages are in flight above it, and the cost of finding out late was this reconcile.
 
 **Why.** `interaction_test.gd`'s MUST NOT line has read since WP-02 that the sensor's ranking
 *"needs real geometry and belongs in a scene-level test"*. That was an accurate note about a test
 nobody wrote, and four phases went by. The consequence was that the rule every interactable rests
 on — the one the sensor's own header calls the actual problem it solves, because *"detection is
-trivial; selection is not"* — had no assertion anywhere in a suite of 2,076, and that `Speaker`
+trivial; selection is not"* — had no assertion anywhere in a suite of 2,148, and that `Speaker`
 and `Readable`, two of the eleven prefabs `AUTHORING.md` tells a consuming game to place, had no
 scene-level assertions of any kind. `CONTEXT.md`'s own next-package list called this the strongest
 remaining row, in its words *"a false-confidence gap that a run can close."* It was.
@@ -8370,7 +8391,7 @@ interned address does not move while the node lives, so the order genuinely was 
 run and the flicker the comment worried about never happened. What was false is that it was ever
 the NAME: an author numbering two overlapping objects `sign_a` and `sign_b` to choose between them
 was ignored, and because intern order is load order the same two objects could tie differently
-when reached another way. 2,076 assertions were green over it because the demo has no two
+when reached another way. 2,148 assertions were green over it because the demo has no two
 interactables at an exact tie. Fixed with one cast, `String(a.name) < String(b.name)`.
 
 **And the first probe said the language was innocent.** A standalone `--script` probe made two
@@ -8413,8 +8434,9 @@ gate is deliberately not re-asserted; `InteractionSensor._select`/`cycle`; `Read
 - `--headless --import` → exit 0, run first and again after the source edits (gotcha 53).
 - `--check-only` on both changed files → only `Identifier not found: Events`, which is gotcha 1.
 - `--headless --quit-after 30` → `Session ended after 0.5s — 0 warnings, 0 errors`.
-- Suite → **`2100 passed, 0 failed, 0 skipped`**, exit 0. Was `2076 passed, 0 failed` on `main`.
-- `check_budgets` (`162 files, 15344 code lines, 0 warnings, 0 violations`), `check_content`,
+- Suite → **`2173 passed, 0 failed, 0 skipped`**, exit 0. Was `2148 passed, 0 failed` on the
+  branch this sits on, and `2076` on `main`, where the package was first written.
+- `check_budgets` (`164 files, 15457 code lines, 0 warnings, 0 violations`), `check_content`,
   `check_boundary`, `check_strings`, `check_layers`, `check_signals`, `check_methods` → all
   exit 0. `interaction_sensor.gd` is 173 → 177 of its 250; `selection_test.gd` is 178.
 - Windowed capture at `960x540`, `--time=18:40 --freeze-time` → `0 warnings, 0 errors`, and the
@@ -8422,7 +8444,7 @@ gate is deliberately not re-asserted; `InteractionSensor._select`/`cycle`; `Read
 
 **The plants — five, each failing a DIFFERENT set**, which is what says they are not one assertion
 five times. Every one confirmed to have genuinely modified the source before its run was trusted,
-per gotcha 70, and every one reverted to `2100 passed, 0 failed` with the file byte-identical:
+per gotcha 70, and every one reverted to `2173 passed, 0 failed` with the file byte-identical:
 
 | Plant | Exit | Failed |
 |---|---|---|
@@ -8433,6 +8455,13 @@ per gotcha 70, and every one reverted to `2100 passed, 0 failed` with the file b
 | `cycle()`'s lone-candidate guard removed | **1** | 1 |
 | **none — the shipped tree** | **0** | 0 |
 
+**The tie-break plant was re-run after the rebase**, because a plant verified against one base is
+evidence about that base. On this tree it fails the same three assertions and exits 1 —
+*"the earlier name wins a dead tie — expected true, got false"*, *"and not the one that was handed
+over first — expected false, got true"*, and *"it is the same object on the next frame, which is
+what stable means"* — and the restored file returns `2173 passed, 0 failed` while being
+byte-identical to `HEAD`. The other four plants stand on their original run; the source they
+target did not move in the rebase.
 The priority plant fails only *"an authored priority takes the prompt from a nearer object"* and
 not its partner, which is correct: the partner asserts the nearer object wins once the priority is
 gone, and with the term deleted that is still true. The cycle-offset plant fails 4 including the
@@ -8447,6 +8476,11 @@ and cannot be proved by running the engine — the same reasoning that put T5.18
 of it twice.
 
 **Gaps, named rather than left implied.**
+- **`ROADMAP.md` records T5.15 and then T5.21, and nothing between.** T5.16 through T5.20 have
+  board rows and DEVLOG entries but no roadmap entry, so this package's own entry landed where
+  T5.16's should be. That predates this row and belongs to whoever reconciles the record next —
+  `record_shape_test.gd` gates board rows against the log, and deliberately does not gate the
+  roadmap, so nothing goes red over it. Naming it here is the only thing that keeps it findable.
 
 - **The Tab BINDING is not in the suite and cannot be**, for the two measured input facts above.
   `cycle()` is asserted; that Tab reaches it is proved windowed only.
@@ -8463,9 +8497,9 @@ of it twice.
   `ClimbPoint`, `TriggerVolume` and `PathAction` are reached by `interaction_test.gd` and others
   through direct calls, which is a weaker claim than this file makes about the two it covers.
 
-**CI, recorded rather than assumed.** Run
+**CI, recorded rather than assumed — and the recorded run is now the PRE-REBASE one.** Run
 [`34262856018`](https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-/actions/runs/34262856018),
-both jobs green on PR #50:
+both jobs green on PR #50 when it still sat on `main` at `4.4.0`:
 
 - **Ladder (full checkout)** — `2100 passed, 0 failed, 0 skipped`.
 - **Ladder (stripped template)** — `2026 passed, 0 failed, 25 skipped`, and **`selection_test.gd`

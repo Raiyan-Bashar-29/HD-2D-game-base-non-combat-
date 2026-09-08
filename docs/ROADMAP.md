@@ -894,12 +894,12 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   dark-palette assertion in the file and fails only the light ones, which is why the light
   palette had to be asserted rather than only photographed.
 
-- **T5.20 A scene-level interaction test, and the defect it found — DONE, 2026-09-09.** Taken
+- **T5.21 A scene-level interaction test, and the defect it found — DONE, 2026-09-09.** Taken
   because another file asked for it in writing: `interaction_test.gd`'s MUST NOT line has read
   since WP-02 that the sensor's ranking *"needs real geometry and belongs in a scene-level test"*,
   and that test was never written. So the rule every interactable rests on — the one the sensor's
   own header calls the actual problem it solves, *"detection is trivial; selection is not"* — had
-  no assertion in a suite of 2,076, and `Speaker` and `Readable`, two of the eleven prefabs
+  no assertion in a suite of 2,148, and `Speaker` and `Readable`, two of the eleven prefabs
   `AUTHORING.md` tells a consuming game to place, had no scene-level assertions at all.
   **Gotcha 54's shape at the top of the interaction stack**: `interaction_test.gd` proved what an
   object does once chosen, `turn_test.gd` proved the turn once it is, and between them sat the
@@ -919,7 +919,7 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   mid-run, and `Input.action_press` lands but then leaves the action reading
   `is_action_just_pressed() == true` for the whole run, which would cycle every other case's
   sensor. Same reasoning as `is_suspended()`; the binding is still proved windowed by
-  `dev_stage.gd --cycle`. **MINOR, 4.4.0.** Suite 2,076 -> 2,100; twelve rungs and seven checkers
+  `dev_stage.gd --cycle`. **MINOR, 5.1.0.** Suite 2,148 -> 2,173; twelve rungs and seven checkers
   green. **Five plants, each failing a DIFFERENT set** — tie-break reverted 3, priority term 1,
   facing term 1, cycle offset ignored 4, lone-candidate guard 1 — which is what says they are not
   one assertion five times.

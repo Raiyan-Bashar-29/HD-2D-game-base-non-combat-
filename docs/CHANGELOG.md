@@ -51,7 +51,13 @@ other case's sensor. The key binding itself is still proved windowed by `dev_sta
 **And `tests/unit/selection_test.gd` is new**, 24 assertions on the ranking, the candidate set,
 the cycle and the two prefabs — `Readable` and `Speaker` — that `AUTHORING.md` tells you to place
 and which nothing had asserted at all. If your fork changed the ranking, it may go red on merge;
-that is the case doing its job.
+that is the case doing its job. 2,148 → 2,173 — the extra assertion beyond the file's own 24 is
+`record_shape_test.gd` computing its plan from what it finds, and it now finds one more package on
+the board.
+
+**If you are merging from `4.3.1` or earlier, read the `5.0.0` entry below as well** — this is a
+MINOR, but it sits on top of a MAJOR whose one obligation still stands: add the `DevScreens` node
+to `game_root.tscn`.
 
 ---
 ## 5.0.0

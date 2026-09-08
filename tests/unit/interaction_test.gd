@@ -3,8 +3,9 @@ extends TestCase
 ## simulated input: a gate that refuses until a lever is thrown, and object state that
 ## survives the object being destroyed and rebuilt.
 ##
-## OWNS: assertions about interactables. MUST NOT: assert on the sensor's ranking, which
-## needs real geometry and belongs in a scene-level test.
+## OWNS: assertions about interactables. MUST NOT: assert on the sensor's ranking, which needs
+## real geometry — that is `selection_test.gd`, which T5.20 finally wrote and which found the
+## tie-break defect this line's absence had been hiding since WP-02.
 
 var _gate: Gate = null
 var _lever: Lever = null

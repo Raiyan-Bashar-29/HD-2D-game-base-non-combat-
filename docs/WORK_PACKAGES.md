@@ -89,6 +89,7 @@ original board rather than continuing it.
 | T5.18 | **The save loader's refusals, and a path nothing can enter** | **DONE** — `4.3.0`, and **`save_system.gd` is BYTE-IDENTICAL**: this row is assertions plus one corrected claim. `core_test.gd` owned the round trip and covered ONE refusal; a grep for `ERR_FILE_CORRUPT` across `tests/` returned nothing, so six branches were carried by review alone. The distinction now pinned is a policy rather than a detail: **a corrupt ENVELOPE is refused outright, a corrupt SECTION is skipped and the rest loads** — the difference between a player losing a setting and a player losing forty hours. **And `_migrate`'s success path is UNREACHABLE by arithmetic**: it runs only when `version != 1`, then refuses `<= 0` and `> 1`, and no integer is all three of not-one, above-zero and at-most-one — so `SYSTEMS_INVENTORY.md` calling migration DONE meant *written*, not *exercised*, which is the eighth appearance of declared-and-not-reached and the first where the unreached thing is a control-flow path. The case **PINS `SCHEMA_VERSION`**, so shipping v2 fails the suite and names what to write. **Planted in BOTH directions** — the newer-build guard removed fails 2 of 17, a bad section made fatal fails 1 at `expected 0, got 16`, the opposite sign, which is what proves the two are not confused. Also took `v2.0.0`, `v3.0.0`, `v4.0.0` and `v4.2.1`, each verified against T4.3's condition that a tag name a tree declaring its own version; see below |
 | T5.19 | **Reconciling the record, and gating its shape** | **DONE** — `4.3.1`, a PATCH, and no production code changed. **Twelve places where the record disagreed with the repository, one package after T5.17 reconciled it.** `CONTEXT.md` — the file `CLAUDE.md` sends every session to FIRST — stated template version `2.4.0` two majors late, called the version `1.1.0` untagged, still listed branch protection as unbuilt after T5.16 turned it on, and carried a **"THE NEXT PACKAGE"** paragraph describing work T5.2 had shipped. `ARCHITECTURE.md` was 348 assertions behind and named "rung 9" for a capture that is rung 12. `SYSTEMS_INVENTORY.md` had T5.15's `Row styles` row at LINE 1, above the title — its ONLY copy, so the system was missing from its table. T5.17 had no board row. **The answer was not a third manual reconcile.** Two defects are STRUCTURE, which is assertable where prose is not: `record_shape_test.gd` fails if a document does not open with its title or a recorded package has no board row, and `version_test.gd` gained a third fact — a **bold** semver in `CONTEXT.md` must equal `project.godot`'s. 2,076 → 2,143. Three plants, each the real reversion, each exit 1 against an exit-0 control. **Gotcha 70 again:** plant 3 passed first time because `sed` addressed the wrong line and changed nothing |
 | T5.20 | **Splitting the staging surface, and the gate that makes a split safe** | **DONE** — `5.0.0`, a MAJOR, and the production change is a MOVE: `dev_stage.gd` was at **248 of its 250** allowed code lines, two from failing rung 5 on its next edit. **The docs had named `gen_placeholders.gd` next to split for ten straight rows and it was the wrong file** — at 230 of 250 it has twenty lines spare, and T5.19's measurement is what found the real one. **The seam was chosen by QUESTION, on this family's own three-way precedent** rather than by cutting the file in half: the five flags that end in a `UiRoot.open()` — `--open-inventory`, `--talk=`, `--talk-advance=`, `--open-menu=`, `--console=` — moved to a sixth file, `dev_screens.gd`, leaving *what is TRUE in the world* here and *what is DRAWN OVER it* there. **It is also a dependency fact**, which is what makes it a seam and not a filing preference: those five were the only staging that named the `ui` layer at all. 248 → **175**, new file **102**, and `_parse_arguments` fell from 32 of its 40-line function budget to 22. **MAJOR rather than the MINOR its 3.1.0 precedent used**, because a game that merges `src/` without adding the `DevScreens` node does not miss a new feature — it silently LOSES five flags it may already invoke, with nothing red anywhere. **A refactor, so the evidence is that behaviour did not change**: five invocations byte-identical before and after, including both cross-file orderings, plus a sixth pair proving the `_fresh_game` pre-pass equivalent on reverse-order arguments. **The new gate is the split's own failure mode**: no two debug nodes may dispatch the same flag, `--new-game` the one stated exception — planted red at `expected ["--new-game"], got ["--new-game", "--open-menu="]`. Removed an orphaned doc block describing a function deleted in an earlier split. 2,143 → 2,148 |
+| T5.21 | **A scene-level interaction test, and the defect it found** | **DONE** — `5.1.0`, a MINOR. THE ROW EXISTED BECAUSE ANOTHER FILE ASKED FOR IT IN WRITING: `interaction_test.gd`'s MUST NOT line has said since WP-02 that the sensor's ranking *"needs real geometry and belongs in a scene-level test"*, and that test was never written — so the decision the sensor's own header calls the actual problem it solves (*"detection is trivial; selection is not"*) was asserted nowhere in a suite of 2,148, and `Speaker` and `Readable`, two of the eleven prefabs `AUTHORING.md` tells a consumer to place, had no scene-level assertions at all. Gotcha 54's shape at the top of the interaction stack: `interaction_test.gd` proved what an object does once chosen, `turn_test.gd` proved the turn once it is, and between them sat the decision neither made. `tests/unit/selection_test.gd`, 24 assertions. **AND IT FOUND A REAL DEFECT ON ITS FIRST RUN — gotcha 73**: `_select()` broke a scoring tie with `a.name < b.name`, but `Node.name` is a `StringName` and `<` on two of those compares their INTERNED ADDRESSES, not their text, so ties were ordered by script and scene load order while the comment above the line promised the NAME. Measured both ways in one run, same pair: `StringName` said `Z_later < A_earlier`, `String` said the opposite. The comment was half true, which is why it survived eight rungs — an address does not move, so the order WAS stable within a run; it simply was never the name, so an author numbering two overlapping objects to choose between them was ignored. One cast fixes it. **The first probe of the comparison said the language was innocent and agreed by coincidence**, which is gotcha 70 turned around and is the second half of 73. `InteractionSensor` gained one public method, `cycle()`, because the suite provably cannot press a key — `Input.parse_input_event` is buffered until a main-loop flush that never comes mid-run, and `Input.action_press` lands but then leaves the action reading `is_action_just_pressed() == true` for the whole run, which would cycle every other case's sensor; same reasoning as `is_suspended()`, and the binding is still proved windowed by `dev_stage.gd --cycle`. **Five plants, each failing a DIFFERENT set** — tie-break reverted 3, priority term deleted 1, facing term 1, cycle offset ignored 4, lone-candidate guard 1 — which is what says they are not one assertion five times. 2,148 → **2,173 assertions**; see below
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -4555,3 +4556,120 @@ all four did, and all four are ancestors of `main`.
   spare and deserves its own row.
 - **No windowed capture.** Nothing here is visual — every claim is a return code or a call count,
   so the honest ladder for this row ends at the suite.
+
+---
+## T5.20 · A scene-level interaction test, and the defect it found — **DONE**
+
+`5.1.0`, a MINOR. **The row existed because another file asked for it in writing.**
+`interaction_test.gd`'s MUST NOT line has read since WP-02 that the sensor's ranking *"needs real
+geometry and belongs in a scene-level test"* — an accurate note about a test that was then never
+written, and the four phases since never came back to it.
+
+### What was actually unasserted
+
+The ranking is the rule every interactable in the game rests on, and the sensor's own header
+calls it the actual problem the file solves: *"Detection is trivial; selection is not."* None of
+it had an assertion:
+
+- **priority over proximity** — the case the header names, a player facing a lever with a sign
+  fractionally closer;
+- **proximity between equal priorities**, and **the facing term** on top of it, including whether
+  velocity reaches `_facing` at all;
+- **the name tie-break**;
+- **what leaves the RANKING without leaving the candidate set** — out of reach, and present but
+  inert;
+- **the Tab cycle and its wrap**, which is the player's override of every one of the above.
+
+And `Speaker` and `Readable` — two of the eleven prefabs `AUTHORING.md` tells a consuming game to
+place — had no scene-level assertions of any kind. `turn_test.gd` asserts the turn a `Speaker`
+asks for, which is a different question from whether it can be selected in the first place.
+
+**This is gotcha 54's shape at the top of the interaction stack.** `interaction_test.gd` proves
+what an object does once it is chosen; `turn_test.gd` proves the turn once it is. Between them sat
+the decision neither one makes, with a green assertion on either side of it.
+
+### The defect, found on the first run — gotcha 73
+
+`_select()` broke a scoring tie with `a.name < b.name`, under a comment promising that *"ties are
+broken by node name so the order is stable frame to frame rather than dependent on physics
+callback order."*
+
+`Node.name` is a `StringName`, and `<` on two `StringName`s compares their **interned addresses,
+not their text.** Measured both ways inside one run, on the same pair of names:
+
+```
+TIE StringName Z<A=true A<Z=false | String Z<A=false A<Z=true
+```
+
+So ties were ordered by whichever name the engine happened to intern first, which is script and
+scene load order.
+
+**The comment was not wrong, only half true, and that is why it survived eight rungs.** An
+interned address does not move while the node lives, so the order genuinely IS stable within a
+run and the frame-to-frame flicker the comment worried about never happened. What was false is
+that it was ever the NAME: an author numbering two overlapping objects `sign_a` and `sign_b` to
+choose between them was ignored, and because intern order is load order, the same two objects
+could tie differently when reached another way. 2,148 assertions were green over it because the
+demo has no two interactables at an exact tie. The fix is one cast,
+`String(a.name) < String(b.name)`.
+
+**And the first probe of the comparison said the language was innocent.** A standalone `--script`
+probe created two nodes, compared their names and printed alphabetical order — so the defect
+looked like a broken fixture and very nearly was recorded as one. It agreed by coincidence: with
+only those two names interned, their addresses happened to fall in alphabetical order. That is
+**gotcha 70 turned around** — there a plant PASSED and was evidence about the plant; here a probe
+passed and was evidence about the probe. A probe of an ORDERING has to run in the context whose
+order is in question, because the property belongs to the process and not to the two values.
+
+### `InteractionSensor.cycle()`, and why the test could not press Tab
+
+The cycle lived inline in `_handle_input` behind `Input.is_action_just_pressed`. The suite is
+synchronous — `run()` is called, not awaited — and two facts were measured rather than assumed:
+
+- `Input.parse_input_event` is **buffered** until a main-loop flush that never comes mid-run, so
+  the action reads back `pressed=false` immediately after the call;
+- `Input.action_press` **does** land, but the process-frame counter never advances inside one
+  `_ready()`, so the action then reads `is_action_just_pressed() == true` for the **rest of the
+  run** — and `turn_test.gd` also drives a sensor with more than one candidate, so that stuck key
+  would cycle its selection too.
+
+So the override was genuinely unassertable through input. It is now a public `cycle()` returning
+false when there is nothing to cycle to, called by `_handle_input` on the keypress — the same
+reasoning that already made `is_suspended()` public, in that method's own words: so a test can
+assert the hand-over without faking input. The **binding** is still proved windowed, by
+`dev_stage.gd --cycle`.
+
+### Verification
+
+Twelve rungs, seven checkers, all green. Suite **2,148 → 2,173**, exit 0.
+
+**Five plants, each failing a DIFFERENT set**, which is what says they are not one assertion five
+times rather than five:
+
+| Plant | Result |
+|---|---|
+| tie-break reverted to `a.name < b.name` | exit 1, **3 failed** |
+| the authored-priority term deleted from `_score` | exit 1, **1 failed** |
+| the facing term deleted from `_score` | exit 1, **1 failed** |
+| `_select` returns `ranked[0]`, ignoring the cycle offset | exit 1, **4 failed** |
+| `cycle()`'s lone-candidate guard removed | exit 1, **1 failed** |
+
+Each was reverted and the suite re-run to `2,173 passed, 0 failed`, and the source confirmed
+byte-identical to before the plant. Per gotcha 70 the source was checked as genuinely modified
+before each run was trusted.
+
+### Notes, and what is deliberately not here
+
+- **The distances are fractions of `max_distance`, never metres.** It is an `@export`, so a
+  consuming game that gives the player longer arms must not fail this file — and a case that
+  wrote `1.0` would.
+- **The tie case hands its two objects over in REVERSE name order.** That is the half that can
+  fail: a sort that had quietly become a no-op returns the first candidate, and with candidates
+  arriving in name order that is the same answer the rule gives.
+- **The cycle case's last assertion is the one with teeth.** `_physics_process` re-selects every
+  frame, so a cycle offset reset there would take the player's deliberate choice back one frame
+  later while the four assertions above it all still passed.
+- **A windowed capture was taken** and is not load-bearing: nothing here is a visual claim. It
+  shows the demo still boots and the prompt still reads a real selection at dusk.
+- **The keybinding itself is still not in the suite**, and cannot be, for the reason above. Named
+  rather than left implied.

@@ -75,7 +75,7 @@ previous project started as a system that was allowed to know one thing too many
 
 | System | Purpose | Depends on | Boundary — must NOT know | Status |
 |---|---|---|---|---|
-| Interaction sensor | Finds and ranks candidate targets, fires the chosen one | Actions, Events, Layers | what any interactable does | DONE |
+| Interaction sensor | Finds and ranks candidate targets, fires the chosen one | Actions, Events, Layers | what any interactable does | DONE — and **the RANKING is asserted as of T5.21**, which is when it first was: `interaction_test.gd` had said since WP-02 that it "belongs in a scene-level test" and none existed, so priority-over-proximity, the facing term and the Tab cycle were carried by review. `selection_test.gd` covers them with real geometry and **found the tie-break ordering by interned `StringName` address instead of by name** — gotcha 73. Gained one public method, `cycle()`, because the synchronous suite provably cannot press a key |
 | Interactable contract | The base class every interactable satisfies | Events | who is interacting, beyond a Node3D | DONE |
 | Interaction prompt UI | Shows verb and label for the current target, localized | Events | how to perform an interaction | DONE |
 | Item definitions | Typed Resource, id equals filename, ADR-0006 | — | inventory or world state | DONE |
@@ -89,7 +89,7 @@ previous project started as a system that was allowed to know one thing too many
 | Containers | Take-all chests. Named ItemContainer: Container is a native class | Interactable, Items | — | DONE |
 | Authored refusal lines | An `Interactable` may name a localization key per refusal reason, carried on `interaction_refused` and preferred by the prompt over the `refusal.<reason>` line computed from the enum | Events, the prompt | deciding WHY something is refused | DONE — WP-09; `Gate.locked_key` and `PathAction.refusal_key` had been declared and unread since WP-01 and WP-07 |
 | Doors and gates | Locked, unlocked, flag-gated, with refusal reasons | Interactable, Flags | — | DONE |
-| Readables | Signs, books, notes | Interactable, Localization | — | DONE |
+| Readables | Signs, books, notes | Interactable, Localization | — | DONE — **scene-level as of T5.21**: the shipped `sign.tscn` is ranked out of a set of two overlapping objects and attempted through whatever the sensor selected, so what fails if the wire is cut is the ask on the bus. `has_been_read()` is still `NO CALLER` by design |
 | Switches and levers | Toggle world state | Interactable, Flags | what the state causes | DONE |
 | Trigger volumes | Fire on entry, once or every time, persisted by object_id | Layers, Flags, Events | what its firing causes | DONE |
 | Harvestables | Gather with a regrowth timer | Interactable, Clock, Inventory | — | **OPTIONAL** — WP-10, and a genre choice per `TEMPLATE.md`: a game that wants gathering wants it, and a game that does not is not missing anything. Blocks nothing and never has |
@@ -120,7 +120,7 @@ previous project started as a system that was allowed to know one thing too many
 |---|---|---|---|---|
 | Dialogue runner | Walks a conversation: conditions, branching, effects. A component, not an autoload | Events, Flags, DialogueDb | how it is displayed, pausing, locking input | DONE |
 | Dialogue UI | Box, choices, typewriter reveal. The first non-pausing overlay | Runner, Settings | conversation logic, pausing, locking input | PART — no portraits (art is deferred), no history log, no skip-all |
-| Speakers | An interactable that names a conversation id and emits | Interactable, DialogueDb | opening a screen, or what is said | DONE |
+| Speakers | An interactable that names a conversation id and emits | Interactable, DialogueDb | opening a screen, or what is said | DONE — **scene-level as of T5.21**, the same way `Readable` is: the shipped `speaker.tscn` is reached by cycling to it and asks for its own conversation id on the bus. `turn_test.gd` owns the turn it asks for; this owns that it is selectable at all |
 | Dialogue content format | Conversation/DialogueNode/DialogueChoice as .tres, found by directory scan like items | — | running itself, or reading a flag | PART — one condition and one effect per node |
 | Barks | Short unprompted lines with cooldowns | Dialogue UI | — | LATER |
 | Cutscenes | Scripted camera, movement and timing | Director, Player controller | — | TODO |

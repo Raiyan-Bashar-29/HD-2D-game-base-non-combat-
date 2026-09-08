@@ -85,6 +85,7 @@ original board rather than continuing it.
 | T5.6 | **A wholesale character swap, photographed** | **DONE** — Phase T5's last unmet exit criterion, and the only one of the three that was a proof rather than a feature. The repository held a sheet with a different GRID (`character_alt.png`, 4 facings, 24×40, two blocks) and a sheet with GAITS (the default, 8 facings, 32×48, three blocks) and **never one with both**, so the phase's claim had only ever been demonstrated in halves. The alt sheet is now five blocks — idle, walk, run, sneak, climb, 96×600 — and its layout is **the only one in the project that leaves no gait at -1**. The player was pointed at the pair, driven through all five gaits through the real input path, and photographed; **no file under `src/` changed for the swap**, which is the claim the row exists to test, and the swap is two `ExtResource` paths in `player.tscn`. **The CONTROL is the strongest evidence**: the same probe on the DEFAULT sheet draws blocks 0, 1, 2, **1, 1** — sneak and climb falling back to the walk block, which is the `-1` contract measured in the live game for the first time rather than in an assertion. Four defects, three of them this row's own and all four invisible to any rung that does not open a window — **gotchas 57 to 60**: a generator that clips to the image draws into the next cell; a foot-anchored sprite's bottom rows are eaten by the ground plane so a tally there cannot be read; reading `sprite.frame` before the post-draw await measures a different moment from the photograph; and `unproject_position` answers in the viewport's LOGICAL size. Two plants, each exit 1, and **plant 2 re-created T5.3's defect exactly** (`climb_row = -1` → `expected [2, 3, 4], got [2, 3, -1]`), which makes good the row's own claim that this sheet would have caught it. New `character_swap_test.gd` (14) and `dev_gait_shots.gd`. 1,798 assertions; version 2.1.0. See below |
 | T5.7 | **`reduce_motion` finished, plus the shadow atlas** | **DONE** — candidate I, both halves already diagnosed by T5.5 and deliberately skipped by T5.6. `accessibility/reduce_motion` now reaches **all three** motions this template draws: `ScreenFade` cuts instead of dissolving and `HD2DCameraRig.follow_lag` goes to zero, each naming the key as a `const` on itself and each taking `_authored_dof`'s **veto** shape — the setting may remove smoothing an area author authored and may never add smoothing they refused. **The shadow half was a LIVE DEFECT, not the portability worry it was filed as.** `_apply_shadows` restored `const POSITIONAL_ATLAS: int = 2048` under a comment calling 2048 "the engine's own default"; **it is 4096**, so this repository booted every windowed session at half the shadow resolution the project authored — measured `boot = 2048` against `boot = 4096` on a real display server, before a player touches anything. New `ShadowAtlas` in `core` reads the authored sizes before the first zeroing (a const cannot be right there at all, because the number is a project setting a game is invited to change), and `settings.gd` came DOWN to 139 of its 150. That is **gotcha 61**, and its transferable half is that `_apply_display()` returns early under `--headless`, so **no rung below the windowed capture executes that code** — the suite could not have caught it however many assertions were aimed at the setting. **AND THE CAMERA MOTION WAS PHOTOGRAPHABLE, WHICH THIS ROW PREDICTED IT WOULD NOT BE**: T5.5's honest limit (an instant reveal photographs identically to a finished one) holds for the fade and fails for the camera, because a camera following a moving character has no finished state — two `--gait-shots` runs differing by one line of `settings.cfg` translate the whole world **42 px**, residual 0.0268 at −42 px against 0.0975 at zero, so it is a rigid shift and not a lighting change. Four plants, each exit 1, one of them re-proving **gotcha 56** on a second node. `settings_consumers_test.gd` hit 269/250 and split; `settings_effects_test.gd` is the new half, divided by QUESTION — *is the key reached* against *does the effect happen*. 1,798 → 1,821 assertions. See below |
 | T5.16 | **Quest chaining — a correctness defect, and the stack landed first** | **DONE** — `4.2.1`, and OFF THIS PHASE'S THEME ON PURPOSE: a correctness bug in the base does not wait for a thematic slot. Found by auditing the base rather than by a rung. `QuestTracker.evaluate()` guarded re-entrancy by RETURNING, discarding the re-derivation a listener on `quest_completed` legitimately asked for — **the case the guard's own comment names** — so a quest whose start condition another quest writes started or silently did not according to `ContentScan` insertion order, which is not sorted. Eight rungs and 2,051 assertions were green over it because the demo has ONE quest, so it cannot chain, and `quests_test.gd` drives `evaluate()` directly by design while a re-entrant call can only arrive on `flag_changed`. Fixed with a pending bit drained by the outer pass, bound by `QuestDb.count() + 2`. **The plant fails exactly 1 of 8, and the 1 is the adversarial order** — which is what proves the two order blocks are not the same test. Gotcha 72. **Also landed the 16-PR T5 stack on `main` as one fast-forward (`16e8bfd`) and turned on branch protection**; see below
+| T5.18 | **The save loader's refusals, and a path nothing can enter** | **DONE** — `4.3.0`, and **`save_system.gd` is BYTE-IDENTICAL**: this row is assertions plus one corrected claim. `core_test.gd` owned the round trip and covered ONE refusal; a grep for `ERR_FILE_CORRUPT` across `tests/` returned nothing, so six branches were carried by review alone. The distinction now pinned is a policy rather than a detail: **a corrupt ENVELOPE is refused outright, a corrupt SECTION is skipped and the rest loads** — the difference between a player losing a setting and a player losing forty hours. **And `_migrate`'s success path is UNREACHABLE by arithmetic**: it runs only when `version != 1`, then refuses `<= 0` and `> 1`, and no integer is all three of not-one, above-zero and at-most-one — so `SYSTEMS_INVENTORY.md` calling migration DONE meant *written*, not *exercised*, which is the eighth appearance of declared-and-not-reached and the first where the unreached thing is a control-flow path. The case **PINS `SCHEMA_VERSION`**, so shipping v2 fails the suite and names what to write. **Planted in BOTH directions** — the newer-build guard removed fails 2 of 17, a bad section made fatal fails 1 at `expected 0, got 16`, the opposite sign, which is what proves the two are not confused. Also took `v2.0.0`, `v3.0.0`, `v4.0.0` and `v4.2.1`, each verified against T4.3's condition that a tag name a tree declaring its own version; see below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -4464,3 +4465,90 @@ Control restored: `2059 passed, 0 failed`, exit 0.
   REFUSED — and that is prose. A gate would have to understand intent.
 - **`ROADMAP.md` untouched.** No exit criterion covers a defect fix and inventing one to tick is
   what T5.1 spent a package undoing.
+
+---
+
+## T5.18 · The save loader's refusals, and a path nothing can enter — **DONE**
+
+**2026-09-07. Version 4.3.0, a MINOR. `save_system.gd` is byte-identical to `main`** — `git diff`
+on it is empty, so this row is 17 assertions and one corrected claim in the record.
+
+**WHY THIS ROW AND NOT THE TAXONOMY, which inverted the analysis's own ranking.** The audit that
+produced T5.16 ranked the template-default vs game-choice taxonomy first, because it decides the
+scope of three other rows. That is still true and the row is still there. It lost on one point:
+**prose cannot be proved by running the engine**, and non-negotiable #1 is that nothing is done
+until the engine has run it. The save loader won on four counts nothing else on the list combines:
+a false DONE in the record, the only candidate that can lose a player's data, provable by running,
+and independent of the unanswered taxonomy question.
+
+**WHAT WAS ACTUALLY UNASSERTED, MEASURED RATHER THAN ASSUMED.** `core_test.gd` owns the round trip
+and covered exactly one refusal, an empty slot. `grep -rn ERR_FILE_CORRUPT tests/` returned
+**nothing**, and no test anywhere had ever written a malformed save file. Six branches were carried
+by review: a file that is not JSON, a missing `version`, a save from a newer build, a
+non-Dictionary section, a section predating per-section versioning, and a section absent entirely.
+
+**THE DISTINCTION THE CASE EXISTS TO PIN IS A POLICY.** A corrupt ENVELOPE is refused outright; a
+corrupt SECTION is logged and skipped while the rest of the save loads. That is the difference
+between a player losing a setting and a player losing forty hours, it was implemented correctly,
+and it was asserted nowhere — so nothing stopped a later change collapsing the two into each other.
+Each skip block asserts BOTH that the load returned `OK` and that the applier was never called,
+because those are different claims and only the second answers *was the bad section skipped*.
+
+**`_migrate`'s SUCCESS PATH IS UNREACHABLE, AND IT IS ARITHMETIC.** It is called only when
+`version != SCHEMA_VERSION`, then refuses `from_version <= 0` and `from_version > SCHEMA_VERSION`.
+At `SCHEMA_VERSION == 1` **no integer is all three of not-one, above-zero and at-most-one**, so the
+path — including its `"Migrated save from v%d to v%d"` line — cannot be entered by any file a
+player can have. That is not a defect: there are no migrations at v1, and the comment telling a
+future author where to add one is right. **The defect was the RECORD.** `SYSTEMS_INVENTORY.md`
+said migration was DONE, which reads as *exercised* and meant *written* — the eighth appearance of
+declared-and-not-reached, and the first where the thing unreached is a control-flow path rather
+than a field, a signal or a method.
+
+**AND IT EXPIRES BY ITSELF, which is the half worth copying elsewhere.** The case asserts the
+version boundary exhaustively — `-1`, `0` and `2` refused, `1` loads — and then PINS
+`SCHEMA_VERSION` to 1. A v2 schema gives `_migrate` its first reachable success case and in the
+same stroke makes that exhaustive block incomplete, so the suite fails with *"SCHEMA_VERSION is
+still 1, so _migrate has no reachable success path"* at exactly the moment a migration test first
+becomes possible. Same shape as `check_signals.gd` failing a `NO EMITTER` exemption that acquires
+an emitter: gaining what the exemption excuses is itself the failure, so it cannot rot.
+
+**Files.** `tests/unit/save_recovery_test.gd` (new, 81 code lines, 17 assertions) · the `CASES`
+entry · the Save system row in `SYSTEMS_INVENTORY.md` · `project.godot` and `docs/CHANGELOG.md`
+for the bump. **No production code, no new signal, no new autoload, no CSV row.**
+2,059 → **2,076 assertions**.
+
+**PROVED RED TWICE, IN OPPOSITE DIRECTIONS (gotcha 23, and gotcha 42's reason for insisting).**
+These assert EXISTING behaviour and passed on the first run, which on its own proves nothing.
+(1) The `from_version > SCHEMA_VERSION` guard deleted: exit 1, `2074 passed, 2 failed` — *"a save
+from a newer build is refused — expected 16, got 0"* and *"one past the schema is refused"*, the
+second being the exhaustiveness block catching it independently of the block written for it.
+(2) The non-Dictionary section's `continue` changed to `return ERR_FILE_CORRUPT`: exit 1, `2075
+passed, 1 failed` — *"a section that is not a Dictionary does not fail the load — expected 0, got
+16"*. **The opposite sign is the whole point**: a case that had confused refuse-the-file with
+skip-the-section would pass one plant and fail the other. Control: `2076 passed, 0 failed`, exit 0,
+with `git diff src/core/save/save_system.gd` empty.
+
+**Ladder, all green.** `--import` with zero `SCRIPT ERROR`/`Parse Error` lines; boot
+`0 warnings, 0 errors`; suite `2076 passed, 0 failed, 0 skipped` with `save_recovery_test 17/17`;
+all seven checkers exit 0.
+
+**FOUR TAGS, AND WHY NOT ONE.** The base declared `4.2.1` while the newest tag was `v1.0.1`, three
+MAJOR bumps back — and a MAJOR is precisely what `UPGRADING.md` tells a consuming game it must read
+before merging. Tagging only the tip would have left those three reachable solely by grepping
+history; `git diff v3.0.0..v4.0.0` now shows a fork what broke. Each was verified against T4.3's
+condition first — `git show <commit>:project.godot` must declare the version the tag claims — and
+all four did, and all four are ancestors of `main`.
+
+**Deferred, with reasons, not silently.**
+- **`SAVE_DIR` is a `const` with no redirect**, unlike the five content roots `Fixtures` repoints,
+  so this case writes a real slot in the developer's own `user://saves` and deletes it on every
+  path, as `core_test.gd` already does. On the candidate list; `save_system.gd` has 14 lines of
+  budget left, so it is genuinely small.
+- **A write that fails mid-flight is unasserted.** `_write_atomic`'s error branch needs a read-only
+  directory or a full disk, which no assertion can arrange portably. Named on `export_test.gd`'s
+  precedent rather than left implied.
+- **`slot_info()` parses the WHOLE file**, and `latest_slot()` does it for six slots on every menu
+  build. Same audit; untouched here because it is a performance change to a file with 14 lines
+  spare and deserves its own row.
+- **No windowed capture.** Nothing here is visual — every claim is a return code or a call count,
+  so the honest ladder for this row ends at the suite.

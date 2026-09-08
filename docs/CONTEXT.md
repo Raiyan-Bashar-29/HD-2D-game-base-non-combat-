@@ -3,41 +3,39 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-07 · **T5.16 (quest chaining) complete — A CORRECTNESS DEFECT IN THE
-BASE, FOUND BY AUDIT RATHER THAN BY A RUNG, AND OFF THIS PHASE'S THEME ON PURPOSE.** The base is
-at **4.2.1**, a PATCH. **The sixteen-package T5 stack was landed on `main` first** as one
-fast-forward (PR #44, `16e8bfd`), and `main` now has branch protection requiring both CI jobs.
+**Last updated:** 2026-09-07 · **T5.18 (the save loader's refusals) complete. The base is at
+4.3.0, a MINOR — and `save_system.gd` is BYTE-IDENTICAL, so this package is assertions and one
+corrected claim, nothing else.** Tags now exist for every version a consuming game must read:
+`v2.0.0`, `v3.0.0`, `v4.0.0` and `v4.2.1`, each verified to name a tree that genuinely declares
+its own version, which is T4.3's condition.
 
-**A QUEST WHOSE START CONDITION IS WRITTEN BY ANOTHER QUEST'S COMPLETION DID NOT RELIABLY START,
-AND WHICH WAY IT WENT DEPENDED ON FILENAMES.** `QuestTracker.evaluate()` guarded re-entrancy by
-RETURNING, which discards the re-derivation the new flag asked for. That is harmless only if the
-pass already running still reaches the newly-startable quest — and whether it does depends on
-where that quest sits in `QuestDb.all()`, which is `ContentScan` insertion order and is not
-sorted. So a chapter that begins when the previous one ends started, or silently did not,
-according to scan order. **The guard's own comment names the exact scenario it was discarding.**
+**SIX REFUSAL BRANCHES IN THE LOADER HAD NO ASSERTIONS, AND NOTHING IN THE SUITE HAD EVER WRITTEN
+A MALFORMED SAVE FILE.** `core_test.gd` owns the round trip and covered one refusal, an empty
+slot. A file that is not JSON, a missing `version`, a save from a newer build, a non-Dictionary
+section, a section predating per-section versioning and a section absent altogether were all
+carried by review. `tests/unit/save_recovery_test.gd` asserts all six, split by QUESTION on
+T5.7's precedent: `core_test.gd` asks *does a good save survive*, this asks *what happens to a bad
+one*. **The load-bearing distinction it pins is that a corrupt ENVELOPE is refused outright while
+a corrupt SECTION is skipped and the rest loads** — the difference between a player losing a
+setting and a player losing forty hours. Both directions were planted: removing the newer-build
+guard fails 2 of 17, and making a bad section fail the whole load fails 1 — `expected 0, got 16`,
+the opposite sign, which is what proves the two are not confused.
 
-**THE FIX IS FOUR LINES AND THE BOUND IS DERIVED.** A re-entrant call sets a pending bit; the
-outer pass drains it until nothing more moves. The pass limit is `QuestDb.count() + 2` rather
-than a picked number, so it cannot go stale at a game's sixtieth quest, and exceeding it logs an
-error instead of hanging.
+**THE MIGRATION MECHANISM IS UNREACHABLE, AND IT IS ARITHMETIC RATHER THAN AN OPINION.** `_migrate`
+runs only when `version != SCHEMA_VERSION`, then refuses `<= 0` and `> SCHEMA_VERSION`. At
+`SCHEMA_VERSION == 1` **no integer is all three of not-one, above-zero and at-most-one**, so its
+success path — including its `"Migrated save from v%d to v%d"` line — cannot be entered by any file
+a player can have. Not a bug: there are no migrations at v1 and the comment telling a future author
+where to add one is right. What was wrong is that `SYSTEMS_INVENTORY.md` called migration **DONE**,
+which reads as *exercised* and meant *written* — the eighth appearance of declared-and-not-reached,
+in a new costume. **The case PINS `SCHEMA_VERSION`, so shipping v2 fails the suite and names what
+to write**, which is an expiry story rather than a note in a document nobody rereads.
 
-**WHY EIGHT RUNGS AND 2,051 ASSERTIONS WERE GREEN OVER IT — the part worth reading.** The demo
-has ONE quest, so it cannot chain. And `quests_test.gd` says in its own header that it drives
-`evaluate()` and `Flags.set_flag` directly *"rather than through the signal chain a running game
-uses"* — correct for asking what a step MEANS, and exactly why it could not reach the guard,
-because a re-entrant call can only arrive on `flag_changed`. The suite was not weak here; it was
-pointed at a different question. `tests/unit/quest_chain_test.gd` is the case that goes through
-the signal, split by QUESTION on T5.7's precedent. **It asserts BOTH scan orders**, because the
-benign one passed while the defect was live — the plant fails 1 of 8, and the 1 is the
-adversarial order, which is what proves the two blocks are not testing the same thing.
-Gotcha 72, and the drain's bound is deliberately UNASSERTED with the reason stated in the case.
-
-*(Previously: T5.15, the `Button` styleboxes — candidate F, and the oldest declared limitation in
-the project. Four packages had opened `ui_theme.tres` and closed it again, each giving the same
-reason, and the reason was right; the fix answers it rather than overruling it, because nothing in
-`ui_row_styles.gd` designs a colour — it designs the RELATIONSHIP between the five states.
-`hover` is `surface` moved TOWARD `text`, so one expression lightens a dark row and darkens a
-light one: 0.1490 -> 0.3020 on the shipped palette, 0.8902 -> 0.7529 on parchment.)*
+*(Previously: T5.16 fixed quest chaining — `evaluate()` guarded re-entrancy with a bare `return`,
+discarding the re-derivation a listener on `quest_completed` legitimately asks for, so a quest
+whose start condition another quest writes started or silently did not according to directory scan
+order. Gotcha 72. T5.17 reconciled six prose defects, including `quest.` missing from the two
+prefix tables that `AUTHORING.md` calls canonical.)*
 
 > **This is a TEMPLATE, not a game.** Read [`TEMPLATE.md`](TEMPLATE.md) — it is short, and the
 > roadmap, the board and parts of this file were written before that reframing. The courtyard and
@@ -1024,7 +1022,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 2,059 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 2,076 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content, and no orphan CSV row
@@ -1889,43 +1887,41 @@ names the exact files that chat should read, so a session loads a few hundred li
 package never has to read upward.
 
 
-**Next package: NOTHING IS BLOCKING. THE STACK IS LANDED AND `main` IS PROTECTED, WHICH IS NEW.**
-T5.16 came from an audit rather than from the board, and the audit's other findings are the
-candidate list below — they are the first rows in a while that were not already named in a
-previous package's Gaps section. What follows is a real choice, not a queue:
+**Next package: NOTHING IS BLOCKING, AND THE AUDIT'S LIST IS NOW THREE ROWS SHORTER.** T5.16,
+T5.17 and T5.18 each came off it. What remains is a real choice, not a queue:
 
 - **The template-default vs game-choice taxonomy.** `TEMPLATE.md` § *"The one constraint nobody
   has scoped"* has said since 2026-08-26 that *"what is missing is the distinction between a
   template default and a game choice, which no document currently draws"*, and nothing has ever
-  scheduled it. It is prose, not code, and it DECIDES the three rows under it rather than
-  guessing at them: whether a chapter sequencer, a calendar and an economy are this base's
-  business at all is the same question asked three times.
+  scheduled it. It DECIDES the two rows under it rather than guessing: whether a chapter
+  sequencer, a calendar and an economy are this base's business at all is one question asked
+  three times. **Its honest weakness is that it is prose and cannot be proved by running the
+  engine**, which is why T5.18 was taken ahead of it.
 - **A narrative-staging seam.** `Cutscenes` is the only `TODO` in `SYSTEMS_INVENTORY.md` with no
-  stated reason, no boundary line and no board row, while nothing can move an NPC or the player
-  on command and `HD2DCameraRig` has no borrow-and-restore seam. The cheap honest first slice is
-  that seam plus a walk-to-waypoint command, NOT a sequencer.
-- **Time above the scale of one day.** `NpcSchedule` is keyed on the hour alone, so every NPC on
-  this base repeats one identical day forever and a Saturday is inexpressible; `Clock` publishes
-  no flag namespace, so no authored condition can read the time at all — including the shop hours
-  the Clock's own header names.
-- **The save loader's refusal branches.** Corrupt JSON, a missing version, a future version, a
-  malformed section: every one has zero assertions and `_migrate`'s success path is unreachable
-  for every possible input, while the inventory marks migration DONE. It is the one subsystem
-  where being wrong costs a player their file.
+  stated reason, no boundary line and no board row, while nothing can move an NPC or the player on
+  command and `HD2DCameraRig` has no borrow-and-restore seam. Cheapest honest slice is that seam
+  plus a walk-to-waypoint command, NOT a sequencer. Scope depends on the taxonomy row above.
+- **Time above the scale of one day.** `NpcSchedule` is keyed on the hour alone, so every NPC
+  repeats one identical day forever and a Saturday is inexpressible; `Clock` publishes no flag
+  namespace, so no authored condition can read the time at all — including the shop hours the
+  Clock's own header names. Also gated by the taxonomy question.
 - **A scene-level interaction test.** `interaction_test.gd` says in writing that ranking and
-  Tab-cycling *"belongs in a scene-level test"*, and that test was never written — so the rule
-  every interactable rests on is asserted nowhere. It would also cover `Speaker` and `Readable`,
-  two of the eleven prefabs `AUTHORING.md` tells a consumer to place and which nothing asserts.
+  Tab-cycling *"belongs in a scene-level test"*, and that test was never written, so the rule
+  every interactable rests on is asserted nowhere. Would also cover `Speaker` and `Readable`, two
+  of the eleven prefabs `AUTHORING.md` tells a consumer to place and which nothing asserts. This
+  is the strongest of the remaining rows on T5.18's own reasoning: a false-confidence gap that a
+  run can close.
+- **A redirectable `SAVE_DIR`.** T5.18 wrote to a real slot because `SaveSystem.SAVE_DIR` is a
+  `const` with no redirect, unlike the five content roots `Fixtures` repoints. It works and cleans
+  up after itself, but the suite touching a developer's real save directory is a seam worth
+  closing — and `save_system.gd` has 14 lines of budget left, so it is genuinely small.
 - **A second idle block and a chooser between them.** The last unticked Phase T5 exit criterion.
-  `_advance` and `_rate_for` are the hooks; a chooser on working machinery, not a rewrite.
 - **A call recorder, to answer the 86.** T5.13's gate reports 86 public methods reached only from
-  `tests/` or `tools/`, and a text scan cannot shrink that number — `face_direction()` is called
-  through a signal and still counts as suite-only. Instrumenting a real run is its own package.
-- **Split `tools/gen_placeholders.gd`**, at 230 of its 250, character sheets against flat
-  textures. It has been the next file to split for nine rows and no row has touched it.
-- **WP-10 crafting**, if a game wants it. Still OPTIONAL, still a genre choice per `TEMPLATE.md`.
-- **Nothing at all**, which stays a legitimate answer for a base that has answered every question
-  it set out to.
+  `tests/` or `tools/`, and a text scan cannot shrink that number.
+- **Split `tools/gen_placeholders.gd`**, at 230 of its 250. Next to split for ten rows now.
+- **WP-10 crafting**, if a game wants it. Still OPTIONAL per `TEMPLATE.md`.
+- **Nothing at all**, which stays legitimate for a base that has answered every question it set
+  out to.
 
 *(This line names ONE package or one honest choice between a few. Earlier revisions accumulated a
 stale line per package and two were left stranded here; if you ever find two, the lower one is

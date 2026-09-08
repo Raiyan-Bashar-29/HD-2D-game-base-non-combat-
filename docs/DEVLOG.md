@@ -8222,3 +8222,16 @@ of it twice.
   `CONTEXT.md` line named; `Gate`, `Lever`, `Chest`, `Pickup`, `AreaDoor`, `RestPoint`,
   `ClimbPoint`, `TriggerVolume` and `PathAction` are reached by `interaction_test.gd` and others
   through direct calls, which is a weaker claim than this file makes about the two it covers.
+
+**CI, recorded rather than assumed.** Run
+[`34262856018`](https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-/actions/runs/34262856018),
+both jobs green on PR #50:
+
+- **Ladder (full checkout)** — `2100 passed, 0 failed, 0 skipped`.
+- **Ladder (stripped template)** — `2026 passed, 0 failed, 25 skipped`, and **`selection_test.gd`
+  contributes its full 24 with nothing skipped in either job.** That is the claim worth recording
+  for this row specifically: the file names no demo content, so it survives the deletion
+  `docs/NEW_GAME.md` tells a consuming game to perform on day one. The two prefabs it instances,
+  `sign.tscn` and `speaker.tscn`, are template objects rather than demo content — the same
+  distinction `interaction_test.gd` already relies on for `gate.tscn` and `lever.tscn` — and the
+  conversation the `Speaker` names comes from `FixtureContent`, not from `data/`.

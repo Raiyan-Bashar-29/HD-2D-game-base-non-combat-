@@ -66,12 +66,27 @@ boundary that accumulates silently.
 |---|---|---|
 | `src/` | **Engine.** All of it. | Keep. Never edit to start a game. |
 | `scenes/objects/`, `scenes/characters/`, `scenes/boot/` | **Engine.** Reusable prefabs. | Keep. |
+| **your own code root** — `game/`, or scripts beside your areas | **Yours.** Tier 2 subclasses and anything else your game needs | Keep yours. **The base ships none, and none of the seven checkers scans it** — see below |
 | `tools/`, `tests/framework/` | **Engine.** | Keep. |
 | `data/**` | **Demo.** Every `.tres`. | Delete, and author your own in the same folders. |
 | `scenes/areas/**` | **Demo.** | Delete, and author your own. |
 | `localization/strings.csv` | **Mixed.** `verb.*`, `refusal.*`, `ui.*`, `notify.*`, `weather.*`, `time.*`, `item.category.*` are engine; `object.*`, `item.*`, `talk.*`, `action.*`, `area.*` and `quest.*` are demo — the six `check_boundary.gd` derives its CONTENT_NAMESPACES from, which is the list that fails a build. | Prune the demo half. |
 | `tests/unit/` | **Engine**, as of T1.3. Cases build what they need from `tests/framework/`, and the blocks that genuinely assert things about a game skip themselves and say so. | Keep. |
 | `project.godot` | **Mixed, and the one place a demo id belongs.** `[game] world/first_area` names the starting area; `[template] base/version` is the BASE's own version and is not a game's to touch. | Rename the four `application/config/*` fields and point `first_area` at your own. Leave `base/version` alone — [`UPGRADING.md`](UPGRADING.md) § 1. |
+
+**YOUR CODE ROOT IS YOURS AND THE LADDER DOES NOT WATCH IT, WHICH T5.30 MEASURED RATHER THAN
+ASSUMED.** The base ships no game code root and names none, so pick one — `game/` at the top level
+is the obvious choice. Then know what you are and are not getting: **all seven checkers scanned a
+fork carrying three Tier 2 subclasses and passed, including over a planted raw player-facing string
+literal and a planted public method with no caller.** `check_strings.gd`, `check_methods.gd`,
+`check_budgets.gd`, `check_layers.gd` and `check_boundary.gd` all scan `src/`, `tests/` and
+`tools/` — not your root.
+
+Two of those are a **relief** and should stay that way: `check_boundary.gd` exists to prove the
+ENGINE does not know your content exists, and your own code is entitled to name your own ids, so
+pointing that gate at your root would fail you for doing the right thing. The rest are a **choice
+you now have to make deliberately** — whether your game inherits the base's discipline or writes
+its own. Nothing decides it for you, and nobody had noticed the question until a fork was made.
 
 `data/` and `scenes/areas/` being demo is not a coupling — they are the **content roots a game
 fills**, and the registries scanning them is a convention the template defines. A new game puts

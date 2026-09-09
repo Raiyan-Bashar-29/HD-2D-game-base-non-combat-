@@ -3,64 +3,73 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-09 · **T5.29 (the player prefab was a rule pretending to be a default)
-complete, at 5.4.0, a MINOR** — the base gained a seam a game may ignore.
+**Last updated:** 2026-09-10 · **T5.30 (performing the extension surface) complete, at 5.4.1, a
+PATCH.** `src/`, `tools/`, `tests/` and `.github/` byte-identical, and **no game code committed**.
 
-**ADR-0007 FOUND THIS WITHIN AN HOUR OF EXISTING, AND THAT IS THE BEST ARGUMENT T5.28 COULD HAVE
-HAD.** The standing objection to the taxonomy row, five times over, was that it is prose and
-cannot be proved by running the engine. It cannot. What it can do is FIND things — and the first
-thing it found had been missed by five read-only audits run over this repository the same day. The
-critic arguing the base was already finished found it while trying to prove nothing was left.
+**IT WAS THE ONE CONSUMER DOCUMENT NEVER WALKED.** `SYSTEMS_INVENTORY.md` lists four —
+`AUTHORING.md`, `ART_CONTRACT.md`, `TESTING.md` and the extension surface. The first three were
+each performed and each found defects reading had not; AUTHORING alone found eleven across two
+passes. This one had never been walked by anyone.
 
-`src/core/boot/game_root.gd:28` held
-`const PLAYER_SCENE := "res://scenes/characters/player.tscn"` — engine code, in the **`core`**
-layer, whose entire promise is that it knows nothing about the game, naming the prefab a consuming
-game replaces FIRST. `GameConfig` exposed two `[game]` keys and no `player_scene`.
-`ARCHITECTURE.md` states the contract as *"a game adds content and resources; it does not add code
-under `src/`"* — so **a game whose protagonist had a different shape had no legal way to get one.**
-By ADR-0007's test that is a template RULE wearing a template DEFAULT's clothes, and `NEW_GAME.md`
-§ 2 was listing the player among prefabs to "Keep, and never edit", which reads as a default and
-functioned as a rule.
+**THE VENUE IS THE METHOD, AND A DRAFT OF THIS ROW GOT IT WRONG.** `UPGRADING.md` records that
+*"a stripped fork was made"* and its synthetic versions *"exist only in the throwaway repositories
+this document was performed against"*; `NEW_GAME.md` that *"the whole strip above was performed
+against a fresh clone"*. So a performance happens OUTSIDE the template and only findings come
+back. The draft had proposed adding a `game/` root to the base and wiring it into the checkers'
+scan roots — which would have committed a consuming game's proof into the template.
 
-**THE COMPARISON RUN IS WHAT MAKES IT A DEFECT RATHER THAN A PREFERENCE.** Same plant both times —
-`[game] world/player_scene` pointed at a scene that does not exist, then boot:
+**SIX FINDINGS, from a throwaway clone at `5.4.0` with `Interactable`, `UiScreen` and `Inventory`
+each subclassed from a game root.**
 
-| run | code | result |
-|---|---|---|
-| control | new seam, real path | `0 warnings, 0 errors` |
-| plant | new seam, missing path | **`1 errors`**, the path named on the existing `Log.error("boot", …)` |
-| comparison | **old `const`**, same missing path | **`0 warnings, 0 errors`** |
+1. **Three Tier 2 rows named a class and gave no path**, while the `Events` row gave one. So
+   `UiScreen` was hunted in `src/ui/root/` — where `UiRoot` lives and it does not — before a grep
+   found `src/ui/screens/ui_screen.gd`. The only places that path appears are `DEVLOG.md`, which
+   `CLAUDE.md` forbids reading whole, and an old package's "Read:" manifest. Every row now names
+   its file.
+2. **The three override hooks were described in prose and named nowhere.** A first attempt guessed
+   `_on_shown()`, **which compiles, parses, passes every rung and never runs** — GDScript has no
+   `@override`, so a misnamed override is a silent no-op. They are `_build()`, `_opened()`,
+   `_closed()`.
+3. **THE SHARPEST, AND MEASURED: all seven checkers pass over a game code root.** Planted into it,
+   a raw player-facing string literal and a public method with no caller — one violation of
+   non-negotiable #3 and one of `check_methods`' whole purpose. `check_strings` PASS,
+   `check_methods` PASS, and so did the other five. They scan `src/`, `tests/` and `tools/`; a
+   game's root is none of those, so **a consuming game inherits none of the ladder's discipline.**
+   **Two of those gates should stay blind and that is a relief rather than a gap** —
+   `check_boundary.gd` exists to prove the ENGINE does not know the game, so aiming it at a game's
+   own root would fail an author for doing the right thing. The other five are now a stated choice.
+4. **No document had a row for game CODE**, though Tier 2 tells a game to `extends Interactable`.
+   `TEMPLATE.md`, `NEW_GAME.md` § 2 and `UPGRADING.md` § 5 each gained one.
+5. **A game's own input action cannot be player-rebindable, and the constraint is CORRECT.**
+   `KeyBindings.rebind()` gates on the `Actions.REBINDABLE` const rather than
+   `InputMap.has_action`, and its header records that asking `has_action` was a real bug —
+   `debug_console` could be written into `input.cfg` and `reset_bindings()` would not restore the
+   default. Recorded with its consequence, not fixed.
+6. **TWO AUDIT PREDICTIONS WERE WRONG, WHICH IS THE ARGUMENT FOR PERFORMING OVER PREDICTING.** The
+   audit said a game's own screen could not register because `ScreenKeys.menu_for()` is a closed
+   `if`-chain over the eight template screens. It is — and it is irrelevant: `UiRoot.open()` takes
+   an INSTANCE, `UiRoot.find(node)` finds the stack by group, so
+   `UiRoot.find(self).open(MyScreen.new())` is the whole of it, and `menu_for`'s only caller is
+   `dev_screens.gd`, which is boundary-exempt debug code.
 
-**The comparison is the row and the plant alone would have been the wrong evidence.** The plant
-shows the error path works, which it always did. The old run shows there was **no path at all**: a
-game's stated choice read by nothing and discarded in silence. Third row running where the OLD code
-against the NEW plant is the only run that says what was broken — that is the house method now.
+**AND THE CLOSING CHECKLIST IS FIXED AT THE SOURCE.** Board item 6 asked for a commit that
+satisfying item 6 creates, worked around for **five consecutive rows** by filling in the previous
+row's SHA. At five that is not five lapses — it is the only order that exists — so the item now
+says to write the line without a SHA and fill it in the next row.
 
-**THE FALLBACK IS THE ONE ASYMMETRY AND IT IS DELIBERATE.** `world/first_area` has none, because a
-template nobody has put a game in yet legitimately starts in no area. A game can never legitimately
-have NO player, so an unset key means the template's own prefab rather than `load("")` and a
-silently empty world. The default may live in `src/` at all only because `scenes/characters/` is
-**Engine** per `TEMPLATE.md` — engine naming engine, not the boundary leak a `const` in `core` was.
+Suite 2,300 → **2,302**, predicted +2 and measured +2: this entry's own package id through
+`record_shape_test`. `docs_test` unchanged, because every path added to the Tier 2 table is written
+without the `res://` prefix — and all eight were verified to resolve, since a table whose whole
+purpose is correct paths is the worst place to guess one.
 
-**`game_root.gd` DID NOT GROW**: 26 of its 60-line hard budget before and after, a path moved out
-and a local moved in, none of the four things that file is allowed to do. **Two stale counts fell
-out of it**, both ungated and both T5.25's class: `GameConfig`'s header said it owned "the four
-facts a game author writes once" and `SYSTEMS_INVENTORY.md` said "the four values a consuming game
-sets" — five now. `NEW_GAME.md` § 2 gained the one exception to "keep and never edit": a fork points
-PAST the template's prefab.
-
-**AND `docs_test.gd` REFUSED THIS ROW TWICE BEFORE ACCEPTING IT**, on a rule worth knowing: **every
-`res://` path a document names must resolve.** So a document may not print an illustrative path —
-the changelog example invented one — and may not quote a plant path, which by definition must not
-exist. `DEVLOG.md` is exempt, which is why its entry may quote the plant verbatim. **Second time in
-three rows a gate has caught this row's own record rather than its code**, after T5.28's version
-gate caught a bold semver in its own narrative: a row that writes about paths and numbers is the
-row most likely to break the rules about paths and numbers.
-
-Suite 2,294 → **2,300**, predicted +5 and measured +6 — `core_test` 55→58, `record_shape_test`
-129→131, and `docs_test` 121→122, the one not predicted, because the corrected example is itself a
-new path to verify.
-
+*(Previously: T5.29 made the player prefab a seam at `5.4.0`, and **ADR-0007 found it within an
+hour of existing** — `game_root.gd:28` held `const PLAYER_SCENE` in the `core` layer, so replacing
+the protagonist meant editing `src/`, which `ARCHITECTURE.md` forbids in as many words. Five audits
+had missed it; the critic arguing the base was finished found it. Its comparison run is what made
+it a defect rather than a preference: the same missing-path plant gave `1 errors` on the new seam
+and **`0 warnings, 0 errors` on the old const**, the key silently ignored. The fallback is
+deliberate and asymmetric with `first_area`, which has none. Two stale "four facts" counts fell out
+of it, and `NEW_GAME.md` § 2 gained the one exception to "keep and never edit".)*
 *(Previously: T5.28 settled the template-default vs game-choice distinction as
 [ADR-0007](decisions/ADR-0007-template-default-vs-game-choice.md) at `5.3.5`, the row ranked first
 five times and never taken — deferred each time because "it is prose and cannot be proved by
@@ -218,7 +227,7 @@ another sheet, and every facing draws a different figure.
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version is** **5.4.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+**The version is** **5.4.1**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
 the owner's to close or to leave.
 
 **THE NEXT PACKAGE IS A CHOICE, NOT A QUEUE.** Nothing is blocking, **Phase T5 has no unticked
@@ -282,7 +291,7 @@ three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite shee
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 4 on the default one, the
 fourth being a second IDLE rather than a gait**,
 1 shared area material, **21 settings and 21 consumers**.
-Template version **5.4.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+Template version **5.4.1**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
 recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 
@@ -319,7 +328,7 @@ which is `check_strings.gd`'s static rule made visible and including anything co
 **A SAVE THAT SURVIVES A REAL RELAUNCH**, proved in TWO PROCESSES rather than one reload:
 `--save-state` / `--load-state` in `dev_probes.gd`, with the fresh process's boot line as
 the control and the weather deliberately STORM because CLEAR is the boot default ·
-placeholder art generator · line-budget checker · a headless test suite (2,300 assertions) that
+placeholder art generator · line-budget checker · a headless test suite (2,302 assertions) that
 builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
 returns early, asserts nothing, or is not listed in the runner ·
 an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
@@ -1176,7 +1185,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 2,300 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 2,302 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content, and no orphan CSV row
@@ -2234,7 +2243,7 @@ you can press to travel back to once you have — and every one of those walks n
 depending on whether you are crossing grass, the wooden dais or stone. Every one of those changes
 survives a save and a
 reload, including from the far side of an area that is no longer loaded. All of it is covered
-by 2,300 headless assertions.
+by 2,302 headless assertions.
 
 **Next, and for the first time it is not an ordered queue.** Every blocking row is done: Phase T3
 closed with WP-14b, WP-15 was CLOSED by the owner, and T4.1 shipped the version and the upgrade

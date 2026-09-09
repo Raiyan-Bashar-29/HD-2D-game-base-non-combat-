@@ -89,6 +89,7 @@ consuming game has to do about it**. Compare its newest heading against your `ba
 | `scenes/objects/`, `scenes/characters/`, `scenes/boot/` | **Engine** | same |
 | `data/**` | **Yours** | keep yours — but see § 7 |
 | `scenes/areas/**` | **Yours** | keep yours — but see § 7 |
+| **your own code root** (`game/`, or scripts beside your areas) | **Yours** | keep yours — the base ships none, so a merge never touches it |
 | `project.godot` | **MIXED** | § 6 |
 | `localization/strings.csv` | **MIXED** | § 6 |
 

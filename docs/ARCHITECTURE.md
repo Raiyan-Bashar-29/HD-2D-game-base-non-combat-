@@ -161,14 +161,28 @@ script. [`AUTHORING.md`](AUTHORING.md) is the whole of this tier;
 
 ### Tier 2 — the extension points. Subclass or replace these, deliberately.
 
-| Point | How | Why it is open |
-|---|---|---|
-| `Interactable` | `extends Interactable`, override `perform(who)` and optionally `refusal(who)` | The documented way to add a kind of object. Detection, ranking, the prompt, refusal messaging, one-shot and hold-to-confirm are all already handled. Subclasses stay thin: behaviour and state go into children |
-| `UiScreen` | `extends UiScreen`, declare `pauses_world` / `closes_on_cancel` **in `_init`, never in `_build`** | A new screen is a game's business. `_build` runs from `_ready`, after a caller could have overridden a flag, so setting one there silently discards the caller's request |
-| `SpriteSheetLayout`, `ui_theme.tres` | **replace the resource, not the class** | The art contract. See `ART_CONTRACT.md` |
-| Inventory capacity | override `can_accept()` | Capacity is unlimited behind that one method. Slots or weight go there and nowhere else |
-| A bespoke area behaviour | a child node with its own script, under the area | **Do not subclass `AreaRoot`.** Areas differ in content, not in shape; the root stays generic so `Director` never grows a per-area case |
-| `Events` signals | connect to anything in `src/core/events/events.gd` | It is the connection map and it is meant to be read and listened to |
+**Every row names its file, because T5.30 performed this table and the first thing it cost was a
+grep.** Three rows named a class and no path while the `Events` row named one, so a consumer
+looking for `UiScreen` searched `src/ui/root/` — where `UiRoot` lives and `UiScreen` does not.
+
+| Point | File | How | Why it is open |
+|---|---|---|---|
+| `Interactable` | `src/gameplay/interactables/interactable.gd` | `extends Interactable`, override `perform(who)` and optionally `refusal(who)` | The documented way to add a kind of object. Detection, ranking, the prompt, refusal messaging, one-shot and hold-to-confirm are all already handled. Subclasses stay thin: behaviour and state go into children |
+| `UiScreen` | `src/ui/screens/ui_screen.gd` — **not `src/ui/root/`** | `extends UiScreen`, declare `pauses_world` / `closes_on_cancel` **in `_init`, never in `_build`**. The three overrides are **`_build()`** (construct, once, from `_ready`), **`_opened()`** (each time it reaches the top of the stack) and **`_closed()`** (about to be freed — last chance to write back) | A new screen is a game's business. `_build` runs from `_ready`, after a caller could have overridden a flag, so setting one there silently discards the caller's request. **Open your own with `UiRoot.find(self).open(MyScreen.new())`** — `open()` takes an instance, so no registration is needed and `ScreenKeys.menu_for()` is not involved: that is a debug convenience for `--open-menu=`, and its only caller is boundary-exempt |
+| `SpriteSheetLayout`, `ui_theme.tres` | `src/content/art/sprite_sheet_layout.gd`, `assets/theme/ui_theme.tres` | **replace the resource, not the class** | The art contract. See `ART_CONTRACT.md` |
+| Inventory capacity | `src/gameplay/character/inventory.gd` | `extends Inventory` (it is a `Node`), override `can_accept(item_id, count)` and **call `super()` first** — it enforces `max_stack`, and reimplementing stacking is the mistake | Capacity is unlimited behind that one method. Slots or weight go there and nowhere else |
+| A bespoke area behaviour | — | a child node with its own script, under the area | **Do not subclass `AreaRoot`.** Areas differ in content, not in shape; the root stays generic so `Director` never grows a per-area case |
+| `Events` signals | `src/core/events/events.gd` | connect to anything declared there | It is the connection map and it is meant to be read and listened to |
+
+**AND ONE THING THIS TIER DOES NOT GIVE YOU, MEASURED RATHER THAN INFERRED.** A game may declare
+its own input action with Godot's own `InputMap.add_action()` and bind it in its own code — but it
+**cannot make that action player-rebindable**. `KeyBindings.rebind()` refuses any action absent
+from the `Actions.REBINDABLE` const, and `rebind_screen.gd` builds its rows by iterating that same
+const. That gate is deliberate and has a bug behind it: until T5.5 it asked only
+`InputMap.has_action`, so `debug_console` could be overridden into `input.cfg` and
+`reset_bindings()` would not put the default back. So the closed list is the fix, not an oversight —
+and the consequence for a game is real and stated here rather than discovered. A game's own action
+works; it is just not offered on the rebinding screen.
 
 ### Tier 3 — internals. Read them; do not edit or subclass them.
 
@@ -247,7 +261,7 @@ Every rung is proven working on this machine. Nothing here is aspirational.
 | 1. Parse and type gate | `--headless --check-only --script <file>` | Type errors, unknown functions, with file and line |
 | 2. Import gate | `--headless --import` | Broken scenes, resources, asset references |
 | 3. Headless run | `--headless --quit-after 30` | Boot order, null references, real `_process` frames |
-| 4. Tests | `--headless res://tests/test_runner.tscn --quit-after 400` | Logic, save round-trips. 2,300 assertions, exit 1 on failure |
+| 4. Tests | `--headless res://tests/test_runner.tscn --quit-after 400` | Logic, save round-trips. 2,302 assertions, exit 1 on failure |
 | 5. check_budgets | `--headless --script tools/check_budgets.gd` | File and function line budgets, stray `print()` |
 | 6. check_content | `--headless --script tools/check_content.gd` | Broken items, duplicate object ids, missing CSV keys, a missing `[editable]` |
 | 7. check_boundary | `--headless --script tools/check_boundary.gd` | Any demo name in a code line under `src/` or `tests/`; a CSV row translating content that is not there |

@@ -19,6 +19,48 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.4.1
+
+*2026-09-10 — the extension surface was the one consumer document never performed. It has been
+now, from a throwaway fork, and it cost six findings.*
+
+**A consuming game does: nothing.** No file under `src/`, `tools/`, `tests/` or `.github/`
+changed. This is documentation and `project.godot`'s `[template] base/version`.
+
+**IF YOU ARE ABOUT TO SUBCLASS ANYTHING, READ `ARCHITECTURE.md` § The extension surface AGAIN —
+the Tier 2 table now names every file.** Three of its rows named a class and gave no path while
+the `Events` row gave one, so `UiScreen` was hunted in `src/ui/root/` (where `UiRoot` lives and it
+does not) before a grep found `src/ui/screens/ui_screen.gd`. The table also now names the actual
+override hooks: **`_build()`**, **`_opened()`**, **`_closed()`** — the header described all three
+in prose and named none, and a first attempt guessed `_on_shown()`, which compiles and never runs.
+
+**THE ONE THAT CHANGES HOW YOU PLAN: NONE OF THE SEVEN CHECKERS SCANS YOUR CODE.** A fork carrying
+three Tier 2 subclasses passed all seven — **including over a planted raw player-facing string
+literal and a planted public method with no caller**, which are exactly what `check_strings.gd` and
+`check_methods.gd` exist to catch. They scan `src/`, `tests/` and `tools/`, not your root.
+
+Two of those should stay blind and that is a relief, not a gap: **`check_boundary.gd` exists to
+prove the ENGINE does not know your content exists**, and your own code is entitled to name your
+own ids — pointing it at your root would fail you for doing the right thing. The rest are now a
+**choice you make deliberately**: whether your game inherits the base's discipline or writes its
+own. `TEMPLATE.md`, `NEW_GAME.md` and `UPGRADING.md` each gained a row for your code root, which
+none of the three had.
+
+**AND ONE THING TIER 2 DOES NOT GIVE YOU, NOW STATED RATHER THAN DISCOVERED.** You may declare
+your own input action with `InputMap.add_action()` and bind it in your own code, but you **cannot
+make it player-rebindable**: `KeyBindings.rebind()` refuses any action absent from the
+`Actions.REBINDABLE` const, and the rebind screen builds its rows from that same const. That gate
+is deliberate and has a bug behind it — until `2.5.0` it asked only `InputMap.has_action`, so
+`debug_console` could be overridden into `input.cfg` and `reset_bindings()` would not restore the
+default. So the closed list is the fix. Your action works; it is simply not offered on the
+rebinding screen, and if you need it to be, that is a template change.
+
+**Good news the performance also produced:** opening your own screen needs **no registration**.
+`UiRoot.open()` takes an instance and `UiRoot.find(self)` locates the stack by group, so
+`UiRoot.find(self).open(MyScreen.new())` is the whole of it. `ScreenKeys.menu_for()` is not
+involved — it is a debug convenience for `--open-menu=`, and its only caller is boundary-exempt.
+
+---
 ## 5.4.0
 
 *2026-09-09 — the player prefab is a seam. It was a `const` in the `core` layer, so replacing the

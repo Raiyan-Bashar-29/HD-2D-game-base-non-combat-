@@ -23,7 +23,13 @@ package that gets half-finished.
 3. `SYSTEMS_INVENTORY.md` statuses and `ROADMAP.md` criteria updated.
 4. `DEVLOG.md` appended — did / why / connects / verified / unblocks / gaps.
 5. `CONTEXT.md` updated — counts, new settled decisions, new gotchas, next package.
-6. This file marks the package `DONE` with its commit.
+6. This file marks the package `DONE`, and its detail section ends with a `**Commit:**` line.
+   **THE SHA CANNOT BE IN IT WHEN YOU WRITE IT, AND FIVE ROWS RUNNING PROVED THAT RATHER THAN
+   FORGOT IT.** This step asks for a commit that satisfying this step creates. So write the line
+   with the branch and the PR and no SHA, and **fill in the SHA in the NEXT row** — T5.26 filled
+   T5.25's, T5.27's was filled by T5.28, and so on. That is not a lapse to apologise for each
+   time; it is the only order that exists. The alternative, a second commit per package purely to
+   amend the line, buys nothing a reader wants.
 7. Committed and pushed.
 8. **The chip for the next package is created**, so the handoff is automatic. If no chip ever
    arrives, nothing is lost: this file's row for the next package IS the fallback handoff, and
@@ -98,6 +104,7 @@ original board rather than continuing it.
 | T5.27 | **A checker can skip a file and still print PASS** | **DONE** — `5.3.4`, a PATCH, `src/` byte-identical; the change is `ladder.yml` and six of the seven tools. **RUNGS 5–11 READ ONLY THE EXIT CODE** while rung 4 has `ErrorWatch`, and the question was whether that gap hides anything. **It does, and a throwaway probe measured it rather than arguing it**: a loop of three calling a function that indexes an empty array on the second printed `SCRIPT ERROR: Out of bounds get index '9'`, then `loop finished, items processed: 2 of 3`, then `PASS`, **exit 0**. Gotcha 24 exactly — the error aborts the INNERMOST FRAME ONLY, the loop finishes, a file is silently unscanned, and the tool reports success. **AND THE FIRST PLANT DID NOT SHOW IT**: the same error injected into `check_layers._scan_script` gave exit 1, so the tool died rather than lying and the premise looked false — the minimal probe is what separated "dies" from "continues and reports PASS", which is gotcha 75's family and why the probe is in the record. All fourteen steps now capture a log, print it, and force failure on `SCRIPT ERROR`/`Parse Error` even at exit 0; seven logs uploaded from both jobs; each step still names its checker beside `--script` once per job, so T5.26's invocation gate is untouched. **SECOND, SIX CHECKERS COULD PASS ON A SCAN OF NOTHING** — 0 of 7 guarded it while all seven printed their scanned count. `check_layers` aimed at a script-free directory gave `scripts scanned: 0` then `PASS`, exit 0; guarded it fails, and **the comparison against the unmodified tool on the same empty scan is the row** rather than the guard's own green run. The rule was already written for doc gates at `4.3.1` — "worse than no gate" — and never turned on the tools; the count lives beside each collector's `append` so it cannot drift from the scan. **`check_content` IS EXEMPT AND THE EXEMPTION IS THE INTERESTING PART**: its whole input is `data/` and `scenes/areas`, which the stripped job DELETES by design, so a zero scan is legitimate there and nowhere else — the first exemption in this run derived from what the strip removes rather than from what a gate can judge. **THIRD, A COMMENT CLAIMED A CHECK NOTHING PERFORMED** — "a stripped template must report exactly the same numbers", twice, with the jobs independent and nothing comparing them; reworded to what is enforced (both exit 0, which catches the failure that matters) and the real cross-job comparison named as a candidate. 167 files, 15,852 code lines. 2,287 → **2,291 assertions**, both from this row's own DEVLOG heading through a computed plan — **the enforcement here is not in the suite at all**, the first time that is true in this run; see below |
 | T5.28 | **A template rule, a template default and a game choice are three different things** | **DONE** — `5.3.5`, a PATCH, and `src/` / `tools/` / `.github/` byte-identical. **THE ROW RANKED FIRST FIVE TIMES AND NEVER TAKEN.** `TEMPLATE.md` § *"The one constraint nobody has scoped"* has said since 2026-08-26 that *"what is missing is the distinction between a template default and a game choice, which no document currently draws"*, and nothing ever scheduled it. `CONTEXT.md` deferred it each time for one honest reason — *"it is prose and cannot be proved by running the engine"* — **while also recording that it "DECIDES the two rows under it rather than guessing"**, both of which carried *"Scope depends on the taxonomy row above"*. **So deferring the cheap row kept the expensive ones frozen**, and three candidate rows were unscopable indefinitely for want of one distinction. **THE ANSWER IS THREE KINDS, NOT TWO**, which is what made it tractable: a TEMPLATE RULE is foreclosed for every game and carries a checker where the rule is mechanical; a TEMPLATE DEFAULT ships a working value **and a seam**; a GAME CHOICE means the base builds nothing and offers only the seam and the facts. **AND THE TEST THAT SEPARATES A DEFAULT FROM A RULE IS MECHANICAL RATHER THAN EDITORIAL — DOES A SEAM EXIST?** A "default" a game cannot replace without editing `src/` is a rule that has not admitted it; "is this a default or a rule" was a matter of tone, "can a game replace it without editing src/" is a fact about the repository. It is immediately productive: applied to `game_root.gd:28`'s `const PLAYER_SCENE` it says the player prefab is a **rule pretending to be a default**, which is the next row. **APPLIED RATHER THAN DESCRIBED** — RULES: no combat, the layer rule, the demo-name boundary (the last two already have checkers, which is what a rule looks like mechanised). DEFAULT: time, because `Clock`, `NpcSchedule` and `Weather` are already here so a cycle extends a present system. GAME CHOICES: a chapter sequencer, since a `story/chapter` int flag with `AT_LEAST` is already a complete chapter model through the one `FlagQuery` and a `Chapter` resource would add a second way to say one thing; and an economy, genre rather than structure, on `Harvestables`' footing. **TWO CANDIDATE ROWS CLOSED BY A REFUSAL RATHER THAN BUILT**, and writing the refusal down is the point — otherwise each is rediscovered, ranked, deferred for want of a reason, and ranked again, which is what happened three times. **AND THE CUTSCENES ROW NEEDED A REASON, NOT A PACKAGE**: a draft of this row proposed building the staging seam because nine `cutscene` mentions across eight files under `src/` looked like unpaid IOUs, and **read in full every one is a RECEIPT** — *"deletes nothing here — it calls `Audio.duck()` from its own occasion"*, *"forced by a cutscene, without touching this file"*, *"a cutscene can later ask for the same fade"* — each a statement that the file is already cutscene-ready and the game supplies the occasion. Reading a comment as a debt is how a comment becomes a work package. **Also settled: `Fixtures.activate()` is ASSERTED, not skipped**, reversing `TESTING.md`, because a skip reports GREEN so the one condition the check exists to catch is the one nobody sees — T5.27's failure one row earlier; `bag_mirror_test.gd` converted and **the plan gate caught the arithmetic before the suite did**, `planned 10 outcomes and produced 11`. **NO NEW GATE, AND SAYING SO IS PART OF THE ROW** — `record_shape_test.gd` and `docs_test.gd` already cover an ADR, and inventing one to have one is what the previous four rows were about; see below |
 | T5.29 | **The player prefab was a rule pretending to be a default** | **DONE** — `5.4.0`, a MINOR: the base gained a seam a game may ignore. **ADR-0007 FOUND THIS WITHIN AN HOUR OF EXISTING, WHICH IS THE ROW'S BEST ARGUMENT FOR ITSELF.** `game_root.gd:28` held `const PLAYER_SCENE := "res://scenes/characters/player.tscn"` — engine code, in the **core** layer, naming the prefab a consuming game replaces FIRST — while `GameConfig` exposed exactly two `[game]` keys with no `player_scene` among them. `ARCHITECTURE.md` states the contract as "a game adds content and resources; it does not add code under `src/`", so **a game with a differently-shaped protagonist had no legal way to get one.** T5.28's seam test asks one question — *does a seam exist?* — and a "default" a game cannot replace without editing `src/` is a RULE that has not admitted it; this is the first thing the test caught, and finding it an hour after writing the ADR is the strongest evidence the distinction was worth a package. **THE COMPARISON RUN IS WHAT MAKES IT A DEFECT RATHER THAN A PREFERENCE**, the same shape T5.25–T5.27 each needed: `[game] world/player_scene` pointed at a scene that does not exist, then boot. **Old code: `0 warnings, 0 errors`** — the key silently ignored, the player spawned from the const, a game's stated choice discarded without a word. **New seam: `1 errors`, `Player scene missing or invalid at <the missing path>`** on the existing `Log.error("boot", …)` path. **The old run is the row**: what was broken was not a wrong path but that setting it did nothing — the plant alone only shows the error path works. **THE FALLBACK IS THE ONE ASYMMETRY AND IT IS DELIBERATE**: `world/first_area` has none, because a template nobody has put a game in yet legitimately starts in no area, but a game can never legitimately have NO player, so an unset key means the template's own prefab rather than `load("")` and an empty world. `scenes/characters/` is Engine per `TEMPLATE.md`, so `GameConfig` naming that path is engine naming engine — not the boundary leak the `const` in `core` was. **`game_root.gd` DID NOT GROW** — 26 of its 60-line hard budget before and after, a path moved and no logic added, which matters because that file's header records the previous project's equivalent reaching 3,983 lines. **TWO STALE COUNTS FELL OUT OF IT**, neither gated and both T5.25's class: `GameConfig`'s header said it owned "the four facts a game author writes once" and `SYSTEMS_INVENTORY.md` said "the four values a consuming game sets" — five now. And **`NEW_GAME.md` § 2 gained the one exception to "Keep, and never edit to start a game"**, because a fork points PAST the template's prefab rather than editing it, which is the instruction that section already gave and could not previously be obeyed. 2,294 → **2,300 assertions**, three in `core_test.gd` and no new case; see below |
+| T5.30 | **Performing the extension surface, the one consumer document never walked** | **DONE** — `5.4.1`, a PATCH, and `src/` / `tools/` / `tests/` / `.github/` byte-identical with **no game code committed**. `SYSTEMS_INVENTORY.md` listed the extension surface beside `AUTHORING.md`, `ART_CONTRACT.md` and `TESTING.md`, and it was the only one of the four never performed — while each of the other three found defects reading had not. **THE VENUE IS THE METHOD, AND A DRAFT OF THIS ROW GOT IT WRONG**: `UPGRADING.md` records that "a stripped fork was made" and its synthetic versions "exist only in the throwaway repositories this document was performed against", `NEW_GAME.md` that "the whole strip above was performed against a fresh clone" — so a performance happens OUTSIDE the template and only findings come back. The draft had proposed adding a `game/` root to the base and wiring it into the checkers' scan roots, which would have committed a consuming game's proof into the template. **SIX FINDINGS.** *(1)* Three Tier 2 rows named a class and gave no path while the `Events` row gave one, so `UiScreen` was hunted in `src/ui/root/` — where `UiRoot` lives and it does not — before a grep found `src/ui/screens/ui_screen.gd`; every row now names its file. *(2)* The three override hooks were described in prose and named nowhere: a first attempt guessed `_on_shown()`, **which compiles and never runs**; they are `_build()`, `_opened()`, `_closed()`. *(3)* **THE SHARPEST, AND MEASURED RATHER THAN INFERRED: all seven checkers pass over a game code root** — a fork carrying three subclasses went green on every one, **including over a planted raw player-facing literal and a planted uncalled public method**, precisely what `check_strings.gd` and `check_methods.gd` exist to catch. A consuming game inherits none of the ladder's discipline. **Two of those gates should stay blind and that is a relief rather than a gap** — `check_boundary.gd` exists to prove the ENGINE does not know the game, so aiming it at a game's own root would fail an author for doing the right thing — and the other five are now a stated choice instead of an unnoticed absence. *(4)* **No document had a row for game CODE**, though Tier 2 tells a game to `extends Interactable`: `TEMPLATE.md`, `NEW_GAME.md` § 2 and `UPGRADING.md` § 5 each gained one. *(5)* **A game's own input action cannot be player-rebindable**, and the constraint is CORRECT rather than an oversight: `KeyBindings.rebind()` gates on the `Actions.REBINDABLE` const rather than `InputMap.has_action`, and its header records that asking `has_action` was a real bug — `debug_console` could be written into `input.cfg` and `reset_bindings()` would not restore the default. Stated now rather than discovered. *(6)* **TWO AUDIT PREDICTIONS WERE WRONG, WHICH IS THE ARGUMENT FOR PERFORMING OVER PREDICTING**: the audit said a game's own screen could not register because `ScreenKeys.menu_for()` is a closed `if`-chain, and it is — and it is irrelevant, since `UiRoot.open()` takes an INSTANCE and `UiRoot.find(node)` finds the stack by group, so `UiRoot.find(self).open(MyScreen.new())` is the whole of it, and `menu_for`'s only caller is boundary-exempt debug code. **Also fixed the closing checklist at the source**: item 6 asked for a commit that satisfying item 6 creates, which five rows running had worked around by filling in the previous row's SHA; it now says to do exactly that; see below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -5327,4 +5334,88 @@ same instruction the section already gave, now actually achievable.
 (`game_root.gd`, `game_config.gd`, `project.godot`, `core_test.gd`) plus the record. Suite
 2,294 → **2,300**, three assertions and no new case.
 
-**Commit:** on `claude/t5-29-player-seam`, targeting `main`.
+**Commit:** `6955d0e` on `claude/t5-29-player-seam`, PR #60, targeting `main`, plus `c73ed20`
+recording its CI run. Filled in by T5.30 — **fifth row running, and now fixed at the source**: the
+closing checklist below asks for a commit that satisfying it creates, so it can never be true when
+written. It now says so, and says what to do instead.
+
+---
+## T5.30 · Performing the extension surface — **DONE**
+
+**The one consumer document never walked.** `SYSTEMS_INVENTORY.md` lists it beside `AUTHORING.md`,
+`ART_CONTRACT.md` and `TESTING.md`; the other three were each performed, and each performance found
+defects reading had not (AUTHORING alone found eleven across two passes).
+
+### The venue is the method, and a draft of this row got it wrong
+
+`UPGRADING.md` records that *"a stripped fork was made"* and that its synthetic versions *"exist
+only in the throwaway repositories this document was performed against"*; `NEW_GAME.md` that *"the
+whole strip above was performed against a fresh clone"*. **A performance happens OUTSIDE the
+template and only findings come back.**
+
+A draft of this row had proposed adding a `game/` root to the base and wiring it into the checkers'
+scan roots — which would have committed a consuming game's proof into the template and made the
+base ship the very thing it tells a fork to own. The precedent settled it before it cost anything.
+
+### Six findings
+
+| # | finding |
+|---|---|
+| 1 | **Three Tier 2 rows named a class and no path**, while the `Events` row named one. `UiScreen` was hunted in `src/ui/root/` — where `UiRoot` lives and it does not — before a grep found `src/ui/screens/ui_screen.gd`. Every row now names its file |
+| 2 | **The three override hooks were described in prose and named nowhere.** A first attempt guessed `_on_shown()`, which compiles and never runs. They are `_build()`, `_opened()`, `_closed()` |
+| 3 | **All seven checkers pass over a game code root** — measured, with plants |
+| 4 | **No document had a row for game CODE** — `TEMPLATE.md`, `NEW_GAME.md` § 2 and `UPGRADING.md` § 5 each gained one |
+| 5 | **A game's own input action cannot be player-rebindable**, and the constraint is deliberate |
+| 6 | **Two audit predictions were wrong**, which is the argument for performing over predicting |
+
+### Finding 3 is the sharpest, and it is a measurement
+
+A fork carrying three Tier 2 subclasses went green on all seven checkers. Then, planted into the
+game root:
+
+```gdscript
+func announce() -> String:
+	return "The bell tolls for thee"      # a raw player-facing literal, and no caller
+```
+
+That is one violation of non-negotiable #3 and one uncalled public method — precisely what
+`check_strings.gd` and `check_methods.gd` exist to catch. **Both still passed, and so did the other
+five.** They scan `src/`, `tests/` and `tools/`; a game's root is none of those.
+
+**Two of those gates should stay blind, and that is a relief rather than a gap.**
+`check_boundary.gd` exists to prove *the engine* does not know the game's content exists, and a
+game's own code is entitled to name its own ids — aiming that gate at a game root would fail an
+author for doing the right thing. The remaining five are now **a stated choice**: whether a game
+inherits the base's discipline or writes its own. Nothing decides it, and nobody had noticed the
+question, because nobody had made a fork.
+
+### Finding 5, stated carefully because the constraint is correct
+
+A game may declare its own action with `InputMap.add_action()` and bind it in its own code. It
+**cannot** make that action player-rebindable: `KeyBindings.rebind()` gates on the
+`Actions.REBINDABLE` const, and `rebind_screen.gd` builds its rows by iterating the same const.
+
+That gate is deliberate and has a bug behind it — its own header: *"THE GATE IS
+`Actions.REBINDABLE`, NOT `InputMap.has_action`, AND THE DIFFERENCE WAS A BUG"*, because
+`debug_console` could otherwise be overridden into `input.cfg` and `reset_bindings()` would not put
+the default back. **So this is not an oversight to fix carelessly**; it is a real tension between
+gating rebinds to a known-pollable list and letting a game have its own actions. Recorded, with the
+consequence stated, and left as a decision.
+
+### Finding 6 — the two the audit got wrong
+
+The audit that scoped this row predicted a game's own screen could not register, because
+`ScreenKeys.menu_for()` is a closed `if`-chain over the eight template screens. **It is, and it is
+irrelevant.** `UiRoot.open()` takes an *instance*; `UiRoot.find(node)` locates the stack by group
+rather than a hard-coded path; so `UiRoot.find(self).open(MyScreen.new())` is the whole of it. And
+`menu_for`'s only caller is `dev_screens.gd`, which lives in the boundary-exempt debug directory —
+a `--open-menu=` convenience, not the production path.
+
+**That is the case for performing over predicting, delivered as two retractions.** The audit was
+reading the right files and drawing the wrong conclusion, and only a fork could tell the difference.
+
+**Scope.** `5.4.1`, a PATCH. Documentation and the version: `ARCHITECTURE.md`, `TEMPLATE.md`,
+`NEW_GAME.md`, `UPGRADING.md`, `SYSTEMS_INVENTORY.md` and the record. **`src/`, `tools/`, `tests/`
+and `.github/` byte-identical**, and no game code committed.
+
+**Commit:** on `claude/t5-30-extension-surface`, targeting `main`.

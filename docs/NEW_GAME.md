@@ -49,6 +49,7 @@ rm -rf scenes/areas/courtyard scenes/areas/lantern_hall
 | `assets/placeholder/**` | procedural art. Regenerate with `tools/gen_placeholders.gd`. |
 | `localization/strings.csv` | **partly** — see below |
 | `tests/unit/**` | the ladder — since T1.3 it builds its own content and passes without yours |
+| **your own code root** | `game/`, or scripts beside your areas. **The base ships none and names none** — pick one. Your Tier 2 subclasses live here, and T5.30 measured that **no checker scans it** |
 
 **YOUR OWN PLAYER PREFAB IS THE ONE EXCEPTION, AND YOU DO NOT EDIT ANYTHING TO GET IT.** The
 protagonist is the first thing most games replace, and `scenes/characters/player.tscn` is Engine —

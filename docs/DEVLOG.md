@@ -9944,3 +9944,176 @@ stripped job deletes `data/` and `scenes/areas/` but not `scenes/characters/`, s
 the key resolve identically in both jobs. It held. Still enforced by nothing — `ladder.yml` asserts
 only that the named-skip count is non-zero, and the cross-job comparison is still a candidate row
 rather than a mechanism.
+
+## 2026-09-10 — T5.30 · Performing the extension surface, the one consumer document never walked
+
+**`SYSTEMS_INVENTORY.md` listed four consumer documents and three of them had been performed.**
+`AUTHORING.md` was walked at T2.2 and again at T4.2 and found eleven defects between them.
+`TESTING.md` was walked at T4.4 and found a listed case that did not parse. `NEW_GAME.md` and
+`UPGRADING.md` were each performed against real forks. **The extension surface — the table that
+tells a consuming game what it may subclass — had never been walked by anyone.**
+
+### THE VENUE IS THE METHOD, AND A DRAFT OF THIS ROW GOT IT WRONG
+
+The plan for this row said "declare a game-owned code root, add it to the scan roots of the
+checkers that should see it, then subclass three things from it". **That would have committed a
+consuming game's proof into the template**, and made the base ship the very thing it tells a fork
+to own.
+
+The precedent settled it before it cost anything, and it is written down twice:
+
+> Everything below was PERFORMED, not designed. **A stripped fork was made** … The versions 1.1.0
+> and 1.1.1 below are SYNTHETIC. They exist only in **the throwaway repositories this document was
+> performed against**. — `UPGRADING.md:12,17`
+
+> the whole strip above was **performed against a fresh clone**. — `NEW_GAME.md:187`
+
+**A performance happens OUTSIDE the template and only findings come back.** So: a throwaway clone
+of the base at `5.4.0`, a `game/` root added in it, `Interactable`, `UiScreen` and `Inventory` each
+subclassed there, the full ladder run, and **nothing from the fork committed here.** The fork is
+gone.
+
+### FINDING 1 — THREE ROWS NAMED A CLASS AND GAVE NO PATH
+
+The Tier 2 table has six rows. The `Events` row names `src/core/events/events.gd`. The three rows
+that tell a consumer to **subclass** something named `Interactable`, `UiScreen` and `Inventory` and
+gave no path at all.
+
+So `UiScreen` was looked for in `src/ui/root/`, which is where `UiRoot` lives and where a reader
+would reasonably expect the screen contract to sit beside it. It is not there:
+
+```
+$ grep -rn 'class_name UiScreen' src/
+src/ui/screens/ui_screen.gd:1:class_name UiScreen
+```
+
+**The only places in the repository that name that path are `DEVLOG.md` — which `CLAUDE.md`
+forbids reading whole — and a "Read:" manifest for WP-12, an old package.** Every row now names its
+file, and the `UiScreen` row says explicitly *not* `src/ui/root/`.
+
+### FINDING 2 — THE OVERRIDE HOOKS WERE DESCRIBED AND NEVER NAMED
+
+`ui_screen.gd`'s header describes three overrides in prose — *"Override to construct contents"*,
+*"Override for work that must happen each time the screen reaches the top of the stack"*,
+*"Override for work that must happen when the screen leaves the stack"* — and the Tier 2 table
+mentioned only `_build`. Writing the subclass, the second hook was guessed as `_on_shown()`.
+
+**`_on_shown()` compiles, parses, passes every rung, and never runs.** GDScript has no
+`@override`, so a misnamed override is a silent no-op — the exact shape of defect this project
+keeps finding, and here the document was the cause. The real names are `_build()`, `_opened()` and
+`_closed()`, now in the table beside what each is for.
+
+### FINDING 3 — ALL SEVEN CHECKERS PASS OVER A GAME CODE ROOT
+
+The fork's `game/` root held three subclasses. All seven checkers exited 0. That alone proves
+nothing — the code was fine. So it was planted:
+
+```gdscript
+## A PLANT: a raw player-facing string literal, which non-negotiable #3 forbids and
+## check_strings.gd exists to catch. Also a public method nothing calls, which
+## check_methods.gd exists to catch.
+func announce() -> String:
+	return "The bell tolls for thee"
+```
+
+```
+  check_strings   exit=0  PASS
+  check_methods   exit=0  PASS
+  check_budgets   exit=0  PASS
+  check_boundary  exit=0  PASS
+  check_layers    exit=0  PASS
+```
+
+**One violation of non-negotiable #3 and one uncalled public method, and every gate built to catch
+them passed.** They scan `src/`, `tests/` and `tools/`; a game's root is none of those. **A
+consuming game inherits none of the ladder's discipline**, and the base never said so.
+
+**Two of those gates should stay blind, and calling that a relief rather than a gap is the point.**
+`check_boundary.gd` exists to prove *the engine* does not know the game's content exists — its own
+header, line 10. A game's own code is entitled to name its own ids; that is what a game root is
+FOR. Pointing that gate at it would fail an author for doing the right thing, and the draft plan
+had proposed exactly that.
+
+The other five are now **a stated choice**: a fork decides whether to point `check_strings`,
+`check_methods` and `check_budgets` at its own root. Nothing decides it, nobody had noticed the
+question, and nobody could have — it takes a fork to ask it.
+
+### FINDING 4 — NO DOCUMENT HAD A ROW FOR GAME CODE
+
+`TEMPLATE.md`'s "What is what", `NEW_GAME.md` § 2 "Keep, and never edit", and `UPGRADING.md` § 5
+"The three classes of file" are the three tables that classify every path in the repository. **None
+had a row for a game's own code**, while Tier 2 tells a game to `extends Interactable`. So a
+consumer following the extension surface produced a file with no stated class, no stated merge
+behaviour, and no stated home. Each table gained a row.
+
+### FINDING 5 — A GAME'S OWN INPUT ACTION CANNOT BE PLAYER-REBINDABLE
+
+A game may declare its own action with Godot's `InputMap.add_action()` and bind it in its own code.
+It cannot make that action reboundable by the player: `KeyBindings.rebind()` refuses any action
+absent from `Actions.REBINDABLE`, a `const Array[StringName]` in `src/`, and `rebind_screen.gd:71`
+builds its rows by iterating the same const.
+
+**And the constraint is CORRECT, which is why it is recorded rather than fixed.** From
+`key_bindings.gd`'s own header:
+
+> THE GATE IS `Actions.REBINDABLE`, NOT `InputMap.has_action`, AND THE DIFFERENCE WAS A BUG. Until
+> T5.5 this asked only whether the action EXISTED, so `debug_console` or `cam_zoom_in` could be
+> overridden and written to input.cfg — and then `reset_bindings()` re-declares only the four
+> rebindable groups, so nothing put the erased default back.
+
+So this is a real tension — gate rebinds to a known-pollable list, or let a game have its own
+actions on the rebinding screen — not an oversight. The consequence is now stated in the table so a
+game plans around it instead of finding out.
+
+### FINDING 6 — TWO AUDIT PREDICTIONS WERE WRONG, AND THAT IS THE ARGUMENT
+
+The audit that scoped this row predicted, with file and line numbers, that a game's own screen
+could not register: *"`ScreenKeys.menu_for()` is a closed if-chain: `menu_for()` names the eight
+template screens by class"*. **It is a closed if-chain, and it is irrelevant.**
+
+- `UiRoot.open(screen: UiScreen)` takes an **instance**, not an id.
+- `UiRoot.find(from: Node) -> UiRoot` finds the stack by GROUP, not a hard-coded path — its header
+  says so: *"Anything may find the stack with `UiRoot.find(node)` rather than a hard-coded scene
+  path."*
+- So `UiRoot.find(self).open(MyScreen.new())` is the whole of it, and no registration exists to be
+  missing.
+- `menu_for`'s **only** callers are in `src/systems/debug/dev_screens.gd`, which is the
+  boundary-exempt debug directory. It serves `--open-menu=<id>` for screenshots.
+
+The audit was reading the right files and drawing the wrong conclusion, and **only a fork could
+tell the difference.** That is the case for performing over predicting, delivered as two
+retractions rather than as an argument.
+
+### AND THE CLOSING CHECKLIST IS FIXED AT THE SOURCE
+
+Item 6 — *"This file marks the package DONE with its commit"* — has been worked around for **five
+consecutive rows** by filling in the previous row's SHA. At five that is not five lapses; **the step
+asks for a commit that satisfying the step creates**, so it can never be true when written. It now
+says to write the line with the branch and PR, and to fill the SHA in the next row, which is what
+has actually happened every time. The alternative — a second commit per package purely to amend one
+line — buys nothing a reader wants.
+
+### VERIFIED
+
+Twelve rungs and seven checkers green on `4.7.2.stable.official.ed1daf0bf`, in this repository.
+Boot `0 warnings, 0 errors`.
+
+**And separately, the fork's own ladder** — which is the evidence for finding 3: rung 2 clean on
+the second import, boot `0 warnings, 0 errors`, and all seven checkers exit 0 both before and after
+the plant. **A fresh clone reports `Cannot open file 'res://localization/strings.en.translation'`
+four times on its FIRST import and zero times on the second**, because `*.translation` is generated
+and gitignored. `CLAUDE.md` already says to run `--import` first on a fresh clone; it does not say
+that first run is noisy, and a consumer meeting four ERROR lines on step one has no way to know
+they are expected. Recorded here; not worth a row on its own.
+
+### GAPS
+
+- **Whether a game root should inherit `check_strings`, `check_methods` and `check_budgets`** is
+  now a stated choice and nobody has made it. It is a real decision with a real cost either way,
+  and it belongs to whoever forks first.
+- **`Actions.REBINDABLE` versus a game's own actions** — recorded above, correct as it stands, and
+  a template change if a game needs it.
+- **The `game/` root is a suggestion, not a convention.** The base names none, and the three tables
+  now say "`game/`, or scripts beside your areas" rather than mandating one. If two forks pick
+  differently that is fine; if the base ever wants to scan it, that has to be settled first.
+- `src/systems/scene_director/director.gd` is still at 187 of its 190, seventh row running.

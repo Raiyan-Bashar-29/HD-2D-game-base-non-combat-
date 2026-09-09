@@ -1314,6 +1314,45 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   PAST the template's prefab rather than editing it. `5.4.0`, a MINOR — the base gained something a
   game may ignore. Suite 2,294 → **2,300**, three assertions in `core_test.gd` and no new case.
 
+- **T5.30 Performing the extension surface, which was the one consumer document never walked —
+  DONE, 2026-09-10.** `SYSTEMS_INVENTORY.md` listed it beside `AUTHORING.md`, `ART_CONTRACT.md`
+  and `TESTING.md` as consumer documentation, and it was the only one of the four never performed.
+  **THE METHOD IS THE PROJECT'S OWN AND SO IS THE VENUE**: `UPGRADING.md` records that *"a
+  stripped fork was made"* and that its synthetic versions *"exist only in the throwaway
+  repositories this document was performed against"*, and `NEW_GAME.md` that *"the whole strip
+  above was performed against a fresh clone"* — so a performance happens OUTSIDE the template and
+  only findings come back. **No game code is committed here**, which also answers the question a
+  draft of this row got wrong: it had proposed adding a `game/` root to the base and wiring it
+  into the checkers' scan roots, which would have put a consuming game's proof inside the
+  template. **SIX FINDINGS.** *(1)* **Three Tier 2 rows named a class and gave no path** while the
+  `Events` row gave one, so `UiScreen` was hunted in `src/ui/root/` — where `UiRoot` lives and it
+  does not — before a grep found `src/ui/screens/ui_screen.gd`. Every row now names its file.
+  *(2)* **The three override hooks were described in prose and named nowhere**: a first attempt
+  guessed `_on_shown()`, which compiles and never runs; they are `_build()`, `_opened()` and
+  `_closed()`, now in the table. *(3)* **THE SHARPEST, AND IT WAS MEASURED RATHER THAN INFERRED:
+  all seven checkers pass over a game code root.** A fork carrying three subclasses went green on
+  every one, **including over a planted raw player-facing string literal and a planted public
+  method with no caller** — precisely what `check_strings.gd` and `check_methods.gd` exist to
+  catch. A consuming game inherits none of the ladder's discipline. **Two of those gates should
+  stay blind and that is a relief rather than a gap** — `check_boundary.gd` exists to prove the
+  ENGINE does not know the game, so aiming it at a game's own root would fail an author for doing
+  the right thing — and the rest are now a stated choice instead of an unnoticed absence. *(4)*
+  **No document had a row for game CODE**: `TEMPLATE.md`'s "What is what", `NEW_GAME.md` § 2 and
+  `UPGRADING.md` § 5 each gained one, since Tier 2 tells a game to `extends Interactable` and
+  nothing said where that file lives or what happens to it on a merge. *(5)* **A game's own input
+  action cannot be player-rebindable**, and the constraint is deliberate: `KeyBindings.rebind()`
+  gates on the `Actions.REBINDABLE` const rather than `InputMap.has_action`, and its header
+  records that asking `has_action` was a real bug — `debug_console` could be written into
+  `input.cfg` and `reset_bindings()` would not restore the default. So the closed list is the fix,
+  and the consequence for a game is now stated rather than discovered. *(6)* **AND TWO AUDIT
+  PREDICTIONS WERE WRONG, WHICH IS WHY PERFORMING BEATS PREDICTING.** The audit that scoped this
+  row said a game's own screen could not register, because `ScreenKeys.menu_for()` is a closed
+  `if`-chain over the eight template screens. It is — and it is irrelevant: `UiRoot.open()` takes
+  an INSTANCE, `UiRoot.find(node)` finds the stack by group, so
+  `UiRoot.find(self).open(MyScreen.new())` is the whole of it, and `menu_for`'s only caller is
+  `dev_screens.gd`, which is boundary-exempt debug code. `5.4.1`, a PATCH; `src/`, `tools/`,
+  `tests/` and `.github/` byte-identical.
+
 ## Sequencing rules
 
 1. **Breadth of systems, one shallow proof each.** This *replaces* "depth before breadth", which

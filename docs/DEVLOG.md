@@ -9928,3 +9928,19 @@ a new `res://` occurrence to verify, so writing the fix moved the total.
   `[game]` is still small and `GameConfig`'s MUST NOT forbids it becoming a settings store, and
   `scenes/boot/game_root.tscn` is Engine so a session-lived game service has nowhere to live.
 - **`src/systems/scene_director/director.gd` is still at 187 of its 190**, sixth row running.
+
+**CI GREEN — RUN [`34366063240`], BOTH JOBS.** Job logs read rather than the tick, per gotcha 26.
+
+| job | result | last line |
+|---|---|---|
+| `Ladder (full checkout)` | success | `=== 2300 passed, 0 failed, 0 skipped ===` |
+| `Ladder (stripped template)` | success | `=== 2226 passed, 0 failed, 25 skipped ===` |
+
+Full is byte-identical to the local measurement. `docs/TESTING.md:13-14` carries both.
+
+**The stripped gap is 74 for the SIXTH recorded run running**, and this row is the one that could
+plausibly have moved it: the new `[game] world/player_scene` key is read on the boot path, and the
+stripped job deletes `data/` and `scenes/areas/` but not `scenes/characters/`, so the fallback and
+the key resolve identically in both jobs. It held. Still enforced by nothing — `ladder.yml` asserts
+only that the named-skip count is non-zero, and the cross-job comparison is still a candidate row
+rather than a mechanism.

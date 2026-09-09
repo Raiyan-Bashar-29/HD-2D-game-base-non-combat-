@@ -9389,3 +9389,18 @@ branch names.
 
 **`src/systems/scene_director/director.gd` is still at 187 of its 190**, untouched for the fourth
 row running.
+
+**CI GREEN — RUN [`34329245652`], BOTH JOBS.** Job logs read rather than the tick, per gotcha 26.
+
+| job | result | last line |
+|---|---|---|
+| `Ladder (full checkout)` | success | `=== 2287 passed, 0 failed, 0 skipped ===` |
+| `Ladder (stripped template)` | success | `=== 2213 passed, 0 failed, 25 skipped ===` |
+
+Full is byte-identical to the local measurement. `docs/TESTING.md:13-14` carries both.
+
+**The stripped gap is 74 for the fourth recorded run running** — 2,287 − 2,213, the same constant
+T5.25 measured rather than predicted and declined to write from arithmetic. It has now held across
+`1625`/`1551`, `2276`/`2202` and this pair, which makes it a stable property of the strip rather
+than a coincidence, and **still nothing enforces it**: `ladder.yml` asserts only that the
+named-skip count is non-zero. That is one of the three claims T5.27 takes.

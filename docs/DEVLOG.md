@@ -8784,3 +8784,203 @@ has no unticked box left.
   for BLOCKS is answered only by the windowed capture's three numbers, which are read by a person
   rather than gated. That is a real candidate row, and it is the same shape as the gap T5.8 closed
   one axis over.
+
+---
+
+## 2026-09-09 — T5.24 · The roadmap's missing run, and whether completeness should be gated
+
+**Did.** Added one assertion per recorded package to `tests/unit/record_shape_test.gd` — every
+package the DEVLOG records must be findable in `docs/ROADMAP.md`, exactly as it has had to be
+findable in `docs/WORK_PACKAGES.md` since T5.19 — and then reconciled the six packages it found
+missing: package-log rows for **T5.16, T5.17, T5.18, T5.19 and T5.20**, and a Phase 2 Done line
+for **WP-07**, plus one for this row itself. Marked Phase T5's roadmap header **COMPLETE**, which
+T5.23 earned and did not take. Added gotchas **75 and 76** to `CONTEXT.md`'s list and moved the
+four documents that quote its length from seventy-four to seventy-six. Version `5.3.0` → `5.3.1`,
+a PATCH. **No production code changed** — `git diff` on `src/` and `tools/` is empty; the only
+non-documentation edit is `project.godot`'s `[template] base/version`.
+
+**Why.** `ROADMAP.md`'s Phase T5 package log ran T5.15 and then jumped to T5.21. Five delivered
+packages — each with a DEVLOG entry, a board row and a version bump of its own — had no trace at
+all in the file `CLAUDE.md` sends a reader to for *where things stand*. T5.21 recorded the gap.
+T5.23 recorded it again and promoted it to the top of `CONTEXT.md`'s next-package list. Neither
+closed it, and **nothing was red, because nothing counted the rows** — the same structural cause
+T5.4 wrote down for seven packages of the same defect, one level up from code.
+
+**THE ROW WAS TWO THINGS AND THE SECOND IS THE ONE THAT MATTERED.** Writing five entries is
+bookkeeping. The question worth answering was whether roadmap completeness should be *gated* the
+way `record_shape_test.gd` already gates two other structural facts.
+
+**The answer is yes, and T5.19 is the precedent rather than an analogy.** That row exists
+precisely because a third manual reconcile was the wrong answer, and its argument for gating
+structure transfers here with nothing changed: a file either opens with its own title or it does
+not; a package either has a row or it does not; neither question has a reading, an interpretation
+or a tone, *which is exactly why they are assertable when the sentences around them are not.*
+"A package the DEVLOG records has no entry in `ROADMAP.md`" is that same shape and the same file's
+business — so it went in beside the board check rather than into a fourth case. That is
+`CLAUDE.md` rule 4 satisfied without widening anything: `record_shape_test.gd`'s OWNS line already
+read "every package the log records has a row on the board", and this extends the SET of records
+checked, not the KIND of fact.
+
+**THE COUNTER-ARGUMENT WAS REAL, AND IT IS ANSWERED BY THE SHAPE OF THE CHECK RATHER THAN
+OVERRULED.** The roadmap's package log genuinely is selective in a way the board is not. The board
+has one shape — a row per package. The roadmap has three and uses all of them: a package-log row
+under a phase, a tick beside an exit criterion, or a parenthesis in a phase's Done list. **T5.14
+is only ever the second of those** — it has no package-log row anywhere and is nonetheless
+recorded at length beside the criterion it closed. A gate demanding a package-log row would have
+failed a package that is thoroughly recorded, and would have been wrong to.
+
+So the assertion is `roadmap.contains(id)` — **findability, which is the identical choice T5.19
+made one function above for the board**, and for the reason it wrote down there: *"the new gate
+asserts a package is FINDABLE on the board, not that it has an index row, because 'findable' is
+the property that matters and a stricter rule would have failed eight packages that are genuinely
+recorded."* The roadmap may record a package in whichever of its three shapes fits. It may not
+omit one entirely. That distinction is the whole of what is now enforced.
+
+**AND T5.16 HAD DECLINED TO TOUCH THE ROADMAP IN WRITING**, which is the strongest-looking
+objection of all because it is a considered refusal by a package rather than an oversight: *"No
+exit criterion covers a defect fix, and inventing one to have something to tick would be the
+ticking-without-proving this project spent T5.1 undoing."* **That is right about the CRITERIA list
+and says nothing about the package LOG**, which is a different list in the same file answering a
+different question — where a package sits in the plan, not whether a phase may close. Separating
+the two is what makes this assertable rather than a matter of editorial taste, and it is why
+T5.16's fix here is a log row and emphatically **not** a new criterion.
+
+**Connects.** Three document gates existed and each owned one kind of fact; this adds a second
+record to the third of them rather than a fourth gate. `docs_test.gd` owns what a document claims
+EXISTS and its MUST NOT line forbids asserting what prose SAYS; `doc_counts_test.gd` owns one
+number and forbids growing a second; `record_shape_test.gd` owns STRUCTURE. Neither of the first
+two could have hosted this and both say so in their own headers. The MUST NOT line gained one
+clause — that the gate may not require a package to be recorded in any PARTICULAR shape — because
+the three-shapes fact is the thing a future author is most likely to try to tighten, and it is the
+thing that would break T5.14.
+
+**Verified.**
+
+- `--headless --import`: exit 0, per gotcha 53 and before every engine command below.
+- `--headless --check-only tests/unit/record_shape_test.gd`: clean.
+- `--headless --quit-after 30`: *"Session ended after 0.6s — 0 warnings, 0 errors"*.
+- Suite: **2,221 → 2,274 passed, 0 failed, 0 skipped**, exit 0.
+- All seven checkers exit 0.
+- **No windowed capture.** Nothing here is a visual claim — same as T5.17 and T5.19.
+
+
+**AND `doc_counts_test.gd` FAILED ME ONCE ON ITS OWN CONVENTION, WHICH IS THE GATE WORKING.** The
+board note explaining gotcha 75 wrote *"four claims of seventy-four"* — a SPELLED tens-number on a
+line mentioning gotchas, which that case's header defines as a CLAIM about the list's current
+length rather than a record of what it used to say. So the suite reported
+`FAIL WORK_PACKAGES.md spells the gotcha count — expected seventy-six, got seventy-four` and the
+plan grew from 6 to 7, a fifth document having started making a claim. Digits fixed it, in three
+places. **That convention is stated in the case's own header and both `CONTEXT.md` and `ROADMAP.md`
+failed it the first time it ran**, so this is the third time — not a new gotcha, and the reason it
+is here is that a package writing ABOUT the count is the likeliest kind to trip it.
+**THE DELTA IS +53 AND EVERY ONE OF THEM IS A COMPUTED PLAN DOING ITS JOB.** Not one is a case
+this row wrote, and the arithmetic was measured against a reverted tree rather than predicted,
+per the method T5.23's miss established:
+
+| Case | Plan | Before | After | Why |
+|---|---|---|---|---|
+| `record_shape_test` | `docs + packages * 2 + 2` | 68 | 121 | The multiplier changed from 1 to 2 — **+51** for the roadmap check over 51 existing packages — and **+2** because this entry's own DEVLOG heading makes a 52nd, which now costs two assertions rather than one |
+| `docs_test` | `paths + fields + 2` | 119 | 119 | Unchanged, and this was checked rather than assumed: its `PATH_PATTERN` is `res://[A-Za-z0-9_./-]*` and every path named in this row's new prose is bare (`tests/unit/quest_chain_test.gd`), so it adds no scanned path. T5.23's +2 surprise was exactly this case, in the other direction |
+| `version_test` | `28 + <bold semvers in CONTEXT.md>` | 30 | 30 | Both bold semvers were rewritten in place `5.3.0` → `5.3.1`, not added to |
+| `doc_counts_test` | `claims + 2` | 6 | 6 | Unchanged **despite two gotchas being added**, which is that gate working rather than missing something: its plan counts the DOCUMENTS that state the length, not the entries, and the same four documents state it. All four were moved from seventy-four to seventy-six in the same commit, which is the only reason it stayed green |
+
+**THE PLANT IS THE LIVE REPOSITORY, WHICH IS THE STRONGEST FORM AVAILABLE AND THE ONE FORM THE
+LAST TWO GOTCHAS CANNOT REACH.** The assertion was written and run before a single document was
+edited. Gotcha 74 was a plant that passed because two files were byte-identical, and gotcha 75 a
+brand-new assertion that passed its own plant by coincidence of timing — both are failure modes of
+a *fabricated* condition. Nothing was fabricated here, so the red run cannot have failed for a
+fabrication's reason:
+
+```
+=== 2266 passed, 6 failed, 0 skipped ===    exit 1
+FAIL WP-07 is findable in the roadmap — expected true, got false
+FAIL T5.16 is findable in the roadmap — expected true, got false
+FAIL T5.17 is findable in the roadmap — expected true, got false
+FAIL T5.18 is findable in the roadmap — expected true, got false
+FAIL T5.19 is findable in the roadmap — expected true, got false
+FAIL T5.20 is findable in the roadmap — expected true, got false
+```
+
+**SIX, NOT FIVE — AND THE SIXTH IS THE ARGUMENT FOR THE WHOLE ROW.** **WP-07, path actions**, is
+the signature non-combat mechanic: `PathAction`, `PathActionPoint`, `Standing`, five `InteractVerb`
+values, `RefusalReason.LOW_STANDING`, and the refusal-versus-failure design that the whole
+interaction stack rests on. **It has been missing from `ROADMAP.md` since 2026-08-26**, and neither
+T5.21's recording of this gap nor T5.23's named it — both read the file and counted five. That is
+the case for a gate over a third reverse-count, delivered as a measurement rather than as a
+prediction, and it is the answer to anyone who reads this row as bookkeeping.
+
+**AND THE FOLLOW-UP PLANTS FOUND THE GATE'S LIMIT TWICE OVER, WHICH IS GOTCHA 76.** "It went
+green" is a claim about the fix and not about the assertion, so both directions were checked — and
+the first two attempts to plant it **passed**, each for a reason worth having in writing.
+
+Deleting T5.19's entire package-log row left the suite green at 2,274. The gate was working exactly
+as written: two other rows in `ROADMAP.md` mention T5.19 while saying something else — one
+crediting its measurement, one its argument — and `roadmap.contains("T5.19")` is true of either.
+Re-planted on T5.18, which the file named exactly once before this row started, it **passed again**
+— because **this row's own new entry names all five packages it reconciled**, in the course of
+explaining what was missing, so deleting T5.18's row left T5.18 findable inside the sentence
+describing its absence. **A row that records a gap is a cross-reference to every id in the gap**,
+and a reconcile package therefore invalidates its own plants as it works.
+
+The weakness is inherent to findability and is the price of the property being worth having: the
+alternative is a gate on recording SHAPE, which would fail T5.14. So the plants moved to ids the
+file names exactly once, counted with `grep -o -- "$id" docs/ROADMAP.md | wc -l` on the finished
+tree rather than the starting one:
+
+| Plant | Result |
+|---|---|
+| The live repository, assertion added, no document touched | **exit 1** — `2266 passed, 6 failed`, one per missing package, each named |
+| T5.19's whole package-log row deleted, everything else reconciled | **exit 0, GREEN** — gotcha 76's first half: two incidental mentions elsewhere satisfy `contains` |
+| T5.18's row deleted, everything else reconciled | **exit 0, GREEN** — gotcha 76's second half: this row's own entry names T5.18 while describing its absence |
+| WP-07's Phase 2 Done line deleted, before this row had a log row of its own | **exit 1, 2 failed** — `WP-07` **and `T5.24`**, which is how the row discovered its own only trace was an aside inside the line it had just written. Fixed by giving it a real log row |
+| T5.13's package-log row deleted — its sole mention, on the finished tree | **exit 1** — `FAIL T5.13 is findable in the roadmap`, **exactly 1 of 2,274** |
+| WP-05's Phase 2 Done-list parenthesis deleted — its sole mention | **exit 1** — `FAIL WP-05 is findable in the roadmap`, exactly 1, and from a DIFFERENT recording shape, which is what proves the check is indifferent to shape |
+| T5.20's package-log row deleted AND its cross-reference in this row's entry removed | **exit 1** — `FAIL T5.20 is findable in the roadmap`, exactly 1: the two-edit form of the plant the middle row above could not make |
+| Control, fully reconciled | **exit 0** — 2,274 passed |
+
+**Exactly 1 failure on each of the last three is the load-bearing detail**, not the exit code. It
+says the six failures in the first row are six independent facts rather than one assertion
+reported six times.
+
+**Unblocks.** A session can trust that a package named in the DEVLOG is findable in both the board
+and the roadmap without grepping for it, which is what makes "read your package and nothing else"
+workable. And the two remaining known record gaps are now the two that genuinely cannot be gated,
+which is a shorter and more honest list than "the roadmap is behind".
+
+**Gaps.**
+
+- **THE GATE CANNOT TELL A RECORD FROM AN INCIDENTAL MENTION, and that is gotcha 76 rather than
+  a defect to fix here.** `contains` is satisfied by another row's passing reference, so a package
+  whose only trace in `ROADMAP.md` is somebody else's sentence about it passes. The alternative is
+  a gate on recording SHAPE, which fails T5.14 for being recorded beside its criterion — so the
+  weaker check is the correct one and its limit is written down instead of engineered away. The
+  operational consequence is the plant rule, not the gate: count an id's mentions before planting
+  on it, and count again after your own edits.
+- **Gotcha 75 was named in T5.23's DEVLOG entry and never added to the list**, so the list held 74
+  entries while the record referred to a 75th. Both 75 and 76 are entries now and the four
+  documents that quote the count say seventy-six. **`doc_counts_test.gd` could not catch this** and
+  its header is honest about why: it owns the agreement between the list's LENGTH and the documents
+  that state it, so 74 entries and four claims of seventy-four was internally consistent. A gate on
+  "every gotcha number a DEVLOG entry cites exists in the list" is a different question — a
+  cross-reference rather than a count — and would need its own case and its own argument.
+- **The roadmap's T5.22 row sits AFTER its T5.23 row, and it was left there.** The gate's MUST NOT
+  line forbids asserting the ORDER of anything, for the reason T5.19 gave — order is an editorial
+  judgement — and reordering a hundred-line block inside a package about completeness would be
+  churn wearing a fix's clothes. Named rather than left for a reader to trip over.
+- **NOTHING GATES WHETHER A RECORD IS TRUE, only that it exists**, and this is a hard limit rather
+  than an omission. A roadmap row saying a package did the opposite of what it did passes. That is
+  T5.17's sentence about prose, standing exactly where it stood, and T5.1 — a phase reading
+  COMPLETE while carrying three unticked criteria — is what it looks like when the judgement half
+  goes wrong. Review's problem, permanently.
+- **The board's own detail sections are still ungated and one was wrong.** This file's heading for
+  the scene-level interaction test read `## T5.20 ·` over T5.21's content; fixed in passing, and
+  the gate could not have seen it because `contains("T5.20")` succeeds elsewhere in the file. A
+  gate on "every package with a detail section has the right heading" is a different question from
+  findability and would need to parse the sections, not the file. Not attempted, and T5.23 has no
+  detail section at all, which the same hypothetical gate would have to decide about.
+- **The assertion count and the method count are still not gated**, unchanged from T5.19's
+  statement of the same limit: a case cannot know the suite's own final total while the suite is
+  running. This entry's own "2,274" is review's problem like every one before it.
+- **`src/systems/scene_director/director.gd` is still at 187 of its 190**, three lines from the
+  wall, on an override WP-14 already raised once. Untouched here — a documentation package is the
+  wrong place to spend a decision — and it remains the tightest file in the repository.

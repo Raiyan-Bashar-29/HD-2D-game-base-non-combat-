@@ -128,6 +128,13 @@ Exit criteria:
 - [x] Loading that hides behind the fade, with the shader warm-up hitch handled (WP-04)
 - [x] Navigation baking, and one NPC that walks a route by the clock (WP-06)
 - [x] Dialogue runner, dialogue UI, and an authorable conversation format (WP-05)
+- [x] Path actions — the non-combat verbs you perform on a person, with a standing that gates
+      them and that they move (WP-07). **A refusal and a failure are different things, and
+      keeping them apart is the whole design**: a refusal happens BEFORE anything and costs
+      nothing, a failure happens AFTER committing and costs standing, and `success_standing` is
+      a threshold rather than a probability because a save-scummed mechanic is experienced as a
+      slot machine rather than as a relationship. This line was missing from the roadmap
+      entirely until T5.24 gated the question
 - [x] The pause menu itself, and the other four menus with it (WP-12, taken early because
       Phase 3's controller-navigation criterion needed screens to navigate)
 - [x] Localization wired for real: every string is already an ID, and since T5.1 the locale
@@ -592,7 +599,7 @@ OPTIONAL and blocks nothing. The board carries the full reasoning.
 ---
 
 
-## Phase T5 — The base as a reusable CHARACTER kit · **IN PROGRESS**
+## Phase T5 — The base as a reusable CHARACTER kit · **COMPLETE, 2026-09-09**
 
 *Goal: a future game inherits working characters and changes only assets. Several idle formats and
 several movement styles, so that swapping a sprite sheet makes a character feel different without
@@ -912,6 +919,98 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   dark-palette assertion in the file and fails only the light ones, which is why the light
   palette had to be asserted rather than only photographed.
 
+- **T5.16 Quest chaining, and the guard that discarded what it was warned about — DONE,
+  2026-09-07.** Two things, and the first was not a package: **the sixteen-package T5 stack landed
+  on `main`** as one fast-forward of 31 commits, `main` having declared `1.0.1` while the work
+  declared `4.2.0`, so every document a new session is told to trust described a base fifteen
+  versions stale. Then a real correctness defect, found by auditing the base rather than by any
+  rung: `QuestTracker.evaluate()` guarded re-entrancy by **RETURNING**, so a listener on
+  `quest_completed` writing the next chapter's start flag — **the case the guard's own comment
+  names** — landed back in `evaluate()` mid-pass and was discarded. Harmless only if the running
+  pass still reaches the newly-startable quest, which depends on where it sits in `QuestDb.all()`
+  — `ContentScan` insertion order, unsorted — so a chapter that begins when the previous one ends
+  started or silently did not according to filenames, and differently on two machines. Fixed with
+  a pending bit drained by the outer pass, bounded at `QuestDb.count() + 2` so it cannot go stale
+  at a game's sixtieth quest. `tests/unit/quest_chain_test.gd`, 8 assertions; the plant fails
+  **exactly 1 of the 8**, and that is the load-bearing detail — the benign scan order passes while
+  the defect is live, so the two order blocks are demonstrably not the same test twice. **Gotcha
+  72**: the tell is whether a guard's caller wanted a RETRY or wanted to be REFUSED. `4.2.1`, a
+  PATCH. Also: **branch protection went on `main`**, requiring both `Ladder` jobs, which retires
+  this project's own "not built" line for it.
+
+- **T5.17 Reconciling the record with what the gates now do — DONE, 2026-09-07.** Six
+  documentation defects from the same audit that produced T5.16, every one of them prose
+  disagreeing with shipped behaviour, and no code changed. `CONTEXT.md`'s "Not built" list still
+  called the `Button` styleboxes unbuilt three hundred lines below its own header announcing
+  T5.15 built them; `quest.` was missing from the prefix tables in `TEMPLATE.md` and
+  `AUTHORING.md` while `AUTHORING.md` routes the reader to `TEMPLATE.md` as canonical, so the
+  canonical copy was the wrong one; `keys.*` was listed as an engine prefix in three documents and
+  has **zero** rows in the CSV, which is gotcha 48 in the other direction; `TEMPLATE.md` promised
+  an `OPTIONAL` status in `SYSTEMS_INVENTORY.md` that never arrived in eleven packages;
+  `AUTHORING.md`'s gate table explained **three of seven** checkers in the one document a consumer
+  is told to author from; and `check_boundary`'s row omitted the localization half T5.4 added.
+  **Split from T5.16 rather than folded into it** because T5.16 is a behaviour change with a plant
+  and a control and this is prose with no assertions of its own — mixing them would have put six
+  unverifiable edits inside a commit whose whole claim is that one thing was measured. **Its
+  recorded gap is the sentence T5.19 then half-overturned**: *"nothing gates a prose claim, and
+  nothing can"*, which is right about prose and wrong about structure.
+
+- **T5.18 The save loader's refusals, and a path nothing can enter — DONE, 2026-09-07.**
+  `tests/unit/save_recovery_test.gd`, 17 assertions, with `save_system.gd` byte-identical to
+  `main`. **Six refusal branches were carried by review alone**: a file that is not JSON, a
+  missing `version`, a save from a newer build, a non-Dictionary section, a section predating
+  per-section versioning, and a section absent altogether — a grep for `ERR_FILE_CORRUPT` across
+  `tests/` returned nothing and no test had ever written a malformed save file. **THE DISTINCTION
+  THE CASE EXISTS TO PIN IS A POLICY**: a corrupt ENVELOPE is refused outright, a corrupt SECTION
+  is logged and skipped while the rest of the save loads — the difference between a player losing
+  a setting and a player losing forty hours, implemented correctly and asserted nowhere, so
+  nothing stopped a later change collapsing the two. Chosen over the taxonomy row on one point
+  that inverted the plan's own ranking: **prose cannot be proved by running the engine.** And it
+  found the eighth appearance of declared-and-not-reached, the first where the unreached thing is
+  a control-flow PATH: at `SCHEMA_VERSION == 1` no integer satisfies not-one, above-zero and
+  at-most-one, so `_migrate`'s success path cannot be entered by any file a player can have, and
+  `SYSTEMS_INVENTORY.md` called migration DONE — which reads as *exercised* and meant *written*.
+  **The case expires by itself**, pinning `SCHEMA_VERSION` so the suite fails at exactly the
+  moment a migration test first becomes possible. `4.3.0`, a MINOR. Also took `v2.0.0`, `v3.0.0`,
+  `v4.0.0` and `v4.2.1`.
+
+- **T5.19 Reconciling the record, and gating the part of it that is not prose — DONE,
+  2026-09-08.** Twelve places where the record disagreed with the repository, plus
+  `tests/unit/record_shape_test.gd` (63 assertions) and a third fact for `version_test.gd`. No
+  production code changed. The twelve include `CONTEXT.md` — the file `CLAUDE.md` orders every
+  session to read FIRST — stating version `2.4.0` two majors late, claiming 1,798 assertions
+  against 2,143, and carrying a **"THE NEXT PACKAGE"** paragraph describing T5.2's long-shipped
+  work, which was the most misleading of the twelve because it sent a reader to redo it.
+  **AND THE ANSWER WAS A GATE RATHER THAN A THIRD RECONCILE**, which is this row's whole point:
+  T5.17's *"nothing gates a prose claim, and nothing can"* is right about prose and wrong about
+  two of the twelve, because a file either opens with its own title or it does not and a package
+  either has a row or it does not. Neither question has a reading or a tone, which is exactly why
+  they are assertable when the sentences around them are not — **structure is a third kind of
+  fact**, after "what a document claims exists" (`docs_test.gd`) and "a count"
+  (`doc_counts_test.gd`), and it got a third case rather than widening either MUST NOT line.
+  **Gotcha 70 caught the author of the gate built to catch drift**: plant 3 passed at exit 0
+  because the `sed` addressed line 143 and the claim was on 144, so a green run was nearly
+  recorded as evidence. `4.3.1`, a PATCH.
+
+- **T5.20 Splitting the staging surface, and the gate that makes a split safe — DONE,
+  2026-09-09.** `src/systems/debug/dev_stage.gd` stood at **248 of its 250** allowed code lines,
+  so the next change to it would have failed rung 5; five staging flags that push a screen moved
+  to a new sixth debug file, `dev_screens.gd`. **The docs had pointed at the wrong file for ten
+  rows** — `CONTEXT.md` and the candidate list had called `tools/gen_placeholders.gd` "the next
+  file to split" since WP-14, and it has twenty lines spare; T5.19 measured every file with
+  `check_budgets.gd`'s own rule and found which one was actually against the wall, which is the
+  measurement earning its keep against ten packages of unchecked prose. **The seam was chosen by
+  QUESTION, and it is a dependency fact rather than a filing preference**: `dev_stage.gd` answers
+  *what is TRUE in the world* and `dev_screens.gd` *what is DRAWN OVER it*; every flag that moved
+  ends in a `UiRoot.open()` and not one that stayed does, and those five were the only staging in
+  the file naming the `ui` layer at all. Precedent respected in both directions — the surface has
+  split three times along a question and `dev_gait_shots.gd` **declined** a fourth for buying only
+  "a more accurate FILE NAME". One dividend: gotcha 35's rule that a flag drawing to SCREEN waits
+  for a SETTLED area was stated in a header shared with eleven flags that do not draw, which is
+  how `--stand-by` went four packages without following it; in `dev_screens.gd` it is the file's
+  whole subject, so a seventh screen flag inherits it by being in the right place. `5.0.0`, a
+  MAJOR.
+
 - **T5.21 A scene-level interaction test, and the defect it found — DONE, 2026-09-09.** Taken
   because another file asked for it in writing: `interaction_test.gd`'s MUST NOT line has read
   since WP-02 that the sensor's ranking *"needs real geometry and belongs in a scene-level test"*,
@@ -999,6 +1098,36 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   with only second-resolution `saved_utc` and tenth-snapped `playtime_seconds` varying. Different
   markers fixed it; the same plant now fails 4. **Two plants, different sets** — full reversion 4,
   runner deactivate removed 3.
+
+- **T5.24 The roadmap's missing run, and whether completeness should be gated — DONE,
+  2026-09-09.** This file's own package log ran T5.15 and then jumped to T5.21: **T5.16, T5.17,
+  T5.18, T5.19 and T5.20 were absent**, five delivered packages each with a DEVLOG entry, a board
+  row and a version bump of its own, and no trace in the file `CLAUDE.md` sends a reader to for
+  *where things stand*. T5.21 recorded the gap; T5.23 recorded it again and promoted it to the top
+  of the next-package list; **nothing was red, because nothing counted the rows** — T5.4's
+  structural cause one level up from code. **THE ROW WAS TWO THINGS AND THE SECOND MATTERED:**
+  writing five entries is bookkeeping, and the question was whether completeness should be GATED
+  the way `record_shape_test.gd` already gates two other structural facts. **It should, and T5.19
+  is the precedent rather than an analogy** — that row exists precisely because a third manual
+  reconcile was the wrong answer, and its argument transfers unchanged: a package either has a row
+  or it does not, and that question has no reading and no tone. **THE COUNTER-ARGUMENT WAS REAL
+  AND IS ANSWERED BY THE SHAPE OF THE CHECK.** This file's log genuinely is selective in a way the
+  board is not — it records a package as a log row, as a tick beside an exit criterion, or as a
+  parenthesis in a phase's Done list, and **T5.14 is only ever the second** — so the assertion is
+  `roadmap.contains(id)`, findability, which is the identical choice T5.19 made for the board and
+  for the reason written there. The roadmap may record a package in whichever shape fits; it may
+  not omit one. **And T5.16's refusal to touch this file was about the CRITERIA list**, which says
+  nothing about the package log — a different list in the same file, asking where a package sits in
+  the plan rather than whether a phase may close. **THE PLANT WAS THE LIVE REPOSITORY**, run
+  before a document was edited — the one plant shape gotchas 74 and 75 cannot reach, both being
+  failures of a fabricated condition — and it named **SIX, not five**: **WP-07, path actions, the
+  signature non-combat mechanic, missing from this file since 2026-08-26** and named by neither of
+  the two packages that had recorded this gap by reading it. That is the case for a gate over a
+  third reverse-count, as a measurement. **Gotcha 76** came out of the plants that followed:
+  findability is satisfied by an incidental cross-reference, so deleting T5.19's log row left the
+  suite green on two passing mentions elsewhere. `5.3.1`, a PATCH; `src/` and `tools/`
+  byte-identical. Suite 2,221 → **2,274**, and all 53 are computed plans doing their job rather
+  than a case this row wrote.
 
 ## Sequencing rules
 

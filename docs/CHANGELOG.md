@@ -19,6 +19,48 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.3.1
+
+*2026-09-09 — the roadmap's completeness is now a gate rather than a habit, and the six packages
+it was already missing are recorded.*
+
+**A consuming game does: nothing.** No file under `src/` or `tools/` changed — `git diff` on both
+trees is empty. The only production-side change is `project.godot`'s `[template] base/version`.
+
+**The one thing worth knowing before you merge, and it is about YOUR docs, not ours.**
+`tests/unit/record_shape_test.gd` gained one assertion per package the DEVLOG records: **every
+such package must now be findable in `docs/ROADMAP.md`**, exactly as it has had to be findable in
+`docs/WORK_PACKAGES.md` since `4.3.1`. If your fork keeps `docs/DEVLOG.md` and `docs/ROADMAP.md`
+and writes its own package entries, the new assertion applies to them, and a package you logged
+without ever naming it in the roadmap will fail rung 4. That is the gate doing its job, and the
+fix is a sentence.
+
+**FINDABLE, not "has a package-log row".** The check is `roadmap.contains(id)`, the same shape as
+the board check, so any of the roadmap's three recording shapes satisfies it: a package-log row
+under a phase, a tick beside an exit criterion, or a parenthesis in a phase's Done list. A
+stricter rule would have failed packages in this very repository that are genuinely recorded —
+T5.14 appears only beside the criterion it closed — and "recorded in the file a reader is sent to"
+is the property that actually matters.
+
+**If your fork DELETED `docs/`**, nothing changes: `record_shape_test.gd` has failed on its "the
+log records packages to check" precondition since `4.3.1`, deliberately, and `docs_test.gd` and
+`doc_counts_test.gd` have always behaved that way. A doc gate that passes because it found nothing
+to check is worse than no gate. If you deleted the docs you have already dealt with this.
+
+**Recorded, not built:** `ROADMAP.md` gained package-log rows for **T5.16, T5.17, T5.18, T5.19 and
+T5.20** and a Phase 2 Done line for **WP-07**. Six delivered packages had a DEVLOG entry and a
+board row and no trace in the roadmap at all. WP-07 — path actions, the signature non-combat
+mechanic — had been missing since 2026-08-26 and was found by the gate rather than by the two
+manual reconciles that preceded it, which is the argument for the gate stated as a measurement.
+
+**Also recorded, and none of it reaches your code:** Phase T5's roadmap header now reads
+**COMPLETE**, which `5.3.0` earned and did not take; gotchas **75 and 76** were added to
+`CONTEXT.md`'s list — 75 having been named in a DEVLOG entry and never added — and the four
+documents that quote the list's length moved from 74 to 76. If your fork keeps
+that list and its own count claims, `doc_counts_test.gd` governs them exactly as before; nothing
+about its rule changed.
+
+---
 ## 5.3.0
 
 *2026-09-09 — a sheet may now name a SECOND IDLE, and dwell time chooses when it plays. The last

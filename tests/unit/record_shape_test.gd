@@ -30,14 +30,17 @@ extends TestCase
 ## THE PLAN IS COMPUTED from what the scan found, for `docs_test.gd`'s reason: adding a document
 ## or a package should not mean editing a number.
 ##
-## OWNS: that every document opens with its own title, and that every package the log records has
-##   a row on the board.
+## OWNS: that every document opens with its own title, and that every package the log records is
+##   findable in BOTH the board and the roadmap.
 ## MUST NOT: assert the wording of any prose, the ORDER of anything, or what a row SAYS. A row
 ##   that exists and is wrong is a review problem; a row that does not exist is this one.
+##   Nor may it require a package to be recorded in any PARTICULAR shape — a row, a tick beside a
+##   criterion and a parenthesis in a Done list are all recording; see the roadmap check.
 
 const DOC_DIR: String = "res://docs"
 const EXTRA_DOCS: Array[String] = ["res://CLAUDE.md"]
 const BOARD: String = "res://docs/WORK_PACKAGES.md"
+const ROADMAP: String = "res://docs/ROADMAP.md"
 const LOG: String = "res://docs/DEVLOG.md"
 
 ## A log heading is `## <date> — <id> · <title>`. Only a WELL-FORMED package id is a package:
@@ -53,11 +56,12 @@ var _packages: Array[String] = []
 
 func run() -> void:
 	_gather()
-	plan(_docs.size() + _packages.size() + 2)
+	plan(_docs.size() + _packages.size() * 2 + 2)
 	equal("docs/ carries documents to check", _docs.size() > 0, true)
 	equal("the log records packages to check", _packages.size() > 0, true)
 	_every_document_opens_with_its_title()
 	_every_recorded_package_has_a_board_row()
+	_every_recorded_package_is_findable_in_the_roadmap()
 
 
 ## A markdown file whose first content is not its heading has had something appended to the wrong
@@ -74,6 +78,30 @@ func _every_recorded_package_has_a_board_row() -> void:
 	var board: String = FileAccess.get_file_as_string(BOARD)
 	for id: String in _packages:
 		equal("%s has a row on the board" % id, board.contains(id), true)
+
+
+
+## The roadmap is where a package's PLACE in the plan is recorded and the board is where its WORK
+## is. A package findable on neither is work whose reason cannot be reconstructed; a package
+## findable on the board alone is a thing that was built with no trace of what it was for.
+##
+## FINDABLE, not "has a package-log row" — deliberately, and it is the choice T5.19 made for the
+## board one function above. The roadmap records a package in whichever of three shapes fits: a
+## package-log row under a phase, a tick beside an exit criterion — T5.14 is only ever the latter
+## — or a parenthesis in a phase's Done list, which is WP-02 and WP-04. A stricter rule would fail
+## packages that are genuinely recorded, and "recorded in the file a reader is sent to" is the
+## property that matters.
+##
+## T5.16 DECLINED TO TOUCH THE ROADMAP AND GAVE A REASON, AND THE REASON WAS ABOUT CRITERIA:
+## "no exit criterion covers a defect fix, and inventing one to have something to tick would be
+## the ticking-without-proving this project spent T5.1 undoing". That is right about the criteria
+## list and says nothing about the package log, which is a different list in the same file
+## answering a different question. Separating the two is what makes this assertable rather than a
+## matter of editorial taste.
+func _every_recorded_package_is_findable_in_the_roadmap() -> void:
+	var roadmap: String = FileAccess.get_file_as_string(ROADMAP)
+	for id: String in _packages:
+		equal("%s is findable in the roadmap" % id, roadmap.contains(id), true)
 
 
 func _gather() -> void:

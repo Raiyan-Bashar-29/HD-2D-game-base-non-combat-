@@ -3,82 +3,72 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-09 · **T5.23 (a second idle block and a chooser) complete — the LAST
-PHASE T5 EXIT CRITERION, at 5.3.0, a MINOR.** T5.2 made gaits data, so idle, walk, run, sneak and
-climb are separate cycles a SHEET names; what did not exist was more than one IDLE and anything to
-choose between them, so a character stood in exactly one way forever.
+**Last updated:** 2026-09-09 · **T5.24 (the roadmap's missing run, and whether completeness
+should be gated) complete, at 5.3.1, a PATCH.** `ROADMAP.md`'s package log ran T5.15 and then
+jumped to T5.21: T5.16, T5.17, T5.18, T5.19 and T5.20 had a DEVLOG entry, a board row and a
+version bump each, and no trace in the file `CLAUDE.md` sends a reader to for *where things
+stand*. T5.21 recorded the gap, T5.23 recorded it again and promoted it to the top of this file's
+next-package list, and **nothing was red because nothing counted the rows.**
 
-**THE GAP WAS NEVER THE BLOCK.** `SpriteSheetLayout` could address 32 animations and
-`frame_index` could draw any of them since T2.1 — a sheet could always CARRY a second idle. What
-was missing is that every block in this template is chosen by a `GameEnums.MoveState`, and
-standing still is one state, so nothing would ever ask for one. **The row is therefore a chooser,
-and the chooser is DWELL TIME with its threshold on the SHEET**: `idle_break_row` names the block,
-`idle_break_after` says how many seconds of unbroken standing start it, the block plays ONCE and
-hands back, and the clock restarts from the END of the break rather than from its start.
+**THE ROW WAS TWO THINGS AND THE SECOND MATTERED.** Writing five entries is bookkeeping; the
+question was whether completeness should be GATED, and the answer is yes on T5.19's own argument
+rather than by analogy to it — that row exists *because a third manual reconcile was the wrong
+answer*, and "a package either has a row or it does not" has no reading and no tone in `ROADMAP.md`
+any more than it does on the board. `record_shape_test.gd` gained one assertion per recorded
+package; no fourth gate, and its OWNS line grew a record rather than a kind of fact.
 
-**WHY DWELL AND NOT WEATHER, A SCHEDULE OR AN AREA TAG.** Those were the other three candidates,
-and each of them needs an autoload — `Weather`, `Clock`, `Flags` — which `sprite_sheet_layout.gd`'s
-MUST NOT line forbids outright and `character_visual.gd`'s forbids from the other side, it being
-*told* a velocity and a state. Dwell is the one trigger derivable from what the visual is ALREADY
-handed every frame, so it is the only one of the four that needs no new dependency anywhere.
-Nothing is lost: a game that wants a rain idle pushes a MoveState, or swaps the layout resource.
+**THE COUNTER-ARGUMENT WAS REAL AND THE SHAPE OF THE CHECK IS THE ANSWER.** The roadmap IS
+legitimately selective where the board is not: it records a package as a log row, as a tick beside
+an exit criterion, or as a parenthesis in a phase's Done list — and **T5.14 is only ever the
+second**, so a gate demanding a log row would fail a package that is thoroughly recorded. So the
+assertion is `roadmap.contains(id)`, findability, which is the identical choice T5.19 made one
+function above for the board and for the reason written there. The roadmap may record a package in
+whichever shape fits; it may not omit one. **And T5.16's refusal to touch this file was about the
+CRITERIA list** — a different list in the same file, asking whether a phase may close rather than
+where a package sits in the plan.
 
-**THE WINDOWED CAPTURE IS THE CLAIM, AND IT CAME BACK WITH THREE NUMBERS RATHER THAN A
-JUDGEMENT.** A new `--idle-shots=<dir>` pass on `dev_gait_shots.gd` presses nothing at all — the
-whole input is standing still — and it WATCHES rather than aiming a frame number, because the
-moment of interest is decided by a threshold on the sheet the probe must not know (gotcha 52's
-shape again). Sampling six times a second for eight seconds, the decoded block went
-`0x12, 3x8, 0x18, 3x8, 0x2`: the break ran 1.33s, which is 4 cells at 3fps exactly, and the gap
-between two breaks was 18 samples — **3.0s, the authored number, measured from the END of the
-previous break**, confirming the restart decision windowed and independently of the suite. And the
-crops: the idle block's own cycle moves 0.0949 of the crop, the break's own cycle 0.1406, and the
-two BLOCKS differ by **0.6184** — four to six times either cycle's internal motion, which is what
-says a second idle was photographed and not a recolour with a wobble.
+**THE PLANT WAS THE LIVE REPOSITORY, WHICH IS THE ONE PLANT SHAPE GOTCHAS 74 AND 75 CANNOT
+REACH**, both being failures of a fabricated condition: the assertion ran before a document was
+edited, at `2266 passed, 6 failed`, exit 1. **It named SIX, not five — and the sixth is the whole
+argument.** **WP-07, path actions**, the signature non-combat mechanic, has been missing from
+`ROADMAP.md` since 2026-08-26, and neither of the two packages that recorded this gap by reading
+the file had named it. Both counted five. That is the case for a gate over a third reverse-count,
+delivered as a measurement.
 
-**AND THE PLANTS FOUND A HOLE IN THE NEW TEST ITSELF — GOTCHA 75.** "Interrupted standing does not
-accumulate into a break" PASSED under the very defect it was written for: with the dwell never
-reset by movement the break duly started, and then FINISHED inside the same stand, so the case
-read the idle block and agreed by coincidence. Gotcha 70's shape, one row along from T5.22's, and
-the fix is timing rather than logic — the second stand is now short enough that a wrongly-started
-break is still on screen when it is measured. **Seven plants, seven different failure sets.**
-`tests/unit/idle_break_test.gd` is 26 assertions. **2,192 → 2,221, which is +26 +2 +1**: 26 are the new case's own plan, 2 are `docs_test.gd` newly asserting that `idle_break_row` and `idle_break_after` exist on the class now that `ART_CONTRACT.md`'s worked example names them, and 1 is `record_shape_test.gd` gaining a package from this row's DEVLOG heading.
+**AND THE FOLLOW-UP PLANTS FOUND THE GATE'S LIMIT TWICE OVER, WHICH IS GOTCHA 76.** Deleting
+T5.19's entire package-log row left the suite **green at 2,274**: two other rows mention T5.19
+while saying something else, and `contains` is true of either. The corrected plant on T5.18 then
+went green for the SAME reason a second time — **this row's own new entry names all five packages
+it reconciled**, so deleting T5.18's row left T5.18 findable inside the sentence describing its
+absence. A row that records a gap is a cross-reference to every id in the gap. The gate cannot
+tell *recorded* from *mentioned in passing*, which is inherent to findability and the price of the
+property being worth having. Rules: plant a record gate on an id the document names exactly ONCE,
+**re-count after your own edits**, and know a package whose only trace is somebody else's sentence
+passes — **this row found ITSELF in that state**, its only roadmap mention being an aside inside
+the WP-07 line, surfaced only because deleting that line failed TWO assertions rather than one. It
+gave itself a real log row. Re-planted on the finished tree against three ids the file names once
+each, one per recording shape: T5.13's log row, WP-05's Done-list parenthesis, and T5.20's row
+together with its cross-reference — **exactly 1 failure each, correctly named**. Control, exit 0
+at 2,274.
 
-*(Previously: T5.22 made `SAVE_DIR` redirectable, a MINOR, and a consuming game does nothing)* — `SaveSystem.SAVE_DIR` became the settable
-`save_dir`, but all six of its uses were inside `save_system.gd`, so the rename reaches nothing a
-game wrote.
+**Also recorded here rather than left implied:** gotcha 75 was named in T5.23's DEVLOG entry and
+never added to the list, so the list held 74 entries while the record referred to a 75th. Both 75
+and 76 are now entries, and the four documents that quote the count say seventy-six.
+`record_shape_test.gd` 68 → **121**; suite 2,221 → **2,274**, and all 53 are computed plans doing
+their job rather than a case this row wrote — measured against a reverted tree, per T5.23's
+method, not predicted.
 
-**THE SUITE WAS WRITING INTO THE DEVELOPER'S OWN SAVE DIRECTORY, AND IT WAS THE LAST ROOT THAT
-COULD.** `fixtures.gd` repoints five content roots under `user://test_fixtures`; the save store
-was the sixth and the only one left out, because its directory was a `const`. So
-`save_recovery_test.gd` — the case that exists to write MALFORMED save files — and `core_test.gd`'s
-round trip both wrote real slots. **They cleaned up after themselves, which is not the same as
-never having been there**: the run that fails to clean up is the run that crashed, and the slot
-numbers the suite picks are slot numbers a player may have filled. `tests/framework/save_fixture.gd`
-now points the store at `user://test_saves`, and `test_runner.gd` points it back after EVERY case
-rather than only the ones that switched — `fixtures.gd`'s own discipline, and its reason verbatim.
-**`save_dir` is PUBLIC rather than test-only**, because a portable build writing beside its
-executable wants exactly this seam, and a backdoor that exists for the suite alone is what
-`fixtures.gd`'s header refuses to add. `save_system.gd` went 166 → 172 of its 180, measured
-BEFORE the row was started because the row's own justification was that it is small.
-
-**AND THE FIRST VERSION OF THE LOAD-BEARING CASE PASSED THE PLANT.** It compared the untouched
-directory's file byte-for-byte against a copy taken before the redirected write, and the full
-reversion — every use back to the constant — passed it: both writes landed on the same path
-inside the same second, and `saved_utc` is second-resolution while `playtime_seconds` snaps to a
-tenth, so the overwrite was byte-identical to what it overwrote. The two saves now carry
-different markers. **Gotcha 74**, and it is gotcha 70's shape one turn on: a plant that passes
-against an edit you have CONFIRMED applied is evidence about the case, and the answer is a harder
-case rather than a weaker claim.
-
-**AND THE STACK LESSON COST A SECOND TIME, WHICH IS WHY IT IS HERE AND NOT ONLY IN A DEVLOG.**
-T5.21 was authored off `main` while T5.19 and T5.20 were open, declared `4.4.0` on a tree
-containing neither, and had to be rebased onto both — five conflicts, all of them RECORD rather
-than code. This package then hit the same wall from the other side: a second session, working in
-parallel, landed the stack and opened a competing PR carrying the same tree. Both had independently
-reached `5.1.0`, and the trees were byte-identical under `src/`, `tests/` and `project.godot`, so
-the duplicate was closed and the richer branch kept. **Run `gh pr list --state open` before
-branching, and prefer one package in flight at a time** — a stack is invisible from `main`, and
-two sessions on one row is the same defect wearing a second hat.
+*(Previously: T5.23 gave a sheet a SECOND IDLE and made dwell time the chooser — the last Phase T5
+exit criterion, a MINOR at 5.3.0. The gap was never the block: `SpriteSheetLayout` could address 32
+animations since T2.1, but every block is chosen by a `GameEnums.MoveState` and standing still is
+ONE state, so nothing would ever ask for a second one. `idle_break_row` names the block,
+`idle_break_after` starts it, it plays once and hands back, and the clock restarts from the END of
+the break. Dwell rather than weather, a schedule or an area tag because each of those needs an
+autoload both `sprite_sheet_layout.gd` and `character_visual.gd` are forbidden to touch. Its plants
+found gotcha 75, now on the list. Before that: T5.22 made `SaveSystem.SAVE_DIR` the settable
+`save_dir` so the suite stopped writing into the developer's own save directory, a MINOR at 5.2.0
+with all six uses inside one file, and its load-bearing case passed its own plant because the
+overwrite was byte-identical to what it overwrote — gotcha 74.)*
 
 *(Previously: T5.21 wrote the scene-level interaction test `interaction_test.gd` had asked for in
 writing since WP-02, and it found a real defect on its first run — `<` on two `StringName`s
@@ -123,10 +113,10 @@ game built on this will need, so a new game is content and data rather than new 
 
 ## Where it stands
 
-Phase 0, Phase 1 and Phase 2 are complete, **Phase T1, T2, T3 and T4 are COMPLETE, and Phase T5 —
-the base as a reusable CHARACTER kit — has ONE exit criterion left**: a second idle block and a
-chooser between them. That is the only unticked box in `ROADMAP.md`, and closing the phase on it
-is the owner's call.
+Phase 0, Phase 1 and Phase 2 are complete, and **every T-phase is COMPLETE: T1, T2, T3, T4 and —
+since T5.23 took its last exit criterion on 2026-09-09 — T5, the base as a reusable CHARACTER
+kit.** `ROADMAP.md` has no unticked box anywhere, and T5.24 marked the phase header to match; the
+file's package log is now complete too, and `record_shape_test.gd` fails if it stops being.
 
 **WP-15 IS CLOSED and WP-10 stays OPTIONAL, so nothing is blocking.** The two rows that stood
 between the board and Phase T4 are settled: the owner closed WP-15's remnant on 2026-09-02 rather
@@ -160,28 +150,31 @@ sheet, and every facing draws a different figure.
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version is** **5.3.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+**The version is** **5.3.1**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
 the owner's to close or to leave.
 
-**THE NEXT PACKAGE IS A CHOICE, NOT A QUEUE.** Nothing is blocking, and **Phase T5 now has no
-unticked exit criterion** — T5.23 took the last one. The strongest rows, in the order this file
-recommends them: **reconciling `ROADMAP.md`'s missing run of T5.16 to T5.20**, which is the only
-KNOWN record gap left and is partly gated already by `record_shape_test.gd`; the
-**template-default vs game-choice taxonomy**, which gates three rows below it and is honestly weak in that it is prose
-and cannot be proved by running the engine; a **narrative-staging seam**, `Cutscenes` being the
-only `TODO` in `SYSTEMS_INVENTORY.md` with no stated reason; and **time above the scale of one
-day**. **T5.21 took the scene-level interaction test off this list**, and it is worth recording
-what that row returned: a false-confidence gap that a run could close, closed, with a real defect
-found in the code the test was written to cover. **The tightest file is now
-`src/systems/scene_director/director.gd` at 187 of its 190** — three lines, on an override WP-14
-already raised once, so raising it again is a decision rather than a mechanical move.
-`tools/gen_placeholders.gd` stays on the list, now at 234 of 250 — T5.23 added its fourth
-animation block, and four of its twenty spare lines went with it. T5.20 split `dev_stage.gd`, which was
-the urgent one at 248, down to 175.
-**T5.22 took the redirectable `SAVE_DIR` off it as well**, and what that row returned was a
-gotcha rather than a defect: the case that proved it passed its own plant first.
-**T5.23 took the second idle off it and closed Phase T5**, and returned a gotcha of exactly that
-family one number along — a new assertion that passed its own plant by coincidence of timing.
+**THE NEXT PACKAGE IS A CHOICE, NOT A QUEUE.** Nothing is blocking, **Phase T5 has no unticked
+exit criterion** — T5.23 took the last one — and **T5.24 took the last KNOWN record gap off this
+list, and gated it so the next one is red rather than remembered.** The strongest rows, in the
+order this file recommends them: the **template-default vs game-choice taxonomy**, which gates
+three rows below it and is honestly weak in that it is prose and cannot be proved by running the
+engine; a **narrative-staging seam**, `Cutscenes` being the only `TODO` in `SYSTEMS_INVENTORY.md`
+with no stated reason; **time above the scale of one day**; and **the placeholder sheet's fourth
+animation BLOCK, which no test asserts is visually distinct from its first** —
+`sheet_facings_test.gd` does exactly this for FACINGS and the equivalent for BLOCKS is answered
+only by a windowed capture a person reads, which is T5.8's own argument left half-applied.
+**T5.21 took the scene-level interaction test off this list**, and what that row returned is worth
+recording: a false-confidence gap that a run could close, closed, with a real defect found in the
+code the test was written to cover. **T5.22 took the redirectable `SAVE_DIR`** and returned a
+gotcha rather than a defect — the case that proved it passed its own plant first, gotcha 74.
+**T5.23 took the second idle and closed Phase T5**, returning gotcha 75, the same family one
+number along. **T5.24 took the roadmap reconcile and returned gotcha 76**, which is that family's
+third turn and the new gate's own stated limit: `contains` findability cannot tell a record from
+an incidental mention, so plant a record gate on an id its document names exactly once. **The
+tightest file is still `src/systems/scene_director/director.gd` at 187 of its 190** — three lines,
+on an override WP-14 already raised once, so raising it again is a decision rather than a
+mechanical move. `tools/gen_placeholders.gd` stays on the list at 234 of 250; T5.20 split
+`dev_stage.gd`, which was the urgent one at 248, down to 175.
 
 
 166 files, 15,552 code lines, 17 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
@@ -189,7 +182,7 @@ three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite shee
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 4 on the default one, the
 fourth being a second IDLE rather than a gait**,
 1 shared area material, **21 settings and 21 consumers**.
-Template version **5.3.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+Template version **5.3.1**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
 recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 
@@ -226,7 +219,7 @@ which is `check_strings.gd`'s static rule made visible and including anything co
 **A SAVE THAT SURVIVES A REAL RELAUNCH**, proved in TWO PROCESSES rather than one reload:
 `--save-state` / `--load-state` in `dev_probes.gd`, with the fresh process's boot line as
 the control and the weather deliberately STORM because CLEAR is the boot default ·
-placeholder art generator · line-budget checker · a headless test suite (2,173 assertions) that
+placeholder art generator · line-budget checker · a headless test suite (2,274 assertions) that
 builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
 returns early, asserts nothing, or is not listed in the runner ·
 an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
@@ -1083,7 +1076,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 2,192 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 2,274 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content, and no orphan CSV row
@@ -1094,7 +1087,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Seventy-four gotchas that each cost an hour
+## Seventy-six gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -1978,6 +1971,41 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     for both is the same: a result that contradicts a measurement taken somewhere else is a
     question about the two contexts before it is an answer about the code.
 
+75. **A BRAND-NEW ASSERTION CAN PASS ITS OWN PLANT BY COINCIDENCE OF TIMING, AND THE FIX IS THE
+    CASE'S CLOCK RATHER THAN ITS LOGIC.** T5.23's *"interrupted standing does not accumulate"*
+    passed under the very defect it was written for. The wrongly-started idle break had already
+    FINISHED inside the same stand, so at the moment the case looked, the visual was drawing the
+    idle block — which is exactly what the correct behaviour draws — and the assertion agreed by
+    coincidence. Nothing about the claim was wrong; the sample was taken at the one instant that
+    cannot distinguish the two behaviours. **This is gotcha 70's family and gotcha 74's twin from
+    the other side**: 74 is a plant that passes because the two states are byte-identical, 75 a
+    plant that passes because the two states are momentarily identical. When a case measures a
+    thing that STARTS and ENDS, ask what it would read one tick earlier and one tick later before
+    trusting a green.
+
+76. **`contains` FINDABILITY IS SATISFIED BY AN INCIDENTAL CROSS-REFERENCE, SO A RECORD GATE
+    CANNOT TELL "RECORDED" FROM "MENTIONED IN PASSING" — AND A RECONCILE PACKAGE MANUFACTURES
+    THOSE MENTIONS AS IT WORKS.** T5.24's first plant deleted T5.19's whole package-log row from
+    `ROADMAP.md` and the suite stayed **green at 2,274**. The gate was working exactly as written:
+    two other rows in that file mention T5.19 while saying something else — one crediting its
+    measurement, one its argument — and `roadmap.contains("T5.19")` is true of either. **Then the
+    same thing happened a second time to the corrected plant**, because T5.24's own new row names
+    all five packages it reconciled in the course of explaining what was missing, so deleting
+    T5.18's row left T5.18 findable inside the sentence describing its absence. A row that records
+    a gap is itself a cross-reference to every id in the gap. **The weakness is inherent to
+    findability and is the price of the property being worth having**, the alternative being a
+    gate on recording SHAPE, which would fail T5.14 for being recorded beside its criterion rather
+    than as a row. Three rules follow. **Plant a record gate on an id the document names exactly
+    once** — count first: `grep -o -- "$id" doc | wc -l`. **Re-count after your own edits**, since
+    a reconcile row changes the answer for precisely the ids you came to fix. And know that **a
+    package whose only trace is somebody else's sentence about it passes** — T5.24 found ITSELF in
+    that state, its only roadmap mention being an aside inside the WP-07 line it had just written,
+    which surfaced only because deleting that line failed TWO assertions instead of one. It gave
+    itself a real log row. Same shape as gotcha 70 in that a green run was nearly filed as
+    evidence, and the same answer: establish what the plant actually changed before trusting
+    either outcome.
+
+
 ## How work is sliced
 
 **One package, one chat** — see [`docs/WORK_PACKAGES.md`](WORK_PACKAGES.md), which is the
@@ -1987,8 +2015,7 @@ names the exact files that chat should read, so a session loads a few hundred li
 package never has to read upward.
 
 
-**Next package: NOTHING IS BLOCKING, AND THE AUDIT’S LIST IS NOW FOUR ROWS SHORTER.** T5.16,
-T5.17, T5.18 and T5.20 each came off it. What remains is a real choice, not a queue:
+T5.20 and now T5.24 each came off it. What remains is a real choice, not a queue:
 
 - **The template-default vs game-choice taxonomy.** `TEMPLATE.md` § *"The one constraint nobody
   has scoped"* has said since 2026-08-26 that *"what is missing is the distinction between a
@@ -2005,15 +2032,24 @@ T5.17, T5.18 and T5.20 each came off it. What remains is a real choice, not a qu
   repeats one identical day forever and a Saturday is inexpressible; `Clock` publishes no flag
   namespace, so no authored condition can read the time at all — including the shop hours the
   Clock's own header names. Also gated by the taxonomy question.
-- **A second idle block and a chooser between them.** The last unticked Phase T5 exit criterion.
 - **A call recorder, to answer the 86.** T5.13's gate reports 86 public methods reached only from
   `tests/` or `tools/`, and a text scan cannot shrink that number.
-- **Split `tools/gen_placeholders.gd`**, at 230 of its 250 — twenty lines spare, so it is a want
+- **Split `tools/gen_placeholders.gd`**, at 234 of its 250 — sixteen lines spare, so it is a want
   rather than a need. T5.20 corrected the ten-row-old claim that it was the tightest file; it was
   not, and `check_budgets.gd` had the number all along.
 - **`src/systems/scene_director/director.gd` at 187 of its 190** is the tightest file in the repo
   after T5.20. Its override was already raised once by WP-14, so the row is really the question of
   whether a scene director deserves more room or a seam — not a mechanical split.
+- **The placeholder sheet's fourth animation BLOCK is not asserted visually distinct from its
+  first.** `sheet_facings_test.gd` measures exactly this for FACINGS, with a floor picked by
+  measurement, after T5.8 found `character_placeholder.png` drawing one pose eight times at 0.7%
+  difference. T5.23 added a second idle block and measured the two blocks at 0.6184 of the crop —
+  **in a windowed capture a person read, not in the suite** — so the equivalent of T5.8's gate for
+  BLOCKS does not exist and a sheet whose break block is a recolour of its idle would pass. That
+  is T5.8's own argument left half-applied, and it is the cheapest honest row on this list.
+- **T5.23's idle-break capture caught a SIDE facing, where `_character_cell` draws no far arm.**
+  The raised arm was verified numerically and only partly visually. Re-taking it on a front facing
+  is a capture rather than a package, and belongs to whoever next touches the sheet.
 - **WP-10 crafting**, if a game wants it. Still OPTIONAL per `TEMPLATE.md`.
 - **Nothing at all**, which stays legitimate for a base that has answered every question it set
   out to.
@@ -2043,7 +2079,7 @@ you can press to travel back to once you have — and every one of those walks n
 depending on whether you are crossing grass, the wooden dais or stone. Every one of those changes
 survives a save and a
 reload, including from the far side of an area that is no longer loaded. All of it is covered
-by 2,192 headless assertions.
+by 2,274 headless assertions.
 
 **Next, and for the first time it is not an ordered queue.** Every blocking row is done: Phase T3
 closed with WP-14b, WP-15 was CLOSED by the owner, and T4.1 shipped the version and the upgrade

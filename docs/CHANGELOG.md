@@ -19,6 +19,37 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.3.3
+
+*2026-09-09 — the case that checks the checkers are wired could not see a checker that was not
+wired.*
+
+**A consuming game does: nothing.** No file under `src/` or `tools/` changed, and neither did
+`.github/workflows/ladder.yml`. The change is one test file plus `project.godot`'s
+`[template] base/version`.
+
+**IF YOUR FORK ADDED ITS OWN CHECKER, THIS IS THE ONE THING TO KNOW.**
+`tests/unit/gates_test.gd` now derives the checker list from `tools/` instead of trusting its own
+`LADDER` const, so **every `tools/check_*.gd` in your tree must be listed in `LADDER` and invoked
+by `ladder.yml` in BOTH jobs.** A checker you wrote and wired into only the full job, or wrote and
+never wired at all, will now fail rung 4 where before it passed silently. That is the assertion
+doing the job its own header claimed: "a gate written, committed, and never wired."
+
+**Two things it could not previously distinguish, both measured on this repository.** The wiring
+check was `workflow.contains(checker)`, true of a workflow naming the checker in a **comment** —
+and this workflow's comments name every checker deliberately, because they carry each rung's
+reasoning. Commenting out both `run:` lines for `check_signals` left the suite **green at 2,276**.
+And `contains` returns one bool for a whole file, so it could not express "in both jobs" at all.
+
+**If your fork removed the stripped job or renamed either job**, the new assertions will name it:
+`JOBS` is `["ladder", "stripped"]` and the job names are asserted, not assumed, so the expected
+invocation count is not a magic number. Rename a job and you get a failure that says which.
+
+**No behaviour changed anywhere else.** Suite 2,276 → **2,287**: eleven new assertions, all of them
+in this one case — two job names, one per checker for its own-step count, and seven from the
+directory scan. The plan is computed, so wiring an eighth checker does not mean editing a number.
+
+---
 ## 5.3.2
 
 *2026-09-09 — the gate T5.24 added could not fail for four of the ids it was checking, and the

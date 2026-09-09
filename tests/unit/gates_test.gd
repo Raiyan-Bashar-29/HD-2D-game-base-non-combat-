@@ -47,6 +47,13 @@ const LADDER: Array[String] = [
 	"tools/check_methods.gd",
 ]
 
+## Where the checkers live, scanned so LADDER cannot silently fall behind the directory.
+const TOOL_DIR: String = "res://tools"
+## THE JOBS THE LADDER RUNS. A checker wired into the full job and not the stripped one is wired
+## into half a ladder — and the stripped job is the half that proves the template stands up with
+## no game present, so it is the half a template cannot afford to skip.
+const JOBS: Array[String] = ["ladder", "stripped"]
+
 ## Where the method gate looks for its exemption phrase. Unlike the signal registry there is no
 ## one file to read, so the phrase is counted over the whole engine tree.
 const METHOD_ROOT: String = "res://src"
@@ -60,7 +67,11 @@ const OPAQUE_TAIL: String = "\"fetch_\" + kind)"
 
 
 func run() -> void:
-	plan(56)
+	## COMPUTED rather than typed, for `record_shape_test.gd`'s reason: wiring an eighth checker
+	## should not mean editing a number, and a number that has to be edited is a number that gets
+	## edited to whatever the run reported.
+	var on_disk: Array[String] = _checker_files()
+	plan(42 + JOBS.size() + LADDER.size() * 2 + on_disk.size())
 	_the_layer_of_a_path_comes_from_the_path()
 	_an_indirect_signal_reference_is_read_from_its_files_dispatch()
 	_a_whole_word_match_is_shared_by_both_gates()
@@ -70,7 +81,7 @@ func run() -> void:
 	_prose_and_declaration_headers_are_not_callers()
 	_a_name_built_at_runtime_trips_the_precondition()
 	_a_reserved_method_says_so_where_the_reader_is_looking()
-	_every_checker_is_wired_into_the_ladder()
+	_every_checker_is_wired_into_the_ladder(on_disk)
 
 
 ## LAYER IS DERIVED, NEVER LISTED, which is what stops the gate going stale when a file moves.
@@ -236,9 +247,52 @@ func _engine_scripts(root: String) -> Array[String]:
 ## which gate failed rather than "the ladder". This is the assertion that would have caught a
 ## gate written, committed, and never wired — which is the defect the whole package is about,
 ## applied to the package itself.
-func _every_checker_is_wired_into_the_ladder() -> void:
+## `workflow.contains(checker)` WAS TRUE OF A COMMENT, AND THIS FILE'S OWN HEADER ASKED FOR MORE
+## THAN THAT — "as its own step", and there are two jobs. Three things it could not tell apart:
+## a checker named only in a `#` comment, a checker wired into the full job and missing from the
+## stripped one, and a checker wired twice into one job and not at all into the other. All three
+## are a gate that does not run, which is the state this function exists to make red. So the
+## count is of INVOCATIONS — a non-comment line naming the checker and `--script` — and it must
+## equal the number of jobs. Same defect as T5.25's, one file over: the assertion was reading a
+## string rather than the thing the string was standing for.
+func _every_checker_is_wired_into_the_ladder(on_disk: Array[String]) -> void:
 	var workflow: String = FileAccess.get_file_as_string(WORKFLOW)
 	equal("the workflow loads", workflow.is_empty(), false)
+	## The job names are asserted rather than assumed, because every count below is compared
+	## against JOBS.size() and a silently renamed job would make that number a fiction.
+	for job: String in JOBS:
+		equal("the workflow declares the %s job" % job, workflow.contains("\n  %s:" % job), true)
 	for checker: String in LADDER:
-		equal("CI runs %s" % checker, workflow.contains(checker), true)
 		equal("%s exists" % checker, FileAccess.file_exists("res://" + checker), true)
+		equal("every job invokes %s, once each" % checker,
+			_script_invocations(workflow, checker), JOBS.size())
+	## THE LIST ITSELF WAS THE HOLE. LADDER named seven checkers and nothing said it named ALL of
+	## them, so an eighth written and never wired was invisible to the case whose whole subject is
+	## a gate nobody runs. `test_runner.gd` closed the identical hole for `CASES` at T2.2 by
+	## scanning the directory; this is that pattern, and the reason is the same.
+	for path: String in on_disk:
+		equal("%s is listed in LADDER, so it is checked at all" % path, LADDER.has(path), true)
+
+
+## A checker EXECUTES only where it is named beside `--script` on a line that is not a comment.
+## Comments in this workflow do name the checkers — deliberately, they carry the reasoning — so
+## reading past them is the whole point rather than an edge case.
+func _script_invocations(workflow: String, checker: String) -> int:
+	var count: int = 0
+	for line: String in workflow.split("\n"):
+		var trimmed: String = line.strip_edges()
+		if trimmed.begins_with("#") or not trimmed.contains(checker):
+			continue
+		if trimmed.contains("--script"):
+			count += 1
+	return count
+
+
+## Derived from the directory rather than listed, for `check_boundary.gd`'s reason: a list of
+## what to check is a list that rots, and this one rotting is the defect above.
+func _checker_files() -> Array[String]:
+	var found: Array[String] = []
+	for file_name: String in DirAccess.get_files_at(TOOL_DIR):
+		if file_name.begins_with("check_") and file_name.ends_with(".gd"):
+			found.append("tools/%s" % file_name)
+	return found

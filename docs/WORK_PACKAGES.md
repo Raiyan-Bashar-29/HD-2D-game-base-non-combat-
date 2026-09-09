@@ -4964,7 +4964,7 @@ exists to have stopped. Every replacement came off a recorded run, not off anoth
 |---|---|---|
 | `README.md` | 555 assertions | 2,276 |
 | `CLAUDE.md` | DEVLOG "over 5,400 lines"; `2,173 assertions` | 8,986 lines; 2,276 |
-| `docs/TESTING.md` | `1625` full / `1551` stripped | from the CI run, both jobs |
+| `docs/TESTING.md` | `1625` full / `1551` stripped | `2276` full / `2202` stripped, from CI run `34317589462` |
 | `docs/ARCHITECTURE.md` | 2,173 assertions in the rung table | 2,276 |
 | `docs/CONTEXT.md` | 166 files, 15,552 code lines | 167 files, 15,793 |
 

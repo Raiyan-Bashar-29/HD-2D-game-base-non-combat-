@@ -9084,7 +9084,7 @@ Every replacement came off a run recorded here:
 | `CLAUDE.md:98` | `# 2,173 assertions` | 2,276 | three version bumps |
 | `docs/ARCHITECTURE.md:250` | `2,173 assertions` in the rung table | 2,276 | three |
 | `docs/CONTEXT.md:180` | `166 files, 15,552 code lines` | `167 files, 15,793` | taken before T5.23 added a file |
-| `docs/TESTING.md:13-14` | `1625` full / `1551` stripped | from CI, both jobs | ~650 |
+| `docs/TESTING.md:13-14` | `1625` full / `1551` stripped | `2276` full / `2202` stripped | ~650 |
 
 Measurement commands and their output, all on `4.7.2.stable.official.ed1daf0bf`, the version CI
 pins:
@@ -9204,3 +9204,29 @@ parenthesis mid-sentence leaving the remainder dangling. All three were repaired
 them is visible to `doc_counts_test.gd` — which compares the SPELLED count and treats a digit
 reference as a record rather than a claim — and `main` sat in that state for the minutes between
 the two merges.
+
+**CI GREEN — RUN [`34317589462`], BOTH JOBS, AND THE STRIPPED COUNT THIS ENTRY REFUSED TO
+PREDICT.** Job logs read rather than the tick, per gotcha 26.
+
+| job | result | last line |
+|---|---|---|
+| `Ladder (full checkout)` | success | `=== 2276 passed, 0 failed, 0 skipped ===` |
+| `Ladder (stripped template)` | success | `=== 2202 passed, 0 failed, 25 skipped ===` |
+
+The full figure is byte-identical to the local measurement. `docs/TESTING.md:13-14` now carries
+both, which is the pair this row deliberately left out of its first commit.
+
+**AND THE PREDICTION WOULD HAVE BEEN RIGHT, WHICH CHANGES NOTHING.** 2,276 − 2,202 = **74**, the
+same gap as every recorded run before it — including the `1625`/`1551` pair that had been sitting
+in `TESTING.md` since before `2.0.0`, whose difference is also 74. Writing 2,202 from that
+constant would have produced the correct number by a method that cannot be trusted, and a package
+whose entire subject is numbers written from other numbers is the last place to use it. The
+distinction is worth keeping precisely because the shortcut works most of the time: a stale
+`TESTING.md` was internally consistent for four versions for the same reason.
+
+The constant itself is now a measurement worth stating rather than a coincidence noticed twice:
+**the stripped template has reported exactly 74 fewer assertions and 25 named skips in every run
+recorded in this file.** Nothing gates it — `ladder.yml` asserts only that the named-skip count is
+non-zero, so a stripped run can be told from a full one, never that the arithmetic holds. That is
+a candidate row and not this one, and it needs the two jobs to compare outputs, which they
+currently cannot: they are independent and nothing reads both.

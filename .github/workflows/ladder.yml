@@ -194,20 +194,68 @@ jobs:
           fi
 
       - name: Rung 5 - check_budgets
-        run: godot --headless --script tools/check_budgets.gd
+        run: |
+          set -uo pipefail
+          status=0
+          godot --headless --script tools/check_budgets.gd > check_budgets.log 2>&1 || status=$?
+          cat check_budgets.log
+          # GOTCHA 24: a GDScript runtime error aborts the INNERMOST FRAME ONLY, so an error
+          # inside a per-file loop lets the loop finish and still reach print("PASS"); quit(0).
+          # The exit code alone therefore cannot say the scan was complete. This can.
+          if grep -qE 'SCRIPT ERROR|Parse Error' check_budgets.log; then
+            echo "::error::check_budgets printed a script error, so its scan is incomplete even if it reported PASS."
+            status=1
+          fi
+          exit "${status}"
 
       - name: Rung 6 - check_content
-        run: godot --headless --script tools/check_content.gd
+        run: |
+          set -uo pipefail
+          status=0
+          godot --headless --script tools/check_content.gd > check_content.log 2>&1 || status=$?
+          cat check_content.log
+          # GOTCHA 24: a GDScript runtime error aborts the INNERMOST FRAME ONLY, so an error
+          # inside a per-file loop lets the loop finish and still reach print("PASS"); quit(0).
+          # The exit code alone therefore cannot say the scan was complete. This can.
+          if grep -qE 'SCRIPT ERROR|Parse Error' check_content.log; then
+            echo "::error::check_content printed a script error, so its scan is incomplete even if it reported PASS."
+            status=1
+          fi
+          exit "${status}"
 
       - name: Rung 7 - check_boundary
-        run: godot --headless --script tools/check_boundary.gd
+        run: |
+          set -uo pipefail
+          status=0
+          godot --headless --script tools/check_boundary.gd > check_boundary.log 2>&1 || status=$?
+          cat check_boundary.log
+          # GOTCHA 24: a GDScript runtime error aborts the INNERMOST FRAME ONLY, so an error
+          # inside a per-file loop lets the loop finish and still reach print("PASS"); quit(0).
+          # The exit code alone therefore cannot say the scan was complete. This can.
+          if grep -qE 'SCRIPT ERROR|Parse Error' check_boundary.log; then
+            echo "::error::check_boundary printed a script error, so its scan is incomplete even if it reported PASS."
+            status=1
+          fi
+          exit "${status}"
 
       # RUNG 8, added by WP-14. Not a duplicate of rung 6: check_content validates the keys
       # AUTHORED in .tres content, and nothing checked the ~70 `*_KEY` consts declared in code
       # until now. A typo in one renders the raw key on screen, and that was measured to pass
       # check_content, check_boundary AND all 1,517 assertions of the day.
       - name: Rung 8 - check_strings
-        run: godot --headless --script tools/check_strings.gd
+        run: |
+          set -uo pipefail
+          status=0
+          godot --headless --script tools/check_strings.gd > check_strings.log 2>&1 || status=$?
+          cat check_strings.log
+          # GOTCHA 24: a GDScript runtime error aborts the INNERMOST FRAME ONLY, so an error
+          # inside a per-file loop lets the loop finish and still reach print("PASS"); quit(0).
+          # The exit code alone therefore cannot say the scan was complete. This can.
+          if grep -qE 'SCRIPT ERROR|Parse Error' check_strings.log; then
+            echo "::error::check_strings printed a script error, so its scan is incomplete even if it reported PASS."
+            status=1
+          fi
+          exit "${status}"
 
       # RUNGS 9 AND 10, added by T5.4, AND THEY ARE SEPARATE STEPS FOR ONE REASON: a failure
       # must name itself. "The ladder failed" sends a reader to six commands; "Rung 9 -
@@ -220,10 +268,34 @@ jobs:
       # rung 9 enforces the one architectural rule that had no gate at all, and found a real
       # upward reference the day it was written.
       - name: Rung 9 - check_layers
-        run: godot --headless --script tools/check_layers.gd
+        run: |
+          set -uo pipefail
+          status=0
+          godot --headless --script tools/check_layers.gd > check_layers.log 2>&1 || status=$?
+          cat check_layers.log
+          # GOTCHA 24: a GDScript runtime error aborts the INNERMOST FRAME ONLY, so an error
+          # inside a per-file loop lets the loop finish and still reach print("PASS"); quit(0).
+          # The exit code alone therefore cannot say the scan was complete. This can.
+          if grep -qE 'SCRIPT ERROR|Parse Error' check_layers.log; then
+            echo "::error::check_layers printed a script error, so its scan is incomplete even if it reported PASS."
+            status=1
+          fi
+          exit "${status}"
 
       - name: Rung 10 - check_signals
-        run: godot --headless --script tools/check_signals.gd
+        run: |
+          set -uo pipefail
+          status=0
+          godot --headless --script tools/check_signals.gd > check_signals.log 2>&1 || status=$?
+          cat check_signals.log
+          # GOTCHA 24: a GDScript runtime error aborts the INNERMOST FRAME ONLY, so an error
+          # inside a per-file loop lets the loop finish and still reach print("PASS"); quit(0).
+          # The exit code alone therefore cannot say the scan was complete. This can.
+          if grep -qE 'SCRIPT ERROR|Parse Error' check_signals.log; then
+            echo "::error::check_signals printed a script error, so its scan is incomplete even if it reported PASS."
+            status=1
+          fi
+          exit "${status}"
 
       # Rung 11 is the fourth consumer question and the last of the four: a PUBLIC METHOD was
       # still declarable-and-dead with nothing saying so, which is how `AudioDirector.duck()`
@@ -231,7 +303,19 @@ jobs:
       # against that case: at the commit before T5.11 it would have failed on all three of
       # `duck`, `unduck` and `stop_music`.
       - name: Rung 11 - check_methods
-        run: godot --headless --script tools/check_methods.gd
+        run: |
+          set -uo pipefail
+          status=0
+          godot --headless --script tools/check_methods.gd > check_methods.log 2>&1 || status=$?
+          cat check_methods.log
+          # GOTCHA 24: a GDScript runtime error aborts the INNERMOST FRAME ONLY, so an error
+          # inside a per-file loop lets the loop finish and still reach print("PASS"); quit(0).
+          # The exit code alone therefore cannot say the scan was complete. This can.
+          if grep -qE 'SCRIPT ERROR|Parse Error' check_methods.log; then
+            echo "::error::check_methods printed a script error, so its scan is incomplete even if it reported PASS."
+            status=1
+          fi
+          exit "${status}"
 
       # A failing rung prints its own tail, but the full logs are what a diagnosis needs, and
       # the interesting ones are exactly the runs that failed. Hence `always()`.
@@ -244,6 +328,13 @@ jobs:
             import.log
             boot.log
             tests.log
+            check_budgets.log
+            check_content.log
+            check_boundary.log
+            check_strings.log
+            check_layers.log
+            check_signals.log
+            check_methods.log
           if-no-files-found: warn
 
   # ---------------------------------------------------------------------------------------------
@@ -347,7 +438,19 @@ jobs:
           grep 'SKIPPED:' tests.log
 
       - name: Rung 5 - check_budgets
-        run: godot --headless --script tools/check_budgets.gd
+        run: |
+          set -uo pipefail
+          status=0
+          godot --headless --script tools/check_budgets.gd > check_budgets.log 2>&1 || status=$?
+          cat check_budgets.log
+          # GOTCHA 24: a GDScript runtime error aborts the INNERMOST FRAME ONLY, so an error
+          # inside a per-file loop lets the loop finish and still reach print("PASS"); quit(0).
+          # The exit code alone therefore cannot say the scan was complete. This can.
+          if grep -qE 'SCRIPT ERROR|Parse Error' check_budgets.log; then
+            echo "::error::check_budgets printed a script error, so its scan is incomplete even if it reported PASS."
+            status=1
+          fi
+          exit "${status}"
 
       # Both gates must survive the strip, and one once did not: check_content failed on a
       # stripped template at step one of NEW_GAME.md, because the three content registries
@@ -355,27 +458,97 @@ jobs:
       # precisely so it keeps working when the content it scans FOR has been deleted - which is
       # the one moment it most needs to run, and is this job.
       - name: Rung 6 - check_content
-        run: godot --headless --script tools/check_content.gd
+        run: |
+          set -uo pipefail
+          status=0
+          godot --headless --script tools/check_content.gd > check_content.log 2>&1 || status=$?
+          cat check_content.log
+          # GOTCHA 24: a GDScript runtime error aborts the INNERMOST FRAME ONLY, so an error
+          # inside a per-file loop lets the loop finish and still reach print("PASS"); quit(0).
+          # The exit code alone therefore cannot say the scan was complete. This can.
+          if grep -qE 'SCRIPT ERROR|Parse Error' check_content.log; then
+            echo "::error::check_content printed a script error, so its scan is incomplete even if it reported PASS."
+            status=1
+          fi
+          exit "${status}"
 
       - name: Rung 7 - check_boundary
-        run: godot --headless --script tools/check_boundary.gd
+        run: |
+          set -uo pipefail
+          status=0
+          godot --headless --script tools/check_boundary.gd > check_boundary.log 2>&1 || status=$?
+          cat check_boundary.log
+          # GOTCHA 24: a GDScript runtime error aborts the INNERMOST FRAME ONLY, so an error
+          # inside a per-file loop lets the loop finish and still reach print("PASS"); quit(0).
+          # The exit code alone therefore cannot say the scan was complete. This can.
+          if grep -qE 'SCRIPT ERROR|Parse Error' check_boundary.log; then
+            echo "::error::check_boundary printed a script error, so its scan is incomplete even if it reported PASS."
+            status=1
+          fi
+          exit "${status}"
 
       # Rung 8 runs here too, and it is the interesting half: the sink rule and the key rule are
       # both about `src/` and `localization/`, neither of which the strip touches, so a stripped
-      # template must report exactly the same numbers. If it ever does not, an engine string has
+      # template is EXPECTED to report the same numbers. If it ever does not, an engine string has
       # come to depend on a game being present.
+      #
+      # THAT EXPECTATION IS NOT ENFORCED, AND SAYING SO IS THE POINT. This comment used to read
+      # "must report exactly the same numbers", which claimed a check nothing performs: the two
+      # jobs are independent and nothing compares their output. What IS enforced is stronger than
+      # it sounds and weaker than the old wording - the checker must EXIT 0 in both jobs, so the
+      # failure mode that matters (an engine string that stops resolving once the game is gone)
+      # is caught here as a failure, not as a difference. A genuine cross-job count comparison
+      # needs each job to publish its counts and a third job to diff them; that is a candidate
+      # row, recorded in ROADMAP.md rather than implied by a comment.
       - name: Rung 8 - check_strings
-        run: godot --headless --script tools/check_strings.gd
+        run: |
+          set -uo pipefail
+          status=0
+          godot --headless --script tools/check_strings.gd > check_strings.log 2>&1 || status=$?
+          cat check_strings.log
+          # GOTCHA 24: a GDScript runtime error aborts the INNERMOST FRAME ONLY, so an error
+          # inside a per-file loop lets the loop finish and still reach print("PASS"); quit(0).
+          # The exit code alone therefore cannot say the scan was complete. This can.
+          if grep -qE 'SCRIPT ERROR|Parse Error' check_strings.log; then
+            echo "::error::check_strings printed a script error, so its scan is incomplete even if it reported PASS."
+            status=1
+          fi
+          exit "${status}"
 
-      # Both new rungs read src/ and tests/ only, which the strip does not touch, so they must
-      # report exactly the same numbers here as in the full job. If they ever do not, the layer
-      # map or the signal registry has come to depend on a game being present — which is the
-      # one thing a template must never do.
+      # Both new rungs read src/ and tests/ only, which the strip does not touch, so they are
+      # EXPECTED to report the same numbers here as in the full job. If they ever do not, the
+      # layer map or the signal registry has come to depend on a game being present — which is
+      # the one thing a template must never do. As above, the expectation is not compared across
+      # jobs by anything; the enforced part is that both must exit 0.
       - name: Rung 9 - check_layers
-        run: godot --headless --script tools/check_layers.gd
+        run: |
+          set -uo pipefail
+          status=0
+          godot --headless --script tools/check_layers.gd > check_layers.log 2>&1 || status=$?
+          cat check_layers.log
+          # GOTCHA 24: a GDScript runtime error aborts the INNERMOST FRAME ONLY, so an error
+          # inside a per-file loop lets the loop finish and still reach print("PASS"); quit(0).
+          # The exit code alone therefore cannot say the scan was complete. This can.
+          if grep -qE 'SCRIPT ERROR|Parse Error' check_layers.log; then
+            echo "::error::check_layers printed a script error, so its scan is incomplete even if it reported PASS."
+            status=1
+          fi
+          exit "${status}"
 
       - name: Rung 10 - check_signals
-        run: godot --headless --script tools/check_signals.gd
+        run: |
+          set -uo pipefail
+          status=0
+          godot --headless --script tools/check_signals.gd > check_signals.log 2>&1 || status=$?
+          cat check_signals.log
+          # GOTCHA 24: a GDScript runtime error aborts the INNERMOST FRAME ONLY, so an error
+          # inside a per-file loop lets the loop finish and still reach print("PASS"); quit(0).
+          # The exit code alone therefore cannot say the scan was complete. This can.
+          if grep -qE 'SCRIPT ERROR|Parse Error' check_signals.log; then
+            echo "::error::check_signals printed a script error, so its scan is incomplete even if it reported PASS."
+            status=1
+          fi
+          exit "${status}"
 
       # Rung 11 is the fourth consumer question and the last of the four: a PUBLIC METHOD was
       # still declarable-and-dead with nothing saying so, which is how `AudioDirector.duck()`
@@ -383,7 +556,19 @@ jobs:
       # against that case: at the commit before T5.11 it would have failed on all three of
       # `duck`, `unduck` and `stop_music`.
       - name: Rung 11 - check_methods
-        run: godot --headless --script tools/check_methods.gd
+        run: |
+          set -uo pipefail
+          status=0
+          godot --headless --script tools/check_methods.gd > check_methods.log 2>&1 || status=$?
+          cat check_methods.log
+          # GOTCHA 24: a GDScript runtime error aborts the INNERMOST FRAME ONLY, so an error
+          # inside a per-file loop lets the loop finish and still reach print("PASS"); quit(0).
+          # The exit code alone therefore cannot say the scan was complete. This can.
+          if grep -qE 'SCRIPT ERROR|Parse Error' check_methods.log; then
+            echo "::error::check_methods printed a script error, so its scan is incomplete even if it reported PASS."
+            status=1
+          fi
+          exit "${status}"
 
       - name: Keep the logs
         if: always()
@@ -393,4 +578,11 @@ jobs:
           path: |
             import.log
             tests.log
+            check_budgets.log
+            check_content.log
+            check_boundary.log
+            check_strings.log
+            check_layers.log
+            check_signals.log
+            check_methods.log
           if-no-files-found: warn

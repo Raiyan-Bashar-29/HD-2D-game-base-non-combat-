@@ -49,6 +49,11 @@ const PRINT_ALLOWED: Array[String] = ["res://tools/", "res://tests/", "res://src
 const BOUNDARY_EXEMPT: Array[String] = ["res://src/core/util/"]
 
 var _violations: int = 0
+## HOW MANY FILES THIS RUN ACTUALLY OPENED, counted in the collector so it cannot drift
+## from the scan. A gate that scanned NOTHING reports PASS, and `CHANGELOG.md` says of
+## doc gates that one passing because it found nothing to check is worse than no gate.
+## That rule was never applied to these tools until T5.27.
+var _scanned: int = 0
 var _warnings: int = 0
 var _files: int = 0
 var _code_lines: int = 0
@@ -74,6 +79,10 @@ func _initialize() -> void:
 		print("FAIL — split the file, or justify a new budget in docs/ARCHITECTURE.md")
 		quit(1)
 		return
+	if _scanned == 0:
+		print("FAIL — nothing was scanned, so this gate could only ever pass")
+		quit(1)
+		return
 	print("PASS")
 	quit(0)
 
@@ -91,6 +100,7 @@ func _collect(directory: String, into: Array[String]) -> void:
 				_collect(full, into)
 		elif entry.ends_with(".gd"):
 			into.append(full)
+			_scanned += 1
 		entry = dir.get_next()
 	dir.list_dir_end()
 

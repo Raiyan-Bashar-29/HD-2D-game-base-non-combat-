@@ -9404,3 +9404,189 @@ T5.25 measured rather than predicted and declined to write from arithmetic. It h
 `1625`/`1551`, `2276`/`2202` and this pair, which makes it a stable property of the strip rather
 than a coincidence, and **still nothing enforces it**: `ladder.yml` asserts only that the
 named-skip count is non-zero. That is one of the three claims T5.27 takes.
+
+## 2026-09-09 — T5.27 · A checker can skip a file and still print PASS
+
+**THE FIRST ROW IN THIS RUN WHOSE ENFORCEMENT IS NOT IN THE SUITE**, which is worth saying first
+because it makes the assertion total the wrong measure of it. T5.25 and T5.26 both fixed an
+assertion. This fixes `ladder.yml` and six tools, and the suite moves only by the two a new
+DEVLOG heading adds to a computed plan.
+
+### THE PREMISE WAS MEASURED WITH A THROWAWAY PROBE, AND THE FIRST PLANT SAID IT WAS FALSE
+
+Rungs 5–11 were bare `run: godot --headless --script tools/check_*.gd`: exit code only, no log
+grep, no artifact. Rungs 2, 3 and 4 all grep their logs, and rung 4 additionally carries
+`ErrorWatch`. The question is whether the difference can hide anything.
+
+**First attempt, and it was misleading.** Injecting a real runtime error into
+`check_layers._scan_script` — an out-of-bounds index on a typed array, for one file only — gave:
+
+```
+SCRIPT ERROR lines: 1
+exit=1
+```
+
+Exit 1, no `scripts scanned` line at all. The tool **died** rather than lying, so the exit code
+had caught it and the premise looked false. Had that been the only evidence, this row would have
+been dropped as unnecessary.
+
+**The minimal probe is what settled it.** `tools/zz_probe.gd`, written and deleted in the same
+session, doing nothing but the shape in question — a loop of three calling a function that indexes
+an empty array on the second:
+
+```gdscript
+func _initialize() -> void:
+	var seen: int = 0
+	for i: int in [1, 2, 3]:
+		seen += _per_item(i)
+	print("  loop finished, items processed: %d of 3" % seen)
+	print("PASS")
+	quit(0)
+
+func _per_item(i: int) -> int:
+	if i == 2:
+		var empty: Array[int] = []
+		return empty[9]
+	return 1
+```
+
+```
+SCRIPT ERROR: Out of bounds get index '9' (on base: 'Array[int]')
+  loop finished, items processed: 2 of 3
+PASS
+exit=0
+```
+
+**That is gotcha 24 in its exact working form**: the error aborts the innermost frame, the loop
+finishes, **one item of three is silently unscanned**, and the script prints `PASS` and exits 0.
+A checker in that state reports success over an incomplete scan and no rung can tell.
+
+**Why the two runs differ, since it matters for the next person planting this.** The probe's error
+is inside a function whose caller keeps looping. `_scan_script`'s failure took a path that ended
+the script instead. **So the observable behaviour depends on where in the call graph the error
+lands** — which means "the exit code caught it once" is not evidence that the exit code catches
+it, and a single plant on real code can point either way. Gotcha 75's family: a plant that fails
+for the wrong reason misleads exactly as much as one that passes.
+
+### THE FIX, AND WHY IT DOES NOT DISTURB T5.26'S GATE
+
+All fourteen checker steps — seven per job — now capture output to `check_<name>.log`, print it so
+the CI log still reads the same, and force `status=1` if that log carries `SCRIPT ERROR` or
+`Parse Error` even when the checker exited 0. The seven logs join `import.log`, `boot.log` and
+`tests.log` in the artifact upload, in both jobs.
+
+The steps kept `godot --headless --script tools/check_<name>.gd` on a single line on purpose.
+T5.26's assertion counts INVOCATIONS — a non-comment line carrying the script path and `--script`
+— and requires exactly `JOBS.size()` of them. Verified after the rewrite: 2 per checker, all
+seven. **A shared runner script would have been better engineering and was rejected for that
+reason**: `run: tools/ci/run_checker.sh tools/check_x.gd` drops `--script` from the line and would
+have forced a change to the gate written one row earlier, trading one duplication for a weakened
+assertion.
+
+### SIX CHECKERS COULD PASS ON A SCAN OF NOTHING
+
+| run | tool | scan root | result |
+|---|---|---|---|
+| control | `check_layers` | `res://src` | `scripts scanned: 105`, `PASS`, exit 0 |
+| plant | `check_layers`, guarded | `res://localization` | `scripts scanned: 0`, `FAIL — nothing was scanned, so this gate could only ever pass`, **exit 1** |
+| comparison | `check_layers`, **unmodified** | `res://localization` | `scripts scanned: 0`, **`PASS`, exit 0** |
+
+**The comparison run is the row**, as it was for T5.25 and T5.26: the guard's own red run only
+shows the guard fires, while the unmodified tool going green on the identical empty scan shows
+what was wrong. 0 of 7 tools guarded this, while all seven printed their own scanned count — the
+number was there to read and nothing read it.
+
+The counter is incremented in each collector immediately after the `append`, not recomputed at the
+end, so it cannot drift from the scan it describes. `check_budgets` uses a different collector
+shape (`_collect(directory, into)` with a `DirAccess` cursor) and took the same one-line change.
+
+**The rule was already written down and pointed at the wrong target.** `CHANGELOG.md` has said
+since `4.3.1` that *"a doc gate that passes because it found nothing to check is worse than no
+gate"* — about the DOC gates, and never turned on the tools that scan the engine.
+
+### `check_content` IS EXEMPT, AND THAT EXEMPTION IS THE PART WORTH KEEPING
+
+Its entire input is `data/` and `scenes/areas`, and the stripped-template job's second step is
+`rm -rf data scenes/areas`. **A zero scan is a legitimate state for that checker and for no
+other**, so guarding it would fail the stripped job for doing precisely what it exists to prove.
+The other six read `src/`, `tests/`, `tools/` and `localization/`, none of which the strip
+touches, so zero there is always a defect.
+
+This is the first exemption in this run derived from **what the strip removes** rather than from
+what a gate can judge, and it is the question to ask first next time: before guarding a count, ask
+what the stripped template legitimately lacks. Recorded on the `Content validator` row rather than
+left as an absence somebody later reads as an oversight.
+
+### AND A COMMENT CLAIMED A CHECK NOTHING PERFORMED
+
+`ladder.yml` carried, twice, that a stripped template **"must report exactly the same numbers"**.
+The two jobs are independent, nothing compares their output, and the claim had been true every
+time a person checked it by hand. Reworded to state what is enforced and what is not:
+
+- **Enforced, and it is the failure mode that matters**: each checker must EXIT 0 in both jobs, so
+  an engine string that stops resolving once the game is gone fails the stripped job rather than
+  merely reporting a different count.
+- **Not enforced**: the counts being equal. The mechanism needs each job to publish its counts and
+  a third job to diff them, and that is now a candidate row in `ROADMAP.md` rather than a sentence
+  in a comment.
+
+The stripped gap has been exactly 74 across four recorded runs, which is what made the old comment
+easy to believe.
+
+### VERIFIED
+
+Twelve rungs and seven checkers green on `4.7.2.stable.official.ed1daf0bf`. Boot `0 warnings, 0
+errors`. Suite `=== 2291 passed, 0 failed, 0 skipped ===`, exit 0.
+
+**THE SUITE MOVED +4 AND I HAD PREDICTED +2, WHICH IS WORTH THE PARAGRAPH.** Two were the new
+DEVLOG heading through `record_shape_test.gd`'s `_docs.size() + _packages.size() * 2 + 2`, exactly
+as expected. The other two were **`docs_test.gd` finding two new `res://` paths in this row's own
+prose** — the plant table quotes `res://src` and `res://localization` as the scan roots, and that
+case asserts every `res://` path the documents name resolves. Writing the evidence down added
+assertions about the evidence. Four cases compute their plans from `docs/`, so **the assertion
+delta of a documentation-heavy row is not predictable from the code change**, and every number in
+this entry was read off a run for that reason rather than reasoned to. Fifth time in this run.
+`check_budgets`: **167 files, 15,852 code lines, 0 warnings, 0 violations** — up 36 code lines from
+15,816, all of it the guards and their headers. Scan counts after the change, for the record:
+`check_boundary` 156 scripts, `check_strings` 105, `check_layers` 105, `check_content` 16 scenes.
+
+### AND THE LOGS THIS ROW ADDED WERE NOT IGNORED, WHICH WAS ALREADY TRUE OF THREE OF THEM
+
+Caught by asking what files this row leaves behind rather than by a gate, and it is a defect this
+row WIDENED rather than introduced. `.gitignore` had no `*.log` pattern, and the workflow has been
+writing `import.log`, `boot.log` and `tests.log` since T1.4 — so anyone running the ladder locally
+the way CI does has always been left with untracked logs, and `git add -A` would have committed
+them. This row takes that from three filenames to **ten**.
+
+`*.log` added, with the reason beside it. Verified rather than assumed: writing
+`check_layers.log` and running `git status --short --untracked-files=all` now reports only the
+`.gitignore` change itself. **Nothing `.log` has ever been tracked** — `git ls-files | grep '\.log$'`
+is empty — so the pattern cannot orphan a file the repository depends on, which is the one thing
+worth checking before adding an ignore rule.
+
+The suite is unaffected at 2,291: `docs_test.gd` reads `docs/` and `.gitignore` is not a document.
+
+### GAPS
+
+- **`Fixtures.activate()` is still unchecked at 14 of 16 sites** and this row deliberately did not
+  touch it, because **the two sites that do handle it disagree and the document backs the weaker
+  one.** `TESTING.md:193-195` writes `if not Fixtures.activate(): skip(...); return`, which
+  `bag_mirror_test.gd:47` follows; `audio_duck_test.gd:180` instead asserts the return is `true`.
+  The assert is arguably right and the document arguably wrong: a fixture root that cannot be
+  written turns a skipped case into a silent no-op, which is the exact failure this row just
+  guarded the tools against. **Deciding that is the owner's**, and the cost differs by an order of
+  magnitude — assert loudly and one document changes, skip and fourteen files do. Left as a
+  decision rather than settled in passing.
+- **The cross-job count comparison** described above.
+- Unchanged and still recorded rather than forgotten: the suite's own assertion total, the board's
+  `**Commit:**` lines at 15 of 52, the board's detail-section headings, branch names, and the
+  markdown column-count gate T5.26 declined on measurement.
+- **This row is 18 files against a stated limit of about 8**, and over on that count for the third
+  row running. New code lines: ~36, against a limit of 500. **Seven are the thing this row exists
+  to change** — `ladder.yml` and six tools — **and eleven are the record**, which is the same
+  arithmetic T5.25 and T5.26 recorded and by now the pattern rather than the exception. **If
+  the 8-file guideline is meant to bind a documentation-heavy row, it needs rewriting; if it is
+  meant to bind code, it should say so.** Named here because three rows in a row have quietly
+  exceeded it.
+- `src/systems/scene_director/director.gd` is still at 187 of its 190, untouched for the fifth row
+  running.

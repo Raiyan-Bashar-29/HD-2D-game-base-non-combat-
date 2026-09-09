@@ -19,6 +19,57 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.3.4
+
+*2026-09-09 — a checker can skip files and still print PASS, and six checkers could pass on a
+scan of nothing.*
+
+**A consuming game does: nothing to its own code.** No file under `src/` changed. What changed is
+`.github/workflows/ladder.yml` and six of the seven `tools/check_*.gd`.
+
+**IF YOUR FORK COPIED THE LADDER, TAKE THIS ONE.** Every checker step now captures its output to
+`check_<name>.log`, prints it, and **fails the step if that log contains `SCRIPT ERROR` or
+`Parse Error`** — even when the checker itself reported `PASS` and exited 0. The reason is
+measured, not assumed:
+
+```
+SCRIPT ERROR: Out of bounds get index '9' (on base: 'Array[int]')
+  loop finished, items processed: 2 of 3
+PASS
+exit=0
+```
+
+That is gotcha 24 — a GDScript runtime error aborts the **innermost frame only**. An error inside
+a checker's per-file function returns to the loop, the loop finishes, and the tool reports success
+having silently skipped a file. **The exit code cannot see it**; rung 4 has `ErrorWatch` for
+exactly this and rungs 5–11 had no equivalent. The seven logs are now uploaded as artifacts from
+both jobs.
+
+**AND SIX CHECKERS NOW REFUSE A SCAN OF NOTHING.** Each counts the files its collector actually
+opened and fails with `nothing was scanned, so this gate could only ever pass` at zero. Before
+this, pointing `check_layers` at a directory containing no scripts printed `scripts scanned: 0`
+followed by `PASS`, exit 0. `CHANGELOG.md` has stated the rule for doc gates since `4.3.1` — "a
+doc gate that passes because it found nothing to check is worse than no gate" — and it had never
+been applied to the tools.
+
+**`check_content` is deliberately exempt, and this is the one thing to know if you strip your
+game.** Its entire input is `data/` and `scenes/areas`, which the stripped-template job *deletes
+on purpose*. Scanning nothing is a legitimate state for that checker and only for it, so guarding
+it would fail the stripped job by design. The other six read `src/`, `tests/`, `tools/` and
+`localization/`, none of which the strip touches, so zero there is always a defect.
+
+**One comment in `ladder.yml` claimed a check that nothing performed** and now says what is
+actually enforced. It read "a stripped template must report exactly the same numbers"; the two
+jobs are independent and nothing compares their output. What *is* enforced — and it catches the
+failure mode that matters — is that each checker must exit 0 in both jobs, so an engine string
+that stops resolving once the game is gone fails rather than merely differing. A real cross-job
+count comparison needs each job to publish counts and a third job to diff them; that is recorded
+as a candidate row rather than implied by a comment.
+
+**Suite 2,287 → 2,291**, both from this row's own DEVLOG entry passing through a computed plan. No
+new assertions in the suite: this row's enforcement lives in the tools and the workflow.
+
+---
 ## 5.3.3
 
 *2026-09-09 — the case that checks the checkers are wired could not see a checker that was not

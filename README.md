@@ -77,7 +77,7 @@ Boot for real and watch the log. Should end with `0 warnings, 0 errors`:
 "$GODOT" --headless --quit-after 120
 ```
 
-Run the tests. 2,287 assertions; exits 1 if any fail:
+Run the tests. 2,291 assertions; exits 1 if any fail:
 
 ```bash
 "$GODOT" --headless res://tests/test_runner.tscn --quit-after 300

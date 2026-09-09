@@ -33,6 +33,11 @@ const SINKS: Array[String] = [
 const KEY_SUFFIX: String = "_KEY"
 
 var _violations: int = 0
+## HOW MANY FILES THIS RUN ACTUALLY OPENED, counted in the collector so it cannot drift
+## from the scan. A gate that scanned NOTHING reports PASS, and `CHANGELOG.md` says of
+## doc gates that one passing because it found nothing to check is worse than no gate.
+## That rule was never applied to these tools until T5.27.
+var _scanned: int = 0
 var _keys: Dictionary[String, bool] = {}
 var _checked_keys: int = 0
 var _patterns: int = 0
@@ -57,6 +62,10 @@ func _initialize() -> void:
 		print("FAIL — %d string violation(s)" % _violations)
 		quit(1)
 		return
+	if _scanned == 0:
+		print("FAIL — nothing was scanned, so this gate could only ever pass")
+		quit(1)
+		return
 	print("PASS")
 	quit(0)
 
@@ -72,6 +81,7 @@ func _collect_files(directory: String, extension: String, into: Array[String]) -
 	for file_name: String in DirAccess.get_files_at(directory):
 		if file_name.ends_with(extension):
 			into.append("%s/%s" % [directory, file_name])
+			_scanned += 1
 
 
 ## The CSV is parsed as text, for the same two reasons check_content.gd gives: the engine's

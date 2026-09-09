@@ -12,6 +12,11 @@
 # Generated translation binaries (source .csv IS committed)
 *.translation
 
+# Ladder logs. The workflow writes import.log, boot.log, tests.log and one check_<name>.log
+# per checker; T5.27 added the seven checker logs, and running the ladder locally the way CI does
+# leaves all ten in the working tree. Nothing here is tracked and nothing should be.
+*.log
+
 # OS / editor noise
 Thumbs.db
 desktop.ini

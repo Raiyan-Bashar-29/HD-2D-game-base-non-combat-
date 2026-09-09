@@ -1169,6 +1169,40 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   **2,276**, both new assertions being this row's own DEVLOG heading passing through a computed
   plan rather than a case this row wrote.
 
+- **T5.26 The ladder's own gate could not see an unwired checker — DONE, 2026-09-09.**
+  `gates_test.gd`'s header states its purpose as catching "a gate written, committed, and never
+  wired". **It could catch neither shape of that**, and both were found by auditing the gates one
+  row after T5.25 audited a different one. **First: `LADDER` was a const naming seven checkers,
+  with nothing asserting it named ALL of them** — so an eighth `tools/check_*.gd` was invisible to
+  the one case whose entire subject is a gate nobody runs, which is the defect being the defect's
+  own blind spot. `test_runner.gd` closed the identical hole for `CASES` at T2.2 by scanning the
+  directory, so the fix is that pattern rather than a new idea, and the argument for it is
+  `check_boundary.gd`'s: a list of what to check rots, and its rotting is invisible exactly where
+  it matters. **Second: the wiring assertion was `workflow.contains(checker)`, which is true of a
+  workflow that names the checker in a COMMENT** — and this workflow's comments do name the
+  checkers, deliberately, because they carry the reasoning for each rung. **MEASURED RATHER THAN
+  ARGUED: commenting out both `run:` lines for `check_signals` left the suite GREEN at 2,276**, a
+  checker running in neither job with the ladder's own gate reporting fine. That is the comparison
+  run and it is the row's whole evidence, the same three-run shape T5.25 needed and for the same
+  reason — the tightened assertion is green on the live tree, so nothing about A and B alone
+  distinguishes a fix from a no-op. **THIRD, AND IT IS WHAT `contains` COULD NOT EXPRESS AT ALL:
+  the count is per-JOB.** One bool for a whole file cannot say that a checker is wired into the
+  full job and missing from the stripped one — which is wired into half a ladder, and the stripped
+  half is the half that proves the template stands up with no game present. So the assertion counts
+  INVOCATIONS, a non-comment line carrying both the script path and `--script`, and compares that
+  count to `JOBS.size()`, with the job names themselves asserted so the number is not a fiction —
+  `dev_tools_test.gd`'s self-guard against a silently-empty extractor, applied to a constant. **The
+  plan is computed**, `42 + JOBS.size() + LADDER.size() * 2 + on_disk.size()`, for
+  `record_shape_test.gd`'s reason: wiring an eighth checker should not mean editing a number, and a
+  number that must be edited gets edited to whatever the run reported. **Three plants, three
+  different failures, exactly one each** — both steps commented out `expected 2, got 0`; the
+  stripped job's step alone removed `expected 2, got 1`; an eighth checker written and unlisted
+  `tools/check_planted.gd is listed in LADDER — expected true, got false`, on a run whose total
+  rose by one on its own, which is the computed plan proving itself in passing. **Gotcha 78, and it
+  is gotcha 77's mistake in a second document one row later**: when a gate reads a FILE rather than
+  the behaviour, ask which parts of that file are prose. `5.3.3`, a PATCH; `src/` and `tools/`
+  byte-identical, the change being one test file. Suite 2,276 → **2,287**.
+
 ## Sequencing rules
 
 1. **Breadth of systems, one shallow proof each.** This *replaces* "depth before breadth", which

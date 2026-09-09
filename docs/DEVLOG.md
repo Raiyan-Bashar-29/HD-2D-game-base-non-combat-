@@ -9230,3 +9230,162 @@ recorded in this file.** Nothing gates it — `ladder.yml` asserts only that the
 non-zero, so a stripped run can be told from a full one, never that the arithmetic holds. That is
 a candidate row and not this one, and it needs the two jobs to compare outputs, which they
 currently cannot: they are independent and nothing reads both.
+
+## 2026-09-09 — T5.26 · The ladder's own gate could not see an unwired checker
+
+**THE ROW IS THE PREVIOUS ROW'S METHOD TURNED ON A DIFFERENT GATE.** T5.25 asked what
+`record_shape_test.gd`'s assertions were actually comparing and found they were comparing the
+wrong string. This asks the same question of `gates_test.gd`, whose header states its purpose in
+its own words: *"the assertion that would have caught a gate written, committed, and never wired —
+which is the defect the whole package is about, applied to the package itself."*
+
+**It could catch neither shape of that.**
+
+| shape of "never wired" | why it passed | now |
+|---|---|---|
+| an eighth `tools/check_*.gd` never added to the ladder | `LADDER` was a const of seven and nothing asserted it named ALL of them | the list is derived from `tools/` |
+| a checker named in the workflow only by a `#` comment | `workflow.contains(checker)` is true of a comment, and this workflow's comments name every checker on purpose | invocations counted: a non-comment line carrying the path AND `--script` |
+| a checker in the full job, absent from the stripped one | `contains` returns one bool for a whole file and cannot express "in both" | the count must equal `JOBS.size()` |
+
+### THE COMPARISON RUN, WHICH IS THE ROW'S WHOLE EVIDENCE
+
+The tightened assertions are green on the live tree — seven checkers, each invoked twice, list
+complete — so a run before and a run after prove nothing on their own. Same position T5.25 was in
+and the same answer: plant it, then run the OLD code against the SAME plant.
+
+The plant is both `run:` lines for `check_signals` commented out. The checker then runs in
+**neither job**, while its name is still in the file twice, as comments:
+
+```
+invocation lines left: 0
+the name still appears in the file this many times: 2
+```
+
+| run | gate | plant | result |
+|---|---|---|---|
+| A | invocation count | none | `=== 2285 passed, 0 failed, 0 skipped ===`, exit 0 |
+| B | invocation count | both `check_signals` steps commented out | `=== 2284 passed, 1 failed, 0 skipped ===`, exit 1 |
+| C | **the original `contains()`** | **the same plant** | `=== 2276 passed, 0 failed, 0 skipped ===`, **exit 0** |
+
+B's failure, verbatim:
+
+```
+FAIL every job invokes tools/check_signals.gd, once each — expected 2, got 0
+```
+
+**C IS THE RUN THAT CARRIES THE ROW.** A checker running in neither job of the ladder, and the
+ladder's own gate — the one case whose entire subject is a gate nobody runs — reported green at
+exit 0. A and B alone are equally consistent with a gate that had nothing wrong with it.
+
+**THE THREE RUNS READ 2,285 AND THE FINISHED TREE READS 2,287, AND THE TWO NUMBERS ARE BOTH
+RIGHT.** They were measured before this entry existed. Writing it added a `## <date> — T5.25`-shaped
+heading for T5.26, `record_shape_test.gd` derives its package list from those headings, and its
+plan is `_docs.size() + _packages.size() * 2 + 2` — so one new package id is **+2 assertions**, one
+for the board row and one for the roadmap row. `WORK_PACKAGES.md` warns that a closing doc commit
+can move the total for exactly this reason; here it moved it by two, predictably, and the CI record
+is read off the final commit rather than this one. The plant deltas are unaffected: B removed one
+assertion from a 2,285 baseline, C fell to 2,276 because the reverted case carries `plan(56)`.
+
+### TWO FURTHER PLANTS, EACH A DIFFERENT FAILURE, EXACTLY ONE EACH
+
+- **The stripped job's step alone removed** — `expected 2, got 1`. This is the shape that matters
+  most in practice: a full-job-only checker looks wired to anyone reading the first half of the
+  workflow, and the stripped job is the half that proves the template stands up with no game
+  present. `contains` could not express this at all, which is why the count is per-job rather
+  than per-file.
+- **An eighth checker written and unlisted**, `tools/check_planted.gd` —
+  `FAIL tools/check_planted.gd is listed in LADDER, so it is checked at all — expected true, got
+  false`. That run reported `=== 2285 passed, 1 failed ===`, i.e. **2,286 total: the plan grew by
+  one on its own**, which is the computed plan proving itself in passing rather than by argument.
+
+### THE THREE DECISIONS, EACH WITH THE PRECEDENT RATHER THAN THE PREFERENCE
+
+**The list is derived, not typed.** `test_runner.gd` has scanned `tests/unit` for files missing
+from `CASES` since T2.2 and fails on `"%s exists but is not listed in CASES, so it never runs"`.
+This is that pattern, and the argument is `check_boundary.gd`'s: a list of what to check rots, and
+it rots invisibly precisely where the list is the only thing between a gate and irrelevance.
+
+**The count is compared to `JOBS.size()`, and the job names are asserted too.** A constant
+compared against reality is only as good as the constant, so `JOBS` being `["ladder", "stripped"]`
+is not enough — each is asserted present as a job declaration, so a renamed or deleted job fails
+by name instead of quietly making every count below it a fiction. That is `dev_tools_test.gd`'s
+`owners.size() > 20` guard against a silently-empty extractor, applied to a const.
+
+**The plan is computed** — `42 + JOBS.size() + LADDER.size() * 2 + on_disk.size()` — for
+`record_shape_test.gd`'s reason: wiring an eighth checker should not mean editing a number, and a
+number that must be edited gets edited to whatever the run reported. It held first time: the run
+came back `2285 passed, 0 failed` with no plan mismatch, and plant 3 adjusted by itself.
+
+### AND THE INVENTORY HAD TWO ROWS WHOSE LAST TWO CELLS RENDERED AS NOTHING
+
+Found while adding this row's own entry to `SYSTEMS_INVENTORY.md`, and it is T5.15's defect in a
+different shape — content present in the file and invisible in the rendered document.
+
+The table at `SYSTEMS_INVENTORY.md:162` is `| System | Purpose | Status |`, three columns. Two
+rows carried **five**: `Localization` and `Record shape gate`. Markdown drops cells past the
+header count, so both rows' `Reads` and `MUST NOT` content — the record-shape gate's MUST NOT line
+among it — was in the file and in no reader's view. Both rewritten to three columns with the extra
+cells folded into Purpose as `**Reads:**` and `**Must not:**`, losing nothing.
+
+**AND `gates_test.gd` HAD NO ROW IN THAT FILE AT ALL**, which is T5.19's `Row styles` defect a
+second time: the case that guards the seven checkers was itself missing from the table of what
+exists. It has one now.
+
+**I reproduced the five-column defect myself, in the row I was adding, minutes after finding it** —
+copying the neighbour's shape rather than the header's. That is the strongest argument available
+for gating it, and it is NOT gated here, for a reason that was measured rather than assumed:
+
+**A CORRECT COLUMN-COUNT CHECKER IS SUBTLER THAN IT LOOKS, AND MY FIRST THREE ATTEMPTS WERE ALL
+WRONG.** A naive count over the repository flagged four candidates. Three were **false positives**:
+- `WORK_PACKAGES.md:87` and `:92` — GFM makes the **trailing pipe optional**, and those two rows
+  omit it. Four cells, not the flagged three; correct as written.
+- `DEVLOG.md:6817` — a cell containing `Day 1 \| 18:40 \| Dusk`, i.e. **escaped pipes**, which a
+  splitter must not treat as delimiters.
+Only the two `SYSTEMS_INVENTORY.md` rows were real. A gate that shipped any of those three false
+positives would fail the build on correct documents, which is worse than the defect: this project's
+own rule is that a gate has to be right about what it reads, and gotcha 77 and 78 are both
+instances of it being wrong. **So the column-count gate is a row of its own with its own plants —
+optional trailing pipe, escaped pipe, a genuinely short row, a genuinely long one** — and not a
+function bolted onto this one. Recorded rather than left as a note in a chat.
+
+### ALSO IN THIS ROW
+
+- **T5.25's `**Commit:**` line shipped without its SHA.** It read `**Commit:** on
+  `claude/t5-25-record-reconcile`, targeting `main`.` — written before the commit existed, which
+  is the one ordering the board's closing checklist cannot avoid, since item 6 asks for a commit
+  that the act of satisfying item 6 creates. Filled in as `03a097c` plus `7dc5f63` for the CI
+  record, and the ordering problem is named in the line itself so the next row does not rediscover
+  it.
+
+### WHAT THIS ROW DID NOT TAKE, ALL FOUND IN THE SAME AUDIT
+
+Four claims still have no mechanism behind them. They are `ladder.yml` and seven tools, which is a
+different file set and a different plant for each, so they are their own rows rather than this one
+growing to twenty files:
+
+- **Rungs 5–11 read only the exit code.** No `SCRIPT ERROR` grep, no log artifact — the artifact
+  upload lists `import.log`, `boot.log` and `tests.log` only. **Gotcha 24, this project's founding
+  observation, is that a GDScript runtime error aborts the innermost frame and no more**, so a
+  crash inside a checker's per-file loop can leave files unscanned, let the loop finish, and still
+  reach `print("PASS"); quit(0)`. Rung 4 has `ErrorWatch` for exactly this shape. Rungs 5–11 have
+  no equivalent, and this is the largest remaining hole in the ladder.
+- **`ladder.yml:363-373` asserts in prose that the two jobs "must report exactly the same
+  numbers".** They are independent jobs and nothing compares their output. The claim has been true
+  every time it was checked by hand and is enforced by nothing.
+- **No checker asserts its own scan was non-empty — 0 of 7**, each printing its scanned count and
+  none refusing a zero. `CHANGELOG.md` states the rule for doc gates in as many words: *"A doc
+  gate that passes because it found nothing to check is worse than no gate."* It was never applied
+  to the tools.
+- **`Fixtures.activate()` is called unchecked at 14 of 16 sites**, against the shape
+  `TESTING.md:193-195` writes out: `if not Fixtures.activate(): skip(...); return`. The two that
+  handle it do so differently — `bag_mirror_test.gd:47` skips, `audio_duck_test.gd:180` asserts
+  the return is `true`, which is arguably the better of the two and is not what the document says.
+  The document and the code should agree before either is gated.
+
+Still ungated with the reason recorded rather than as an oversight, unchanged from T5.25: the
+suite's own assertion total (a case cannot know it while the suite runs), the board's `**Commit:**`
+lines (15 of 52, so a gate fails 37 historical rows), the board's detail-section headings, and
+branch names.
+
+**`src/systems/scene_director/director.gd` is still at 187 of its 190**, untouched for the fourth
+row running.

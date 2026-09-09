@@ -9777,3 +9777,154 @@ across `1625`/`1551`, `2276`/`2202`, `2287`/`2213` and this pair, and it survive
 an assertion to a case which uses fixtures rather than demo content. **Still nothing enforces it**:
 `ladder.yml` asserts only that the named-skip count is non-zero, and the cross-job comparison
 remains a recorded candidate rather than a mechanism.
+
+## 2026-09-09 — T5.29 · The player prefab was a rule pretending to be a default
+
+**ADR-0007 FOUND THIS WITHIN AN HOUR OF EXISTING, AND THAT IS THE ROW'S BEST ARGUMENT FOR ITSELF.**
+T5.28 was a documentation row whose whole product was a distinction, and the standing objection to
+it — five times over — was that it is prose and cannot be proved by running the engine. It cannot.
+What it *can* do is find things, and the first thing it found is a defect no audit had caught: five
+read-only audits over this repository, run the same day, all missed it. The critic arguing the base
+was already finished found it while trying to prove nothing was left.
+
+### THE DEFECT
+
+`src/core/boot/game_root.gd:28`:
+
+```gdscript
+const PLAYER_SCENE: String = "res://scenes/characters/player.tscn"
+```
+
+Engine code, in the **`core`** layer — the layer whose entire promise is that it knows nothing
+about the game — naming the prefab a consuming game replaces **first**. `GameConfig` exposed
+exactly two `[game]` keys, `world/first_area` and `world/first_spawn`, with no `player_scene`
+among them. `ARCHITECTURE.md` states the contract in as many words:
+
+> a game adds content and resources; it does not add code under `src/`.
+
+So a game whose protagonist has a different shape — a different rig, different components, a
+different collision profile — **had no legal way to get one.** Its options were to edit `src/` or
+to abandon the upgrade path.
+
+**By ADR-0007's test this is a template RULE wearing a template DEFAULT's clothes.** The test is
+one question, *does a seam exist?*, and it is a fact about the repository rather than a matter of
+tone. The answer here was no, and nothing in the record said so — `NEW_GAME.md` § 2 listed the
+player among prefabs to "Keep, and never edit", which reads as a default and functioned as a rule.
+
+### THE COMPARISON RUN, WHICH IS WHAT MAKES IT A DEFECT RATHER THAN A PREFERENCE
+
+Same plant both times: `[game] world/player_scene` pointed at a scene that does not exist, then
+`--headless --quit-after 60`.
+
+| run | code | result |
+|---|---|---|
+| control | new seam, real path | `Session ended after 2.9s — 0 warnings, 0 errors` |
+| plant | new seam, missing path | `[ERROR] [boot] Player scene missing or invalid at res://scenes/characters/no_such_player.tscn` · **`0 warnings, 1 errors`** |
+| comparison | **old `const`**, same missing path | `Session ended after 1.0s — 0 warnings, 0 errors` |
+
+**THE COMPARISON IS THE ROW, AND THE PLANT ALONE WOULD HAVE BEEN THE WRONG EVIDENCE.** The plant
+shows the error path works — which it always did; `Log.error("boot", …)` was already there. The old
+run shows there was **no path at all**: the key a game would naturally set was read by nothing, so
+a stated choice was discarded in silence and the template's own player spawned regardless. That is
+the third row running where the old code against the new plant is the only run that says what was
+broken, and it is becoming the house method rather than a trick.
+
+**A note on how the comparison was obtained**, because it is worth not repeating: the work was set
+aside with `git stash push -u`, which took the plant with it and left the tree at `main` — which
+happened to be exactly the old-code state the comparison needed. Convenient here, and it also
+means the restore brought the *planted* `project.godot` back, which had to be corrected by hand.
+A WIP commit would have been the cleaner instrument.
+
+### THE FALLBACK IS THE ONE ASYMMETRY, AND IT IS DELIBERATE
+
+`world/first_area` has **no** fallback. `GameConfig`'s own header explains why: *"Empty is a real
+answer — a template with no game in it yet — and `Director` reports it rather than loading nothing
+and going quiet."*
+
+`world/player_scene` **does** have one, because a game can never legitimately have no player. An
+unset key must not mean `load("")` and a silently empty world, so it means the template's own
+prefab. Stating the asymmetry in both places is what stops a later reader "fixing" one to match
+the other.
+
+**And the default may live in `src/` at all only because of a classification**: `scenes/characters/`
+is **Engine** per `TEMPLATE.md`'s "What is what" table, so `GameConfig` naming that path is engine
+naming engine. The `const` in `core` was not the same thing in a different place — `core` knows
+nothing about the game *by contract*, and `game_root.gd` is `core`.
+
+### WHAT DID NOT HAPPEN
+
+**`game_root.gd` did not grow: 26 of its 60-line hard budget before and after.** That file's header
+is unusually emphatic — `HARD BUDGET: 60 CODE LINES. READ THIS BEFORE ADDING ANYTHING`, and it
+records that *"the previous project's equivalent file reached 3,983 lines, because a root node is
+the most convenient place to put anything and every feature took the convenience."* This row moved
+a path out and a local variable in. It added none of the four things that file is allowed to do.
+`game_config.gd` went 26 → 32 of its 250.
+
+**No new autoload, no ADR needed, no enum touched.** `GameEnums` is append-only because ordinals
+live in `.tscn` files, and nothing here needed one.
+
+### TWO STALE COUNTS FELL OUT OF IT
+
+Neither is gated, and both are T5.25's class — a number in prose that nothing re-measures:
+
+- **`GameConfig`'s own header** claimed it owned *"the **four** facts a game author writes once and
+  never changes."*
+- **`SYSTEMS_INVENTORY.md`** claimed *"the **four** values a consuming game sets in project.godot:
+  first area, first spawn, name, slug."*
+
+Five, now, in both. Worth noting that the file being edited was the one whose header held the wrong
+count — a row that adds a fact to a list is the most likely row to leave the list's own count
+behind, and the only defence is looking.
+
+**And `NEW_GAME.md` § 2 gained the one exception to "Keep, and never edit to start a game."** The
+section is right and stays right: a fork does not edit `scenes/characters/player.tscn`. It now
+*points past* it, which is the instruction the section always implied and could not previously be
+obeyed.
+
+### VERIFIED
+
+Twelve rungs and seven checkers green on `4.7.2.stable.official.ed1daf0bf`. Boot
+`0 warnings, 0 errors`. Suite `=== 2300 passed, 0 failed, 0 skipped ===`, exit 0.
+`check_budgets`: 167 files, 15,862 code lines, 0 violations.
+
+**Suite 2,294 → 2,300, and I predicted +5.** Accounted per case: `core_test` 55 → 58 for the three
+seam assertions, `record_shape_test` 129 → 131 for this entry's own package id, and **`docs_test`
+121 → 122, which is the one I did not predict.** No new case and no new file — the existing
+`_game_config()` block already had the exact shape this needed (read configured, assert, set null,
+assert fallback, restore), so extending it was cheaper than a new case and keeps the seam's
+assertions beside the two it is asymmetric with.
+
+**AND `docs_test.gd` REFUSED THIS ROW TWICE FIRST, ON A RULE I DID NOT KNOW IT ENFORCED:**
+
+```
+FAIL CHANGELOG.md names res://scenes/characters/my_protagonist.tscn, which exists — expected true, got false
+FAIL ROADMAP.md names res://scenes/characters/no_such_player.tscn, which exists — expected true, got false
+```
+
+**Every `res://` path a document names must RESOLVE.** So a document may not print an illustrative
+path — my `CHANGELOG` example invented `my_protagonist.tscn` to show a fork what to write — and it
+may not quote a plant path, which by definition must not exist. Both are now written without the
+`res://` prefix, and the changelog's example shows the template's own real path with the swap
+described in prose instead. `docs/DEVLOG.md` is exempt (`file_name != HISTORY`), which is why this
+entry may quote the plant's output verbatim while the other three documents may not.
+
+**That is the second time in three rows a gate has caught this row's own record rather than its
+code** — T5.28's version gate caught a bold semver in its own narrative, and this is the same shape:
+**a row that writes about paths and numbers is the row most likely to break the rules about paths
+and numbers.** The +1 in `docs_test` is the same coin's other side: the corrected example is itself
+a new `res://` occurrence to verify, so writing the fix moved the total.
+
+### GAPS
+
+- **The `**Commit:**` line shipped without its SHA for the fourth row running**, and at four it is
+  evidence about the checklist rather than about four sessions: board item 6 asks for a commit that
+  the act of satisfying item 6 creates. Filling in the previous row's line each time works and is
+  what happened again here. **A checklist that cannot be satisfied in the order it is written
+  should say so**, which is a one-line change to the board and not this row.
+- **P2 is next and this row makes it cleaner.** Performing the extension surface from outside
+  `src/` was always going to rediscover the player scene as its first finding; now it will not, and
+  what it finds will be new. The predictions still standing for it: no document table has a row for
+  game *code*, `ScreenKeys.menu_for()` is a closed `if`-chain over the eight template screens,
+  `[game]` is still small and `GameConfig`'s MUST NOT forbids it becoming a settings store, and
+  `scenes/boot/game_root.tscn` is Engine so a session-lived game service has nowhere to live.
+- **`src/systems/scene_director/director.gd` is still at 187 of its 190**, sixth row running.

@@ -1283,6 +1283,37 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   have one is what the previous four rows were about. `5.3.5`, a PATCH; `src/`, `tools/` and
   `.github/` byte-identical.
 
+- **T5.29 The player prefab was a rule pretending to be a default — DONE, 2026-09-09.**
+  **ADR-0007 FOUND THIS WITHIN AN HOUR OF EXISTING, WHICH IS THE ROW'S BEST ARGUMENT FOR ITSELF.**
+  `src/core/boot/game_root.gd:28` held
+  `const PLAYER_SCENE := "res://scenes/characters/player.tscn"` — engine code, in the `core`
+  layer, naming the prefab a consuming game replaces FIRST — and `GameConfig` exposed exactly two
+  `[game]` keys with no `player_scene` among them. `ARCHITECTURE.md` states the contract as *"a
+  game adds content and resources; it does not add code under `src/`"*, so **a game with a
+  differently-shaped protagonist had no legal way to get one.** T5.28's seam test asks one
+  question — *does a seam exist?* — and a "default" a game cannot replace without editing `src/`
+  is a RULE that has not admitted it. This is that, and it is the first thing the test caught.
+  **THE COMPARISON RUN IS WHAT MAKES IT A DEFECT RATHER THAN A PREFERENCE**, and it is the same
+  shape T5.25 through T5.27 each needed: set `[game] world/player_scene` to a scene that does not
+  exist and boot. **Against the OLD code: `0 warnings, 0 errors`** — the key silently ignored, the
+  player spawned from the const, a game's stated choice discarded without a word. **Against the
+  new seam: `1 errors`, `Player scene missing or invalid at <the missing path>`**
+  — named, on the existing `Log.error("boot", …)` path, rather than a silent empty world. The old
+  run is the row: what was broken is not that the path was wrong but that setting it did nothing.
+  **THE FALLBACK IS THE ONE ASYMMETRY AND IT IS DELIBERATE.** `world/first_area` has none, because
+  a template nobody has put a game in yet legitimately starts in no area and `Director` reports
+  that. A game can never legitimately have NO player, so an unset key means the template's own
+  prefab rather than `load("")` and an empty world. `scenes/characters/` is Engine per
+  `TEMPLATE.md`, so `GameConfig` naming that path is engine naming engine — not the boundary leak
+  the `const` in `core` was. **`game_root.gd` DID NOT GROW**: 26 of its 60-line hard budget before
+  and after, because the path moved and no logic did — that file's header says it "may only do
+  four things" and this row added none of them. **TWO STALE COUNTS FELL OUT OF IT**, both the kind
+  T5.25 spent a package on: `GameConfig`'s own header said it owned *"the four facts a game author
+  writes once"* and `SYSTEMS_INVENTORY.md` said *"the four values a consuming game sets"* — five,
+  now, and `NEW_GAME.md` § 2 gained the one exception to "keep and never edit", since a fork points
+  PAST the template's prefab rather than editing it. `5.4.0`, a MINOR — the base gained something a
+  game may ignore. Suite 2,294 → **2,300**, three assertions in `core_test.gd` and no new case.
+
 ## Sequencing rules
 
 1. **Breadth of systems, one shallow proof each.** This *replaces* "depth before breadth", which

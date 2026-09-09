@@ -49,6 +49,11 @@ Director="*res://src/systems/scene_director/director.gd"
 world/first_area="courtyard"
 world/first_spawn="default"
 
+; THE PLAYER PREFAB. Engine code used to name this path in a const under src/core/, which made
+; replacing the protagonist a src/ edit — a template RULE wearing a template DEFAULT's clothes,
+; per ADR-0007. Point it at your own scene; delete the key and the template's own prefab is used.
+world/player_scene="res://scenes/characters/player.tscn"
+
 [template]
 
 ; WHAT THE BASE SAYS ABOUT ITSELF, and the reason it is not application/config/version: that
@@ -62,7 +67,7 @@ world/first_spawn="default"
 ; when the base gains something a game may ignore, the patch when nothing a game wrote is
 ; affected. That promise is stated in full in docs/UPGRADING.md and encoded in
 ; src/core/util/template_version.gd, which reads this setting and is what the boot banner prints.
-base/version="5.3.5"
+base/version="5.4.0"
 
 [debug]
 

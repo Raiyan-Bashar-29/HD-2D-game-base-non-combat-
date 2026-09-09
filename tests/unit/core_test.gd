@@ -15,7 +15,7 @@ const PSEUDO_LOCALE: String = "en_XA"
 
 
 func run() -> void:
-	plan(55)
+	plan(58)
 	_dict_read()
 	_flags()
 	_flags_hands_out_copies()
@@ -183,6 +183,18 @@ func _game_config() -> void:
 	ProjectSettings.set_setting(GameConfig.FIRST_AREA_SETTING, configured)
 	ProjectSettings.set_setting(GameConfig.FIRST_SPAWN_SETTING, "default")
 	equal("restored", GameConfig.first_area(), StringName(configured))
+
+	# THE PLAYER SCENE, AND THE ASYMMETRY WITH THE FIRST AREA IS THE POINT. An unset area is a
+	# legal state — a template nobody has put a game in yet — so it reads empty. A game can never
+	# legitimately have NO player, so an unset key falls back to the template's own prefab rather
+	# than to "", which `load("")` would turn into a silent empty world.
+	var player: String = str(ProjectSettings.get_setting(GameConfig.PLAYER_SCENE_SETTING, ""))
+	equal("the player scene comes from project.godot", GameConfig.player_scene(), player)
+	ProjectSettings.set_setting(GameConfig.PLAYER_SCENE_SETTING, null)
+	equal("an unset player scene falls back to the template's own prefab",
+		GameConfig.player_scene(), GameConfig.DEFAULT_PLAYER_SCENE)
+	ProjectSettings.set_setting(GameConfig.PLAYER_SCENE_SETTING, player)
+	equal("the player scene is restored", GameConfig.player_scene(), player)
 
 
 ## The banner and the log file name read these, which is why `Gulistan` is no longer written

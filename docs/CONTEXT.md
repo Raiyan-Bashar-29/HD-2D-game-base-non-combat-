@@ -3,66 +3,77 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-09 · **T5.28 (a template rule, a template default and a game choice are
-three different things) complete, at 5.3.5, a PATCH.** `src/`, `tools/` and `.github/` are
-byte-identical: this row is [ADR-0007](decisions/ADR-0007-template-default-vs-game-choice.md), the
-documents it settles, and one test conversion.
+**Last updated:** 2026-09-09 · **T5.29 (the player prefab was a rule pretending to be a default)
+complete, at 5.4.0, a MINOR** — the base gained a seam a game may ignore.
 
-**THE ROW THAT WAS RANKED FIRST IN THIS LIST FIVE TIMES AND NEVER TAKEN**, and the reason it kept
-losing is the lesson. `TEMPLATE.md` § *"The one constraint nobody has scoped"* has said since
-2026-08-26 that *"what is missing is the distinction between a template default and a game choice,
-which no document currently draws"*. This file deferred it every time for one honest reason — *"it
-is prose and cannot be proved by running the engine"* — **while also recording that it "DECIDES the
-two rows under it rather than guessing."** Both of those rows carried *"Scope depends on the
-taxonomy row above."* **So deferring the cheap ungateable row kept the expensive gateable ones
-frozen**, and three candidate rows were unscopable indefinitely for want of one distinction. **A
-row that gates others is not optional because it is prose, and its cheapness is not a reason to
-leave it at the top of the list unbuilt.**
+**ADR-0007 FOUND THIS WITHIN AN HOUR OF EXISTING, AND THAT IS THE BEST ARGUMENT T5.28 COULD HAVE
+HAD.** The standing objection to the taxonomy row, five times over, was that it is prose and
+cannot be proved by running the engine. It cannot. What it can do is FIND things — and the first
+thing it found had been missed by five read-only audits run over this repository the same day. The
+critic arguing the base was already finished found it while trying to prove nothing was left.
 
-**THE ANSWER IS THREE KINDS, NOT TWO, AND THAT IS WHY IT BECAME TRACTABLE.** The document asked for
-default-versus-choice, and two cannot hold the cases: "no combat" is not a default a game
-overrides, and `world/first_area` is also a template decision but a game changes one line of
-`project.godot`. A **TEMPLATE RULE** is foreclosed for every game and carries a checker where the
-rule is mechanical; a **TEMPLATE DEFAULT** ships a working value *and a seam*; a **GAME CHOICE**
-means the base builds nothing and offers only the seam and the facts.
+`src/core/boot/game_root.gd:28` held
+`const PLAYER_SCENE := "res://scenes/characters/player.tscn"` — engine code, in the **`core`**
+layer, whose entire promise is that it knows nothing about the game, naming the prefab a consuming
+game replaces FIRST. `GameConfig` exposed two `[game]` keys and no `player_scene`.
+`ARCHITECTURE.md` states the contract as *"a game adds content and resources; it does not add code
+under `src/`"* — so **a game whose protagonist had a different shape had no legal way to get one.**
+By ADR-0007's test that is a template RULE wearing a template DEFAULT's clothes, and `NEW_GAME.md`
+§ 2 was listing the player among prefabs to "Keep, and never edit", which reads as a default and
+functioned as a rule.
 
-**AND THE TEST THAT SEPARATES A DEFAULT FROM A RULE IS MECHANICAL RATHER THAN EDITORIAL: DOES A
-SEAM EXIST?** A "default" a game cannot replace without editing `src/` is a rule that has not
-admitted it. "Is this a default or a rule" was a matter of tone; "can a game replace it without
-editing `src/`" is a fact about the repository — **and it paid for itself within the hour.**
-Applied to `game_root.gd:28`'s `const PLAYER_SCENE`, in the `core` layer with no `[game]` key
-beside it, the player prefab is a **RULE PRETENDING TO BE A DEFAULT**: a game whose protagonist has
-a different shape must edit `src/`, which `ARCHITECTURE.md` forbids in as many words. **That is the
-next row.**
+**THE COMPARISON RUN IS WHAT MAKES IT A DEFECT RATHER THAN A PREFERENCE.** Same plant both times —
+`[game] world/player_scene` pointed at a scene that does not exist, then boot:
 
-Applied — RULES: no combat, the layer rule, the demo-name boundary (the last two already have
-checkers, which is what a rule looks like mechanised). DEFAULT: time, because `Clock`,
-`NpcSchedule` and `Weather` are already here. **GAME CHOICES: a chapter sequencer** (a
+| run | code | result |
+|---|---|---|
+| control | new seam, real path | `0 warnings, 0 errors` |
+| plant | new seam, missing path | **`1 errors`**, the path named on the existing `Log.error("boot", …)` |
+| comparison | **old `const`**, same missing path | **`0 warnings, 0 errors`** |
+
+**The comparison is the row and the plant alone would have been the wrong evidence.** The plant
+shows the error path works, which it always did. The old run shows there was **no path at all**: a
+game's stated choice read by nothing and discarded in silence. Third row running where the OLD code
+against the NEW plant is the only run that says what was broken — that is the house method now.
+
+**THE FALLBACK IS THE ONE ASYMMETRY AND IT IS DELIBERATE.** `world/first_area` has none, because a
+template nobody has put a game in yet legitimately starts in no area. A game can never legitimately
+have NO player, so an unset key means the template's own prefab rather than `load("")` and a
+silently empty world. The default may live in `src/` at all only because `scenes/characters/` is
+**Engine** per `TEMPLATE.md` — engine naming engine, not the boundary leak a `const` in `core` was.
+
+**`game_root.gd` DID NOT GROW**: 26 of its 60-line hard budget before and after, a path moved out
+and a local moved in, none of the four things that file is allowed to do. **Two stale counts fell
+out of it**, both ungated and both T5.25's class: `GameConfig`'s header said it owned "the four
+facts a game author writes once" and `SYSTEMS_INVENTORY.md` said "the four values a consuming game
+sets" — five now. `NEW_GAME.md` § 2 gained the one exception to "keep and never edit": a fork points
+PAST the template's prefab.
+
+**AND `docs_test.gd` REFUSED THIS ROW TWICE BEFORE ACCEPTING IT**, on a rule worth knowing: **every
+`res://` path a document names must resolve.** So a document may not print an illustrative path —
+the changelog example invented one — and may not quote a plant path, which by definition must not
+exist. `DEVLOG.md` is exempt, which is why its entry may quote the plant verbatim. **Second time in
+three rows a gate has caught this row's own record rather than its code**, after T5.28's version
+gate caught a bold semver in its own narrative: a row that writes about paths and numbers is the
+row most likely to break the rules about paths and numbers.
+
+Suite 2,294 → **2,300**, predicted +5 and measured +6 — `core_test` 55→58, `record_shape_test`
+129→131, and `docs_test` 121→122, the one not predicted, because the corrected example is itself a
+new path to verify.
+
+*(Previously: T5.28 settled the template-default vs game-choice distinction as
+[ADR-0007](decisions/ADR-0007-template-default-vs-game-choice.md) at `5.3.5`, the row ranked first
+five times and never taken — deferred each time because "it is prose and cannot be proved by
+running the engine" while the same paragraph recorded that it DECIDES the rows under it, so
+deferring the cheap ungateable row kept the expensive gateable ones frozen. The answer is three
+kinds, not two: TEMPLATE RULE, TEMPLATE DEFAULT, GAME CHOICE, separated by a mechanical test —
+does a seam exist? It closed two candidate rows by written refusal (a chapter sequencer, since a
 `story/chapter` int flag with `AT_LEAST` is already a complete chapter model through the one
-`FlagQuery`) **and an economy** (genre, on `Harvestables`' footing). **Two candidate rows are now
-closed by a written refusal rather than built** — an unwritten refusal gets rediscovered, ranked,
-deferred for want of a reason, and ranked again, which is what happened to these three times.
-
-**AND A DRAFT OF THIS ROW GOT THE CUTSCENES ROW WRONG, WHICH IS WORTH KNOWING.** It proposed
-building the staging seam because nine `cutscene` mentions across eight files under `src/` looked
-like unpaid IOUs. **Read in full every one is a RECEIPT** — *"deletes nothing here, it calls
-`Audio.duck()` from its own occasion"*, *"forced by a cutscene, without touching this file"*, *"a
-cutscene can later ask for the same fade"* — each a statement that the file is already
-cutscene-ready and the game supplies the occasion. **Reading a comment as a debt is how a comment
-becomes a work package.** The row is a GAME CHOICE with a stated reason and a boundary line, and
-the base ships no sequencer and no cutscene resource.
-
-**`Fixtures.activate()` is now ASSERTED, not skipped**, reversing what `TESTING.md` documented,
-because a skip reports GREEN — so a fixture root that could not be written is the one condition
-the check exists to catch and the one nobody sees. Same failure T5.27 guarded the checkers against
-one row earlier. `bag_mirror_test.gd` converted, `plan(10)` → `plan(11)`, **and the plan gate
-caught the arithmetic before the suite could hide it**. 14 of 16 call sites still discard the
-return, recorded rather than implied.
-
-**No new gate, and saying so is part of the row** — `record_shape_test.gd` and `docs_test.gd`
-already cover an ADR's structure. Suite 2,291 → **2,294**, predicted +3 and measured +3: one from
-the new assertion, two from the new package id through a computed plan.
-
+`FlagQuery`; and an economy, genre rather than structure) and gave the `Cutscenes` row the reason
+it had always lacked: a draft had proposed building the staging seam because nine `cutscene`
+mentions across eight files looked like unpaid IOUs, and read in full every one is a RECEIPT.
+`Fixtures.activate()` became an assertion rather than a skip, reversing what `TESTING.md`
+documented, because a skip reports GREEN.)*
 *(Previously: T5.27 moved enforcement out of the suite and into the ladder at `5.3.4`. Rungs 5–11
 read only the exit code, and a throwaway probe showed what that hides: a loop of three calling a
 function that indexes an empty array on the second printed `SCRIPT ERROR`, then `loop finished,
@@ -207,7 +218,7 @@ another sheet, and every facing draws a different figure.
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version is** **5.3.5**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+**The version is** **5.4.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
 the owner's to close or to leave.
 
 **THE NEXT PACKAGE IS A CHOICE, NOT A QUEUE.** Nothing is blocking, **Phase T5 has no unticked
@@ -266,12 +277,12 @@ mechanical move. `tools/gen_placeholders.gd` stays on the list at 234 of 250; T5
 `dev_stage.gd`, which was the urgent one at 248, down to 175.
 
 
-167 files, 15,849 code lines, 17 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
+167 files, 15,862 code lines, 17 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
 three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 4 on the default one, the
 fourth being a second IDLE rather than a gait**,
 1 shared area material, **21 settings and 21 consumers**.
-Template version **5.3.5**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+Template version **5.4.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
 recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 
@@ -308,7 +319,7 @@ which is `check_strings.gd`'s static rule made visible and including anything co
 **A SAVE THAT SURVIVES A REAL RELAUNCH**, proved in TWO PROCESSES rather than one reload:
 `--save-state` / `--load-state` in `dev_probes.gd`, with the fresh process's boot line as
 the control and the weather deliberately STORM because CLEAR is the boot default ·
-placeholder art generator · line-budget checker · a headless test suite (2,294 assertions) that
+placeholder art generator · line-budget checker · a headless test suite (2,300 assertions) that
 builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
 returns early, asserts nothing, or is not listed in the runner ·
 an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
@@ -1165,7 +1176,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 2,294 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 2,300 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content, and no orphan CSV row
@@ -2223,7 +2234,7 @@ you can press to travel back to once you have — and every one of those walks n
 depending on whether you are crossing grass, the wooden dais or stone. Every one of those changes
 survives a save and a
 reload, including from the far side of an area that is no longer loaded. All of it is covered
-by 2,294 headless assertions.
+by 2,300 headless assertions.
 
 **Next, and for the first time it is not an ordered queue.** Every blocking row is done: Phase T3
 closed with WP-14b, WP-15 was CLOSED by the owner, and T4.1 shipped the version and the upgrade

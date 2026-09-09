@@ -9590,3 +9590,190 @@ The suite is unaffected at 2,291: `docs_test.gd` reads `docs/` and `.gitignore` 
   exceeded it.
 - `src/systems/scene_director/director.gd` is still at 187 of its 190, untouched for the fifth row
   running.
+
+## 2026-09-09 — T5.28 · A template rule, a template default and a game choice are three different things
+
+**THE ROW THAT WAS RANKED FIRST FIVE TIMES AND NEVER TAKEN**, and the reason it kept losing is the
+interesting part rather than an excuse. `docs/TEMPLATE.md` § *"The one constraint nobody has
+scoped"* has said since 2026-08-26:
+
+> The same class of question applies to a few other decisions made for one game's constraints and
+> now imposed on all of them — most notably "a conversation is not saved". They may well be the
+> right defaults. **What is missing is the distinction between a template default and a game
+> choice, which no document currently draws.**
+
+`docs/CONTEXT.md` carried it at the TOP of the candidate list and deferred it every time, always
+for the same honest reason: *"its honest weakness is that it is prose and cannot be proved by
+running the engine, which is why T5.18 was taken ahead of it."*
+
+**That reason is true and it was never sufficient**, because the same paragraph also recorded what
+the row was holding up: it *"DECIDES the two rows under it rather than guessing: whether a chapter
+sequencer, a calendar and an economy are this base's business at all is one question asked three
+times."* The narrative-staging row said *"Scope depends on the taxonomy row above."* The
+time-above-one-day row said *"Also gated by the taxonomy question."*
+
+**So deferring the cheap ungateable row kept the expensive gateable ones frozen.** Three candidate
+rows were unscopable indefinitely for want of one distinction, and this project's standing rule
+against inventing work meant none of them could honestly be started — a package needs a reason,
+and the reason lived in the row nobody would take because it could not be gated. That is a
+scheduling failure mode worth naming: **a row that gates others is not optional just because it is
+prose, and its cheapness is not a reason to keep it at the top of the list unbuilt.**
+
+### THE ANSWER IS THREE KINDS, NOT TWO, AND THAT IS WHY IT BECAME TRACTABLE
+
+The document asked for a two-way distinction — default versus choice — and two is not enough to
+hold the cases. "No combat" is not a default a game overrides; it is foreclosed. `world/first_area`
+is also a decision the template made, and a game overrides it by editing one line of
+`project.godot`. Calling both "a decision the template made" is exactly what loses the difference,
+and it is why the two-way version had no traction for a year.
+
+| Kind | A game… | Test | Recorded in |
+|---|---|---|---|
+| **TEMPLATE RULE** | cannot override it; wanting to is a fork of the template | no seam exists, plus a checker where the rule is mechanical | `TEMPLATE.md`, `CLAUDE.md` |
+| **TEMPLATE DEFAULT** | replaces the value through a seam, touching no `src/` file | **a seam exists** | `AUTHORING.md`, `ART_CONTRACT.md`, `[game]` |
+| **GAME CHOICE** | builds it in its own code root, on the base's signals and flags | the base builds nothing | `OPTIONAL`, or absent with a stated reason |
+
+### THE TEST IS MECHANICAL, WHICH IS THE PART THAT MAKES THIS MORE THAN VOCABULARY
+
+**Does a seam exist?** A "default" a game cannot replace without editing `src/` is not a default —
+it is a rule that has not admitted it.
+
+"Is this a default or a rule?" is a matter of tone. **"Can a game replace it without editing
+`src/`?" is a fact about the repository**, and the answer is sometimes embarrassing, which is the
+point. Applied to `src/core/boot/game_root.gd:28`:
+
+```gdscript
+const PLAYER_SCENE: String = "res://scenes/characters/player.tscn"
+```
+
+Engine code, in the `core` layer, naming the player prefab, with `GameConfig` exposing exactly two
+keys (`game/world/first_area`, `game/world/first_spawn`) and no `player_scene` among them. **By the
+test, the player prefab is a RULE pretending to be a DEFAULT** — a game whose protagonist has a
+different shape must edit `src/`, which is precisely what `ARCHITECTURE.md` forbids: *"a game adds
+content and resources; it does not add code under `src/`."* That is the next row, and the ADR is
+what found it: the distinction earned its keep within an hour of existing.
+
+### APPLIED, SO THE ADR DECIDES RATHER THAN DESCRIBES
+
+- **RULES.** No combat — owner decision, affirmed repeatedly, and now stated as the *kind* of thing
+  it is rather than as a preference. The layer rule and the demo-name boundary, both of which
+  already have checkers (`check_layers.gd`, `check_boundary.gd`) — **which is what a rule looks
+  like once it can be mechanised**, and is the strongest evidence the three kinds carve reality.
+- **DEFAULT.** Time. `Clock`, `NpcSchedule` and `Weather` are already here, so a cycle above the
+  day extends a system that is present rather than adding one. The base owns the facts — hour, day,
+  phase, cycle position — and a game chooses the numbers.
+- **GAME CHOICE.** A chapter sequencer: a `story/chapter` integer flag with `AT_LEAST` is already a
+  complete chapter model for both authored condition surfaces, and both `DialogueNode` and
+  `QuestStep` evaluate through the one `FlagQuery`, so a first-class `Chapter` resource would add a
+  second way to express what one already expresses. An economy: currency, value and exchange are
+  genre rather than structure, on the same footing as `Harvestables` (already `OPTIONAL`, WP-10),
+  and `Inventory`, `Equipment` and `Interactable` are the seams one would be built on.
+
+**Two candidate rows are closed by a REFUSAL rather than built, and writing the refusal down is the
+whole point.** An unwritten refusal is rediscovered, ranked, deferred for want of a reason, and
+ranked again. That is not a hypothetical: it is what happened to these three, three times.
+
+### THE CUTSCENES ROW NEEDED A REASON, NOT A PACKAGE — AND A DRAFT OF THIS ROW GOT IT WRONG
+
+`Cutscenes` was the only `TODO` in `SYSTEMS_INVENTORY.md` with a blank boundary column — the column
+that file calls its most important.
+
+**A draft of this plan proposed building the staging seam** (`PlayerController.walk_to`,
+`NpcBrain.go_to`, `HD2DCameraRig.borrow`/`release`) **on the grounds that nine `cutscene` mentions
+across eight files under `src/` were unpaid IOUs — "seven IOUs, no debtor" was its headline.** That
+was a misreading, and it was caught by reading the lines in full rather than counting them:
+
+| file | what it actually says |
+|---|---|
+| `dialogue_duck.gd:26` | "deletes nothing here — it calls `Audio.duck()` from its own occasion" |
+| `surface_wetness.gd:21` | "keeping it out of here is what lets a cutscene soak one courtyard on demand" |
+| `environment_driver.gd:10` | "forced by a cutscene, **without touching this file**" |
+| `screen_fade.gd:6` | "a cutscene **can later ask for** the same fade" |
+| `player_controller.gd:274` | the grounded rule deliberately NOT re-checked, so a cutscene may lift the player off a ledge |
+
+**Every one is a receipt that the seam is already open**, not a debt that something is missing. They
+say: this file will not need to change when a game wants a cutscene, because the game supplies the
+occasion and calls the existing entry point. **Reading a comment as a debt is how a comment becomes
+a work package**, and the count was wrong too — nine mentions across eight files, not seven.
+
+The row therefore gets a boundary line and a stated reason: **GAME CHOICE, seam already open.** The
+base ships no sequencer and no cutscene resource, because a step enum would grow `GameEnums` —
+append-only, since ordinals are stored in `.tscn` files — for a shape every game would author
+differently.
+
+Two further reasons not to build it, both from the repository rather than from taste. It would ship
+**four public methods whose only caller is the test written to justify them**, which is exactly what
+`tools/check_methods.gd` exists to catch; that tool's header records `AudioDirector.duck()` sitting
+uncalled for three phases and being **wrong** when finally wired, and states *"CODE WITH NO CONSUMER
+IS NOT MERELY UNUSED, IT IS UNVERIFIED."* The template's own precedent runs the other way: T5.14
+landed `Events.turn_requested` **with two real in-repo askers**. And the camera third is authorable
+around for nothing: `HD2DCameraRig.camera` is a public `Camera3D`, the rig lives in the area scene,
+and `scenes/areas/**` is game-owned — so **Godot's camera stack IS the borrow protocol**, and it
+restores `follow_lag` by construction because nothing ever touched it.
+
+### `Fixtures.activate()` IS ASSERTED, NOT SKIPPED — AND THE DOCUMENT WAS THE THING THAT WAS WRONG
+
+`docs/TESTING.md:193-195` gave the shape as `if not Fixtures.activate(): skip(...); return`, which
+`bag_mirror_test.gd:47` followed. `audio_duck_test.gd:180` instead asserted the return is `true`.
+Two shipped shapes, disagreeing, with the document backing the weaker one.
+
+**A skip reports GREEN.** So a fixture root that could not be written — the one condition the check
+exists to catch — becomes the one condition nobody sees, and the ten assertions below it silently
+test the developer's own content root instead of the fixtures. That is the same "passes because it
+found nothing" failure T5.27 guarded the seven checkers against **one row earlier**, and
+`CHANGELOG.md` has called it worse than no gate since `4.3.1`. The document changed; the code that
+was already right did not.
+
+**The plan gate caught the arithmetic before the suite could hide it:**
+
+```
+--- bag_mirror_test: 11/10 ---
+bag_mirror_test planned 10 outcomes and produced 11 — a crash, an early return or a stale plan
+=== 2292 passed, 1 failed, 0 skipped ===
+```
+
+An assertion is one outcome where a skip was a substitute for ten, so `plan(10)` became `plan(11)`
+with the reason in a comment beside it. **14 of 16 call sites still discard the return**; converting
+them is not this row and the honest state is recorded rather than implied.
+
+### NO NEW GATE, AND SAYING SO IS PART OF THE ROW
+
+`record_shape_test.gd` asserts every document opens with its own title and every package the log
+records is findable in both the board and the roadmap; `docs_test.gd` asserts every `res://` path
+any document names resolves. **An ADR is covered by both**, and it gains a package id that
+`record_shape_test.gd` will now require in both files.
+
+**Inventing a gate to have one is what T5.24 through T5.27 spent four rows learning not to do**, and
+this row's subject is a distinction that is prose by nature. The structure is gated; the judgement
+is review's, permanently, and that is the correct division rather than a gap.
+
+### THE HONEST LIMIT, LEFT OPEN DELIBERATELY
+
+**"A conversation is not saved" — the example `TEMPLATE.md` itself named — is classified but not
+resolved.** By the seam test it is currently a TEMPLATE RULE: `dialogue_runner.gd` warns and refuses
+on `_collect_save`, and a game wanting resumable conversations would have to edit `src/`. But its
+stated reason is a good one — it keeps every dialogue node id private rather than promoting it to a
+permanent save identifier — and whether the right answer is "rule, and say so" or "default, and add
+the seam" is a judgement about a system this row is not otherwise touching. **Recorded so the next
+reader finds a stated question rather than an unexamined absence**, which is the same fix this row
+applied to `Cutscenes`.
+
+### VERIFIED
+
+Twelve rungs and seven checkers green on `4.7.2.stable.official.ed1daf0bf`. Boot `0 warnings, 0
+errors`.
+
+**CI GREEN — RUN [`34361451615`], BOTH JOBS.** Job logs read rather than the tick, per gotcha 26.
+
+| job | result | last line |
+|---|---|---|
+| `Ladder (full checkout)` | success | `=== 2294 passed, 0 failed, 0 skipped ===` |
+| `Ladder (stripped template)` | success | `=== 2220 passed, 0 failed, 25 skipped ===` |
+
+Full is byte-identical to the local measurement. `docs/TESTING.md:13-14` carries both.
+
+**The stripped gap is 74 for the fifth recorded run running** — 2,294 − 2,220. It has now held
+across `1625`/`1551`, `2276`/`2202`, `2287`/`2213` and this pair, and it survived a row that added
+an assertion to a case which uses fixtures rather than demo content. **Still nothing enforces it**:
+`ladder.yml` asserts only that the named-skip count is non-zero, and the cross-job comparison
+remains a recorded candidate rather than a mechanism.

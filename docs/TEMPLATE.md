@@ -124,16 +124,33 @@ debug nodes answering `--give=`, `--standing=` and `--goto=` in a release build.
 grow an **OPTIONAL** status for these. Crafting is the clearest case: it is a genre choice, not a
 requirement of every game built on this base.
 
-## The one constraint nobody has scoped
+## The constraint that is now scoped — see ADR-0007
 
 **There is no combat, and as a *template* rule that forecloses combat for every game built on this
 base.** That was decided for one game. It is recorded here because it is now a much larger
-commitment than it was, and nobody has said so out loud.
+commitment than it was, and nobody had said so out loud.
 
 The same class of question applies to a few other decisions made for one game's constraints and
-now imposed on all of them — most notably "a conversation is not saved". They may well be the
-right defaults. What is missing is the distinction between a **template default** and a **game
-choice**, which no document currently draws.
+now imposed on all of them — most notably "a conversation is not saved". What was missing was the
+distinction between a **template default** and a **game choice**.
+
+**[`ADR-0007`](decisions/ADR-0007-template-default-vs-game-choice.md) draws it, and draws it three
+ways rather than two:**
+
+| Kind | A game… | Test |
+|---|---|---|
+| **TEMPLATE RULE** | cannot override it; wanting to is a fork | no seam exists, and a checker enforces it where the rule is mechanical |
+| **TEMPLATE DEFAULT** | replaces the value through a seam, touching no `src/` file | **a seam exists** |
+| **GAME CHOICE** | builds it in its own code root, on the base's signals and flags | the base builds nothing |
+
+**The test that separates a default from a rule is whether a seam exists** — a "default" a game
+cannot replace without editing `src/` is a rule that has not admitted it. No combat is a RULE, and
+so are the layer rule and the demo-name boundary, both of which have checkers. Time is a DEFAULT.
+A chapter sequencer and an economy are GAME CHOICES, and the ADR says why.
+
+**The kind is now stated wherever a choice is recorded**, which is what stops the drift this
+section was written to warn about: "no combat" grew from one game's constraint into every game's
+foreclosure with no document marking the moment.
 
 ## Read next
 

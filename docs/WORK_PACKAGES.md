@@ -92,6 +92,7 @@ original board rather than continuing it.
 | T5.21 | **A scene-level interaction test, and the defect it found** | **DONE** — `5.1.0`, a MINOR. THE ROW EXISTED BECAUSE ANOTHER FILE ASKED FOR IT IN WRITING: `interaction_test.gd`'s MUST NOT line has said since WP-02 that the sensor's ranking *"needs real geometry and belongs in a scene-level test"*, and that test was never written — so the decision the sensor's own header calls the actual problem it solves (*"detection is trivial; selection is not"*) was asserted nowhere in a suite of 2,148, and `Speaker` and `Readable`, two of the eleven prefabs `AUTHORING.md` tells a consumer to place, had no scene-level assertions at all. Gotcha 54's shape at the top of the interaction stack: `interaction_test.gd` proved what an object does once chosen, `turn_test.gd` proved the turn once it is, and between them sat the decision neither made. `tests/unit/selection_test.gd`, 24 assertions. **AND IT FOUND A REAL DEFECT ON ITS FIRST RUN — gotcha 73**: `_select()` broke a scoring tie with `a.name < b.name`, but `Node.name` is a `StringName` and `<` on two of those compares their INTERNED ADDRESSES, not their text, so ties were ordered by script and scene load order while the comment above the line promised the NAME. Measured both ways in one run, same pair: `StringName` said `Z_later < A_earlier`, `String` said the opposite. The comment was half true, which is why it survived eight rungs — an address does not move, so the order WAS stable within a run; it simply was never the name, so an author numbering two overlapping objects to choose between them was ignored. One cast fixes it. **The first probe of the comparison said the language was innocent and agreed by coincidence**, which is gotcha 70 turned around and is the second half of 73. `InteractionSensor` gained one public method, `cycle()`, because the suite provably cannot press a key — `Input.parse_input_event` is buffered until a main-loop flush that never comes mid-run, and `Input.action_press` lands but then leaves the action reading `is_action_just_pressed() == true` for the whole run, which would cycle every other case's sensor; same reasoning as `is_suspended()`, and the binding is still proved windowed by `dev_stage.gd --cycle`. **Five plants, each failing a DIFFERENT set** — tie-break reverted 3, priority term deleted 1, facing term 1, cycle offset ignored 4, lone-candidate guard 1 — which is what says they are not one assertion five times. 2,148 → **2,173 assertions**; see below
 | T5.22 | **A redirectable `SAVE_DIR`** | **DONE** — `5.2.0`, a MINOR, and a consuming game does nothing: `SaveSystem.SAVE_DIR` became the settable `save_dir`, but all six uses were inside `save_system.gd`. **THE SUITE WAS WRITING INTO THE DEVELOPER'S OWN SAVE DIRECTORY AND IT WAS THE LAST ROOT THAT COULD.** `fixtures.gd` repoints five content roots; the store was the sixth and the only one left out, because its directory was a `const` — so `save_recovery_test.gd`, the case whose whole purpose is writing MALFORMED save files, and `core_test.gd`'s round trip both wrote real slots. **They cleaned up after themselves, which is not the same as never having been there**: the run that fails to clean up is the run that crashed, and a slot number the suite picks is a slot number a player may have filled. `tests/framework/save_fixture.gd` points the store at `user://test_saves` with `activate()` / `deactivate()` / `is_active()` on `Fixtures`' shape, and `test_runner.gd` deactivates after EVERY case rather than only the ones that switched — that file's own discipline and its reason verbatim. **PUBLIC rather than test-only**, because a portable build writing beside its executable wants the same seam and a backdoor existing for the suite alone is what `fixtures.gd`'s header refuses to add. 166 → 172 of the 180 override, which is where the row's "genuinely small" claim was checked before it was started rather than after. **AND THE FIRST VERSION OF THE LOAD-BEARING CASE PASSED THE PLANT — gotcha 74**: it compared the untouched file byte-for-byte against a copy taken before the redirected write, and the full reversion passed, because both writes landed on the same path in the same second and the only varying fields are second-resolution `saved_utc` and tenth-snapped `playtime_seconds`. Distinguishable markers fixed it; the same plant now fails 4. **Two plants, each a different set** — the full reversion 4, the runner's unconditional deactivate removed 3, which is what says they are not one assertion twice. 2,173 → **2,192 assertions**; see below |
 | T5.23 | **A second idle block and a chooser** | **DONE** — `5.3.0`, a MINOR, and a consuming game does nothing unless it wants a fidget: both new fields default to the value that means "no second idle". **THE LAST PHASE T5 EXIT CRITERION**, open since the phase was written and reworded once by T5.3. **THE GAP WAS NEVER THE BLOCK** — `SpriteSheetLayout` could address 32 animations and `frame_index` could draw any of them since T2.1, so a sheet could always CARRY a second idle; what was missing is that every block in this template is chosen by a `GameEnums.MoveState`, and standing still is one state, so nothing would ever ask for one. A character therefore stood in exactly one way forever. **So the row is a CHOOSER, and the chooser is dwell time with its threshold on the SHEET**: `idle_break_row` names the block, `idle_break_after` says how many seconds of unbroken standing start it, the block plays ONCE and hands back to `idle_row`, and the clock restarts from the END of the break so the authored number is the gap a player actually sees. **DWELL RATHER THAN WEATHER, A SCHEDULE OR AN AREA TAG**, and the argument is the two MUST NOT lines rather than taste: each of the other three needs an autoload (`Weather`, `Clock`, `Flags`) that `sprite_sheet_layout.gd` may not touch, and that `character_visual.gd` may not reach from the other side, it being TOLD a velocity and a state. Dwell is the one trigger derivable from what the visual is ALREADY handed every frame — the only one of the four needing no new dependency anywhere — and nothing is lost, since a game wanting a rain idle pushes a MoveState or swaps the layout resource. `problems()` gained three branches, each gotcha 38's shape: a row with no delay, a delay with no row, and a break pointing at the idle block it is meant to interrupt. **THE WINDOWED CAPTURE RETURNED NUMBERS RATHER THAN A JUDGEMENT.** A new `--idle-shots=<dir>` pass presses NOTHING — the whole input is standing still — and it WATCHES instead of aiming a frame number, because the moment of interest is set by a threshold on the sheet the probe must not know (gotcha 52) and because one shot cannot show that the break STARTED and ENDED. Blocks seen over eight seconds: `0x12, 3x8, 0x18, 3x8, 0x2` — the break running 1.33s, which is 4 cells at 3fps exactly, and the gap between two breaks **3.0s, the authored number, measured from the END of the previous one**, which confirms the restart decision independently of the suite. Crops: the idle block's own cycle moves 0.0949, the break's own cycle 0.1406, and the two BLOCKS **0.6184** — four to six times either, which is what separates a second idle from a recolour with a wobble. **AND THE PLANTS FOUND A HOLE IN THE NEW TEST ITSELF — gotcha 75**: "interrupted standing does not accumulate" PASSED under the very defect it was written for, because the wrongly-started break had already FINISHED inside the same stand, so the case read the idle block and agreed by coincidence — gotcha 70's family, one row after T5.22 met it, and the fix is timing rather than logic. **Seven plants, seven DIFFERENT failure sets** — break never starts 4, break loops 2, moving does not cancel 2, dwell reset at the START rather than the end 2, fallback to row 0 instead of the idle block 1, `has_idle_break` dropping its delay half 1, the three half-configured problems unreported 3 — which is what says they are not one assertion seven times. `tests/unit/idle_break_test.gd`, 26 assertions. 2,192 -> **2,221**, and the delta is **+26 +2 +1** rather than one number: 26 are `idle_break_test.gd`'s own plan; 2 belong to `docs_test.gd`, whose plan is `paths + fields + 2` and which now asserts that `idle_break_row` and `idle_break_after` exist on the class, because they were added to `ART_CONTRACT.md`'s worked example; and 1 belongs to `record_shape_test.gd`, whose plan is `docs + packages + 2` and which gains one package from this entry's own DEVLOG heading. `version_test.gd`'s plan is `28 + <bold semvers in CONTEXT.md>` and is UNCHANGED at 30, both semvers having been rewritten in place rather than added to; see below |
+| T5.24 | **The roadmap's missing run, and whether completeness should be gated** | **DONE** — `5.3.1`, a PATCH, and a consuming game does nothing to its own code: `src/` and `tools/` are byte-identical. **THE ROW WAS TWO THINGS AND THE SECOND IS THE ONE THAT MATTERED.** `ROADMAP.md`'s package log recorded T5.15 and jumped to T5.21, with nothing for T5.16, T5.17, T5.18, T5.19 or T5.20 — five delivered packages, each with a DEVLOG entry and a board row, absent from the roadmap. T5.21 recorded the gap, T5.23 recorded it again and promoted it to the top of the next-package list without closing it, and **nothing was red because nothing counted the rows.** Writing five entries is bookkeeping; the question worth answering was whether roadmap completeness should be GATED the way `record_shape_test.gd` already gates two other structural facts. **IT SHOULD, AND T5.19 IS THE PRECEDENT RATHER THAN THE ANALOGY**: that row exists precisely because a third manual reconcile was the wrong answer, and its argument — a file either opens with its title or it does not, a package either has a row or it does not, neither question has a reading or a tone — transfers to "a package the DEVLOG records has no entry in `ROADMAP.md`" without a word changed. Same file's business, same MUST NOT line, no new case needed. **THE COUNTER-ARGUMENT WAS REAL AND IS ANSWERED BY THE SHAPE OF THE CHECK, NOT WAVED AWAY.** The roadmap's package log IS legitimately selective in a way the board is not — it records a package in whichever of three shapes fits: a log row under a phase, a tick beside an exit criterion, or a parenthesis in a phase's Done list. **T5.14 is only ever the second of those**, so a gate demanding a package-log row would have failed a package that is thoroughly recorded. So the check is `roadmap.contains(id)`, FINDABILITY — which is the identical choice T5.19 made one function above for the board, and for the identical reason it wrote down: "findable" is the property that matters and a stricter rule would fail eight packages that are genuinely recorded. **AND T5.16 HAD DECLINED TO TOUCH THE ROADMAP IN WRITING**, on the grounds that "no exit criterion covers a defect fix, and inventing one to have something to tick would be the ticking-without-proving this project spent T5.1 undoing". That is right about the CRITERIA list and says nothing about the package LOG, which is a different list in the same file answering a different question — and separating the two is what makes this assertable rather than a matter of editorial taste. **THE PLANT IS THE LIVE REPOSITORY, WHICH IS THE STRONGEST FORM AVAILABLE.** The assertion was written first and run before a single doc was edited: exit 1, six named failures, `FAIL T5.16 is findable in the roadmap — expected true, got false` and five more. Nothing was fabricated to make it fail, so gotcha 74's and gotcha 75's family — a plant that passes, or fails for the wrong reason — cannot apply to the red run; the questions that remained were whether it fails for one reason per package and whether it goes green for the right reason, and both were measured. **AND IT FOUND A SIXTH PACKAGE THE ROW HAD NOT NAMED: WP-07**, path actions, the signature non-combat mechanic, missing from the roadmap since 2026-08-26 and named by neither T5.21's nor T5.23's recording of this gap. **That is the whole argument for the gate over a third reconcile, delivered as a measurement rather than as a prediction**: two manual passes had looked at this and counted five. `record_shape_test.gd` 68 → 121 assertions, and every one of the 53 is a computed plan doing its job rather than a case this row wrote. 2,221 → **2,274 assertions**; see below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -4654,7 +4655,7 @@ reversion is the honest one, and the two fail different sets.
   every claim in this row is a path, a return code or a file's contents.
 
 ---
-## T5.20 · A scene-level interaction test, and the defect it found — **DONE**
+## T5.21 · A scene-level interaction test, and the defect it found — **DONE**
 
 `5.1.0`, a MINOR. **The row existed because another file asked for it in writing.**
 `interaction_test.gd`'s MUST NOT line has read since WP-02 that the sensor's ranking *"needs real
@@ -4769,3 +4770,126 @@ before each run was trusted.
   shows the demo still boots and the prompt still reads a real selection at dusk.
 - **The keybinding itself is still not in the suite**, and cannot be, for the reason above. Named
   rather than left implied.
+
+## T5.24 · The roadmap's missing run, and whether completeness should be gated — **DONE**
+
+`5.3.1`, a PATCH. `src/` and `tools/` byte-identical; the only non-documentation change is
+`project.godot`'s `[template] base/version`.
+
+### What was wrong
+
+`docs/ROADMAP.md`'s Phase T5 package log ran T5.15 and then T5.21. **T5.16, T5.17, T5.18, T5.19
+and T5.20 were absent** — five delivered packages, each with a DEVLOG entry and a board row and a
+version bump of its own, and no trace at all in the file `CLAUDE.md` sends a reader to for "where
+things stand". T5.21 recorded the gap. T5.23 recorded it again and promoted it to the top of
+`CONTEXT.md`'s next-package list. Neither closed it, and **nothing was red, because nothing
+counted the rows.**
+
+### The decision, which was the actual package
+
+**Gate it, in `record_shape_test.gd`, as one more findability assertion.**
+
+T5.19 is the precedent and not an analogy. That row exists *because a third manual reconcile was
+the wrong answer* — its own words — and its argument for gating structure transfers here with
+nothing changed: a file either opens with its title or it does not; a package either has a row or
+it does not; **neither question has a reading, an interpretation or a tone, which is exactly why
+they are assertable when the sentences around them are not.** "A package the DEVLOG records has no
+entry in `ROADMAP.md`" is that same shape, and it is the same file's business — so it went in
+beside the board check rather than into a fourth case, which is what `CLAUDE.md` rule 4 asks and
+what T5.19's own MUST NOT line permits.
+
+### The counter-argument, which was real
+
+**The roadmap's package log IS legitimately selective in a way the board is not.** The board has
+one shape — a row per package. The roadmap has three, and uses all of them: a package-log row
+under a phase; a tick beside an exit criterion; a parenthesis in a phase's Done list. **T5.14 is
+only ever the second of those** — it has no package-log row anywhere and is nonetheless recorded
+at length beside the criterion it closed. A gate demanding a package-log row would have failed a
+package that is thoroughly recorded, which is the objection landing.
+
+**It is answered by the shape of the check rather than by overruling it.** The assertion is
+`roadmap.contains(id)` — findability — which is the identical choice T5.19 made one function above
+for the board, and its reason there was written down: *"the gate asserts a package is FINDABLE on
+the board, not that it has an index row, because 'findable' is the property that matters and a
+stricter rule would have failed eight packages that are genuinely recorded."* The roadmap may
+record a package in whichever of its three shapes fits. It may not omit one entirely.
+
+**And T5.16 had declined to touch the roadmap in writing**, which is the strongest-looking
+objection because it is a considered refusal by a package rather than an oversight: *"no exit
+criterion covers a defect fix, and inventing one to have something to tick would be the
+ticking-without-proving this project spent T5.1 undoing."* That is right about the CRITERIA list
+and says nothing about the package LOG, which is a different list in the same file answering a
+different question — where a package sits in the plan, not whether a phase may close.
+Distinguishing the two is what makes this assertable rather than a matter of editorial taste, and
+it is why the fix for T5.16 is a log row and **not** a new criterion.
+
+### The plant was the live repository, and the follow-ups found the gate's limit
+
+The assertion was written and run **before a single document was edited** — the strongest form of
+plant available and the one form neither gotcha 74's nor gotcha 75's failure mode can reach, both
+being failures of a *fabricated* condition. Nothing was fabricated, so the red run cannot have
+failed for a fabrication's reason.
+
+```
+=== 2266 passed, 6 failed, 0 skipped ===   exit 1
+FAIL WP-07 is findable in the roadmap — expected true, got false
+FAIL T5.16 is findable in the roadmap — expected true, got false
+FAIL T5.17 is findable in the roadmap — expected true, got false
+FAIL T5.18 is findable in the roadmap — expected true, got false
+FAIL T5.19 is findable in the roadmap — expected true, got false
+FAIL T5.20 is findable in the roadmap — expected true, got false
+```
+
+**Six, not five, and the sixth is the argument.** **WP-07 — path actions, the signature
+non-combat mechanic, `PathAction` and `PathActionPoint` and the whole refusal-versus-failure
+design — has been missing from `ROADMAP.md` since 2026-08-26.** Two packages recorded this gap by
+reading the file, and both counted five. That is the case for a gate over a third reverse-count,
+delivered as a measurement rather than as a prediction.
+
+**THEN THE FIRST TWO PLANTS OF THE GREEN DIRECTION PASSED, AND THAT IS GOTCHA 76.** Deleting
+T5.19's whole package-log row left the suite green: two other rows mention T5.19 while saying
+something else, and `contains` is true of either. Re-planted on T5.18 it passed **again** — this
+row's own new entry names all five reconciled packages while explaining what was missing, so
+deleting T5.18's row left it findable inside the sentence describing its absence. **A row that
+records a gap is a cross-reference to every id in the gap**, and a reconcile package invalidates
+its own plants as it works. The plants moved to ids the file names exactly once, counted on the
+finished tree:
+
+| Plant | Result |
+|---|---|
+| The live repository, assertion added, no document touched | **exit 1** — `2266 passed, 6 failed`, one per missing package, each named |
+| T5.19's whole package-log row deleted | **exit 0, GREEN** — gotcha 76: two incidental mentions elsewhere satisfy `contains` |
+| T5.18's row deleted | **exit 0, GREEN** — gotcha 76 again, from this row's own entry naming T5.18 |
+| WP-07's Done line deleted, before this row had a log row of its own | **exit 1, 2 failed** — `WP-07` **and `T5.24`**: how the row found its own only trace was an aside in the line it had just written. Fixed by giving it a real log row |
+| T5.13's package-log row deleted — its sole mention | **exit 1** — `FAIL T5.13 is findable in the roadmap`, **exactly 1 of 2,274** |
+| WP-05's Done-list parenthesis deleted — its sole mention | **exit 1** — exactly 1, and from a DIFFERENT recording shape, which proves the check is indifferent to shape |
+| T5.20's row deleted AND its cross-reference in this row's entry removed | **exit 1** — exactly 1: the two-edit form of the plant that passed above |
+| Control, fully reconciled | **exit 0** — 2,274 passed |
+
+**Exactly 1 failure on each of the last three is the load-bearing detail**, not the exit code: it
+says the six in the first row are six independent facts rather than one assertion reported six
+times.
+
+### Notes, and what is deliberately not here
+
+- **THE GATE CANNOT TELL A RECORD FROM AN INCIDENTAL MENTION — gotcha 76, and it is written down
+  rather than engineered away.** The alternative is a gate on recording SHAPE, which fails T5.14
+  for being recorded beside its criterion instead of as a row, so the weaker check is the correct
+  one. The consequence is a plant rule, not a code change: count an id's mentions before planting
+  on it, and count again after your own edits.
+- **Gotcha 75 was named in T5.23's DEVLOG entry and never added to the list.** Both 75 and 76 are
+  entries now. `doc_counts_test.gd` could not have caught it and its header says why — it owns the
+  agreement between the list's LENGTH and the documents stating it, and 74 entries against four
+  claims of 74 was internally consistent. A gate on "every gotcha number a DEVLOG entry
+  cites exists in the list" is a cross-reference rather than a count, and needs its own case.
+- **The roadmap's T5.22 row sits AFTER its T5.23 row, and that was left alone.** The gate's MUST
+  NOT line forbids asserting the ORDER of anything, and reordering a hundred-line block inside a
+  package about completeness would be churn wearing a fix's clothes. Named here rather than left
+  for a reader to find.
+- **One thing was fixed in passing and is small enough to say in a line**: this file's detail
+  heading for the scene-level interaction test read `## T5.20 ·` over T5.21's content. The row and
+  the entry both say T5.21; the heading was a typo, and the gate could not see it because
+  `contains` finds T5.20 elsewhere.
+- **This does not gate the roadmap's TICKS, and cannot.** Whether an exit criterion is honestly
+  ticked is exactly the prose judgement T5.17's sentence is about, and T5.1 is what happens when
+  it goes wrong. The gate says a package is recorded, never that the record is true.

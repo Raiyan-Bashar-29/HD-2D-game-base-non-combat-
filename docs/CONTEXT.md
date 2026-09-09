@@ -3,54 +3,77 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-09 · **T5.27 (a checker can skip a file and still print PASS) complete,
-at 5.3.4, a PATCH.** The third row of the run T5.25 began, and **the first whose enforcement is
-not in the suite at all** — it is in `ladder.yml` and the tools, which is why the assertion total
-is the wrong measure of it.
+**Last updated:** 2026-09-09 · **T5.28 (a template rule, a template default and a game choice are
+three different things) complete, at 5.3.5, a PATCH.** `src/`, `tools/` and `.github/` are
+byte-identical: this row is [ADR-0007](decisions/ADR-0007-template-default-vs-game-choice.md), the
+documents it settles, and one test conversion.
 
-**RUNGS 5–11 READ ONLY THE EXIT CODE**, with no log grep and no artifact, while rung 4 has
-`ErrorWatch`. Whether that gap hides anything was measured with a throwaway probe rather than
-argued — a loop of three calling a function that indexes an empty array on the second:
+**THE ROW THAT WAS RANKED FIRST IN THIS LIST FIVE TIMES AND NEVER TAKEN**, and the reason it kept
+losing is the lesson. `TEMPLATE.md` § *"The one constraint nobody has scoped"* has said since
+2026-08-26 that *"what is missing is the distinction between a template default and a game choice,
+which no document currently draws"*. This file deferred it every time for one honest reason — *"it
+is prose and cannot be proved by running the engine"* — **while also recording that it "DECIDES the
+two rows under it rather than guessing."** Both of those rows carried *"Scope depends on the
+taxonomy row above."* **So deferring the cheap ungateable row kept the expensive gateable ones
+frozen**, and three candidate rows were unscopable indefinitely for want of one distinction. **A
+row that gates others is not optional because it is prose, and its cheapness is not a reason to
+leave it at the top of the list unbuilt.**
 
-```
-SCRIPT ERROR: Out of bounds get index '9' (on base: 'Array[int]')
-  loop finished, items processed: 2 of 3
-PASS
-exit=0
-```
+**THE ANSWER IS THREE KINDS, NOT TWO, AND THAT IS WHY IT BECAME TRACTABLE.** The document asked for
+default-versus-choice, and two cannot hold the cases: "no combat" is not a default a game
+overrides, and `world/first_area` is also a template decision but a game changes one line of
+`project.godot`. A **TEMPLATE RULE** is foreclosed for every game and carries a checker where the
+rule is mechanical; a **TEMPLATE DEFAULT** ships a working value *and a seam*; a **GAME CHOICE**
+means the base builds nothing and offers only the seam and the facts.
 
-**Gotcha 24 exactly**: the error aborts the INNERMOST FRAME ONLY, the loop finishes, a file is
-silently unscanned, and the tool reports success. **AND THE FIRST PLANT DID NOT SHOW IT** — the
-same error injected into `check_layers._scan_script` gave exit 1, so the tool died rather than
-lying and the premise looked false. The minimal probe is what separated "the tool dies" from "the
-tool continues and reports PASS", which is gotcha 75's family: a plant that fails for the wrong
-reason misleads exactly as much as one that passes. All fourteen steps now capture a log, print
-it, and force failure on `SCRIPT ERROR` or `Parse Error` even at exit 0; the seven logs upload
-from both jobs; each step still names its checker beside `--script` once per job, so T5.26's
-invocation gate is untouched.
+**AND THE TEST THAT SEPARATES A DEFAULT FROM A RULE IS MECHANICAL RATHER THAN EDITORIAL: DOES A
+SEAM EXIST?** A "default" a game cannot replace without editing `src/` is a rule that has not
+admitted it. "Is this a default or a rule" was a matter of tone; "can a game replace it without
+editing `src/`" is a fact about the repository — **and it paid for itself within the hour.**
+Applied to `game_root.gd:28`'s `const PLAYER_SCENE`, in the `core` layer with no `[game]` key
+beside it, the player prefab is a **RULE PRETENDING TO BE A DEFAULT**: a game whose protagonist has
+a different shape must edit `src/`, which `ARCHITECTURE.md` forbids in as many words. **That is the
+next row.**
 
-**AND SIX CHECKERS COULD PASS ON A SCAN OF NOTHING — 0 of 7 guarded it**, while all seven printed
-their own scanned count. `check_layers` aimed at a script-free directory gave `scripts scanned: 0`
-then `PASS`, exit 0. Guarded, it fails; **and the comparison against the unmodified tool on the
-same empty scan is the row**, not the guard's own green run. The rule was already written at
-`4.3.1` for doc gates — *"a doc gate that passes because it found nothing to check is worse than
-no gate"* — and had never been turned on the tools. The counter sits beside each collector's
-`append` so it cannot drift from the scan it describes.
+Applied — RULES: no combat, the layer rule, the demo-name boundary (the last two already have
+checkers, which is what a rule looks like mechanised). DEFAULT: time, because `Clock`,
+`NpcSchedule` and `Weather` are already here. **GAME CHOICES: a chapter sequencer** (a
+`story/chapter` int flag with `AT_LEAST` is already a complete chapter model through the one
+`FlagQuery`) **and an economy** (genre, on `Harvestables`' footing). **Two candidate rows are now
+closed by a written refusal rather than built** — an unwritten refusal gets rediscovered, ranked,
+deferred for want of a reason, and ranked again, which is what happened to these three times.
 
-**`check_content` IS EXEMPT, AND THE EXEMPTION IS THE INTERESTING PART.** Its whole input is
-`data/` and `scenes/areas`, which the stripped job **deletes on purpose** — so a zero scan is
-legitimate there and nowhere else, and guarding it would fail the stripped job for doing its job.
-The other six read `src/`, `tests/`, `tools/` and `localization/`, none of which the strip
-touches. **This is the first exemption in the run derived from what the strip REMOVES rather than
-from what a gate can judge**, and it is the shape to reach for next time: ask what the stripped
-template legitimately lacks before guarding a count.
+**AND A DRAFT OF THIS ROW GOT THE CUTSCENES ROW WRONG, WHICH IS WORTH KNOWING.** It proposed
+building the staging seam because nine `cutscene` mentions across eight files under `src/` looked
+like unpaid IOUs. **Read in full every one is a RECEIPT** — *"deletes nothing here, it calls
+`Audio.duck()` from its own occasion"*, *"forced by a cutscene, without touching this file"*, *"a
+cutscene can later ask for the same fade"* — each a statement that the file is already
+cutscene-ready and the game supplies the occasion. **Reading a comment as a debt is how a comment
+becomes a work package.** The row is a GAME CHOICE with a stated reason and a boundary line, and
+the base ships no sequencer and no cutscene resource.
 
-**A COMMENT ALSO CLAIMED A CHECK NOTHING PERFORMED.** `ladder.yml` said a stripped template "must
-report exactly the same numbers", twice; the jobs are independent and nothing compares their
-output. Reworded to what is enforced — both must exit 0, which catches the failure that matters,
-an engine string that stops resolving once the game is gone — with the genuine cross-job
-comparison named as a candidate row rather than implied by prose.
+**`Fixtures.activate()` is now ASSERTED, not skipped**, reversing what `TESTING.md` documented,
+because a skip reports GREEN — so a fixture root that could not be written is the one condition
+the check exists to catch and the one nobody sees. Same failure T5.27 guarded the checkers against
+one row earlier. `bag_mirror_test.gd` converted, `plan(10)` → `plan(11)`, **and the plan gate
+caught the arithmetic before the suite could hide it**. 14 of 16 call sites still discard the
+return, recorded rather than implied.
 
+**No new gate, and saying so is part of the row** — `record_shape_test.gd` and `docs_test.gd`
+already cover an ADR's structure. Suite 2,291 → **2,294**, predicted +3 and measured +3: one from
+the new assertion, two from the new package id through a computed plan.
+
+*(Previously: T5.27 moved enforcement out of the suite and into the ladder at `5.3.4`. Rungs 5–11
+read only the exit code, and a throwaway probe showed what that hides: a loop of three calling a
+function that indexes an empty array on the second printed `SCRIPT ERROR`, then `loop finished,
+items processed: 2 of 3`, then `PASS`, **exit 0** — gotcha 24, the error aborting the innermost
+frame only. **The first plant said the premise was false**, exiting 1 from inside `check_layers`,
+and the minimal probe is what separated "the tool dies" from "the tool continues and lies". All
+fourteen checker steps now grep their own logs; six checkers refuse a scan of nothing, proved by
+the *unmodified* tool going green on the same empty scan; `check_content` is exempt because the
+stripped job deletes its entire input by design — the first exemption derived from what the strip
+REMOVES. It also reworded a comment that claimed a check nothing performed, and ignored the
+ladder's ten log files, which had never been gitignored.)*
 *(Previously: T5.26 fixed the ladder's own gate at `5.3.3`. `gates_test.gd`'s header said it
 existed to catch "a gate written, committed, and never wired" and could catch neither shape of
 that: `LADDER` was a const of seven with nothing asserting it named them all, and the wiring
@@ -184,7 +207,7 @@ another sheet, and every facing draws a different figure.
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version is** **5.3.4**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+**The version is** **5.3.5**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
 the owner's to close or to leave.
 
 **THE NEXT PACKAGE IS A CHOICE, NOT A QUEUE.** Nothing is blocking, **Phase T5 has no unticked
@@ -243,12 +266,12 @@ mechanical move. `tools/gen_placeholders.gd` stays on the list at 234 of 250; T5
 `dev_stage.gd`, which was the urgent one at 248, down to 175.
 
 
-167 files, 15,852 code lines, 17 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
+167 files, 15,849 code lines, 17 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
 three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 4 on the default one, the
 fourth being a second IDLE rather than a gait**,
 1 shared area material, **21 settings and 21 consumers**.
-Template version **5.3.4**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+Template version **5.3.5**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
 recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 
@@ -285,7 +308,7 @@ which is `check_strings.gd`'s static rule made visible and including anything co
 **A SAVE THAT SURVIVES A REAL RELAUNCH**, proved in TWO PROCESSES rather than one reload:
 `--save-state` / `--load-state` in `dev_probes.gd`, with the fresh process's boot line as
 the control and the weather deliberately STORM because CLEAR is the boot default ·
-placeholder art generator · line-budget checker · a headless test suite (2,291 assertions) that
+placeholder art generator · line-budget checker · a headless test suite (2,294 assertions) that
 builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
 returns early, asserts nothing, or is not listed in the runner ·
 an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
@@ -1142,7 +1165,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 2,291 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 2,294 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content, and no orphan CSV row
@@ -2127,21 +2150,32 @@ package never has to read upward.
 
 T5.20 and now T5.24 each came off it. What remains is a real choice, not a queue:
 
-- **The template-default vs game-choice taxonomy.** `TEMPLATE.md` § *"The one constraint nobody
-  has scoped"* has said since 2026-08-26 that *"what is missing is the distinction between a
-  template default and a game choice, which no document currently draws"*, and nothing has ever
-  scheduled it. It DECIDES the two rows under it rather than guessing: whether a chapter
-  sequencer, a calendar and an economy are this base's business at all is one question asked
-  three times. **Its honest weakness is that it is prose and cannot be proved by running the
-  engine**, which is why T5.18 was taken ahead of it.
-- **A narrative-staging seam.** `Cutscenes` is the only `TODO` in `SYSTEMS_INVENTORY.md` with no
-  stated reason, no boundary line and no board row, while nothing can move an NPC or the player on
-  command and `HD2DCameraRig` has no borrow-and-restore seam. Cheapest honest slice is that seam
-  plus a walk-to-waypoint command, NOT a sequencer. Scope depends on the taxonomy row above.
-- **Time above the scale of one day.** `NpcSchedule` is keyed on the hour alone, so every NPC
-  repeats one identical day forever and a Saturday is inexpressible; `Clock` publishes no flag
-  namespace, so no authored condition can read the time at all — including the shop hours the
-  Clock's own header names. Also gated by the taxonomy question.
+- ~~**The template-default vs game-choice taxonomy.**~~ **CLOSED by T5.28 —
+  [ADR-0007](decisions/ADR-0007-template-default-vs-game-choice.md).** Ranked first for five
+  packages and deferred each time because *"it is prose and cannot be proved by running the
+  engine"*. The ADR draws it **three** ways rather than two — TEMPLATE RULE, TEMPLATE DEFAULT,
+  GAME CHOICE — and the test that separates a default from a rule is mechanical: **does a seam
+  exist?** A "default" a game cannot replace without editing `src/` is a rule that has not
+  admitted it. **Do not re-rank this row.**
+- ~~**A narrative-staging seam.**~~ **CLOSED by T5.28 as a GAME CHOICE, and the reason is that the
+  seam was already open.** The nine `cutscene` mentions across eight files under `src/` read as
+  IOUs and are **receipts**: `dialogue_duck.gd` *"deletes nothing here — it calls `Audio.duck()`
+  from its own occasion"*, `environment_driver.gd` *"without touching this file"*,
+  `screen_fade.gd` *"can later ask for the same fade"*. A game sequences its own beats in its own
+  code root. **The base builds no sequencer and no cutscene resource** — a step enum would grow
+  `GameEnums`, which is append-only because ordinals live in `.tscn` files, for a shape every game
+  authors differently. What this row actually needed was a stated reason, and it has one.
+- **Time on the flag surface** — **scoped by ADR-0007 as a TEMPLATE DEFAULT**, so this row is now
+  buildable rather than gated. `Clock` never calls `Flags.set_flag`, and `flag_query.gd` is the ONE
+  evaluator both `DialogueNode` and `QuestStep` use, reading only `Flags` — so **no authored
+  condition can mention time or weather at all**, including the shop hours the Clock's own header
+  names as its purpose. The precedent is in-repo: `Flags.declare_derived` is idempotent and
+  `_collect_save` SKIPS derived flags, so a published `time/hour` is never saved and recomputes on
+  load; its only caller today is `inventory.gd:59`, the `bag/` namespace. **Price the ordinal cost
+  in the row**: `time/phase` and `weather/kind` would publish enum ordinals, so an authored
+  `AT_LEAST 5` would be right only by accident of enum order — publish stable names, or state the
+  coupling. A cycle above the day (`days_per_cycle`, `ScheduleEntry.on_day_of_cycle`) follows and
+  is non-blocking. A calendar with weekday names, months or seasons is a GAME CHOICE.
 - **A call recorder, to answer the 86.** T5.13's gate reports 86 public methods reached only from
   `tests/` or `tools/`, and a text scan cannot shrink that number.
 - **Split `tools/gen_placeholders.gd`**, at 234 of its 250 — sixteen lines spare, so it is a want
@@ -2189,7 +2223,7 @@ you can press to travel back to once you have — and every one of those walks n
 depending on whether you are crossing grass, the wooden dais or stone. Every one of those changes
 survives a save and a
 reload, including from the far side of an area that is no longer loaded. All of it is covered
-by 2,291 headless assertions.
+by 2,294 headless assertions.
 
 **Next, and for the first time it is not an ordered queue.** Every blocking row is done: Phase T3
 closed with WP-14b, WP-15 was CLOSED by the owner, and T4.1 shipped the version and the upgrade

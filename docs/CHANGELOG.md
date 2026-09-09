@@ -19,6 +19,57 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.3.5
+
+*2026-09-09 — the distinction between a template default and a game choice, unscoped since
+2026-08-26, is now an ADR; and two long-standing candidate rows are closed by it rather than built.*
+
+**A consuming game does: nothing.** No file under `src/`, `tools/` or `.github/` changed. The only
+production-side change is `project.godot`'s `[template] base/version`.
+
+**THE ONE THING WORTH READING IF YOU FORKED THIS BASE:**
+[`ADR-0007`](decisions/ADR-0007-template-default-vs-game-choice.md) classifies every choice this
+base makes as one of **three** kinds, and the kind is now stated wherever the choice is recorded:
+
+| Kind | A game… | Test |
+|---|---|---|
+| **TEMPLATE RULE** | cannot override it; wanting to is a fork of the template | no seam exists, and a checker enforces it where mechanical |
+| **TEMPLATE DEFAULT** | replaces the value through a seam, touching no `src/` file | **a seam exists** |
+| **GAME CHOICE** | builds it in its own code root, on the base's signals and flags | the base builds nothing |
+
+**The test that separates a default from a rule is mechanical: does a seam exist?** A "default" you
+cannot replace without editing `src/` is a rule that has not admitted it. Apply it to your own fork
+— it is how this base found that `game_root.gd`'s hardcoded player scene is a rule pretending to be
+a default.
+
+**What is now stated, so you can plan against it:** no combat, the layer rule and the demo-name
+boundary are **RULES**. Time is a **DEFAULT** — the base owns the hour, day and phase, and you
+choose the numbers. **A chapter sequencer and an economy are GAME CHOICES: this base will not build
+them.** A `story/chapter` integer flag with `AT_LEAST` is already a complete chapter model for both
+authored condition surfaces, and currency is genre rather than structure — `Inventory`,
+`Equipment` and `Interactable` are the seams you would build one on.
+
+**Cutscenes are a GAME CHOICE, and the seam is already open** — which is why that row sat as the
+only `TODO` with no stated reason. The nine `cutscene` mentions across eight files under `src/` are
+**receipts, not IOUs**: *"deletes nothing here — it calls `Audio.duck()` from its own occasion"*,
+*"forced by a cutscene, without touching this file"*, *"a cutscene can later ask for the same
+fade"*. Sequence your own beats in your own code root on `Clock.set_time`,
+`Events.screen_fade_requested`, `PlayerController.lock_input` and `UiScreen.pauses_world`. **The
+base ships no sequencer and no cutscene resource** — a step enum would grow `GameEnums`, which is
+append-only because ordinals live in `.tscn` files, for a shape every game authors differently.
+
+**One documented test shape changed, and it is the opposite of what this document said.**
+`docs/TESTING.md` used to give the fixture-root check as
+`if not Fixtures.activate(): skip(...); return`. **It is now an assertion**, and if your fork
+copied the skip shape, change it: a fixture root that cannot be written turns a skipped case into
+a case that silently tests nothing, and a skip reports GREEN — so the one condition the check
+exists to catch is the one condition nobody sees. `bag_mirror_test.gd` is converted; its plan moves
+10 → 11. 14 of 16 call sites still discard the return, and that is recorded rather than implied.
+
+**No new gate.** `record_shape_test.gd` and `docs_test.gd` already cover an ADR's structure, and
+inventing a gate to have one is what T5.24–T5.27 spent four rows learning not to do.
+
+---
 ## 5.3.4
 
 *2026-09-09 — a checker can skip files and still print PASS, and six checkers could pass on a

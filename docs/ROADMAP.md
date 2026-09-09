@@ -1237,6 +1237,52 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   this row's own DEVLOG heading through a computed plan: **the enforcement this row adds is not in
   the suite at all**, which is the first time in this run that has been true.
 
+- **T5.28 A template rule, a template default and a game choice are three different things —
+  DONE, 2026-09-09.** `TEMPLATE.md` § *"The one constraint nobody has scoped"* has said since
+  2026-08-26 that *"what is missing is the distinction between a template default and a game
+  choice, which no document currently draws"*, and **nothing ever scheduled it.** `CONTEXT.md`
+  ranked it FIRST for five packages and deferred it every time for one honest reason: *"it is
+  prose and cannot be proved by running the engine."* **That is true and it is not a reason to
+  leave it**, because the row was never optional — `CONTEXT.md` also recorded that it *"DECIDES the
+  two rows under it rather than guessing"*, and both of those rows carried *"Scope depends on the
+  taxonomy row above"* and *"Also gated by the taxonomy question."* **Three candidate rows were
+  unscopable indefinitely for want of one distinction**, and this project's rule against inventing
+  work meant none of them could honestly be started. Deferring the cheap row kept the expensive
+  ones frozen. **THE ANSWER IS THREE KINDS, NOT TWO**, which is what made it tractable:
+  a TEMPLATE RULE is foreclosed for every game and has a checker where the rule is mechanical; a
+  TEMPLATE DEFAULT ships a working value and **a seam**; a GAME CHOICE means the base builds
+  nothing and offers only the seam and the facts. **THE TEST THAT SEPARATES A DEFAULT FROM A RULE
+  IS MECHANICAL RATHER THAN EDITORIAL — DOES A SEAM EXIST?** A "default" a game cannot replace
+  without editing `src/` is a rule that has not admitted it, and that test is a fact about the
+  repository rather than a matter of tone. It is also immediately productive: applied to
+  `game_root.gd`'s `const PLAYER_SCENE`, it says the player prefab is a rule pretending to be a
+  default, which is the next row. **APPLIED, SO THE ADR DECIDES RATHER THAN DESCRIBES**: no combat,
+  the layer rule and the demo-name boundary are RULES — the last two already have checkers, which
+  is what a rule looks like when it can be mechanised; time is a DEFAULT, because `Clock`,
+  `NpcSchedule` and `Weather` are already here and a cycle extends a present system rather than
+  adding one; **a chapter sequencer and an economy are GAME CHOICES** — the first would add a
+  second way to express what a `story/chapter` int flag already expresses through the one
+  `FlagQuery`, and the second is genre, on the same footing as `Harvestables`. **TWO CANDIDATE ROWS
+  ARE CLOSED BY A REFUSAL RATHER THAN BUILT**, and writing the refusal down is the point:
+  otherwise each is rediscovered, ranked, deferred for want of a reason, and ranked again — which
+  is exactly what happened three times. **AND THE CUTSCENES ROW NEEDED A REASON, NOT A PACKAGE.**
+  It was the only `TODO` in `SYSTEMS_INVENTORY.md` with a blank boundary column, and a draft of
+  this row proposed building the seam on the grounds that nine `cutscene` mentions across eight
+  files under `src/` were unpaid IOUs. **Read in full they are RECEIPTS** — *"deletes nothing here
+  — it calls `Audio.duck()` from its own occasion"*, *"keeping it out of here is what lets a
+  cutscene soak one courtyard on demand"*, *"forced by a cutscene, without touching this file"*,
+  *"a cutscene can later ask for the same fade"* — each one a statement that the file is already
+  cutscene-ready and the consuming game supplies the occasion. Reading a comment as a debt is how
+  a comment becomes a work package; the row has a stated reason and a boundary line instead.
+  **Also settled: `Fixtures.activate()` is ASSERTED, not skipped**, reversing what `TESTING.md`
+  documented, because a skip reports GREEN and so the one condition the check exists to catch is
+  the one nobody sees — the same "passes because it found nothing" failure T5.27 guarded the seven
+  checkers against one row earlier. `bag_mirror_test.gd` converted, its plan 10 → 11; the plan gate
+  caught the arithmetic before the suite did. **NO NEW GATE, AND SAYING SO IS PART OF THE ROW** —
+  `record_shape_test.gd` and `docs_test.gd` already cover an ADR's structure, and inventing one to
+  have one is what the previous four rows were about. `5.3.5`, a PATCH; `src/`, `tools/` and
+  `.github/` byte-identical.
+
 ## Sequencing rules
 
 1. **Breadth of systems, one shallow proof each.** This *replaces* "depth before breadth", which

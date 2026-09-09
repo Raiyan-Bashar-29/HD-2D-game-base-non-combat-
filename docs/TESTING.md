@@ -10,7 +10,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 ```
 
 Exit 0 if every assertion passes, 1 otherwise. In a full checkout the last line reads
-`=== 2291 passed, 0 failed, 0 skipped ===`; in a stripped template it reads
+`=== 2294 passed, 0 failed, 0 skipped ===`; in a stripped template it reads
 `=== 2213 passed, 0 failed, 25 skipped ===`, and the difference is entirely skips that say so.
 **Re-measure this rather than quoting it** — the number moves with every package, and
 `docs_test.gd` and `doc_counts_test.gd` compute their plans from the documents, so editing a
@@ -191,8 +191,18 @@ activated — a case that crashed half way through its fixtures would otherwise 
 redirected content root and never say so.
 
 **`Fixtures.activate()` returns `false` if it could not write the fixture root**, so the shape is
-`if not Fixtures.activate(): skip(...); return` — an unchecked call leaves every lookup below it
-pointed at whatever content root the checkout happens to have.
+`equal("the fixture content is on disk", Fixtures.activate(), true)` — **assert it, do not skip on
+it.** An unchecked call leaves every lookup below it pointed at whatever content root the checkout
+happens to have.
+
+**This document used to say `if not Fixtures.activate(): skip(...); return`, and that was the
+weaker of the two shapes shipped.** T5.28 settled it in favour of asserting, because a fixture root
+that cannot be written turns a skipped case into a case that silently tests nothing — the same
+"passes because it found nothing" failure T5.27 had just guarded the seven checkers against, and
+`CHANGELOG.md` has called worse than no gate since `4.3.1`. A skip also reports GREEN, so the one
+condition the check exists to catch would be the one condition nobody sees. Asserting fails loudly
+and names the reason. **14 of 16 call sites discard the return entirely**; they are not a defect
+this row fixes, and the honest state is recorded rather than implied.
 
 **The ids themselves are consts in `tests/framework/fixture_content.gd`, and a case names them
 from there** — `FixtureContent.STACK_ITEM`, `FixtureContent.QUEST`, `FixtureContent.PLACE_A`.

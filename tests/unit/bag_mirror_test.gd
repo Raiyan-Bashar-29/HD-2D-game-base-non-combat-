@@ -37,17 +37,20 @@ var _losses: int = 0
 
 
 func run() -> void:
-	plan(10)
+	## 11 rather than 10 since T5.28: the fixture-root check became an ASSERTION instead of a skip,
+	## and an assertion is an outcome where a skip was a substitute for ten of them.
+	plan(11)
 	_the_flag_is_current_when_a_signal_fires()
 
 
 ## Adding, spending some, and spending the rest each leave the mirror correct AT THE INSTANT the
 ## signal arrives, not one statement later.
 func _the_flag_is_current_when_a_signal_fires() -> void:
-	if not Fixtures.activate():
-		skip("the count flag is current when an item signal fires",
-			"the fixture content root could not be written", 10)
-		return
+	## ASSERTED RATHER THAN SKIPPED, per T5.28 and `docs/TESTING.md`. A skip here reports GREEN, so
+	## the one condition this check exists to catch — a fixture root that could not be written —
+	## would be the one condition nobody sees, and the ten assertions below would silently be
+	## testing the developer's own content root instead of the fixtures.
+	equal("the fixture content is on disk for the registry to find", Fixtures.activate(), true)
 	_open_a_bag()
 	var key: StringName = BagKeys.key(CARRIER, FixtureContent.STACK_ITEM)
 

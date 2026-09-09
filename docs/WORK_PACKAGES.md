@@ -96,6 +96,7 @@ original board rather than continuing it.
 | T5.25 | **The gate that could not fail, and the numbers nothing was measuring** | **DONE** — `5.3.2`, a PATCH, and `src/` and `tools/` are byte-identical. **THE GATE T5.24 SHIPPED ONE ROW EARLIER COULD NOT FAIL FOR FOUR OF THE IDS IT WAS CHECKING.** Findability was `roadmap.contains(id)` and `board.contains(id)`, and `contains` cannot tell an id from a PREFIX of a longer one: `T5.1` is a substring of T5.10 through T5.19, `T5.2` of T5.20 through T5.24, `WP-09` of `WP-09b`, `WP-14` of `WP-14b`. Delete every genuine trace of those four packages and the suite stays green, because a sibling's own row spells the prefix. **WORTH SEPARATING FROM GOTCHA 76 RATHER THAN FILED UNDER IT**: 76 is that a mention may be incidental, which is a judgement about whether a trace counts; this is that the assertion was reading a DIFFERENT STRING, which is not a judgement — and the four ids affected are the four *oldest* in each family, the ones whose disappearance a reader is least likely to notice. One word boundary per call site, the dot escaped because an unescaped one matches any character and would let `T5x1` satisfy `T5.1` — the same defect mirrored. **THE LIVE REPOSITORY IS NOT THE PLANT THIS TIME, AND THAT IS THE POINT.** Measured before the change was written: all 52 packages satisfy the word-boundary form in both files, so the tree is green either way and T5.24's strongest-available plant — the repository itself — does not exist for this defect. So the proof is three runs against one plant, T5.2's seven genuine roadmap traces renamed away: tightened gate, no plant, **green 2,274**; tightened gate, plant, **red exit 1, ONE failure, `FAIL T5.2 is findable in the roadmap — expected true, got false`**; original `contains()` gate, SAME plant, **green 2,274**. The third run is the one that carries the row — without it the change is untested by construction, since runs one and two alone are also consistent with a gate that was already working. **AND THE SECOND HALF WAS THE RECORD, RECONCILED AGAINST MEASUREMENT RATHER THAN AGAINST ITSELF** — the failure mode T5.17 and T5.19 both hit by re-reading the documents instead of running the engine. Six documents quoted totals nothing had re-measured: `README.md` **555 assertions** against 2,274, stale since before `2.0.0`; `CLAUDE.md` "over 5,400 lines" against 8,986 and `2,173` in its own runner command; `TESTING.md` 1625/1551; `ARCHITECTURE.md` 2,173; `CONTEXT.md` a census of 166 files / 15,552 code lines taken before T5.23 added a file. **AND TWO SELF-CONTRADICTIONS IN THE FILE `CLAUDE.md` SENDS EVERY SESSION TO FIRST** — "the base is 5.0.0-complete" nine lines above declaring **5.3.1**, and Phase T5's second-idle criterion "still stands open" fourteen lines above "Phase T5 has no unticked exit criterion". `version_test.gd` missed the first because it reads only BOLD semvers and `5.0.0-complete` is unbolded, which is the same ungated-shape lesson as T5.19's. **The nine `**Commit:**` lines are written and deliberately NOT gated**, and the reason is a measurement rather than a preference: 15 of 52 packages had one, so the gate would fail 37 historical rows, and scoping it to "T5.16 onward" is the rotting exception list `HEADING_PATTERN`'s header refuses to become. `CONVENTIONS.md` gained the branch-naming rule the project never wrote down. 2,274 → **2,276 assertions**, both of them this row's own DEVLOG heading passing through a computed plan; see below |
 | T5.26 | **The ladder's own gate could not see an unwired checker** | **DONE** — `5.3.3`, a PATCH, one test file, and `src/` / `tools/` / `.github/` byte-identical. **`gates_test.gd`'s HEADER STATES ITS PURPOSE AS CATCHING "A GATE WRITTEN, COMMITTED, AND NEVER WIRED" AND IT COULD CATCH NEITHER SHAPE OF THAT.** `LADDER` was a const naming seven checkers with nothing asserting it named ALL of them, so an eighth `tools/check_*.gd` was invisible to the one case whose whole subject is a gate nobody runs — the defect being its own blind spot. And the wiring assertion was `workflow.contains(checker)`, **true of a workflow that names the checker in a COMMENT**, which this one does for every checker on purpose, the comments carrying each rung's reasoning. **MEASURED RATHER THAN ARGUED: both `run:` lines for `check_signals` commented out left the suite GREEN at 2,276** — running in neither job, ladder's own gate reporting fine. That is the comparison run and the row's whole evidence, the three-run shape T5.25 needed for the same reason: the tightened assertions are green on the live tree, so A and B alone cannot tell a fix from a no-op. **AND THE THING `contains` COULD NOT EXPRESS AT ALL IS THE COUNT BEING PER-JOB** — one bool for a whole file cannot say a checker is wired into the full job and missing from the stripped one, which is half a ladder, and the stripped half is the one that proves the template stands with no game present. So INVOCATIONS are counted — a non-comment line carrying the path and `--script` — against `JOBS.size()`, with the job names asserted so the number is not a fiction, which is `dev_tools_test.gd`'s empty-extractor guard applied to a const. The list is now derived from `tools/`, the pattern `test_runner.gd` has used for `CASES` since T2.2 and on `check_boundary.gd`'s argument that a list of what to check rots. **The plan is computed** — `42 + JOBS.size() + LADDER.size() * 2 + on_disk.size()` — so wiring an eighth checker never means editing a number. **Three plants, three different failures, exactly one each**: both steps commented `expected 2, got 0`; stripped step alone removed `expected 2, got 1`; eighth checker unlisted `expected true, got false`, on a run whose total rose by one unaided. **Gotcha 78**, not filed under 77 — 77 is a substring matching a sibling ID, this is a substring unable to tell a step from a comment; same mistake, second document, one row apart, so the generalisation is recorded rather than the instance: when a gate reads a FILE, ask which parts are prose. 2,276 → **2,287 assertions**; see below |
 | T5.27 | **A checker can skip a file and still print PASS** | **DONE** — `5.3.4`, a PATCH, `src/` byte-identical; the change is `ladder.yml` and six of the seven tools. **RUNGS 5–11 READ ONLY THE EXIT CODE** while rung 4 has `ErrorWatch`, and the question was whether that gap hides anything. **It does, and a throwaway probe measured it rather than arguing it**: a loop of three calling a function that indexes an empty array on the second printed `SCRIPT ERROR: Out of bounds get index '9'`, then `loop finished, items processed: 2 of 3`, then `PASS`, **exit 0**. Gotcha 24 exactly — the error aborts the INNERMOST FRAME ONLY, the loop finishes, a file is silently unscanned, and the tool reports success. **AND THE FIRST PLANT DID NOT SHOW IT**: the same error injected into `check_layers._scan_script` gave exit 1, so the tool died rather than lying and the premise looked false — the minimal probe is what separated "dies" from "continues and reports PASS", which is gotcha 75's family and why the probe is in the record. All fourteen steps now capture a log, print it, and force failure on `SCRIPT ERROR`/`Parse Error` even at exit 0; seven logs uploaded from both jobs; each step still names its checker beside `--script` once per job, so T5.26's invocation gate is untouched. **SECOND, SIX CHECKERS COULD PASS ON A SCAN OF NOTHING** — 0 of 7 guarded it while all seven printed their scanned count. `check_layers` aimed at a script-free directory gave `scripts scanned: 0` then `PASS`, exit 0; guarded it fails, and **the comparison against the unmodified tool on the same empty scan is the row** rather than the guard's own green run. The rule was already written for doc gates at `4.3.1` — "worse than no gate" — and never turned on the tools; the count lives beside each collector's `append` so it cannot drift from the scan. **`check_content` IS EXEMPT AND THE EXEMPTION IS THE INTERESTING PART**: its whole input is `data/` and `scenes/areas`, which the stripped job DELETES by design, so a zero scan is legitimate there and nowhere else — the first exemption in this run derived from what the strip removes rather than from what a gate can judge. **THIRD, A COMMENT CLAIMED A CHECK NOTHING PERFORMED** — "a stripped template must report exactly the same numbers", twice, with the jobs independent and nothing comparing them; reworded to what is enforced (both exit 0, which catches the failure that matters) and the real cross-job comparison named as a candidate. 167 files, 15,852 code lines. 2,287 → **2,291 assertions**, both from this row's own DEVLOG heading through a computed plan — **the enforcement here is not in the suite at all**, the first time that is true in this run; see below |
+| T5.28 | **A template rule, a template default and a game choice are three different things** | **DONE** — `5.3.5`, a PATCH, and `src/` / `tools/` / `.github/` byte-identical. **THE ROW RANKED FIRST FIVE TIMES AND NEVER TAKEN.** `TEMPLATE.md` § *"The one constraint nobody has scoped"* has said since 2026-08-26 that *"what is missing is the distinction between a template default and a game choice, which no document currently draws"*, and nothing ever scheduled it. `CONTEXT.md` deferred it each time for one honest reason — *"it is prose and cannot be proved by running the engine"* — **while also recording that it "DECIDES the two rows under it rather than guessing"**, both of which carried *"Scope depends on the taxonomy row above"*. **So deferring the cheap row kept the expensive ones frozen**, and three candidate rows were unscopable indefinitely for want of one distinction. **THE ANSWER IS THREE KINDS, NOT TWO**, which is what made it tractable: a TEMPLATE RULE is foreclosed for every game and carries a checker where the rule is mechanical; a TEMPLATE DEFAULT ships a working value **and a seam**; a GAME CHOICE means the base builds nothing and offers only the seam and the facts. **AND THE TEST THAT SEPARATES A DEFAULT FROM A RULE IS MECHANICAL RATHER THAN EDITORIAL — DOES A SEAM EXIST?** A "default" a game cannot replace without editing `src/` is a rule that has not admitted it; "is this a default or a rule" was a matter of tone, "can a game replace it without editing src/" is a fact about the repository. It is immediately productive: applied to `game_root.gd:28`'s `const PLAYER_SCENE` it says the player prefab is a **rule pretending to be a default**, which is the next row. **APPLIED RATHER THAN DESCRIBED** — RULES: no combat, the layer rule, the demo-name boundary (the last two already have checkers, which is what a rule looks like mechanised). DEFAULT: time, because `Clock`, `NpcSchedule` and `Weather` are already here so a cycle extends a present system. GAME CHOICES: a chapter sequencer, since a `story/chapter` int flag with `AT_LEAST` is already a complete chapter model through the one `FlagQuery` and a `Chapter` resource would add a second way to say one thing; and an economy, genre rather than structure, on `Harvestables`' footing. **TWO CANDIDATE ROWS CLOSED BY A REFUSAL RATHER THAN BUILT**, and writing the refusal down is the point — otherwise each is rediscovered, ranked, deferred for want of a reason, and ranked again, which is what happened three times. **AND THE CUTSCENES ROW NEEDED A REASON, NOT A PACKAGE**: a draft of this row proposed building the staging seam because nine `cutscene` mentions across eight files under `src/` looked like unpaid IOUs, and **read in full every one is a RECEIPT** — *"deletes nothing here — it calls `Audio.duck()` from its own occasion"*, *"forced by a cutscene, without touching this file"*, *"a cutscene can later ask for the same fade"* — each a statement that the file is already cutscene-ready and the game supplies the occasion. Reading a comment as a debt is how a comment becomes a work package. **Also settled: `Fixtures.activate()` is ASSERTED, not skipped**, reversing `TESTING.md`, because a skip reports GREEN so the one condition the check exists to catch is the one nobody sees — T5.27's failure one row earlier; `bag_mirror_test.gd` converted and **the plan gate caught the arithmetic before the suite did**, `planned 10 outcomes and produced 11`. **NO NEW GATE, AND SAYING SO IS PART OF THE ROW** — `record_shape_test.gd` and `docs_test.gd` already cover an ADR, and inventing one to have one is what the previous four rows were about; see below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -5163,4 +5164,94 @@ has ever been tracked, so the pattern cannot orphan anything the repository depe
 before adding it. Verified by writing a log and confirming `git status --untracked-files=all`
 reports only the `.gitignore` change.
 
-**Commit:** on `claude/t5-27-checker-blindspots`, targeting `main`."
+**Commit:** `217405c` on `claude/t5-27-checker-blindspots`, PR #58, targeting `main`, plus
+`e87dd05` (the `*.log` ignore) and its CI record. Filled in by T5.28 — the third row running to
+ship this line without its SHA, since item 6 asks for a commit that satisfying item 6 creates.
+
+---
+## T5.28 · A template rule, a template default and a game choice are three different things — **DONE**
+
+**The row that was ranked first five times and never taken.** `TEMPLATE.md` § *"The one constraint
+nobody has scoped"*, since 2026-08-26:
+
+> What is missing is the distinction between a **template default** and a **game choice**, which no
+> document currently draws.
+
+`CONTEXT.md` deferred it every time for one honest reason — *"it is prose and cannot be proved by
+running the engine"* — while also recording that it **"DECIDES the two rows under it rather than
+guessing"**. Both of those rows carried *"Scope depends on the taxonomy row above"* and *"Also
+gated by the taxonomy question"*. **So deferring the cheap row kept the expensive ones frozen, and
+three candidate rows were unscopable indefinitely for want of one distinction.**
+
+### The answer is three kinds, not two — which is what made it tractable
+
+| Kind | A game… | Test | Recorded in |
+|---|---|---|---|
+| **TEMPLATE RULE** | cannot override it; wanting to is a fork | no seam, plus a checker where mechanical | `TEMPLATE.md`, `CLAUDE.md` |
+| **TEMPLATE DEFAULT** | replaces the value through a seam, touching no `src/` file | **a seam exists** | `AUTHORING.md`, `[game]` |
+| **GAME CHOICE** | builds it in its own code root | the base builds nothing | `OPTIONAL`, or absent with a reason |
+
+**The test that separates a default from a rule is mechanical rather than editorial: does a seam
+exist?** A "default" a game cannot replace without editing `src/` is a rule that has not admitted
+it. "Is this a default or a rule?" was a matter of tone; "can a game replace it without editing
+`src/`?" is a fact about the repository — and it is immediately productive. Applied to
+`src/core/boot/game_root.gd:28`'s `const PLAYER_SCENE`, it says the player prefab is a **rule
+pretending to be a default**, which is the next row.
+
+### Applied, so the ADR decides rather than describes
+
+- **RULES:** no combat; the layer rule; the demo-name boundary. The last two already have checkers,
+  which is what a rule looks like once it can be mechanised.
+- **DEFAULT:** time. `Clock`, `NpcSchedule` and `Weather` are already here, so a cycle above the day
+  extends a present system rather than adding one. The base owns the facts; a game chooses numbers.
+- **GAME CHOICES:** a chapter sequencer (a `story/chapter` int flag with `AT_LEAST` is already a
+  complete chapter model for both authored surfaces, through the one `FlagQuery` — a `Chapter`
+  resource would add a second way to say one thing) and an economy (genre, not structure, on the
+  same footing as `Harvestables`/WP-10).
+
+**Two candidate rows are closed by a refusal rather than built, and writing the refusal down is the
+point.** Otherwise each is rediscovered, ranked, deferred for want of a reason, and ranked again —
+which is what happened three times.
+
+### The Cutscenes row needed a reason, not a package
+
+It was the only `TODO` in `SYSTEMS_INVENTORY.md` with a blank boundary column. **A draft of this
+row proposed building the staging seam, on the grounds that nine `cutscene` mentions across eight
+files under `src/` were unpaid IOUs. Read in full, every one is a RECEIPT:**
+
+| file | what it actually says |
+|---|---|
+| `dialogue_duck.gd:26` | "deletes nothing here — it calls `Audio.duck()` from its own occasion" |
+| `surface_wetness.gd:21` | "keeping it out of here is what lets a cutscene soak one courtyard on demand" |
+| `environment_driver.gd:10` | "forced by a cutscene, **without touching this file**" |
+| `screen_fade.gd:6` | "a cutscene **can later ask for** the same fade" |
+| `player_controller.gd:274` | the grounded rule deliberately not re-checked, so a cutscene may lift the player off a ledge |
+
+Each is a statement that the file is **already** cutscene-ready and the consuming game supplies the
+occasion. **Reading a comment as a debt is how a comment becomes a work package.** The row now has
+a stated reason and a boundary line, and the base ships no sequencer and no cutscene resource — a
+step enum would grow `GameEnums`, append-only because ordinals live in `.tscn` files, for a shape
+every game authors differently.
+
+### `Fixtures.activate()` is asserted, not skipped
+
+Reverses what `TESTING.md` documented. **A skip reports GREEN**, so the one condition the check
+exists to catch — a fixture root that could not be written — is the one condition nobody sees, and
+the ten assertions below it would silently be testing the developer's own content root. That is the
+same "passes because it found nothing" failure T5.27 guarded the seven checkers against *one row
+earlier*, and `CHANGELOG.md` has called it worse than no gate since `4.3.1`.
+`bag_mirror_test.gd` converted; **the plan gate caught the arithmetic before the suite did** —
+`planned 10 outcomes and produced 11`, because an assertion is one outcome where a skip was a
+substitute for ten. 14 of 16 call sites still discard the return, recorded rather than implied.
+
+### No new gate, and saying so is part of the row
+
+`record_shape_test.gd` asserts every document opens with its title and every recorded package is
+findable in both the board and the roadmap; `docs_test.gd` asserts every `res://` path a document
+names resolves. An ADR is covered by both. **Inventing a gate to have one is what T5.24–T5.27 spent
+four rows learning not to do**, and this row's own subject is a distinction that is prose by nature.
+
+**Scope.** `5.3.5`, a PATCH. One new ADR; `TEMPLATE.md`, `CONTEXT.md`, `SYSTEMS_INVENTORY.md`,
+`TESTING.md` and the record; one test file. **`src/`, `tools/` and `.github/` byte-identical.**
+
+**Commit:** on `claude/t5-28-taxonomy`, targeting `main`.

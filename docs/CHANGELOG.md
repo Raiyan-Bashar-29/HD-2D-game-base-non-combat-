@@ -19,6 +19,50 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.3.0
+
+*2026-09-09 — a sheet may now name a SECOND IDLE, and dwell time chooses when it plays. The last
+Phase T5 exit criterion.*
+
+**A consuming game does: nothing, unless it wants a fidget.** Both new fields default to the
+value that means "no second idle" — `idle_break_row` to `-1` and `idle_break_after` to `0.0` — so
+every sprite sheet authored before this version behaves exactly as it did, standing in one way
+for as long as it stands. The default is `-1` rather than `0` for the reason T5.2 gave for the
+gait rows: `0` is a real row, so a default of `0` would have silently drawn the IDLE block as a
+break on every existing sheet, which is a change that looks like nothing.
+
+**To add one, draw a block and name it.** No code, in this template or in your game:
+
+    idle_break_row = 3        # the block, addressed by INDEX like every other row
+    idle_break_after = 6.0    # seconds of UNBROKEN standing before it plays
+
+The block plays once through and hands back to `idle_row`, and the clock restarts from the END of
+the break — so `idle_break_after` is the gap a player actually sees between two fidgets, not that
+gap minus however long the block takes.
+
+**Naming one half and not the other is now a reported problem**, along with a break that points
+at the idle block it is supposed to interrupt. `SpriteSheetLayout.problems()` gained three lines,
+because a row with no delay and a delay with no row both look configured, are both in range, and
+both draw exactly what the sheet drew before.
+
+**THE ONE THING TO CHECK IF YOU KEPT THE SHIPPED PLACEHOLDER LAYOUT.**
+`assets/placeholder/character_layout.tres` went from `animations = 3` to `4` and now names
+`idle_break_row = 3`, and `assets/placeholder/character_placeholder.png` was regenerated 16 rows
+tall to match. Both change together, so a game that kept BOTH needs to do nothing. A game that
+kept the `.tres` while pointing it at art of its own will get a size mismatch reported by
+`problems()` on the first frame — set `animations` back to your own block count and
+`idle_break_row` to `-1`. This is why the bump is a MINOR and not a PATCH.
+
+`character_alt_layout.tres` deliberately names NEITHER field, so the repository holds a sheet with
+a break and a sheet without, and the `-1` default stays exercised on a layout that names all five
+gaits.
+
+**Also new:** `--idle-shots=<dir>` on `dev_gait_shots.gd`, which stands a character still and
+samples the block it draws for eight seconds, photographing an early and a late cell of each
+distinct block and reporting how far apart the crops are. Deleting `src/systems/debug/` still
+does not break the game.
+
+---
 ## 5.2.0
 
 *2026-09-09 — the save store becomes redirectable, so the suite stops writing into the

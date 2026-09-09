@@ -8630,3 +8630,157 @@ between them, so the duplicate was closed and the branch with the richer documen
 transferable half is the same one T5.21's own DEVLOG entry drew from the other direction: **a
 stack is invisible from `main`**, so run `gh pr list --state open` before branching, and prefer
 one package in flight at a time.
+
+---
+
+## 2026-09-09 — T5.23 · A second idle block, and the chooser that was the actual package
+
+**Did:**
+- `src/content/art/sprite_sheet_layout.gd` gained `idle_break_row` (-1 = none) and
+  `idle_break_after` (0.0 = none), plus `has_idle_break()`, `idle_break_animation()` and a
+  `_idle_break_problems()` helper split out of `problems()`. 62 -> 86 code lines.
+- `src/gameplay/character/character_visual.gd` gained `_dwell` and `_breaking`, a `_stand(delta)`
+  that absorbed the old non-moving branch, and `_advance` now RETURNS whether the cycle wrapped.
+  131 -> 151.
+- `tools/gen_placeholders.gd`: `ANIMATIONS` 3 -> 4, an `IDLE_BREAK_BLOCK`, a fourth tint and
+  swing, and a `BREAK_ARM_LIFT` applied on the block's late cells only. 230 -> 234.
+- `assets/placeholder/character_layout.tres`: `animations = 4`, `idle_break_row = 3`,
+  `idle_break_after = 3.0`. `character_placeholder.png` regenerated at 16 rows.
+  `character_alt_layout.tres` deliberately UNCHANGED.
+- `src/systems/debug/dev_gait_shots.gd` gained a fourth pass, `--idle-shots=<dir>`. 142 -> 197.
+- `tests/unit/idle_break_test.gd`, 26 assertions, registered in `test_runner.gd`.
+- Version 5.2.0 -> 5.3.0 in `project.godot`, `CHANGELOG.md` and both bold semvers in
+  `CONTEXT.md`. Board row, `SYSTEMS_INVENTORY.md`, `ROADMAP.md` and `ART_CONTRACT.md` updated.
+
+**Why.** The last unticked Phase T5 exit criterion, and the one thing worth carrying out of it is
+that **the criterion did not name the work**. It read "more than one idle", which sounds like a
+missing BLOCK — and the block was never missing. `SpriteSheetLayout` has been able to address 32
+animations since T2.1 and `frame_index` could draw any of them, so a sheet could always have
+carried a second idle. What was missing is that every block in this template is selected by a
+`GameEnums.MoveState`, and standing still is ONE state, so nothing would ever ask for a second
+one. The gap was a chooser, and a chooser is a seam decision — which is the same shape T5.14 found
+in "a turn in place", the other long-open box in this phase. Two of the phase's last three boxes
+were seam decisions wearing the clothes of animation work.
+
+**The chooser is dwell time, with its threshold on the SHEET, and the argument is the two MUST NOT
+lines rather than taste.** The candidates were dwell, weather, a schedule and an area tag. The
+last three each need an autoload — `Weather`, `Clock`, `Flags` — and `sprite_sheet_layout.gd` may
+not touch one at all (`tools/` loads content classes under `--script`, where autoload identifiers
+do not resolve, so a single `Log` call there breaks a build gate), while `character_visual.gd` is
+forbidden from the other side: it is TOLD a velocity and a state, and it draws. Dwell is the one
+trigger derivable from what the visual is ALREADY handed every frame, so it is the only one of the
+four that needs no new dependency anywhere. **And nothing is given up by choosing it**: a game
+that wants a rain idle or a night idle pushes a MoveState, or swaps the layout resource, and
+neither needs a line of base code. That is written into the field's own doc block so the next
+session does not re-litigate it.
+
+**Both fields or neither, and `problems()` says so.** A row with no delay is a block nothing ever
+plays; a delay with no row is a timer that fires nothing; a break pointing at `idle_row` is a
+no-op that looks configured. All three are gotcha 38's shape — in range, kept by the loader,
+plausible on screen, and the authored block never once shown — so all three are reported.
+`has_idle_break()` requires both halves for a concrete reason and not for symmetry: its one
+consumer compares a dwell against `idle_break_after`, so a row with a threshold of zero would
+break on the very first frame the character stood still.
+
+**`_advance` returns a bool now, and that is the smallest change that carries a real decision.** A
+break plays ONCE, so something has to notice the end of it, and the only code that knows is the
+loop that wrapped the frame. Every other caller discards the answer, which `project.godot` permits
+deliberately — `return_value_discarded` is the single warning in the static-enforcement block set
+to 0 rather than 2, and this is the first place in the project that uses that latitude.
+
+**The break outranks `_idle_animates()` rather than nesting inside it**, and getting that the
+other way round would have been the quiet bug: a sheet may legally have `idle_row == walk_row`,
+which every sheet authored before T2.1 does, and a game that gives such a sheet a fidget still
+wants the fidget. So the break is tested first and the held pose is what happens only when there
+is neither a distinct idle nor a break running.
+
+**Connects.** `SpriteSheetLayout` -> `CharacterVisual` -> `Sprite3D.frame`, the same path T5.2 and
+T5.3 built, with one branch added at the point where "not moving" was previously a two-way
+choice. No signal, no autoload, no new dependency in either direction — `check_layers.gd` sees
+nothing new, and `check_methods.gd` finds a caller for both new public methods inside
+`character_visual.gd`. `dev_gait_shots.gd` gained a fourth flag rather than a fifth debug file,
+which keeps `dev_tools_test.gd`'s "every debug script that reads the command line has a node"
+count at 6 and its shared-flag set at exactly `--new-game`.
+
+**Verified.**
+- `--headless --import` before anything, and again after the sheet was regenerated (gotcha 53 —
+  a sprite sheet IS an asset, and this row changed the texture's size).
+- `--headless --check-only --script` on all four changed `.gd` files. `character_visual.gd`
+  reports `Identifier not found: Events` at its `turn_requested.connect` line, which is the
+  documented expected failure; the other three are clean.
+- `--headless --quit-after 30` -> `Session ended after 0.6s — 0 warnings, 0 errors`.
+- `--headless res://tests/test_runner.tscn --quit-after 400` -> `2221 passed, 0 failed,
+  0 skipped`, exit 0. **The delta is +29 on 2,192, and it is +26 +2 +1 rather than one
+  number** — measured by running the suite once with the docs reverted and once with them
+  in place, rather than predicted:
+  - **+26** is `idle_break_test.gd`'s own plan.
+  - **+2** is `docs_test.gd`, 117 -> 119. Its plan is `paths + fields + 2`, and adding
+    `idle_break_row` and `idle_break_after` to `ART_CONTRACT.md`'s worked example makes
+    that file assert both fields exist on the class. Worth knowing before writing a doc:
+    **a worked example in `docs/` is gated, so extending one grows the suite.** The first
+    version of this entry predicted +27 and was wrong by exactly these two.
+  - **+1** is `record_shape_test.gd`, 67 -> 68. Its plan is `docs + packages + 2` and this
+    entry's own heading is the new package.
+  - **+0** from `version_test.gd`, which stayed at 30: its plan is
+    `28 + <bold semvers in CONTEXT.md>`, and both semvers were rewritten in place rather
+    than added to. `doc_counts_test.gd` also stayed at 6.
+- All seven checkers exit 0: `check_budgets`, `check_content`, `check_boundary`, `check_strings`,
+  `check_layers`, `check_signals`, `check_methods`.
+- **The windowed capture, because `--headless` shades nothing.**
+  `--resolution 960x540 --quit-after 900 -- --new-game --idle-shots=<dir> --freeze-time
+  --time=18:40`. Note `--quit-after` is FRAMES: the first attempt used 90, which is 1.5s, and the
+  pass needs eight seconds. Blocks seen, sampled six times a second:
+  `0x12, 3x8, 0x18, 3x8, 0x2`. **The break ran 8 samples = 1.33s, which is 4 cells at 3fps
+  exactly, and the gap between the two breaks was 18 samples = 3.0s — the authored
+  `idle_break_after`, measured from the END of the previous break.** That is the restart decision
+  confirmed windowed and independently of the suite. Crops: `idle_block_0_early` vs
+  `idle_block_0_late` differ by 0.0949 of the crop, `idle_block_3_early` vs `idle_block_3_late` by
+  0.1406, and `idle_block_0_early` vs `idle_block_3_early` by **0.6184** — four to six times
+  either block's own internal cycle.
+
+**Seven plants, seven different failure sets**, which is what says they are not one assertion
+seven times: the break never starting fails 4; the break looping instead of ending fails 2; moving
+not cancelling fails 2; the dwell reset moved to the break's START instead of its end fails 2;
+`idle_break_animation()` falling back to row 0 instead of the idle block fails 1;
+`has_idle_break()` dropping its delay half fails 1; and the three half-configured `problems()`
+branches removed fails 3.
+
+**GOTCHA 75 — A NEW ASSERTION PASSED ITS OWN PLANT, BY COINCIDENCE OF ITS OWN TIMING.** The
+"interrupted standing does not accumulate into a break" case originally stood for `DWELL - 0.3`,
+took one walking frame, then stood `DWELL - 0.3` again — 3.4s in total. Under the plant that never
+resets the dwell on movement, the break duly STARTED 0.3s into the second stand, and then finished
+1.33s later, still inside that stand — so the case read the idle block and passed, over the exact
+defect it was written for. Gotcha 70's family, and the second time in two packages that a plant
+came back green for a reason that was not innocence (T5.22's was byte-identical files written in
+the same second). **The fix is timing, not logic**: the second stand is now `DWELL - 1.0`, short
+enough that a wrongly-started break is still on screen when the block is read, and the plant now
+fails 2 assertions instead of 1. The generalisable rule is narrower than "plant everything": an
+assertion about a TRANSIENT state has to be read while that state would still be showing, and a
+transient whose duration is derived from other data — here 4 cells at 3fps — needs that duration
+written down where the case can see it. `BREAK_SECONDS` in that file is derived from `FRAMES` and
+the default `idle_fps` for the same reason, after a first draft typed 2.0 and failed for arithmetic
+rather than for a defect.
+
+**Unblocks.** Nothing was waiting on this. It closes Phase T5's last exit criterion, so the phase
+has no unticked box left.
+
+**Gaps.**
+- **`docs/ROADMAP.md` still records T5.15 and then T5.21, with nothing for T5.16 through T5.20.**
+  T5.21 recorded this and it is still true; this entry adds T5.23 to that file without closing the
+  run of five. Nothing gates the roadmap's completeness so nothing is red. `CONTEXT.md`'s
+  next-package list now names reconciling it as the strongest row, which is a promotion from the
+  footnote it was.
+- **The arm lift is verified numerically and only partly visually.** The capture caught the player
+  at column 2, a side view, and `_character_cell` draws no far arm on a side view — so the raised
+  arm changes the outline on the front and three-quarter facings and is a same-silhouette
+  recolour on the profile. The 0.1406-vs-0.0949 figures say the break's cycle moves more of the
+  crop than the idle's even on that facing, but a facing-by-facing check of the lift was not run.
+  `--gait-shots` and `--facing-shots` exist and would answer it in one run if it ever matters.
+- **`NpcBrain` still passes only WALK or IDLE**, which T5.2 recorded, so every NPC in the demo is
+  eligible for a break and no NPC exercises a gait beyond walking. The break itself is exercised
+  by the player.
+- **No test asserts the placeholder sheet's fourth block is visually distinct from its first.**
+  `sheet_facings_test.gd` measures cell-to-cell difference for FACINGS; the equivalent question
+  for BLOCKS is answered only by the windowed capture's three numbers, which are read by a person
+  rather than gated. That is a real candidate row, and it is the same shape as the gap T5.8 closed
+  one axis over.

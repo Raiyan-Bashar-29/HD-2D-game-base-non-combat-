@@ -48,13 +48,15 @@ One `.tres` beside the texture:
 script = ExtResource("1_layout")
 facings = 8
 frames = 4
-animations = 3
+animations = 4
 cell_size = Vector2i(32, 48)
 idle_row = 0
 walk_row = 1
 run_row = 2
 sneak_row = -1
 climb_row = -1
+idle_break_row = 3
+idle_break_after = 3.0
 ```
 
 | Field | Means |
@@ -65,6 +67,7 @@ climb_row = -1
 | `cell_size` | one cell in texture pixels |
 | `idle_row` / `walk_row` | which block plays standing still, and which walking |
 | `run_row` / `sneak_row` / `climb_row` | the other gaits. **-1 means "replay the walk block"** |
+| `idle_break_row` / `idle_break_after` | the SECOND idle and how long standing starts it. **-1 and 0.0 mean "no second idle"** |
 
 ### A block per GAIT, and the ones you leave out
 
@@ -108,6 +111,53 @@ character in the game being silently misplaced by a few pixels.
 directions the *game* reasons about; `facings` is how many the *art* distinguishes. The two are
 quantised separately from the same angle, and the sector width is derived — `TAU / facings` — so
 there is no second place holding the number.
+
+### A SECOND idle, and the thing that chooses it
+
+**Since 5.3.0 a character does not have to stand in exactly one way.** Draw a second idle block —
+a stretch, a glance around, a shifted weight — name its row, and say how long the character stands
+before it plays:
+
+```
+idle_break_row = 3        # the block, addressed by INDEX like every other row
+idle_break_after = 6.0    # seconds of UNBROKEN standing before it plays
+```
+
+**It plays once and hands back** to `idle_row`. So draw it as a self-contained gesture that starts
+and ends in the same pose the idle block holds — if the first and last cells do not match your
+idle, the hand-back will read as a snap.
+
+**The gap you author is the gap a player sees.** The dwell restarts from the END of the break, not
+from its start, so `idle_break_after = 6.0` means six seconds of standing between two fidgets
+rather than six seconds minus however long your block takes to play.
+
+**MOVING CANCELS IT IMMEDIATELY AND RESETS THE CLOCK.** A fidget is what a character does instead
+of standing there, so a player who walks off mid-stretch gets the walk block on that same frame,
+and then has to stand still all over again. Interrupted standing does not accumulate — a character
+who paces will not fidget on a schedule you did not author.
+
+**Why dwell time and not the weather, the hour, or the area.** Those were the other candidates, and
+they are not available at this seam: `SpriteSheetLayout` may not touch an autoload, and
+`CharacterVisual` is *told* a velocity and a state — it does not read the clock. Dwell is the one
+trigger derivable from what the visual already has every frame. **You have not lost the others**: a
+rain idle or a night idle is a `GameEnums.MoveState` your game pushes, or a different layout
+resource you swap in, and neither needs a line of base code.
+
+**Name both fields or neither**, and `problems()` will tell you if you name one:
+
+| What you wrote | What it says |
+|---|---|
+| a row, no delay | `names idle break row 3 but never lets it start` |
+| a delay, no row | `waits 6.0s for an idle break it names no row for` |
+| the break AT `idle_row` | `breaks its idle to row 0, which is its idle block` |
+
+All three draw exactly what your sheet drew before while looking configured, which is why they are
+reported rather than tolerated — gotcha 38's shape three more times.
+
+**A sheet that names neither is complete.** `-1` and `0.0` are the defaults, every sheet authored
+before 5.3.0 has them, and such a character stands the way it always did. The shipped
+`character_alt_layout.tres` deliberately names neither, so the default stays exercised on a layout
+that names all five gaits.
 
 ### Wiring a sheet in
 

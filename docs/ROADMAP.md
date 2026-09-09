@@ -720,11 +720,26 @@ because the first row exposed how much of it was declared and unread.
 - [x] The same seam serves NPCs, with no NPC-specific animation code. — T5.2, `NpcBrain` passes a
       gait and knows nothing about animation blocks. Worth knowing: `NpcBrain` only ever passes
       WALK or IDLE, so RUN, SNEAK and CLIMB are exercised by the player alone.
-- [ ] **More than one idle.** A second idle block chosen over time or at random, so a standing
+- [x] **More than one idle.** A second idle block chosen over time or at random, so a standing
       character is not a held pose. **Reworded by T5.3's finding rather than closed:** the reason
       a standing character was a held pose was that the idle block never advanced at all, which
-      is now fixed. What remains is genuinely a SECOND block and a chooser between them, and it
-      is a smaller and more optional thing than this line implied.
+      T5.3 fixed. What remained was genuinely a SECOND block and a chooser between them.
+      - **T5.23, 2026-09-09, and the CHOOSER was the package.** The block was never the gap:
+      `SpriteSheetLayout` could address 32 animations and `frame_index` could draw any of them
+      since T2.1, so a sheet could always CARRY a second idle. What was missing is that every
+      block in this template is chosen by a `GameEnums.MoveState` and standing still is ONE
+      state, so nothing would ever ask for one. **The chooser is dwell time with its threshold
+      on the sheet** - `idle_break_row` names the block, `idle_break_after` starts it, it plays
+      once and hands back, and the clock restarts from the END of the break. **Dwell rather than
+      weather, a schedule or an area tag** because each of those needs an autoload that
+      `sprite_sheet_layout.gd` may not touch and that `character_visual.gd` is forbidden from the
+      other side, it being TOLD a velocity and a state; dwell is the one trigger derivable from
+      what the visual is already handed every frame. Photographed by a pass that presses NOTHING
+      and WATCHES rather than aiming a frame number: block sequence `0x12, 3x8, 0x18, 3x8, 0x2`
+      over eight seconds, the break running 1.33s (4 cells at 3fps exactly) and the gap between
+      two breaks measuring **3.0s, the authored number, from the END of the previous one**. The
+      two blocks differ by **0.6184 of the crop** against 0.0949 and 0.1406 for either block own
+      cycle.
 - [x] **A turn in place.** — **T5.14, 2026-09-06, and the SEAM DECISION was the package.** The
       question was never how to animate a turn: `face_direction()` was correct and asserted from
       the day it was written, and had only test callers because nothing had decided WHO may ask.
@@ -743,12 +758,15 @@ because the first row exposed how much of it was declared and unread.
       `sprite.frame`; the same probe on the default sheet draws sneak and climb from the WALK
       block, which is the `-1` fallback measured live. Captures are re-takeable with `--gait-shots=<dir>` rather than committed, which is this project's standing practice for screenshots.
 
-**THE PHASE IS CLOSABLE, AND CLOSING IT IS THE OWNER'S.** ONE box remains and it is not a defect:
-a second idle block is a chooser on top of machinery that already works. The other box that stood
-here — **a turn in place, and WHO may ask for one** — was a seam decision T5.3, T5.5, T5.6 and
-T5.7 each declined to make silently; the owner made it on 2026-09-06 and T5.14 built it. If the
-owner says the last box belongs to a consuming game rather than to the base, the phase closes
-today.
+**EVERY BOX IN THIS PHASE IS NOW TICKED.** The last one — a second idle block and a chooser —
+was closed by T5.23 on 2026-09-09, and the shape of it is worth keeping: the box had stood open
+since the phase was written, was REWORDED once by T5.3's finding, and turned out to name a
+chooser rather than the block it appeared to name. The other box that stood here — **a turn in
+place, and WHO may ask for one** — was a seam decision T5.3, T5.5, T5.6 and T5.7 each declined to
+make silently; the owner made it on 2026-09-06 and T5.14 built it. **Two of this phase's last
+three boxes were seam decisions wearing the clothes of animation work**, which is the
+generalisable thing: when a criterion here stays open a long time, the reason is usually that
+nobody has decided WHO owns the answer, not that the code is hard.
 
 **AND A THIRD THING THE OWNER SAW THAT NO EXIT CRITERION ASKS FOR — FIXED, T5.8, 2026-09-05.** On
 2026-09-05 the owner reported that sideways movement "just slides to the side". It did, and **the
@@ -923,6 +941,45 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   green. **Five plants, each failing a DIFFERENT set** — tie-break reverted 3, priority term 1,
   facing term 1, cycle offset ignored 4, lone-candidate guard 1 — which is what says they are not
   one assertion five times.
+
+- **T5.23 A second idle block and a chooser — DONE, 2026-09-09. THE LAST PHASE T5 EXIT
+  CRITERION.** T5.2 made gaits data, so idle, walk, run, sneak and climb are separate cycles a
+  SHEET names and an unnamed gait inherits the walk block. What did not exist was more than one
+  IDLE, or anything to choose between them, so a character stood in exactly one way forever.
+  **THE GAP WAS NEVER THE BLOCK** — `SpriteSheetLayout` could address 32 animations and
+  `frame_index` could draw any of them since T2.1, so a sheet could always carry a second idle;
+  what was missing is that every block in this template is chosen by a `GameEnums.MoveState`,
+  and standing still is one state, so nothing would ever ask. **So the row is a chooser, and the
+  chooser is DWELL TIME with its threshold on the SHEET**: `idle_break_row` names the block,
+  `idle_break_after` says how many seconds of unbroken standing start it, the block plays ONCE
+  and hands back to `idle_row`, and the clock restarts from the END of the break — so the
+  authored number is the gap a player sees rather than that gap minus the block's own length.
+  **WHY DWELL AND NOT WEATHER, A SCHEDULE OR AN AREA TAG**, which were the other three
+  candidates: each needs an autoload — `Weather`, `Clock`, `Flags` — that
+  `sprite_sheet_layout.gd` is forbidden to touch and that `character_visual.gd` is forbidden
+  from the other side, it being TOLD a velocity and a state. Dwell is the one trigger derivable
+  from what the visual is ALREADY handed every frame, so it is the only one of the four needing
+  no new dependency anywhere; and nothing is lost, a game wanting a rain idle pushing a
+  MoveState or swapping the layout resource. **`problems()` gained three branches**, all of them
+  gotcha 38's shape: a row with no delay, a delay with no row, and a break pointing at the idle
+  block it is meant to interrupt — each looks configured, is in range, and draws exactly what
+  the sheet drew before. **THE CAPTURE IS THE CLAIM AND IT RETURNED NUMBERS, NOT A JUDGEMENT.**
+  A new `--idle-shots=<dir>` pass presses nothing at all — the whole input is standing still —
+  and it WATCHES rather than aiming a frame number, because the moment of interest is decided by
+  a threshold on the sheet that the probe must not know (gotcha 52's shape again), and because
+  one shot of the break block could not show that it STARTED and ENDED. Sampling six times a
+  second for eight seconds: `0x12, 3x8, 0x18, 3x8, 0x2`, the break running 1.33s and the gap
+  between two breaks 3.0s from the end of the previous one. Crops: idle's own cycle 0.0949, the
+  break's own cycle 0.1406, the two BLOCKS **0.6184** — four to six times either, which is what
+  distinguishes a second idle from a recolour with a wobble. **AND THE PLANTS FOUND A HOLE IN
+  THE NEW TEST — gotcha 75**: "interrupted standing does not accumulate" PASSED under the defect
+  it was written for, because the wrongly-started break had already FINISHED inside the same
+  stand, so the case read the idle block and agreed by coincidence. Gotcha 70's family, one row
+  after T5.22 met it; the fix is timing, not logic. **MINOR, 5.3.0.** Suite 2,192 -> 2,221 (+26 the new case, +2 `docs_test` on the two fields now in `ART_CONTRACT.md`'s worked example, +1 `record_shape_test` on this row's DEVLOG heading);
+  twelve rungs and seven checkers green. **Seven plants, seven different failure sets** — break
+  never starts 4, break loops 2, moving does not cancel 2, dwell reset at the START rather than
+  the end 2, fallback to row 0 instead of the idle block 1, `has_idle_break` dropping its delay
+  half 1, the three half-configured problems unreported 3.
 
 - **T5.22 — a redirectable `SAVE_DIR`.** DONE. The suite was writing into the developer's own save
   directory, and the store was the last content root that still could: `fixtures.gd` repoints five,

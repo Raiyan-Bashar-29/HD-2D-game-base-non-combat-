@@ -59,6 +59,26 @@ extends Resource
 @export_range(-1, 31, 1) var sneak_row: int = -1
 @export_range(-1, 31, 1) var climb_row: int = -1
 
+## THE SECOND IDLE, AND THE THING THAT CHOOSES IT. Every row above is chosen by a
+## `GameEnums.MoveState` the game already knows; this one is not, because standing still is not
+## a state the game distinguishes from standing still. So the sheet has to carry the chooser
+## too, and these two fields ARE it: `idle_break_row` names the block and `idle_break_after`
+## says how many seconds of unbroken standing start it.
+##
+## WHY DWELL AND NOT WEATHER, A SCHEDULE, OR AN AREA TAG. Those were the other candidates and
+## each of them needs an autoload - `Weather`, `Clock`, `Flags` - which this file's MUST NOT
+## line forbids outright and which `CharacterVisual`'s forbids from the other side: it is told
+## a velocity and a state, and it draws. Dwell is the one trigger derivable from what the
+## visual is ALREADY handed every frame, so it is the only one of the four that needs no new
+## dependency anywhere. The others are not lost: a game that wants a rain idle pushes a
+## MoveState, or swaps the layout resource, and neither needs a line in this file.
+##
+## BOTH OR NEITHER, and `problems()` says so. A row with no delay is a block nothing ever
+## plays, and a delay with no row is a timer that fires nothing - gotcha 38's shape twice over,
+## because either half alone looks configured and draws exactly what it drew before.
+@export_range(-1, 31, 1) var idle_break_row: int = -1
+@export_range(0.0, 120.0, 0.5) var idle_break_after: float = 0.0
+
 
 
 
@@ -106,6 +126,30 @@ func distinct_gaits() -> int:
 		rows[animation_for(state)] = true
 	return rows.size()
 
+## DOES THIS SHEET HAVE A SECOND IDLE AT ALL? Both halves, deliberately: a caller asking
+## "may this character fidget" must get `false` from a half-configured sheet rather than a
+## `true` it then has to qualify, because the one consumer would otherwise compare a dwell
+## against a threshold of zero and break on the very first frame it stood still.
+func has_idle_break() -> bool:
+	return idle_break_row >= 0 and idle_break_after > 0.0
+
+
+## Which block the break draws. Falls back to the IDLE animation rather than to 0, on
+## `_row_for`'s reasoning exactly: 0 is a real row, so a sheet whose idle lives at row 2 would
+## otherwise have its break draw somebody else's cycle. Clamped for the same reason
+## `animation_for` is - a row past the end draws the last block and `problems()` reports it.
+func idle_break_animation() -> int:
+	if idle_break_row < 0:
+		return animation_for(GameEnums.MoveState.IDLE)
+	return clampi(idle_break_row, 0, animations - 1)
+
+
+## `distinct_gaits()` DELIBERATELY DOES NOT COUNT THE BREAK, and this is the note that saves
+## the next session from re-deciding it: a gait is a `GameEnums.MoveState`, that method
+## iterates them, and a break is not one - it is a variant of one. The break's report is
+## `problems()`, which is where a half-configured one becomes a sentence a person reads.
+
+
 ## Total rows down the sheet. Derived: an author sets the cycle length and the block count.
 func sheet_rows() -> int:
 	return frames * animations
@@ -147,15 +191,39 @@ func problems(texture: Texture2D = null) -> PackedStringArray:
 	# wrongly. -1 is not a problem: it MEANS "inherit the walk block".
 	var named: Dictionary[String, int] = {
 		"idle_row": idle_row, "walk_row": walk_row, "run_row": run_row,
-		"sneak_row": sneak_row, "climb_row": climb_row,
+		"sneak_row": sneak_row, "climb_row": climb_row, "idle_break_row": idle_break_row,
 	}
 	for field: String in named:
 		if named[field] >= animations:
 			found.append("%s names %s row %d, past its %d animation(s)" % [
 				resource_path, field, named[field], animations,
 			])
+	found.append_array(_idle_break_problems())
 	if texture != null and Vector2i(texture.get_size()) != sheet_size():
 		found.append("%s expects a %s sheet; the texture is %s" % [
 			resource_path, sheet_size(), Vector2i(texture.get_size()),
+		])
+	return found
+
+
+## THE THREE WAYS A SECOND IDLE IS CONFIGURED AND STILL DRAWS NOTHING NEW. Split out of
+## `problems()` because that function was already at the length where one more branch starts
+## hiding the others, and because these three share a subject the size and row checks do not.
+##
+## All three are gotcha 38's shape: the loader keeps whatever was typed, nothing is out of
+## range, the character animates plausibly, and the block the author drew is never once shown.
+func _idle_break_problems() -> PackedStringArray:
+	var found: PackedStringArray = PackedStringArray()
+	if idle_break_row >= 0 and idle_break_after <= 0.0:
+		found.append("%s names idle break row %d but never lets it start" % [
+			resource_path, idle_break_row,
+		])
+	if idle_break_after > 0.0 and idle_break_row < 0:
+		found.append("%s waits %.1fs for an idle break it names no row for" % [
+			resource_path, idle_break_after,
+		])
+	if idle_break_row >= 0 and idle_break_row == idle_row:
+		found.append("%s breaks its idle to row %d, which is its idle block" % [
+			resource_path, idle_break_row,
 		])
 	return found

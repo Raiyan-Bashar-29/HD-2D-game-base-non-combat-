@@ -8984,3 +8984,249 @@ which is a shorter and more honest list than "the roadmap is behind".
 - **`src/systems/scene_director/director.gd` is still at 187 of its 190**, three lines from the
   wall, on an override WP-14 already raised once. Untouched here — a documentation package is the
   wrong place to spend a decision — and it remains the tightest file in the repository.
+
+## 2026-09-09 — T5.25 · The gate that could not fail, and the numbers nothing was measuring
+
+**THE ROW EXISTED BECAUSE THE PREVIOUS ROW'S OWN ENTRY HAD ALREADY SEEN HALF OF IT AND NOT
+CONNECTED IT.** T5.24's entry, one section above this one, records that the board's detail heading
+for the scene-level interaction test read `## T5.20 ·` over T5.21's content and that "the gate
+could not have seen it because `contains("T5.20")` succeeds elsewhere in the file". That sentence
+is the defect. It was written about a HEADING the gate does not check, and the same property
+applies to the assertion the gate does check: `String.contains` is a substring test, so for any id
+that is a prefix of a longer id the question being asked is not "is this package recorded" but "is
+some package whose id begins with these characters recorded".
+
+Four ids in this repository are such prefixes, and they are the four *oldest* in each family:
+
+| id | satisfied by | deleting its every genuine trace left the suite |
+|---|---|---|
+| `T5.1` | `T5.10`–`T5.19` | GREEN |
+| `T5.2` | `T5.20`–`T5.24` | GREEN |
+| `WP-09` | `WP-09b` | GREEN |
+| `WP-14` | `WP-14b` | GREEN |
+
+**WHY THIS IS A DIFFERENT DEFECT FROM GOTCHA 76 AND NOT AN INSTANCE OF IT.** 76 says findability
+is satisfied by an incidental cross-reference — another row's sentence about a package counts as a
+trace. That is a judgement about what "recorded" ought to mean, and the gate's MUST NOT line
+declines to make it on purpose. This is not a judgement at all: the assertion was comparing
+against **a string that is not the id**. No tightening of what counts as a trace would have found
+it, and the two endanger different sets — 76 applies to any package, this applied to exactly four,
+whose rows sit furthest up the file and whose disappearance a reader is least likely to notice.
+Filing it under 76 would have lost that.
+
+**THE FIX IS ONE WORD BOUNDARY PER CALL SITE.** `_is_recorded_in(text, id)` builds
+`\b<id with . escaped>\b` and searches. The dot is escaped because an unescaped one matches any
+character, which would let `T5x1` satisfy `T5.1` — the same class of defect mirrored.
+`\bWP-09\b` does not match `WP-09b` because digit-to-letter is not a word boundary, which is the
+property the whole fix rests on. `record_shape_test.gd` +3 code lines; **no new assertion and no
+changed plan** — the two functions assert exactly what they asserted before.
+
+### THE LIVE REPOSITORY IS NOT THE PLANT THIS TIME, AND SAYING SO IS THE METHOD
+
+T5.24's strongest claim was that its plant was the repository itself — the assertion was written,
+run, and failed on six real packages before a document was edited, which is the one plant shape
+gotchas 74 and 75 cannot reach. **That shape is unavailable here, and it was checked before the
+change was written rather than discovered afterwards.** Extracting all 52 package ids with the
+gate's own `HEADING_PATTERN` and testing `\b<id>\b` against both documents: zero failures in
+`ROADMAP.md`, zero in `WORK_PACKAGES.md`. The tree is green before the change and green after it.
+
+A gate that is green on both sides of its own fix is precisely the shape gotcha 70 warns about, so
+the row needs a deletion — and it needs the comparison run, which is the part that is easy to skip:
+
+| run | gate | plant | result |
+|---|---|---|---|
+| A | word boundary | none | `=== 2274 passed, 0 failed, 0 skipped ===`, exit 0 |
+| B | word boundary | `T5.2`'s 7 roadmap traces renamed to `T5.99` | `=== 2273 passed, 1 failed, 0 skipped ===`, exit 1 |
+| C | **the original `contains()`** | **the same plant** | `=== 2274 passed, 0 failed, 0 skipped ===`, **exit 0** |
+
+B's single failure, verbatim:
+
+```
+FAIL T5.2 is findable in the roadmap — expected true, got false
+FAILED: T5.2 is findable in the roadmap — expected true, got false
+```
+
+**C IS THE RUN THAT CARRIES THE ROW.** A and B together are also consistent with a gate that was
+already working correctly and simply had nothing wrong with it; only C shows the old check was
+blind to the identical deletion. Without C the change is untested by construction, and the row
+would be a refactor asserted by its author rather than a fix proved by a measurement.
+
+**ONE failure rather than several is B's second result.** The plant renamed the id in `ROADMAP.md`
+only, so the board half still passed — which is what says the two functions are independent and
+not one assertion counted twice. The plant is a rename rather than a row deletion deliberately:
+deleting the log row leaves the other six mentions, and gotcha 76 means the assertion would then
+pass for the wrong reason and prove nothing about this defect — which is gotcha 76's own second
+rule, "plant a record gate on an id the document names exactly once", applied by counting first:
+`grep -cE '\bT5\.2\b' docs/ROADMAP.md` returned 7, so a deletion plant was refused and a rename
+used instead.
+
+**GOTCHA 77**, and it is filed separately from 76 on purpose, for the reason above: a substring
+test on an id is satisfied by a longer sibling id, so the assertion reads a string that is not the
+id — and the ids it cannot see are the low-numbered, oldest ones, whose rows sit furthest up a
+file and whose absence a reader is least likely to notice. **The check is weakest exactly where
+review is weakest.** Its second half is the methodological one: when a fix makes nothing newly
+red, the OLD code against the NEW plant is the evidence, and two runs are not enough. The list is
+77 entries and the four documents that quote its length say seventy-seven —
+`CONTEXT.md`'s section heading, `TESTING.md`, and `CLAUDE.md` in two places.
+`doc_counts_test.gd`'s plan is `claims + 2` and is unchanged at 6, the claims having been
+rewritten in place rather than added to.
+
+### THE SECOND HALF WAS THE RECORD, MEASURED RATHER THAN RE-READ
+
+T5.17 and T5.19 both reconciled the record by reading the documents. The numbers below were wrong
+in a way reading cannot catch, because a document quoting a stale number is internally consistent.
+Every replacement came off a run recorded here:
+
+| file | claimed | measured | how stale |
+|---|---|---|---|
+| `README.md:80` | `555 assertions` | 2,276 | since before `2.0.0` — off by ~1,700 |
+| `CLAUDE.md:22` | DEVLOG "over 5,400 lines" | 8,986 | ~60% |
+| `CLAUDE.md:98` | `# 2,173 assertions` | 2,276 | three version bumps |
+| `docs/ARCHITECTURE.md:250` | `2,173 assertions` in the rung table | 2,276 | three |
+| `docs/CONTEXT.md:180` | `166 files, 15,552 code lines` | `167 files, 15,793` | taken before T5.23 added a file |
+| `docs/TESTING.md:13-14` | `1625` full / `1551` stripped | `2276` full / `2202` stripped | ~650 |
+
+Measurement commands and their output, all on `4.7.2.stable.official.ed1daf0bf`, the version CI
+pins:
+
+```
+$ "$G" --headless --script tools/check_budgets.gd
+167 files, 15790 code lines, 0 warnings, 0 violations      # on main, before this row
+167 files, 15793 code lines, 0 warnings, 0 violations      # with this row's +3 code lines
+$ wc -l docs/DEVLOG.md
+8986 docs/DEVLOG.md                                        # before this entry
+```
+
+**`docs/TESTING.md` IS THE ONE NUMBER THIS ENTRY DOES NOT CARRY**, and deliberately. It quotes a
+full total AND a stripped-template total, and the stripped one is only produced by CI's
+`Ladder (stripped template)` job. The historical gap between the two has been a constant 74 in
+every recorded run, so predicting 2,202 would have been easy and would have been **exactly this
+package's own sin** — a number written from another number instead of from a run. Both figures go
+in with the CI record, in the commit that records it.
+
+**AND TWO SELF-CONTRADICTIONS IN `CONTEXT.md`**, which `CLAUDE.md:5` orders every session to read
+FIRST, both of them fourteen lines or fewer apart:
+
+- `:142` "Phase T5's second-idle box is the one that still stands open" against `:156` "**Phase T5
+  has no unticked exit criterion** — T5.23 took the last one". T5.23 closed it; the earlier
+  sentence was never updated when the later one was written.
+- `:144` "**So the base is 5.0.0-complete**" against `:153` "**The version is** **5.3.1**".
+  **`version_test.gd` could not see this**, and the reason is the recurring one: that gate asserts
+  a **bold** semver in `CONTEXT.md` equals `project.godot`'s, and `5.0.0-complete` is unbolded. An
+  ungated shape sitting beside a gated one is T5.19's lesson, not a new kind of defect. The
+  sentence now names the PHASE rather than a version, because a version is not a completeness
+  state and pinning one there is what made it rot in the first place.
+
+Both bold semvers were rewritten in place, `5.3.1` → `5.3.2`, so `version_test.gd`'s plan
+`28 + stated.size()` is unchanged at 30.
+
+**AND THE GATE CAUGHT THIS ROW DOING THE THING THIS ROW IS ABOUT**, which is worth recording
+rather than quietly fixing. The first full run after the documents were written came back
+`=== 2276 passed, 1 failed ===`, exit 1: `FAIL CONTEXT.md states the declared version — expected
+5.3.2, got 5.3.1`. The cause was this entry's own narrative — the headline paragraph quotes the
+contradiction it fixed, and wrote the historical version as **bold** `5.3.1`, which is precisely
+the shape `version_test.gd` reads as a live claim. **The convention this repository already has
+is that bold is a claim and plain is a record**, the same distinction `doc_counts_test.gd` draws
+between a spelled count and a digit, and a package writing ABOUT a version contradiction is the
+most likely place to break it. Unbolded, and the run went green at 2,276. The gate T5.19 wrote
+found a defect in the row that was auditing the gates — one run after this row's own plant proved
+a different gate had been blind.
+
+### ALSO IN THIS ROW
+
+- **`ROADMAP.md`'s T5.22 log row was the only one in the file with no date and a non-conforming
+  header, and it sat AFTER T5.23's row.** Both facts were self-declared in T5.24's entry and both
+  were left there. Reformatted to the file's shape and moved above T5.23, and its
+  `tests/unit/save_dir_test.gd` / 18 assertions added — a detail every other row in the run states
+  and that row omitted.
+- **T5.24's entry claimed the five absent packages each had "a version bump of its own".** T5.17
+  changed no code and left the tree at `4.2.1`; its own board row says so. Narrowed to four.
+- **The nine `**Commit:**` lines for T5.16–T5.24 are written.** Five packages have a detail
+  section and took the line there in the convention T4.3 set; T5.17, T5.19, T5.20 and T5.23 have a
+  board row only and took it inline. T5.20's is the one that needed care: `ddad201` on
+  `claude/t5-20-dev-stage-split` reached `main` not through its own PR #49 — which targeted
+  T5.19's branch — but through PR #51 from `land/t5-20-dev-stage-split`, and the row now says so.
+
+### WHAT IS STILL NOT GATED, EACH WITH THE MEASUREMENT OR REASON BEHIND IT
+
+- **The `**Commit:**` lines.** Counted before deciding: **15 of 52** packages carried one. A gate
+  would fail 37 historical rows, and scoping it to "T5.16 onward" is the rotting exception list
+  `HEADING_PATTERN`'s own header refuses to become. Backfilling 37 rows of commit archaeology is a
+  row of its own, if it is worth one at all. Recorded as a gap rather than gated or hidden.
+- **The suite's assertion total.** Unchanged from T5.19's and T5.24's statement of the same limit:
+  a case cannot know the suite's final total while the suite is running. This entry's `2,276` is
+  review's problem like every one before it.
+- **Branch names.** `CONVENTIONS.md` now carries the pattern and the load-bearing sentence — the
+  branch name is not authoritative, the in-tree record is. Deliberately ungated: a branch is cut
+  before the work is understood, and renaming one mid-stack moves the base of every PR above it.
+  That is not hypothetical here — `claude/t5-21-save-dir` carries T5.22 and
+  `claude/t5-20-selection-test` carries T5.21, and both were left named as they are on purpose.
+- **The board's detail-section headings**, still, and the hypothetical gate T5.24 described is now
+  slightly cheaper to write than it was, since `_is_recorded_in` exists — but it still has to
+  parse sections rather than the file, and it still has to decide about the four packages in this
+  run that have no detail section. Not attempted.
+- **`src/systems/scene_director/director.gd` is still at 187 of its 190**, untouched for the third
+  documentation row running, and still the tightest file in the repository.
+
+### THIS ROW IS 13 FILES AGAINST A STATED LIMIT OF ABOUT 8, AND THAT IS THE ROW'S SHAPE
+
+`CLAUDE.md:144` and the board both say no package exceeds about 8 files or 500 new code lines.
+This one touches 13 and is over on the first count — T5.24 was 10 and said so, and this is worth
+the same sentence rather than passing quietly. **The second count is what the limit is protecting
+and it is nowhere near it: 24 inserted lines in one file, of which 3 are code** and 21 are the
+comment explaining why. `src/` and `tools/` are byte-identical.
+
+The file count IS the package. Six documents each quoted one stale number, and a reconcile that
+fixes five of six is the failure mode T5.19 and T5.17 both demonstrated — the sixth is then quoted
+by the next session as though it were current. There is no smaller cut that leaves the record
+consistent: dropping `README.md` leaves the worst number in the repository (555 against 2,276) in
+the most-read file, and dropping `ARCHITECTURE.md` leaves a rung table describing a suite three
+versions old. The four record files — `ROADMAP.md`, `WORK_PACKAGES.md`, `DEVLOG.md`,
+`CHANGELOG.md` — plus `CONTEXT.md` and `project.godot` are the six every package touches, so the
+row is really "one gate file, six stale-number files, and the standing six".
+
+### THE STACK THIS ROW FOLLOWS, RECORDED BECAUSE IT COST THREE EXTRA STEPS
+
+T5.22, T5.23 and T5.24 were a three-deep stack of PRs — #53 → #54 → #55, each based on the one
+below — and landing them was not three merges. **GitHub retargets a stacked PR only when its base
+branch is DELETED**, and these branches were kept, so after #53 merged, #54's base was still
+`claude/t5-21-save-dir` and merging it would have landed the work in that branch rather than in
+`main`. Each of #54 and #55 needed `gh pr edit --base main`, and branch protection then required
+`gh pr update-branch` and a fresh green run — `29f4134` and `6112938` are those two merges of
+`main` into the branch. Both jobs passed on both. Worth writing down because the failure mode is
+silent: the merge succeeds and the work is simply not on `main`.
+
+**AND MERGING #54 WITHOUT #55 WOULD HAVE PUT A SELF-CONTRADICTING RECORD ON `main` WITH NOTHING
+RED TO SAY SO**, which is why they were landed back to back rather than one per session. At
+`24a84dd`, T5.23's tree named `GOTCHA 75` in three documents while the gotcha list held 74
+entries, stated `2,192` where its own text said `2,221`, and closed a `*(Previously: …)*`
+parenthesis mid-sentence leaving the remainder dangling. All three were repaired by T5.24, none of
+them is visible to `doc_counts_test.gd` — which compares the SPELLED count and treats a digit
+reference as a record rather than a claim — and `main` sat in that state for the minutes between
+the two merges.
+
+**CI GREEN — RUN [`34317589462`], BOTH JOBS, AND THE STRIPPED COUNT THIS ENTRY REFUSED TO
+PREDICT.** Job logs read rather than the tick, per gotcha 26.
+
+| job | result | last line |
+|---|---|---|
+| `Ladder (full checkout)` | success | `=== 2276 passed, 0 failed, 0 skipped ===` |
+| `Ladder (stripped template)` | success | `=== 2202 passed, 0 failed, 25 skipped ===` |
+
+The full figure is byte-identical to the local measurement. `docs/TESTING.md:13-14` now carries
+both, which is the pair this row deliberately left out of its first commit.
+
+**AND THE PREDICTION WOULD HAVE BEEN RIGHT, WHICH CHANGES NOTHING.** 2,276 − 2,202 = **74**, the
+same gap as every recorded run before it — including the `1625`/`1551` pair that had been sitting
+in `TESTING.md` since before `2.0.0`, whose difference is also 74. Writing 2,202 from that
+constant would have produced the correct number by a method that cannot be trusted, and a package
+whose entire subject is numbers written from other numbers is the last place to use it. The
+distinction is worth keeping precisely because the shortcut works most of the time: a stale
+`TESTING.md` was internally consistent for four versions for the same reason.
+
+The constant itself is now a measurement worth stating rather than a coincidence noticed twice:
+**the stripped template has reported exactly 74 fewer assertions and 25 named skips in every run
+recorded in this file.** Nothing gates it — `ladder.yml` asserts only that the named-skip count is
+non-zero, so a stripped run can be told from a full one, never that the arithmetic holds. That is
+a candidate row and not this one, and it needs the two jobs to compare outputs, which they
+currently cannot: they are independent and nothing reads both.

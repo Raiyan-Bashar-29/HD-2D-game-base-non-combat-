@@ -3,60 +3,70 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-09 · **T5.24 (the roadmap's missing run, and whether completeness
-should be gated) complete, at 5.3.1, a PATCH.** `ROADMAP.md`'s package log ran T5.15 and then
-jumped to T5.21: T5.16, T5.17, T5.18, T5.19 and T5.20 had a DEVLOG entry, a board row and a
-version bump each, and no trace in the file `CLAUDE.md` sends a reader to for *where things
-stand*. T5.21 recorded the gap, T5.23 recorded it again and promoted it to the top of this file's
-next-package list, and **nothing was red because nothing counted the rows.**
+**Last updated:** 2026-09-09 · **T5.25 (the gate that could not fail, and the numbers nothing was
+measuring) complete, at 5.3.2, a PATCH.** T5.24 shipped findability as `roadmap.contains(id)` and
+`board.contains(id)` one row earlier, and **`contains` cannot tell an id from a PREFIX of a longer
+one.** Four of its assertions were therefore unfalsifiable: `T5.1` is a substring of T5.10 through
+T5.19, `T5.2` of T5.20 through T5.24, `WP-09` of `WP-09b`, `WP-14` of `WP-14b`. Delete every
+genuine trace of those four packages and the suite stays green on a sibling's own row. **T5.24's
+own DEVLOG entry had already written the sentence that is the defect** — that its detail-heading
+slip "could not have [been seen] because `contains("T5.20")` succeeds elsewhere in the file" — and
+applied it to a heading the gate does not check rather than to the assertion it does.
 
-**THE ROW WAS TWO THINGS AND THE SECOND MATTERED.** Writing five entries is bookkeeping; the
-question was whether completeness should be GATED, and the answer is yes on T5.19's own argument
-rather than by analogy to it — that row exists *because a third manual reconcile was the wrong
-answer*, and "a package either has a row or it does not" has no reading and no tone in `ROADMAP.md`
-any more than it does on the board. `record_shape_test.gd` gained one assertion per recorded
-package; no fourth gate, and its OWNS line grew a record rather than a kind of fact.
+**IT IS A DIFFERENT DEFECT FROM GOTCHA 76, AND SEPARATING THEM IS THE POINT.** 76 is that a
+mention may be incidental, a judgement about what counts as a trace, which the gate's MUST NOT
+line declines to make. This is that the assertion was reading **a string that is not the id** — no
+judgement, and no tightening of what counts as a trace would have found it. Both call sites now
+match on a word boundary with the dot escaped, because an unescaped dot matches any character and
+would let `T5x1` satisfy `T5.1`. No new assertion and no changed plan.
 
-**THE COUNTER-ARGUMENT WAS REAL AND THE SHAPE OF THE CHECK IS THE ANSWER.** The roadmap IS
-legitimately selective where the board is not: it records a package as a log row, as a tick beside
-an exit criterion, or as a parenthesis in a phase's Done list — and **T5.14 is only ever the
-second**, so a gate demanding a log row would fail a package that is thoroughly recorded. So the
-assertion is `roadmap.contains(id)`, findability, which is the identical choice T5.19 made one
-function above for the board and for the reason written there. The roadmap may record a package in
-whichever shape fits; it may not omit one. **And T5.16's refusal to touch this file was about the
-CRITERIA list** — a different list in the same file, asking whether a phase may close rather than
-where a package sits in the plan.
+**THE LIVE REPOSITORY IS NOT THE PLANT THIS TIME, AND IT WAS MEASURED BEFORE THE CHANGE WAS
+WRITTEN.** All 52 recorded packages satisfy the word-boundary form in both documents, so the tree
+is green either way and T5.24's strongest plant shape does not exist here. **A gate green on both
+sides of its own fix is gotcha 70's shape**, so the proof is three runs against one plant —
+T5.2's seven roadmap traces renamed away: tightened gate with no plant **green at 2,274**;
+tightened gate with the plant **red, exit 1, exactly one failure, `FAIL T5.2 is findable in the
+roadmap`**; and the ORIGINAL `contains()` gate against the SAME plant **green at 2,274**. **The
+third run is the one that carries the row** — the first two alone are equally consistent with a
+gate that was already working.
 
-**THE PLANT WAS THE LIVE REPOSITORY, WHICH IS THE ONE PLANT SHAPE GOTCHAS 74 AND 75 CANNOT
-REACH**, both being failures of a fabricated condition: the assertion ran before a document was
-edited, at `2266 passed, 6 failed`, exit 1. **It named SIX, not five — and the sixth is the whole
-argument.** **WP-07, path actions**, the signature non-combat mechanic, has been missing from
-`ROADMAP.md` since 2026-08-26, and neither of the two packages that recorded this gap by reading
-the file had named it. Both counted five. That is the case for a gate over a third reverse-count,
-delivered as a measurement.
+**THE SECOND HALF WAS THE RECORD, MEASURED RATHER THAN RE-READ**, which is how T5.17 and T5.19
+both missed these: a document quoting a stale number is internally consistent. `README.md` claimed
+**555 assertions** against 2,274, stale since before `2.0.0`; `CLAUDE.md` called this file's log
+"over 5,400 lines" against 8,986 and quoted 2,173 in its own runner command; `TESTING.md` and
+`ARCHITECTURE.md` quoted totals two and three versions back; the census here was taken before
+T5.23 added a file. **And this file contradicted itself twice within fourteen lines** — "the base
+is 5.0.0-complete" above its own declared 5.3.1, and Phase T5's second-idle criterion "still
+stands open" above "Phase T5 has no unticked exit criterion". `version_test.gd` missed the first
+because it reads only BOLD semvers and `5.0.0-complete` is unbolded: an ungated shape beside a
+gated one, T5.19's lesson rather than a new kind of defect. The nine `**Commit:**` lines for
+T5.16–T5.24 are written and deliberately NOT gated — 15 of 52 packages had one, so a gate fails 37
+historical rows. `CONVENTIONS.md` gained the branch-naming rule the project never had.
 
-**AND THE FOLLOW-UP PLANTS FOUND THE GATE'S LIMIT TWICE OVER, WHICH IS GOTCHA 76.** Deleting
-T5.19's entire package-log row left the suite **green at 2,274**: two other rows mention T5.19
-while saying something else, and `contains` is true of either. The corrected plant on T5.18 then
-went green for the SAME reason a second time — **this row's own new entry names all five packages
-it reconciled**, so deleting T5.18's row left T5.18 findable inside the sentence describing its
-absence. A row that records a gap is a cross-reference to every id in the gap. The gate cannot
-tell *recorded* from *mentioned in passing*, which is inherent to findability and the price of the
-property being worth having. Rules: plant a record gate on an id the document names exactly ONCE,
-**re-count after your own edits**, and know a package whose only trace is somebody else's sentence
-passes — **this row found ITSELF in that state**, its only roadmap mention being an aside inside
-the WP-07 line, surfaced only because deleting that line failed TWO assertions rather than one. It
-gave itself a real log row. Re-planted on the finished tree against three ids the file names once
-each, one per recording shape: T5.13's log row, WP-05's Done-list parenthesis, and T5.20's row
-together with its cross-reference — **exactly 1 failure each, correctly named**. Control, exit 0
-at 2,274.
+**FINDABILITY IS STILL THE PROPERTY, AND THAT IS T5.24'S DESIGN RATHER THAN AN ACCIDENT.** The
+roadmap IS legitimately selective where the board is not: it records a package as a log row, as a
+tick beside an exit criterion, or as a parenthesis in a phase's Done list — and **T5.14 is only
+ever the second**, so a gate demanding a log row would fail a package that is thoroughly recorded.
+The roadmap may record a package in whichever shape fits; it may not omit one. T5.25 changed only
+*what string the check compares*, not what counts as recorded.
 
-**Also recorded here rather than left implied:** gotcha 75 was named in T5.23's DEVLOG entry and
-never added to the list, so the list held 74 entries while the record referred to a 75th. Both 75
-and 76 are now entries, and the four documents that quote the count say seventy-six.
-`record_shape_test.gd` 68 → **121**; suite 2,221 → **2,274**, and all 53 are computed plans doing
-their job rather than a case this row wrote — measured against a reverted tree, per T5.23's
-method, not predicted.
+*(Previously: T5.24 gated roadmap completeness at `5.3.1`, because the package log had run T5.15
+and then jumped to T5.21 — T5.16 through T5.20 each had a DEVLOG entry and a board row and no
+trace in the file `CLAUDE.md` sends a reader to, and nothing was red because nothing counted the
+rows. **Its plant was the live repository**, run before a document was edited, at `2266 passed, 6
+failed`, exit 1 — **and it named SIX, not five: WP-07, path actions**, the signature non-combat
+mechanic, missing from `ROADMAP.md` since 2026-08-26 and named by neither of the two packages that
+had recorded this gap by reading the file. Both counted five; that is the case for a gate over a
+third reverse-count, delivered as a measurement. Its follow-up plants found **gotcha 76** twice
+over: deleting T5.19's whole log row left the suite green, two other rows mentioning T5.19 while
+saying something else, and the corrected plant on T5.18 went green for the same reason, because a
+row that records a gap is a cross-reference to every id in the gap. **T5.24 found ITSELF in that
+state** — its only roadmap mention an aside inside the WP-07 line — and gave itself a real log row.
+Rules that came out of it: plant a record gate on an id the document names exactly ONCE, re-count
+after your own edits, and know that a package whose only trace is somebody else's sentence passes.
+It also added gotchas 75 and 76 to the list, 75 having been named in T5.23's entry and never
+appended, so the list held 74 while the record referred to a 75th. `record_shape_test.gd`
+68 → 121; suite 2,221 → 2,274.)*
 
 *(Previously: T5.23 gave a sheet a SECOND IDLE and made dwell time the chooser — the last Phase T5
 exit criterion, a MINOR at 5.3.0. The gap was never the block: `SpriteSheetLayout` could address 32
@@ -139,23 +149,30 @@ instead of the closing summary answered no: **Phase 1 read COMPLETE while carryi
 exit criteria, and Phase 2 read IN PROGRESS with one.** T5.1 closed all four by PROVING them, and
 one turned out to be a genuinely missing FEATURE — the locale setting was wired to nothing at all.
 **Every exit criterion in Phases 0 through T4 is ticked, and each was proved rather than
-asserted** — Phase T5's second-idle box is the one that still stands open.
+asserted** — and Phase T5's last box, the second idle, was taken by T5.23, so no phase now
+carries an unticked criterion.
 
-**So the base is 5.0.0-complete, and what it is FOR has been sharpened.** The owner's intent is
-reusable CHARACTER infrastructure that future games inherit by swapping assets — several idle
-formats, several movement styles — so that a new game starts from a working base rather than going
-in blind. Phase T5 delivered it: gaits are data, a whole character swaps by pointing at another
-sheet, and every facing draws a different figure.
+**So the base is COMPLETE through Phase T5, and what it is FOR has been sharpened.** The owner's
+intent is reusable CHARACTER infrastructure that future games inherit by swapping assets — several
+idle formats, several movement styles — so that a new game starts from a working base rather than
+going in blind. Phase T5 delivered it: gaits are data, a whole character swaps by pointing at
+another sheet, and every facing draws a different figure.
 
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version is** **5.3.1**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+**The version is** **5.3.2**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
 the owner's to close or to leave.
 
 **THE NEXT PACKAGE IS A CHOICE, NOT A QUEUE.** Nothing is blocking, **Phase T5 has no unticked
-exit criterion** — T5.23 took the last one — and **T5.24 took the last KNOWN record gap off this
-list, and gated it so the next one is red rather than remembered.** The strongest rows, in the
+exit criterion** — T5.23 took the last one — and **T5.24 gated roadmap completeness while T5.25
+made that gate able to fail and reconciled the numbers six documents were quoting.** The record's
+KNOWN gaps are closed and two are gated; what is left ungated is written down rather than implied,
+in T5.25's row: the suite's own assertion total, the board's `**Commit:**` lines at 15 of 52
+packages, the board's detail-section headings, and branch names. **None of those is the obvious
+next row** — the first is impossible from inside the suite, the second is 37 rows of commit
+archaeology, and the last two are deliberately ungated with the reason recorded. A third
+consecutive documentation package would be the shape this file warns about. The strongest rows, in the
 order this file recommends them: the **template-default vs game-choice taxonomy**, which gates
 three rows below it and is honestly weak in that it is prose and cannot be proved by running the
 engine; a **narrative-staging seam**, `Cutscenes` being the only `TODO` in `SYSTEMS_INVENTORY.md`
@@ -177,12 +194,12 @@ mechanical move. `tools/gen_placeholders.gd` stays on the list at 234 of 250; T5
 `dev_stage.gd`, which was the urgent one at 248, down to 175.
 
 
-166 files, 15,552 code lines, 17 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
+167 files, 15,793 code lines, 17 scenes, 2 areas, 4 items, 1 conversation, 1 schedule, 1 quest of
 three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 4 on the default one, the
 fourth being a second IDLE rather than a gait**,
 1 shared area material, **21 settings and 21 consumers**.
-Template version **5.3.1**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+Template version **5.3.2**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
 recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 
@@ -219,7 +236,7 @@ which is `check_strings.gd`'s static rule made visible and including anything co
 **A SAVE THAT SURVIVES A REAL RELAUNCH**, proved in TWO PROCESSES rather than one reload:
 `--save-state` / `--load-state` in `dev_probes.gd`, with the fresh process's boot line as
 the control and the weather deliberately STORM because CLEAR is the boot default ·
-placeholder art generator · line-budget checker · a headless test suite (2,274 assertions) that
+placeholder art generator · line-budget checker · a headless test suite (2,276 assertions) that
 builds its own content and passes with the demo deleted, and that FAILS on a case which crashes,
 returns early, asserts nothing, or is not listed in the runner ·
 an engine/demo boundary gate that derives the demo ids and fails on any of them in src/ ·
@@ -1076,7 +1093,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --headless --check-only --script <file>   # type gate
 "$G" --headless --import                       # scenes and resources
 "$G" --headless --quit-after 30                # must end "0 warnings, 0 errors"
-"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 2,274 assertions, exit 1 on fail
+"$G" --headless res://tests/test_runner.tscn --quit-after 400   # 2,276 assertions, exit 1 on fail
 "$G" --headless --script tools/check_budgets.gd            # must exit 0
 "$G" --headless --script tools/check_content.gd            # must exit 0
 "$G" --headless --script tools/check_boundary.gd           # must exit 0 — src/ and tests/ name no demo content, and no orphan CSV row
@@ -1087,7 +1104,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Seventy-six gotchas that each cost an hour
+## Seventy-seven gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -2005,6 +2022,27 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     evidence, and the same answer: establish what the plant actually changed before trusting
     either outcome.
 
+77. **A SUBSTRING TEST ON AN ID IS SATISFIED BY A LONGER SIBLING ID, SO THE ASSERTION IS READING A
+    STRING THAT IS NOT THE ID — AND THE IDS IT CANNOT SEE ARE THE OLDEST ONES.** `contains("T5.1")`
+    is true of a document that only ever mentions T5.10 through T5.19. In this repository that made
+    four of `record_shape_test.gd`'s assertions unfalsifiable — `T5.1`, `T5.2`, `WP-09` and
+    `WP-14`, prefixes of `T5.10`-`T5.19`, `T5.20`-`T5.24`, `WP-09b` and `WP-14b` — so deleting
+    every genuine trace of those packages left the suite green. **Distinguish this from gotcha 76,
+    which it looks like and is not.** 76 is a judgement about whether a mention COUNTS as a trace;
+    this is that no trace was being looked for. Tightening what counts would never have found it.
+    **The tell is that the ids affected are the low-numbered ones**, whose rows sit furthest up a
+    file and whose absence a reader is least likely to notice, so the check is weakest exactly
+    where review is weakest too. **T5.24's own entry had written the sentence and not followed
+    it** — noting that a wrong detail heading "could not have been seen because
+    `contains("T5.20")` succeeds elsewhere in the file" — which is the general fact stated about a
+    specific place. Fix: match on a word boundary, `\bT5\.1\b`, **and escape the dot**, since an
+    unescaped one matches any character and lets `T5x1` satisfy `T5.1`, which is the same defect
+    mirrored. `\bWP-09\b` correctly does not match `WP-09b`, digit-to-letter being no boundary.
+    **And the proof needs three runs, not two**: the tightened gate is green on the live tree
+    either way, so A (no plant, green) and B (plant, red) are equally consistent with a gate that
+    was already correct — only C, the OLD check against the SAME plant going green, shows what was
+    broken. When a fix makes nothing newly red, the old code against the new plant is the evidence.
+
 
 ## How work is sliced
 
@@ -2079,7 +2117,7 @@ you can press to travel back to once you have — and every one of those walks n
 depending on whether you are crossing grass, the wooden dais or stone. Every one of those changes
 survives a save and a
 reload, including from the far side of an area that is no longer loaded. All of it is covered
-by 2,274 headless assertions.
+by 2,276 headless assertions.
 
 **Next, and for the first time it is not an ordered queue.** Every blocking row is done: Phase T3
 closed with WP-14b, WP-15 was CLOSED by the owner, and T4.1 shipped the version and the upgrade

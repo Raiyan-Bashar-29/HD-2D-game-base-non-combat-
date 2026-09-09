@@ -77,7 +77,7 @@ func _every_document_opens_with_its_title() -> void:
 func _every_recorded_package_has_a_board_row() -> void:
 	var board: String = FileAccess.get_file_as_string(BOARD)
 	for id: String in _packages:
-		equal("%s has a row on the board" % id, board.contains(id), true)
+		equal("%s has a row on the board" % id, _is_recorded_in(board, id), true)
 
 
 
@@ -101,7 +101,29 @@ func _every_recorded_package_has_a_board_row() -> void:
 func _every_recorded_package_is_findable_in_the_roadmap() -> void:
 	var roadmap: String = FileAccess.get_file_as_string(ROADMAP)
 	for id: String in _packages:
-		equal("%s is findable in the roadmap" % id, roadmap.contains(id), true)
+		equal("%s is findable in the roadmap" % id, _is_recorded_in(roadmap, id), true)
+
+
+## FINDABLE MEANS THE ID ITSELF, NOT A PREFIX OF A LONGER ONE, AND `contains()` COULD NOT TELL
+## THE DIFFERENCE - WHICH MADE FOUR OF THE ASSERTIONS ABOVE UNFALSIFIABLE.
+## `"T5.1"` is a substring of `T5.10` through `T5.19`, `"T5.2"` of `T5.20` through `T5.24`,
+## `"WP-09"` of `WP-09b` and `"WP-14"` of `WP-14b`. For those four, deleting every genuine trace
+## of the package from either file left BOTH assertions green, because a sibling's own row spells
+## the prefix. The gate T5.24 wrote to stop a package going missing could not see the four
+## packages most likely to go missing quietly.
+##
+## A word boundary is the entire fix, and it is exact rather than approximate: `\bWP-09\b` does
+## not match `WP-09b` because digit-to-letter is not a boundary, and `\bT5\.1\b` does not match
+## `T5.10` for the same reason. The dot is escaped because an unescaped one matches any character,
+## which would let `T5x1` satisfy `T5.1` - the mirror of the defect being fixed.
+##
+## MEASURED BEFORE IT WAS WRITTEN: all 52 recorded packages satisfy the word-boundary form in
+## both files, so this tightens the check without demanding a single new row. That is also why
+## the live repository is NOT the plant here, unlike T5.24 - it is green either way, so the proof
+## has to be a deletion. See this row's DEVLOG entry for the three runs.
+func _is_recorded_in(text: String, id: String) -> bool:
+	var matcher := RegEx.create_from_string("\\b" + id.replace(".", "\\.") + "\\b")
+	return matcher.search(text) != null
 
 
 func _gather() -> void:

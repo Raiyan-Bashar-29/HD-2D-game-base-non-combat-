@@ -19,6 +19,52 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.3.2
+
+*2026-09-09 — the gate T5.24 added could not fail for four of the ids it was checking, and the
+numbers six documents quoted had drifted from the tree.*
+
+**A consuming game does: nothing.** No file under `src/` or `tools/` changed. The only
+production-side change is `project.godot`'s `[template] base/version`.
+
+**THE ONE THING WORTH KNOWING BEFORE YOU MERGE, AND IT IS AGAIN ABOUT YOUR DOCS.**
+`record_shape_test.gd`'s two findability checks were `board.contains(id)` and
+`roadmap.contains(id)`, and `contains` cannot tell an id from a PREFIX of a longer one. In this
+repository that made four assertions unfalsifiable: `T5.1` is a substring of `T5.10` through
+`T5.19`, `T5.2` of `T5.20` through `T5.24`, `WP-09` of `WP-09b`, `WP-14` of `WP-14b`. Deleting
+every genuine trace of those four packages left the suite GREEN, because a sibling's own row
+spells the prefix. Both checks now match on a word boundary instead.
+
+**If your fork numbers packages the way this one does, check the same shape.** Any id that is a
+prefix of another id — `T1.1` beside `T1.10`, `WP-3` beside `WP-30` — was being checked by
+accident and is now checked for real, so a package you logged and never named in `ROADMAP.md` or
+`WORK_PACKAGES.md` will now fail rung 4 where before it may have passed on a sibling. That is the
+gate doing the job `5.3.1` claimed it was already doing. The fix is a sentence, as it was then.
+
+**No new assertion, and no changed plan.** The count moves 2,274 → 2,276 purely because this
+row's own DEVLOG entry adds one package id and the plan is
+`_docs.size() + _packages.size() * 2 + 2`. The two findability functions assert exactly what they
+asserted before; they simply cannot be satisfied by the wrong string any more.
+
+**And the record was reconciled against measurement rather than against itself.** `README.md`
+claimed 555 assertions against 2,274 — off by roughly 1,700 and stale since before `2.0.0`;
+`CLAUDE.md` described `DEVLOG.md` as "over 5,400 lines" against 8,986 and quoted 2,173 in its own
+runner command; `docs/TESTING.md` and `docs/ARCHITECTURE.md` quoted totals from two and four
+versions back; `docs/CONTEXT.md` said "the base is 5.0.0-complete" nine lines above declaring
+**5.3.1**, said Phase T5's second-idle criterion "still stands open" fourteen lines above saying
+the phase has no unticked criterion, and carried a repository census measured before `5.3.0`
+added a file. Every replacement number in this row came off a run recorded in `DEVLOG.md`.
+
+**The board's checklist item 6 is met for the T5.16–T5.24 run.** All nine packages now carry the
+`**Commit:**` line the board has asked for since T4.3. It is NOT gated, and the reason is
+measured: only 15 of 52 packages had one, so a gate would fail 37 historical rows, and scoping it
+to "T5.16 onward" is the rotting exception list `HEADING_PATTERN`'s own header refuses to become.
+
+**`docs/CONVENTIONS.md` gained a branch-naming rule**, which the project had never written down —
+including the line the two misnamed branches in this repository actually need: the branch name is
+not authoritative, the in-tree record is.
+
+---
 ## 5.3.1
 
 *2026-09-09 — the roadmap's completeness is now a gate rather than a habit, and the six packages

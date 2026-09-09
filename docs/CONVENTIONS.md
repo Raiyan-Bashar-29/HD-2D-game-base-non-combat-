@@ -78,6 +78,17 @@ the migration as debt it never paid.
 Commit `*.uid`, `*.import`, `*.tres` and `*.tscn`. Never commit `.godot/`. Every session
 appends an entry to `DEVLOG.md`.
 
+A branch is `claude/t<phase>-<n>-<slug>` for a phase row and `claude/wp-<nn>-<slug>` for a work
+package — `claude/t5-18-save-recovery`, `claude/wp-13-presentation`.
+
+**The branch name is not authoritative. The in-tree record is.** Nothing gates a branch name and
+nothing should: a branch is cut before the work is understood, and renaming one mid-stack moves
+the base of every PR above it. Two rows are already misnamed for that reason — `claude/t5-21-save-dir`
+carries T5.22 and `claude/t5-20-selection-test` carries T5.21, both because a parallel session
+took the number while the row was in flight. When a name and the record disagree, the ROADMAP
+row, the board row, the DEVLOG heading and the `CHANGELOG.md` version are right and the branch is
+wrong. Record the collision in the row rather than rewriting history to hide it.
+
 ## Content data
 
 A content type is two things in two places, following the same split as scenes (ADR-0001):

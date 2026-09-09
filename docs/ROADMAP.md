@@ -1041,6 +1041,26 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   facing term 1, cycle offset ignored 4, lone-candidate guard 1 — which is what says they are not
   one assertion five times.
 
+- **T5.22 A redirectable `SAVE_DIR` — DONE, 2026-09-09.** The suite was writing into the
+  developer's own save directory, and the store was the last content root that still could:
+  `fixtures.gd` repoints five, and this was the sixth, left out because `SaveSystem.SAVE_DIR` was
+  a `const`. Two cases wrote real slots through it, `save_recovery_test.gd` — whose whole purpose
+  is writing MALFORMED save files — and `core_test.gd`'s round trip. **They cleaned up after
+  themselves, which is not the same as never having been there**: the run that fails to clean up
+  is the run that crashed. `const SAVE_DIR` became `const DEFAULT_SAVE_DIR` plus `var save_dir`,
+  whose setter creates the directory so boot and redirect share one path. **Public rather than
+  test-only**, because a portable build writing beside its executable wants the same seam and a
+  suite-only backdoor is what `fixtures.gd`'s header already refuses. New
+  `tests/framework/save_fixture.gd` on `Fixtures`' shape and `tests/unit/save_dir_test.gd`, 18
+  assertions; `test_runner.gd` deactivates after EVERY case. `save_system.gd` 166 -> 172 of its
+  180, measured BEFORE the row started. **MINOR, 5.2.0.** Suite 2,173 -> 2,192; twelve rungs and
+  seven checkers green. **AND THE FIRST VERSION OF THE LOAD-BEARING CASE PASSED THE PLANT —
+  gotcha 74**: it compared the untouched file byte-for-byte against a copy taken before the
+  redirected write, and the full reversion passed, both writes having landed on the same path in
+  the same second with only second-resolution `saved_utc` and tenth-snapped `playtime_seconds`
+  varying. Different markers fixed it; the same plant now fails 4. **Two plants, different sets**
+  — full reversion 4, runner deactivate removed 3.
+
 - **T5.23 A second idle block and a chooser — DONE, 2026-09-09. THE LAST PHASE T5 EXIT
   CRITERION.** T5.2 made gaits data, so idle, walk, run, sneak and climb are separate cycles a
   SHEET names and an unnamed gait inherits the walk block. What did not exist was more than one
@@ -1080,29 +1100,11 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   the end 2, fallback to row 0 instead of the idle block 1, `has_idle_break` dropping its delay
   half 1, the three half-configured problems unreported 3.
 
-- **T5.22 — a redirectable `SAVE_DIR`.** DONE. The suite was writing into the developer's own save
-  directory, and the store was the last content root that still could: `fixtures.gd` repoints five,
-  and this was the sixth, left out because `SaveSystem.SAVE_DIR` was a `const`. Two cases wrote
-  real slots through it, `save_recovery_test.gd` — whose whole purpose is writing MALFORMED save
-  files — and `core_test.gd`'s round trip. **They cleaned up after themselves, which is not the
-  same as never having been there**: the run that fails to clean up is the run that crashed.
-  `const SAVE_DIR` became `const DEFAULT_SAVE_DIR` plus `var save_dir`, whose setter creates the
-  directory so boot and redirect share one path. **Public rather than test-only**, because a
-  portable build writing beside its executable wants the same seam and a suite-only backdoor is
-  what `fixtures.gd`'s header already refuses. New `tests/framework/save_fixture.gd` on `Fixtures`'
-  shape; `test_runner.gd` deactivates after EVERY case. `save_system.gd` 166 -> 172 of its 180,
-  measured BEFORE the row started. **MINOR, 5.2.0.** Suite 2,173 -> 2,192; twelve rungs and seven
-  checkers green. **AND THE FIRST VERSION OF THE LOAD-BEARING CASE PASSED THE PLANT — gotcha 74**:
-  it compared the untouched file byte-for-byte against a copy taken before the redirected write,
-  and the full reversion passed, both writes having landed on the same path in the same second
-  with only second-resolution `saved_utc` and tenth-snapped `playtime_seconds` varying. Different
-  markers fixed it; the same plant now fails 4. **Two plants, different sets** — full reversion 4,
-  runner deactivate removed 3.
-
 - **T5.24 The roadmap's missing run, and whether completeness should be gated — DONE,
   2026-09-09.** This file's own package log ran T5.15 and then jumped to T5.21: **T5.16, T5.17,
-  T5.18, T5.19 and T5.20 were absent**, five delivered packages each with a DEVLOG entry, a board
-  row and a version bump of its own, and no trace in the file `CLAUDE.md` sends a reader to for
+  T5.18, T5.19 and T5.20 were absent**, five delivered packages each with a DEVLOG entry and a
+  board row — four of them with a version bump of its own, T5.17 having changed no code and left
+  the tree at `4.2.1` — and no trace in the file `CLAUDE.md` sends a reader to for
   *where things stand*. T5.21 recorded the gap; T5.23 recorded it again and promoted it to the top
   of the next-package list; **nothing was red, because nothing counted the rows** — T5.4's
   structural cause one level up from code. **THE ROW WAS TWO THINGS AND THE SECOND MATTERED:**
@@ -1128,6 +1130,44 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   suite green on two passing mentions elsewhere. `5.3.1`, a PATCH; `src/` and `tools/`
   byte-identical. Suite 2,221 → **2,274**, and all 53 are computed plans doing their job rather
   than a case this row wrote.
+
+- **T5.25 The gate that could not fail, and the numbers nothing was measuring — DONE,
+  2026-09-09.** T5.24 shipped findability as `roadmap.contains(id)` and `board.contains(id)`, and
+  **`contains` cannot tell an id from a PREFIX of a longer one**, which made four of its
+  assertions unfalsifiable: `T5.1` is a substring of T5.10 through T5.19, `T5.2` of T5.20 through
+  T5.24, `WP-09` of `WP-09b`, `WP-14` of `WP-14b`. Delete every genuine trace of those four and
+  the suite stays GREEN on a sibling's own row. **This is gotcha 76 with a sharper edge and it is
+  worth separating from it**: 76 is that findability is satisfied by an incidental cross-reference,
+  which is a judgement about whether a mention counts; this is that the assertion was reading a
+  DIFFERENT STRING, which is not a judgement at all — the four packages hardest to notice going
+  missing were the four the gate could not see. One word boundary on each check fixes both call
+  sites, with the dot escaped because an unescaped one matches any character and would let `T5x1`
+  satisfy `T5.1`, the mirror of the defect. **THE LIVE REPOSITORY IS NOT THE PLANT THIS TIME**,
+  and that is the whole methodological point of the row: measured before the change was written,
+  all 52 packages satisfy the word-boundary form in both files, so the tree is green either way
+  and T5.24's strongest-available plant is unavailable here. So the proof is three runs on one
+  plant — **T5.2's seven genuine roadmap traces renamed away**: tightened gate + no plant green at
+  2,274, tightened gate + plant **red, exit 1, one failure, `FAIL T5.2 is findable in the
+  roadmap`**, and the ORIGINAL `contains()` gate against the SAME plant **green at 2,274**. The
+  third run is the one that matters; without it the change is untested by construction. **AND THE
+  SECOND HALF WAS THE RECORD ITSELF, RECONCILED AGAINST MEASUREMENT RATHER THAN AGAINST ITSELF.**
+  Six documents quoted totals nothing had re-measured: `README.md` **555 assertions** against
+  2,274, stale since before `2.0.0`; `CLAUDE.md` "over 5,400 lines" against 8,986 and `2,173` in
+  its own runner command, left behind by three version bumps; `TESTING.md` 1625/1551 and
+  `ARCHITECTURE.md` 2,173; `CONTEXT.md` a census of 166 files and 15,552 code lines taken before
+  T5.23 added a file, **and two self-contradictions in the file `CLAUDE.md` sends every session to
+  FIRST** — "the base is 5.0.0-complete" nine lines above declaring **5.3.1**, and Phase T5's
+  second-idle criterion "still stands open" fourteen lines above "Phase T5 has no unticked exit
+  criterion". `version_test.gd` could not see the first because it reads only BOLD semvers and
+  `5.0.0-complete` is unbolded. **The nine `**Commit:**` lines the board has asked for since T4.3
+  are now written for T5.16–T5.24, and NOT gated** — 15 of 52 packages had one, so the gate would
+  fail 37 historical rows and scoping it to "T5.16 onward" is the rotting exception list this
+  file's own gate header refuses to become; the gap is recorded instead. `CONVENTIONS.md` gained
+  the branch-naming rule the project never had, whose load-bearing line is that the branch name is
+  not authoritative — two branches here are misnumbered and renaming one mid-stack moves the base
+  of every PR above it. `5.3.2`, a PATCH; `src/` and `tools/` byte-identical. Suite 2,274 →
+  **2,276**, both new assertions being this row's own DEVLOG heading passing through a computed
+  plan rather than a case this row wrote.
 
 ## Sequencing rules
 

@@ -90,6 +90,7 @@ original board rather than continuing it.
 | T5.19 | **Reconciling the record, and gating its shape** | **DONE** — `4.3.1`, a PATCH, and no production code changed. **Twelve places where the record disagreed with the repository, one package after T5.17 reconciled it.** `CONTEXT.md` — the file `CLAUDE.md` sends every session to FIRST — stated template version `2.4.0` two majors late, called the version `1.1.0` untagged, still listed branch protection as unbuilt after T5.16 turned it on, and carried a **"THE NEXT PACKAGE"** paragraph describing work T5.2 had shipped. `ARCHITECTURE.md` was 348 assertions behind and named "rung 9" for a capture that is rung 12. `SYSTEMS_INVENTORY.md` had T5.15's `Row styles` row at LINE 1, above the title — its ONLY copy, so the system was missing from its table. T5.17 had no board row. **The answer was not a third manual reconcile.** Two defects are STRUCTURE, which is assertable where prose is not: `record_shape_test.gd` fails if a document does not open with its title or a recorded package has no board row, and `version_test.gd` gained a third fact — a **bold** semver in `CONTEXT.md` must equal `project.godot`'s. 2,076 → 2,143. Three plants, each the real reversion, each exit 1 against an exit-0 control. **Gotcha 70 again:** plant 3 passed first time because `sed` addressed the wrong line and changed nothing |
 | T5.20 | **Splitting the staging surface, and the gate that makes a split safe** | **DONE** — `5.0.0`, a MAJOR, and the production change is a MOVE: `dev_stage.gd` was at **248 of its 250** allowed code lines, two from failing rung 5 on its next edit. **The docs had named `gen_placeholders.gd` next to split for ten straight rows and it was the wrong file** — at 230 of 250 it has twenty lines spare, and T5.19's measurement is what found the real one. **The seam was chosen by QUESTION, on this family's own three-way precedent** rather than by cutting the file in half: the five flags that end in a `UiRoot.open()` — `--open-inventory`, `--talk=`, `--talk-advance=`, `--open-menu=`, `--console=` — moved to a sixth file, `dev_screens.gd`, leaving *what is TRUE in the world* here and *what is DRAWN OVER it* there. **It is also a dependency fact**, which is what makes it a seam and not a filing preference: those five were the only staging that named the `ui` layer at all. 248 → **175**, new file **102**, and `_parse_arguments` fell from 32 of its 40-line function budget to 22. **MAJOR rather than the MINOR its 3.1.0 precedent used**, because a game that merges `src/` without adding the `DevScreens` node does not miss a new feature — it silently LOSES five flags it may already invoke, with nothing red anywhere. **A refactor, so the evidence is that behaviour did not change**: five invocations byte-identical before and after, including both cross-file orderings, plus a sixth pair proving the `_fresh_game` pre-pass equivalent on reverse-order arguments. **The new gate is the split's own failure mode**: no two debug nodes may dispatch the same flag, `--new-game` the one stated exception — planted red at `expected ["--new-game"], got ["--new-game", "--open-menu="]`. Removed an orphaned doc block describing a function deleted in an earlier split. 2,143 → 2,148 |
 | T5.21 | **A scene-level interaction test, and the defect it found** | **DONE** — `5.1.0`, a MINOR. THE ROW EXISTED BECAUSE ANOTHER FILE ASKED FOR IT IN WRITING: `interaction_test.gd`'s MUST NOT line has said since WP-02 that the sensor's ranking *"needs real geometry and belongs in a scene-level test"*, and that test was never written — so the decision the sensor's own header calls the actual problem it solves (*"detection is trivial; selection is not"*) was asserted nowhere in a suite of 2,148, and `Speaker` and `Readable`, two of the eleven prefabs `AUTHORING.md` tells a consumer to place, had no scene-level assertions at all. Gotcha 54's shape at the top of the interaction stack: `interaction_test.gd` proved what an object does once chosen, `turn_test.gd` proved the turn once it is, and between them sat the decision neither made. `tests/unit/selection_test.gd`, 24 assertions. **AND IT FOUND A REAL DEFECT ON ITS FIRST RUN — gotcha 73**: `_select()` broke a scoring tie with `a.name < b.name`, but `Node.name` is a `StringName` and `<` on two of those compares their INTERNED ADDRESSES, not their text, so ties were ordered by script and scene load order while the comment above the line promised the NAME. Measured both ways in one run, same pair: `StringName` said `Z_later < A_earlier`, `String` said the opposite. The comment was half true, which is why it survived eight rungs — an address does not move, so the order WAS stable within a run; it simply was never the name, so an author numbering two overlapping objects to choose between them was ignored. One cast fixes it. **The first probe of the comparison said the language was innocent and agreed by coincidence**, which is gotcha 70 turned around and is the second half of 73. `InteractionSensor` gained one public method, `cycle()`, because the suite provably cannot press a key — `Input.parse_input_event` is buffered until a main-loop flush that never comes mid-run, and `Input.action_press` lands but then leaves the action reading `is_action_just_pressed() == true` for the whole run, which would cycle every other case's sensor; same reasoning as `is_suspended()`, and the binding is still proved windowed by `dev_stage.gd --cycle`. **Five plants, each failing a DIFFERENT set** — tie-break reverted 3, priority term deleted 1, facing term 1, cycle offset ignored 4, lone-candidate guard 1 — which is what says they are not one assertion five times. 2,148 → **2,173 assertions**; see below
+| T5.22 | **A redirectable `SAVE_DIR`** | **DONE** — `5.2.0`, a MINOR, and a consuming game does nothing: `SaveSystem.SAVE_DIR` became the settable `save_dir`, but all six uses were inside `save_system.gd`. **THE SUITE WAS WRITING INTO THE DEVELOPER'S OWN SAVE DIRECTORY AND IT WAS THE LAST ROOT THAT COULD.** `fixtures.gd` repoints five content roots; the store was the sixth and the only one left out, because its directory was a `const` — so `save_recovery_test.gd`, the case whose whole purpose is writing MALFORMED save files, and `core_test.gd`'s round trip both wrote real slots. **They cleaned up after themselves, which is not the same as never having been there**: the run that fails to clean up is the run that crashed, and a slot number the suite picks is a slot number a player may have filled. `tests/framework/save_fixture.gd` points the store at `user://test_saves` with `activate()` / `deactivate()` / `is_active()` on `Fixtures`' shape, and `test_runner.gd` deactivates after EVERY case rather than only the ones that switched — that file's own discipline and its reason verbatim. **PUBLIC rather than test-only**, because a portable build writing beside its executable wants the same seam and a backdoor existing for the suite alone is what `fixtures.gd`'s header refuses to add. 166 → 172 of the 180 override, which is where the row's "genuinely small" claim was checked before it was started rather than after. **AND THE FIRST VERSION OF THE LOAD-BEARING CASE PASSED THE PLANT — gotcha 74**: it compared the untouched file byte-for-byte against a copy taken before the redirected write, and the full reversion passed, because both writes landed on the same path in the same second and the only varying fields are second-resolution `saved_utc` and tenth-snapped `playtime_seconds`. Distinguishable markers fixed it; the same plant now fails 4. **Two plants, each a different set** — the full reversion 4, the runner's unconditional deactivate removed 3, which is what says they are not one assertion twice. 2,173 → **2,192 assertions**; see below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -4556,6 +4557,100 @@ all four did, and all four are ancestors of `main`.
   spare and deserves its own row.
 - **No windowed capture.** Nothing here is visual — every claim is a return code or a call count,
   so the honest ladder for this row ends at the suite.
+
+---
+## T5.22 · A redirectable `SAVE_DIR` — **DONE**
+
+`5.2.0`, a MINOR. **The suite was writing into the developer's own save directory, and the save
+store was the last content root that still could.**
+
+`tests/framework/fixtures.gd` repoints five content roots — `ITEM_DIR`, `DIALOGUE_DIR`,
+`SCHEDULE_DIR`, `QUEST_DIR`, `AREA_DEF_DIR` — under `user://test_fixtures`, so a run reads fixture
+content instead of the game's. The save store was the sixth root and the only one left out,
+because `SaveSystem.SAVE_DIR` was a `const`. Two cases wrote real slots through it:
+`save_recovery_test.gd`, whose entire purpose is writing MALFORMED save files, and
+`core_test.gd`'s round trip.
+
+### Why "it cleans up after itself" was not an answer
+
+Both cases delete what they write, on every path including the failing ones. That is careful, and
+it is not the same as never having written the file. The run that fails to clean up is by
+definition the run that crashed, which is the run you least want leaving a corrupt `slot_00.json`
+in a directory a person's actual game reads. And the slot numbers the suite picks — `MAX_SLOTS - 1`
+in `core_test.gd`, a slot of its own in `save_recovery_test.gd` — are slot numbers a player may
+have filled.
+
+### The shape, and why the seam is public
+
+`const SAVE_DIR` became `const DEFAULT_SAVE_DIR` plus `var save_dir`, whose setter calls
+`_ensure_dir()` so assigning creates the directory and no caller has to remember to. `_ready()`
+calls the same helper, so boot and redirect share one path rather than two that can drift.
+
+It is **public rather than test-only** deliberately. The alternative was a test-only injection
+point on `SaveSystem`, and `fixtures.gd`'s own header already argues that case and refuses it:
+engine code carrying a backdoor that exists for the suite and for nothing else. The same seam is
+one a game legitimately wants — a portable build writing beside its executable rather than into
+`user://` — so exposing it costs nothing that was not already going to exist.
+
+`tests/framework/save_fixture.gd` is new and mirrors `Fixtures`: `activate()` / `deactivate()` /
+`is_active()`, emptying the scratch directory on the way IN as well as out, because the run that
+failed to clean up is the run that crashed. `test_runner.gd` calls `SaveFixture.deactivate()`
+after every case unconditionally, next to the existing `Fixtures.deactivate()` and for the reason
+that call already states.
+
+### The budget, checked before the row was started
+
+`save_system.gd` has an OVERRIDE of 180, not the 250 default, and stood at 166. The redirect cost
+six lines and it is now 172. That was measured first, because the row's own justification said it
+was "genuinely small" and a design that did not fit would have been a signal rather than a reason
+to raise the override — which `check_budgets.gd`'s header forbids in as many words.
+
+### Assertions, and the plant that passed
+
+`tests/unit/save_dir_test.gd` is new, 18 assertions, split by QUESTION on T5.7's precedent:
+`core_test.gd` asks *does a good save survive*, `save_recovery_test.gd` asks *what happens to a
+bad one*, and this asks *which directory did it go in*. Neither of the other two should be
+asserting anything about a directory.
+
+The "real" directory in these assertions is a SECOND scratch one. The honest claim is "a write
+while redirected does not touch the directory that was in force before it", and asserting that
+against `user://saves` would be asserting about the developer's disk: the case would pass on a
+machine where the slot happened to be filled and fail on one where a real save collided. Two
+scratch directories make the same claim deterministic, and nothing in the case writes to
+`user://saves` at all — which is the row.
+
+**The first version of the load-bearing case passed the plant.** It took a copy of the stand-in
+file, wrote again while redirected, and compared the two byte-for-byte. The full reversion — every
+use of `save_dir` put back to the constant — passed it. Both writes landed on the same path inside
+the same second, and the only fields that vary are `saved_utc`, second-resolution, and
+`playtime_seconds`, which `snappedf` rounds to a tenth: the overwrite was byte-identical to what
+it overwrote. The two saves now carry different markers through the probe's section, and the
+assertion is that the earlier file still carries the first and does not carry the second.
+**Gotcha 74**, and it is gotcha 70 one turn on: 70 says a plant that passes is evidence about the
+plant, 74 says a plant that passes against an edit you have *confirmed* applied is evidence about
+the case.
+
+### Plants
+
+| Plant | Fails | Exit |
+|---|---|---|
+| control, no plant | 0 of 2,192 | **0** |
+| `slot_path` alone back to the constant | 17 | **1** |
+| every use of `save_dir` back to the constant, the full reversion | 4 | **1** |
+| `SaveFixture.deactivate()` removed from `test_runner.gd` | 3 | **1** |
+
+The first plant is recorded because it is instructive rather than good: reverting only
+`slot_path` makes the write FAIL — `_write_atomic` still opens the redirected directory, so the
+rename has nowhere to land — which is a louder failure than the one the row is about. The full
+reversion is the honest one, and the two fail different sets.
+
+### What this did NOT touch
+
+- **`slot_info()` parses the WHOLE file**, and `latest_slot()` does it for six slots on every menu
+  build. Named by T5.18 and deliberately left again: it is a performance change to a file with
+  eight lines spare, and it has its own row.
+- **No windowed capture claim.** The capture was run and is green, but nothing here is visual —
+  every claim in this row is a path, a return code or a file's contents.
 
 ---
 ## T5.20 · A scene-level interaction test, and the defect it found — **DONE**

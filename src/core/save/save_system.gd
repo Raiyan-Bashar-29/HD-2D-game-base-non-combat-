@@ -19,7 +19,9 @@ extends Node
 ## system never edits this file, and neither does adding an occasion to save on: the autosave
 ## POLICY lives in `Autosave`, which calls `save_to_slot` like every other caller does.
 
-const SAVE_DIR: String = "user://saves"
+## Where slot files live when nobody has said otherwise. Separate from `save_dir` below so that
+## restoring the default is naming this rather than repeating the literal at every call site.
+const DEFAULT_SAVE_DIR: String = "user://saves"
 ## How many slots the PLAYER may write. Every manual list iterates this, so the autosave slot
 ## below is outside all of them by construction rather than by a filter somebody has to
 ## remember to write in each screen.
@@ -36,6 +38,24 @@ const AUTOSAVE_FILE: String = "autosave.json"
 ## Bump when the envelope changes shape. Section contents are each system's own business.
 const SCHEMA_VERSION: int = 1
 
+## The directory `slot_path` builds on, and the ONE thing about the store that is not fixed.
+##
+## WHY THIS IS A `var` AND NOT THE `const` IT WAS. The suite has to write real files to assert
+## what the loader does with them, and with a const it wrote them into the developer's REAL save
+## directory — the last content root a test run could still reach, every other one being
+## repointed by `tests/framework/fixtures.gd`. It cleaned up after itself, which is not the same
+## as never having been there: a crashed run left slots behind, and a slot number the suite
+## happens to use is a slot number a player may have filled.
+##
+## PUBLIC RATHER THAN TEST-ONLY, because the same seam is one a GAME may legitimately want — a
+## portable build writing beside its executable rather than into `user://` — and a backdoor that
+## exists for the suite and for nothing else is what `fixtures.gd`'s own header refuses to add.
+## Assigning creates the directory, so no caller has to remember to.
+var save_dir: String = DEFAULT_SAVE_DIR:
+	set(value):
+		save_dir = value
+		_ensure_dir()
+
 ## Section version per participant, so a system can change its own format without forcing an
 ## envelope bump and without _migrate having to understand every other section. See ADR-0004.
 var _versions: Dictionary[StringName, int] = {}
@@ -46,8 +66,14 @@ var _busy: bool = false
 
 
 func _ready() -> void:
-	if DirAccess.make_dir_recursive_absolute(SAVE_DIR) != OK:
-		Log.error("save", "Could not create %s" % SAVE_DIR)
+	_ensure_dir()
+
+
+## Create `save_dir` if it is not there. Called on boot AND from the setter, because a directory
+## that only boot creates would leave a redirect pointing at nothing until the first write failed.
+func _ensure_dir() -> void:
+	if DirAccess.make_dir_recursive_absolute(save_dir) != OK:
+		Log.error("save", "Could not create %s" % save_dir)
 
 
 func _process(delta: float) -> void:
@@ -75,8 +101,8 @@ func unregister(id: StringName) -> void:
 
 func slot_path(slot: int) -> String:
 	if slot == AUTOSAVE_SLOT:
-		return "%s/%s" % [SAVE_DIR, AUTOSAVE_FILE]
-	return "%s/slot_%02d.json" % [SAVE_DIR, slot]
+		return "%s/%s" % [save_dir, AUTOSAVE_FILE]
+	return "%s/slot_%02d.json" % [save_dir, slot]
 
 
 ## Whether a slot number is the autosave's. Public so a screen can label a row and a policy can
@@ -204,7 +230,7 @@ func load_from_slot(slot: int) -> Error:
 func delete_slot(slot: int) -> Error:
 	if not has_slot(slot):
 		return ERR_FILE_NOT_FOUND
-	var dir: DirAccess = DirAccess.open(SAVE_DIR)
+	var dir: DirAccess = DirAccess.open(save_dir)
 	if dir == null:
 		return ERR_CANT_OPEN
 	return dir.remove(slot_path(slot).get_file())
@@ -230,7 +256,7 @@ func _write_atomic(path: String, text: String) -> Error:
 	file.flush()
 	file.close()
 
-	var dir: DirAccess = DirAccess.open(SAVE_DIR)
+	var dir: DirAccess = DirAccess.open(save_dir)
 	if dir == null:
 		return ERR_CANT_OPEN
 	if dir.file_exists(path.get_file()):

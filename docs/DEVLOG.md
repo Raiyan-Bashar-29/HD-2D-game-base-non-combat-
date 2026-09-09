@@ -8515,3 +8515,118 @@ both jobs green on PR #50 now that it targets T5.20's branch at `5.1.0`:
 **The pre-rebase CI run was [`34262856018`](https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-/actions/runs/34262856018)**
 — `2100` full, `2026` stripped, green on `main` at `4.4.0`. It is kept because it is what the
 package was first accepted on, and labelled because it no longer describes this tree.
+
+## 2026-09-09 — T5.22 · A redirectable `SAVE_DIR`
+
+**Did.** Turned `SaveSystem.SAVE_DIR` from a `const` into `const DEFAULT_SAVE_DIR` plus a settable
+`var save_dir`, added `tests/framework/save_fixture.gd` on `fixtures.gd`'s shape, wired
+`SaveFixture.deactivate()` into `test_runner.gd`'s unconditional per-case teardown, pointed
+`save_recovery_test.gd` and `core_test.gd`'s round trip at the scratch directory, and wrote
+`tests/unit/save_dir_test.gd` — 18 assertions on where the store writes. `5.2.0`, a MINOR.
+
+**Why.** `fixtures.gd` repoints five content roots under `user://test_fixtures` so a run reads
+fixture content instead of the game's. The save store was the sixth root and the only one left
+out, because its directory was a `const` with no redirect. So two cases wrote real slots into
+whatever `user://saves` resolves to on the machine running the suite: `save_recovery_test.gd`,
+whose entire purpose is writing MALFORMED save files, and `core_test.gd`'s round trip.
+
+T5.18 recorded this and left it, correctly — it was a seam, not a defect. Both cases delete what
+they write on every path including the failing ones. **But "it cleans up after itself" is not the
+same as "it was never there."** The run that fails to clean up is by definition the run that
+crashed, which is exactly the run you least want leaving a corrupt `slot_00.json` where a person's
+real game reads it. And the slot numbers the suite picks — `MAX_SLOTS - 1`, and a slot of its own
+— are slot numbers a player may have filled.
+
+**The budget was checked before the row was started, not after.** `save_system.gd` carries an
+OVERRIDE of 180 rather than the 250 default and stood at **166**. CONTEXT's claim of 14 spare was
+verified with `check_budgets.gd` first, because the row's own justification was that it is
+"genuinely small" and a design that did not fit would have been a signal — `check_budgets.gd`'s
+header forbids raising an override to make a violation go away. The redirect cost six lines: the
+file is now **172 of 180**.
+
+**Public rather than test-only, and that was a decision.** The alternative was a test-only
+injection point on `SaveSystem`. `fixtures.gd`'s own header already argues that case and refuses
+it — engine code carrying a backdoor that exists for the suite and for nothing else — and the
+same seam is one a game legitimately wants: a portable build writing its saves beside its
+executable rather than into `user://`. So the property is public, documented as such, and its
+setter calls `_ensure_dir()` so that assigning creates the directory. `_ready()` calls the same
+helper, so boot and redirect share one path instead of two that can drift.
+
+**Connects.** `tests/framework/fixtures.gd` — this is that file's discipline applied to the sixth
+root, including the reason its `deactivate()` is unconditional, quoted rather than reinvented.
+`save_recovery_test.gd` and `core_test.gd` are the two consumers. T5.18 named the seam.
+
+**Verified.**
+
+| Rung | Result |
+|---|---|
+| `--headless --check-only` on the three changed/new scripts | only `Identifier not found: Log` / `SaveSystem`, the documented autoload gotcha |
+| `--headless --import` | exit 0 |
+| `--headless --quit-after 30` | `0 warnings, 0 errors` |
+| suite | **2,192 passed, 0 failed, 0 skipped**, exit 0 |
+| `check_budgets` | 166 files, 15,552 code lines, 0 violations — `save_system.gd` 172 / 180 |
+| `check_content` `check_boundary` `check_strings` `check_layers` `check_signals` `check_methods` | each exit 0 |
+| windowed capture, 960x540, 18:40 frozen | rendered, `0 warnings, 0 errors` |
+
+**Plants.**
+
+| Plant | Fails | Exit |
+|---|---|---|
+| control | 0 of 2,192 | **0** |
+| `slot_path` alone back to the constant | 17 | **1** |
+| every use of `save_dir` back to the constant — the full reversion | 4 | **1** |
+| `SaveFixture.deactivate()` removed from `test_runner.gd` | 3 | **1** |
+
+**AND THE FIRST VERSION OF THE LOAD-BEARING CASE PASSED THE FULL REVERSION.** The assertion was
+that the stand-in directory's file is byte-for-byte what it was before the redirected write. With
+every use of `save_dir` reverted to the constant — an edit confirmed applied by diffing the
+source, so not gotcha 70 — that assertion PASSED. Both writes landed on the same path inside the
+same second, and the only fields that vary between two saves are `saved_utc`, which is
+second-resolution, and `playtime_seconds`, which `snappedf` rounds to a tenth. The overwrite was
+byte-identical to what it overwrote. The two saves now carry different markers through the probe's
+section, and the case asserts the earlier file still carries the first and does NOT carry the
+second; the same plant fails 4. **Gotcha 74**, recorded — gotcha 70 says a plant that passes is
+evidence about the plant, and 74 is the next turn: a plant that passes against an edit you have
+confirmed applied is evidence about the CASE.
+
+The first plant is recorded because it is instructive rather than good. Reverting only `slot_path`
+makes the write FAIL rather than land in the wrong place — `_write_atomic` still opens the
+redirected directory, so the rename has nowhere to go — which is a louder and different failure
+from the one this row is about. It is kept in the table so the full reversion's four failures are
+read as the honest number.
+
+**Unblocks.** Nothing was blocked on this. The suite no longer touches `user://saves` at all,
+which was verified directly: the real directory was emptied before a run and held zero files
+after it.
+
+**Gaps.**
+- **`slot_info()` still parses the WHOLE save file**, and `latest_slot()` does it for six slots on
+  every menu build. T5.18 named this and left it; so does this row, for the same reason — it is a
+  performance change to a file with eight lines of budget spare, and it deserves its own.
+- **`save_dir` is not saved or restored across runs.** A game that repoints it must do so before
+  `SaveSystem` is asked for anything, and nothing enforces that ordering. Documented in the
+  property's own comment, not gated — a gate would have to know what a game's boot order is.
+- **The windowed capture proves nothing about this row.** It was run and is green, but every claim
+  here is a path, a return code or a file's contents. Recorded so the ladder is not read as
+  stronger evidence than it is.
+
+**CI, recorded rather than assumed.** Run
+[`34286344135`](https://github.com/Raiyan-Bashar-29/HD-2D-game-base-non-combat-/actions/runs/34286344135),
+both jobs green on PR #53:
+
+- **Ladder (full checkout)** — `2192 passed, 0 failed, 0 skipped`, matching the local run exactly.
+- **Ladder (stripped template)** — `2118 passed, 0 failed, 25 skipped`, the standing baseline. The
+  file survives the deletion `docs/NEW_GAME.md` tells a consuming game to perform on day one, and
+  it should: nothing in `save_dir_test.gd` or `save_fixture.gd` names authored content, which is
+  what `check_boundary.gd` passing actually gates. The stripped total alone would not isolate this
+  file's contribution — CI logs at INFO and the per-case line is DEBUG — so the boundary checker is
+  the claim and the total is not.
+
+**The package is numbered T5.22 rather than T5.21**, and the reason belongs in the record. A
+parallel session took T5.21 for the scene-level interaction test while this row was in flight, and
+the two sessions also produced competing PRs carrying the same tree: both had independently
+renumbered that test to `5.1.0`, and `src/`, `tests/` and `project.godot` were byte-identical
+between them, so the duplicate was closed and the branch with the richer documentation kept. The
+transferable half is the same one T5.21's own DEVLOG entry drew from the other direction: **a
+stack is invisible from `main`**, so run `gh pr list --state open` before branching, and prefer
+one package in flight at a time.

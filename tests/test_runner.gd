@@ -40,6 +40,7 @@ const FALLBACK_LOCALE: String = "internationalization/locale/fallback"
 const CASES: Array[String] = [
 	"res://tests/unit/core_test.gd",
 	"res://tests/unit/save_recovery_test.gd",
+	"res://tests/unit/save_dir_test.gd",
 	"res://tests/unit/world_test.gd",
 	"res://tests/unit/interaction_test.gd",
 	"res://tests/unit/items_test.gd",
@@ -185,6 +186,9 @@ func _run_case(path: String) -> void:
 	# Unconditionally, even for a case that never switched: a case that crashed part way
 	# through its fixtures would otherwise hand the next one a redirected content root.
 	Fixtures.deactivate()
+	# Same discipline for the save store, which was the sixth content root and the only one
+	# nothing repointed until T5.22.
+	SaveFixture.deactivate()
 
 
 func _tally(test_case: TestCase) -> void:

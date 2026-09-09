@@ -5156,4 +5156,11 @@ resolves. Writing the evidence down added assertions about the evidence. Predict
 +4 — which is the fifth time in this run that a number had to be read off a run rather than
 reasoned to.
 
-**Commit:** on `claude/t5-27-checker-blindspots`, targeting `main`.
+"**Also: `.gitignore` had no `*.log` pattern.** The workflow has written `import.log`, `boot.log`
+and `tests.log` since T1.4, so running the ladder locally the way CI does has always left
+untracked logs; this row took that from three filenames to ten and then fixed it. Nothing `.log`
+has ever been tracked, so the pattern cannot orphan anything the repository depends on - checked
+before adding it. Verified by writing a log and confirming `git status --untracked-files=all`
+reports only the `.gitignore` change.
+
+**Commit:** on `claude/t5-27-checker-blindspots`, targeting `main`."

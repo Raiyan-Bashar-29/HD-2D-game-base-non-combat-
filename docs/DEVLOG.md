@@ -9550,6 +9550,22 @@ this entry was read off a run for that reason rather than reasoned to. Fifth tim
 15,816, all of it the guards and their headers. Scan counts after the change, for the record:
 `check_boundary` 156 scripts, `check_strings` 105, `check_layers` 105, `check_content` 16 scenes.
 
+### AND THE LOGS THIS ROW ADDED WERE NOT IGNORED, WHICH WAS ALREADY TRUE OF THREE OF THEM
+
+Caught by asking what files this row leaves behind rather than by a gate, and it is a defect this
+row WIDENED rather than introduced. `.gitignore` had no `*.log` pattern, and the workflow has been
+writing `import.log`, `boot.log` and `tests.log` since T1.4 — so anyone running the ladder locally
+the way CI does has always been left with untracked logs, and `git add -A` would have committed
+them. This row takes that from three filenames to **ten**.
+
+`*.log` added, with the reason beside it. Verified rather than assumed: writing
+`check_layers.log` and running `git status --short --untracked-files=all` now reports only the
+`.gitignore` change itself. **Nothing `.log` has ever been tracked** — `git ls-files | grep '\.log$'`
+is empty — so the pattern cannot orphan a file the repository depends on, which is the one thing
+worth checking before adding an ignore rule.
+
+The suite is unaffected at 2,291: `docs_test.gd` reads `docs/` and `.gitignore` is not a document.
+
 ### GAPS
 
 - **`Fixtures.activate()` is still unchecked at 14 of 16 sites** and this row deliberately did not

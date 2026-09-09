@@ -25,7 +25,6 @@ extends Node
 ## their inventory and state on every doorway, and would make "walk out and back in" a
 ## state-loss bug. They are spawned once, and Director repositions them on each transition.
 
-const PLAYER_SCENE: String = "res://scenes/characters/player.tscn"
 ## How long the curtain takes to lift off the main menu on a cold boot.
 const BOOT_FADE: float = 0.4
 
@@ -52,10 +51,13 @@ func _ready() -> void:
 
 ## Spawned before the first area is requested, so Director already holds the reference and
 ## can place them on the correct spawn marker as soon as the area is in the tree.
+## The path comes from `GameConfig`, not from a const here: a game replaces the player prefab
+## before it replaces anything else, and a const in this layer made that a `src/` edit. ADR-0007.
 func _spawn_player() -> void:
-	var packed: PackedScene = load(PLAYER_SCENE) as PackedScene
+	var path: String = GameConfig.player_scene()
+	var packed: PackedScene = load(path) as PackedScene
 	if packed == null:
-		Log.error("boot", "Player scene missing or invalid at %s" % PLAYER_SCENE)
+		Log.error("boot", "Player scene missing or invalid at %s" % path)
 		return
 	world_root.add_child(packed.instantiate())
 

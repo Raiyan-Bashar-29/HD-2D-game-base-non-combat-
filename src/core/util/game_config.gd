@@ -16,9 +16,17 @@ extends RefCounted
 ## rejected: `TEMPLATE.md` classifies `scenes/boot/` as engine, so that would have moved the leak
 ## rather than closed it.
 ##
+## THE PLAYER SCENE JOINED THIS FILE AT T5.29, AND ADR-0007 IS WHY.
+## `game_root.gd` held `const PLAYER_SCENE := "res://scenes/characters/player.tscn"` — engine
+## code, in the `core` layer, naming the prefab a game replaces first. It looked like a template
+## DEFAULT and it was a template RULE: there was no seam, so a game whose protagonist has a
+## different shape had to edit `src/`, which `ARCHITECTURE.md` forbids in as many words. The
+## distinction and the test that catches it are ADR-0007's; this is the first thing that test
+## found.
+##
 ## OWNS: reading the `[game]` section of project.godot, and the fallbacks when it is absent.
 ## MUST NOT: cache, validate against content, or grow into a settings store. `Settings` owns
-## player preferences; this owns the four facts a game author writes once and never changes.
+## player preferences; this owns the five facts a game author writes once and never changes.
 
 ## The area a new game begins in. Empty is a real answer — a template with no game in it yet —
 ## and `Director` reports it rather than loading nothing and going quiet.
@@ -27,6 +35,14 @@ const FIRST_AREA_SETTING: String = "game/world/first_area"
 ## every area is expected to have one, which is why it has a fallback and the area does not.
 const FIRST_SPAWN_SETTING: String = "game/world/first_spawn"
 const DEFAULT_FIRST_SPAWN: StringName = &"default"
+## The player prefab `GameRoot` spawns once per session. **It has a fallback where the first area
+## has none**, and the asymmetry is deliberate: a template with no game in it yet legitimately
+## starts in no area, but it can never legitimately have no player, so an unset key means the
+## template's own prefab rather than an empty world. `scenes/characters/` is Engine per
+## `TEMPLATE.md`, so naming that path here is engine naming engine — not the boundary leak the
+## `const` in `game_root.gd` was.
+const PLAYER_SCENE_SETTING: String = "game/world/player_scene"
+const DEFAULT_PLAYER_SCENE: String = "res://scenes/characters/player.tscn"
 ## Everything outside this becomes an underscore when the name is used in a file name.
 const SLUG_ALPHABET: String = "abcdefghijklmnopqrstuvwxyz0123456789"
 
@@ -37,6 +53,14 @@ static func first_area() -> StringName:
 
 static func first_spawn() -> StringName:
 	return _string_name(FIRST_SPAWN_SETTING, DEFAULT_FIRST_SPAWN)
+
+
+## Deliberately NOT validated here — this file's MUST NOT line forbids it, and `GameRoot` already
+## reports a scene that will not load, by path, on the one code path that could care.
+static func player_scene() -> String:
+	var raw: Variant = ProjectSettings.get_setting(PLAYER_SCENE_SETTING, "")
+	var value: String = str(raw)
+	return value if value != "" else DEFAULT_PLAYER_SCENE
 
 
 ## The game's display name, for a banner or a window title. Falls back to the engine's own

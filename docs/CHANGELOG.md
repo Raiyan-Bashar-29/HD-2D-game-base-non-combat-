@@ -19,6 +19,55 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.4.0
+
+*2026-09-09 — the player prefab is a seam. It was a `const` in the `core` layer, so replacing the
+protagonist meant editing `src/`.*
+
+**A consuming game does: nothing, unless it wants its own player — and now it can have one.** This
+is a MINOR: the base gained a seam a game may ignore. Merge it and carry on.
+
+**WHAT YOU CAN NOW DO THAT YOU COULD NOT.** `[game] world/player_scene` in `project.godot` names
+the scene `GameRoot` spawns once per session:
+
+```ini
+[game]
+world/player_scene="res://scenes/characters/player.tscn"
+```
+
+Replace that value with the path to your own scene. (It is shown with the template's own prefab
+because `docs_test.gd` asserts every `res://` path a document names actually resolves, so a
+document cannot print an illustrative path that does not exist — a constraint worth knowing before
+you write your own docs on this base.)
+
+Point it at your own scene and **keep the template's prefab exactly where it is** — you are
+pointing past it, not editing it, which is what `NEW_GAME.md` § 2 has always asked. Delete the key
+and the template's prefab is used again: **it falls back**, unlike `world/first_area`, and the
+asymmetry is deliberate — a template with no game in it yet legitimately starts in no area, but it
+can never legitimately have no player, so an unset key must not mean an empty world.
+
+**WHY THIS WAS A DEFECT AND NOT A MISSING FEATURE.** `src/core/boot/game_root.gd` held
+`const PLAYER_SCENE := "res://scenes/characters/player.tscn"` — engine code, in the `core` layer,
+naming the prefab a game replaces first. `ARCHITECTURE.md` states the contract as *"a game adds
+content and resources; it does not add code under `src/`"*, so a game with a differently-shaped
+protagonist had no legal way to get one. [`ADR-0007`](decisions/ADR-0007-template-default-vs-game-choice.md)
+calls this shape a **template RULE wearing a template DEFAULT's clothes**, and its test — *does a
+seam exist?* — is what found it, one row after the ADR was written.
+
+**If your fork already worked around this by editing `game_root.gd`**, this is the merge to undo it
+on: take the base's `src/core/boot/game_root.gd`, move your path into `[game] world/player_scene`,
+and you are back on the upgrade path `UPGRADING.md` § 5 describes. That is the whole reason the key
+exists rather than the const being left alone.
+
+**`project.godot` is MIXED on a merge** (`UPGRADING.md` § 6), so expect to resolve this section by
+hand — keep your `first_area`, `first_spawn` and `application/*`, and take the new
+`world/player_scene` line.
+
+**Nothing else changed.** `game_root.gd` is the same length it was (26 of its 60-line hard budget);
+the path moved, no logic did. Suite 2,294 → **2,300** — three assertions in `core_test.gd` for the
+seam and its fallback, and no new case.
+
+---
 ## 5.3.5
 
 *2026-09-09 — the distinction between a template default and a game choice, unscoped since

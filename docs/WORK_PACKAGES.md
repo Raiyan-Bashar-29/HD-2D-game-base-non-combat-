@@ -97,6 +97,7 @@ original board rather than continuing it.
 | T5.26 | **The ladder's own gate could not see an unwired checker** | **DONE** — `5.3.3`, a PATCH, one test file, and `src/` / `tools/` / `.github/` byte-identical. **`gates_test.gd`'s HEADER STATES ITS PURPOSE AS CATCHING "A GATE WRITTEN, COMMITTED, AND NEVER WIRED" AND IT COULD CATCH NEITHER SHAPE OF THAT.** `LADDER` was a const naming seven checkers with nothing asserting it named ALL of them, so an eighth `tools/check_*.gd` was invisible to the one case whose whole subject is a gate nobody runs — the defect being its own blind spot. And the wiring assertion was `workflow.contains(checker)`, **true of a workflow that names the checker in a COMMENT**, which this one does for every checker on purpose, the comments carrying each rung's reasoning. **MEASURED RATHER THAN ARGUED: both `run:` lines for `check_signals` commented out left the suite GREEN at 2,276** — running in neither job, ladder's own gate reporting fine. That is the comparison run and the row's whole evidence, the three-run shape T5.25 needed for the same reason: the tightened assertions are green on the live tree, so A and B alone cannot tell a fix from a no-op. **AND THE THING `contains` COULD NOT EXPRESS AT ALL IS THE COUNT BEING PER-JOB** — one bool for a whole file cannot say a checker is wired into the full job and missing from the stripped one, which is half a ladder, and the stripped half is the one that proves the template stands with no game present. So INVOCATIONS are counted — a non-comment line carrying the path and `--script` — against `JOBS.size()`, with the job names asserted so the number is not a fiction, which is `dev_tools_test.gd`'s empty-extractor guard applied to a const. The list is now derived from `tools/`, the pattern `test_runner.gd` has used for `CASES` since T2.2 and on `check_boundary.gd`'s argument that a list of what to check rots. **The plan is computed** — `42 + JOBS.size() + LADDER.size() * 2 + on_disk.size()` — so wiring an eighth checker never means editing a number. **Three plants, three different failures, exactly one each**: both steps commented `expected 2, got 0`; stripped step alone removed `expected 2, got 1`; eighth checker unlisted `expected true, got false`, on a run whose total rose by one unaided. **Gotcha 78**, not filed under 77 — 77 is a substring matching a sibling ID, this is a substring unable to tell a step from a comment; same mistake, second document, one row apart, so the generalisation is recorded rather than the instance: when a gate reads a FILE, ask which parts are prose. 2,276 → **2,287 assertions**; see below |
 | T5.27 | **A checker can skip a file and still print PASS** | **DONE** — `5.3.4`, a PATCH, `src/` byte-identical; the change is `ladder.yml` and six of the seven tools. **RUNGS 5–11 READ ONLY THE EXIT CODE** while rung 4 has `ErrorWatch`, and the question was whether that gap hides anything. **It does, and a throwaway probe measured it rather than arguing it**: a loop of three calling a function that indexes an empty array on the second printed `SCRIPT ERROR: Out of bounds get index '9'`, then `loop finished, items processed: 2 of 3`, then `PASS`, **exit 0**. Gotcha 24 exactly — the error aborts the INNERMOST FRAME ONLY, the loop finishes, a file is silently unscanned, and the tool reports success. **AND THE FIRST PLANT DID NOT SHOW IT**: the same error injected into `check_layers._scan_script` gave exit 1, so the tool died rather than lying and the premise looked false — the minimal probe is what separated "dies" from "continues and reports PASS", which is gotcha 75's family and why the probe is in the record. All fourteen steps now capture a log, print it, and force failure on `SCRIPT ERROR`/`Parse Error` even at exit 0; seven logs uploaded from both jobs; each step still names its checker beside `--script` once per job, so T5.26's invocation gate is untouched. **SECOND, SIX CHECKERS COULD PASS ON A SCAN OF NOTHING** — 0 of 7 guarded it while all seven printed their scanned count. `check_layers` aimed at a script-free directory gave `scripts scanned: 0` then `PASS`, exit 0; guarded it fails, and **the comparison against the unmodified tool on the same empty scan is the row** rather than the guard's own green run. The rule was already written for doc gates at `4.3.1` — "worse than no gate" — and never turned on the tools; the count lives beside each collector's `append` so it cannot drift from the scan. **`check_content` IS EXEMPT AND THE EXEMPTION IS THE INTERESTING PART**: its whole input is `data/` and `scenes/areas`, which the stripped job DELETES by design, so a zero scan is legitimate there and nowhere else — the first exemption in this run derived from what the strip removes rather than from what a gate can judge. **THIRD, A COMMENT CLAIMED A CHECK NOTHING PERFORMED** — "a stripped template must report exactly the same numbers", twice, with the jobs independent and nothing comparing them; reworded to what is enforced (both exit 0, which catches the failure that matters) and the real cross-job comparison named as a candidate. 167 files, 15,852 code lines. 2,287 → **2,291 assertions**, both from this row's own DEVLOG heading through a computed plan — **the enforcement here is not in the suite at all**, the first time that is true in this run; see below |
 | T5.28 | **A template rule, a template default and a game choice are three different things** | **DONE** — `5.3.5`, a PATCH, and `src/` / `tools/` / `.github/` byte-identical. **THE ROW RANKED FIRST FIVE TIMES AND NEVER TAKEN.** `TEMPLATE.md` § *"The one constraint nobody has scoped"* has said since 2026-08-26 that *"what is missing is the distinction between a template default and a game choice, which no document currently draws"*, and nothing ever scheduled it. `CONTEXT.md` deferred it each time for one honest reason — *"it is prose and cannot be proved by running the engine"* — **while also recording that it "DECIDES the two rows under it rather than guessing"**, both of which carried *"Scope depends on the taxonomy row above"*. **So deferring the cheap row kept the expensive ones frozen**, and three candidate rows were unscopable indefinitely for want of one distinction. **THE ANSWER IS THREE KINDS, NOT TWO**, which is what made it tractable: a TEMPLATE RULE is foreclosed for every game and carries a checker where the rule is mechanical; a TEMPLATE DEFAULT ships a working value **and a seam**; a GAME CHOICE means the base builds nothing and offers only the seam and the facts. **AND THE TEST THAT SEPARATES A DEFAULT FROM A RULE IS MECHANICAL RATHER THAN EDITORIAL — DOES A SEAM EXIST?** A "default" a game cannot replace without editing `src/` is a rule that has not admitted it; "is this a default or a rule" was a matter of tone, "can a game replace it without editing src/" is a fact about the repository. It is immediately productive: applied to `game_root.gd:28`'s `const PLAYER_SCENE` it says the player prefab is a **rule pretending to be a default**, which is the next row. **APPLIED RATHER THAN DESCRIBED** — RULES: no combat, the layer rule, the demo-name boundary (the last two already have checkers, which is what a rule looks like mechanised). DEFAULT: time, because `Clock`, `NpcSchedule` and `Weather` are already here so a cycle extends a present system. GAME CHOICES: a chapter sequencer, since a `story/chapter` int flag with `AT_LEAST` is already a complete chapter model through the one `FlagQuery` and a `Chapter` resource would add a second way to say one thing; and an economy, genre rather than structure, on `Harvestables`' footing. **TWO CANDIDATE ROWS CLOSED BY A REFUSAL RATHER THAN BUILT**, and writing the refusal down is the point — otherwise each is rediscovered, ranked, deferred for want of a reason, and ranked again, which is what happened three times. **AND THE CUTSCENES ROW NEEDED A REASON, NOT A PACKAGE**: a draft of this row proposed building the staging seam because nine `cutscene` mentions across eight files under `src/` looked like unpaid IOUs, and **read in full every one is a RECEIPT** — *"deletes nothing here — it calls `Audio.duck()` from its own occasion"*, *"forced by a cutscene, without touching this file"*, *"a cutscene can later ask for the same fade"* — each a statement that the file is already cutscene-ready and the game supplies the occasion. Reading a comment as a debt is how a comment becomes a work package. **Also settled: `Fixtures.activate()` is ASSERTED, not skipped**, reversing `TESTING.md`, because a skip reports GREEN so the one condition the check exists to catch is the one nobody sees — T5.27's failure one row earlier; `bag_mirror_test.gd` converted and **the plan gate caught the arithmetic before the suite did**, `planned 10 outcomes and produced 11`. **NO NEW GATE, AND SAYING SO IS PART OF THE ROW** — `record_shape_test.gd` and `docs_test.gd` already cover an ADR, and inventing one to have one is what the previous four rows were about; see below |
+| T5.29 | **The player prefab was a rule pretending to be a default** | **DONE** — `5.4.0`, a MINOR: the base gained a seam a game may ignore. **ADR-0007 FOUND THIS WITHIN AN HOUR OF EXISTING, WHICH IS THE ROW'S BEST ARGUMENT FOR ITSELF.** `game_root.gd:28` held `const PLAYER_SCENE := "res://scenes/characters/player.tscn"` — engine code, in the **core** layer, naming the prefab a consuming game replaces FIRST — while `GameConfig` exposed exactly two `[game]` keys with no `player_scene` among them. `ARCHITECTURE.md` states the contract as "a game adds content and resources; it does not add code under `src/`", so **a game with a differently-shaped protagonist had no legal way to get one.** T5.28's seam test asks one question — *does a seam exist?* — and a "default" a game cannot replace without editing `src/` is a RULE that has not admitted it; this is the first thing the test caught, and finding it an hour after writing the ADR is the strongest evidence the distinction was worth a package. **THE COMPARISON RUN IS WHAT MAKES IT A DEFECT RATHER THAN A PREFERENCE**, the same shape T5.25–T5.27 each needed: `[game] world/player_scene` pointed at a scene that does not exist, then boot. **Old code: `0 warnings, 0 errors`** — the key silently ignored, the player spawned from the const, a game's stated choice discarded without a word. **New seam: `1 errors`, `Player scene missing or invalid at <the missing path>`** on the existing `Log.error("boot", …)` path. **The old run is the row**: what was broken was not a wrong path but that setting it did nothing — the plant alone only shows the error path works. **THE FALLBACK IS THE ONE ASYMMETRY AND IT IS DELIBERATE**: `world/first_area` has none, because a template nobody has put a game in yet legitimately starts in no area, but a game can never legitimately have NO player, so an unset key means the template's own prefab rather than `load("")` and an empty world. `scenes/characters/` is Engine per `TEMPLATE.md`, so `GameConfig` naming that path is engine naming engine — not the boundary leak the `const` in `core` was. **`game_root.gd` DID NOT GROW** — 26 of its 60-line hard budget before and after, a path moved and no logic added, which matters because that file's header records the previous project's equivalent reaching 3,983 lines. **TWO STALE COUNTS FELL OUT OF IT**, neither gated and both T5.25's class: `GameConfig`'s header said it owned "the four facts a game author writes once" and `SYSTEMS_INVENTORY.md` said "the four values a consuming game sets" — five now. And **`NEW_GAME.md` § 2 gained the one exception to "Keep, and never edit to start a game"**, because a fork points PAST the template's prefab rather than editing it, which is the instruction that section already gave and could not previously be obeyed. 2,294 → **2,300 assertions**, three in `core_test.gd` and no new case; see below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -5254,4 +5255,76 @@ four rows learning not to do**, and this row's own subject is a distinction that
 **Scope.** `5.3.5`, a PATCH. One new ADR; `TEMPLATE.md`, `CONTEXT.md`, `SYSTEMS_INVENTORY.md`,
 `TESTING.md` and the record; one test file. **`src/`, `tools/` and `.github/` byte-identical.**
 
-**Commit:** on `claude/t5-28-taxonomy`, targeting `main`.
+**Commit:** `cc62f06` on `claude/t5-28-taxonomy`, PR #59, targeting `main`, plus `bb30e69`
+recording its CI run. Filled in by T5.29 — the fourth row running to ship this line without its
+SHA, which by now is evidence about the checklist rather than about four sessions: item 6 asks for
+a commit that satisfying item 6 creates, and no amount of remembering fixes an ordering.
+
+---
+## T5.29 · The player prefab was a rule pretending to be a default — **DONE**
+
+**ADR-0007 found this within an hour of existing, which is the row's best argument for itself.**
+
+`src/core/boot/game_root.gd:28`:
+
+```gdscript
+const PLAYER_SCENE: String = "res://scenes/characters/player.tscn"
+```
+
+Engine code, in the **`core`** layer, naming the prefab a consuming game replaces first — with
+`GameConfig` exposing exactly two `[game]` keys and no `player_scene` among them. `ARCHITECTURE.md`
+states the contract as *"a game adds content and resources; it does not add code under `src/`"*, so
+**a game with a differently-shaped protagonist had no legal way to get one.**
+
+T5.28's seam test asks one question — **does a seam exist?** — and a "default" a game cannot
+replace without editing `src/` is a RULE that has not admitted it. This is the first thing that
+test caught.
+
+### The comparison run is what makes it a defect rather than a preference
+
+Same plant both times: `[game] world/player_scene` pointed at a scene that does not exist, then
+boot headless.
+
+| run | code | result |
+|---|---|---|
+| control | new seam, real path | `0 warnings, 0 errors`, player spawns |
+| plant | new seam, missing path | **`1 errors`** — `Player scene missing or invalid at <the missing path>` |
+| comparison | **old `const`**, same missing path | **`0 warnings, 0 errors`** — key silently ignored, player spawned from the const |
+
+**The comparison is the row.** What was broken was not that the path was wrong; it was that
+**setting it did nothing** — a game's stated choice discarded without a word. The plant only shows
+the error path works; the old run shows there was no path at all.
+
+### The fallback is the one asymmetry, and it is deliberate
+
+`world/first_area` has none: a template nobody has put a game in yet legitimately starts in no
+area, and `Director` reports that rather than loading nothing and going quiet. A game can never
+legitimately have **no player**, so an unset key means the template's own prefab rather than
+`load("")` and an empty world.
+
+`scenes/characters/` is Engine per `TEMPLATE.md`, so `GameConfig` naming that path is **engine
+naming engine** — not the boundary leak the `const` in `core` was. That distinction is the whole
+reason the default may live in `src/` at all.
+
+### What did not happen
+
+**`game_root.gd` did not grow**: 26 of its 60-line hard budget before and after. Its header says
+the file "may only do four things" and warns that the previous project's equivalent reached 3,983
+lines; this row moved a path and added no logic. `GameConfig` went 26 → 32 of its 250.
+
+### Two stale counts fell out of it
+
+Both the class T5.25 spent a package on, and neither is gated:
+- `GameConfig`'s own header claimed it owned *"the **four** facts a game author writes once and
+  never changes."*
+- `SYSTEMS_INVENTORY.md` claimed *"the **four** values a consuming game sets in project.godot."*
+
+Five, now. And **`NEW_GAME.md` § 2 gained the one exception to "Keep, and never edit to start a
+game"** — because a fork points *past* the template's prefab rather than editing it, which is the
+same instruction the section already gave, now actually achievable.
+
+**Scope.** `5.4.0`, a MINOR — the base gained something a game may ignore. Four production files
+(`game_root.gd`, `game_config.gd`, `project.godot`, `core_test.gd`) plus the record. Suite
+2,294 → **2,300**, three assertions and no new case.
+
+**Commit:** on `claude/t5-29-player-seam`, targeting `main`.

@@ -50,6 +50,17 @@ rm -rf scenes/areas/courtyard scenes/areas/lantern_hall
 | `localization/strings.csv` | **partly** — see below |
 | `tests/unit/**` | the ladder — since T1.3 it builds its own content and passes without yours |
 
+**YOUR OWN PLAYER PREFAB IS THE ONE EXCEPTION, AND YOU DO NOT EDIT ANYTHING TO GET IT.** The
+protagonist is the first thing most games replace, and `scenes/characters/player.tscn` is Engine —
+so instead of editing it, point past it: **`[game] world/player_scene`** in `project.godot` names
+the scene `GameRoot` spawns once per session. Set it to your own, keep the template's prefab where
+it is, and delete the key if you want the template's back. Until T5.29 that path was a `const` in
+`src/core/boot/game_root.gd`, which made swapping the player a `src/` edit — a template *rule*
+wearing a template *default*'s clothes, in the exact sense
+[`ADR-0007`](decisions/ADR-0007-template-default-vs-game-choice.md) defines. Your scene needs
+whatever `Director` repositions and `InteractionSensor` lives on; the template's prefab is the
+worked example of that shape.
+
 ## 3. Prune the localization CSV
 
 `localization/strings.csv` is the one mixed file. **Delete every row whose key starts with:**

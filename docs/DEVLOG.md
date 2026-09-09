@@ -9762,3 +9762,18 @@ applied to `Cutscenes`.
 
 Twelve rungs and seven checkers green on `4.7.2.stable.official.ed1daf0bf`. Boot `0 warnings, 0
 errors`.
+
+**CI GREEN — RUN [`34361451615`], BOTH JOBS.** Job logs read rather than the tick, per gotcha 26.
+
+| job | result | last line |
+|---|---|---|
+| `Ladder (full checkout)` | success | `=== 2294 passed, 0 failed, 0 skipped ===` |
+| `Ladder (stripped template)` | success | `=== 2220 passed, 0 failed, 25 skipped ===` |
+
+Full is byte-identical to the local measurement. `docs/TESTING.md:13-14` carries both.
+
+**The stripped gap is 74 for the fifth recorded run running** — 2,294 − 2,220. It has now held
+across `1625`/`1551`, `2276`/`2202`, `2287`/`2213` and this pair, and it survived a row that added
+an assertion to a case which uses fixtures rather than demo content. **Still nothing enforces it**:
+`ladder.yml` asserts only that the named-skip count is non-zero, and the cross-job comparison
+remains a recorded candidate rather than a mechanism.

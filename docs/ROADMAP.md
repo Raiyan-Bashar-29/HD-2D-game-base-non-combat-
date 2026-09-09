@@ -1203,6 +1203,40 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   the behaviour, ask which parts of that file are prose. `5.3.3`, a PATCH; `src/` and `tools/`
   byte-identical, the change being one test file. Suite 2,276 → **2,287**.
 
+- **T5.27 A checker can skip a file and still print PASS — DONE, 2026-09-09.** The third row of
+  the run that began with T5.25, and the first to move enforcement out of the suite and into the
+  ladder itself. **RUNGS 5–11 READ ONLY THE EXIT CODE**, with no log grep and no artifact, while
+  rung 4 has `ErrorWatch` for precisely one reason: **gotcha 24, this project's founding
+  observation, is that a GDScript runtime error aborts the INNERMOST FRAME ONLY.** An error inside
+  a checker's per-file function returns to the loop, the loop finishes, and the tool prints `PASS`
+  and exits 0 having silently skipped a file. **MEASURED WITH A THROWAWAY PROBE RATHER THAN
+  ASSERTED** — a loop of three calling a function that indexes an empty array on the second:
+  `SCRIPT ERROR: Out of bounds get index '9'`, then `loop finished, items processed: 2 of 3`, then
+  `PASS`, **exit 0**. The exit code cannot see it. **And the first attempt at that plant did NOT
+  demonstrate it** — injecting the same error into `check_layers._scan_script` exited 1, so the
+  premise looked false; the minimal probe is what separated "the tool dies" from "the tool
+  continues and lies", which is gotcha 75's family and the reason the probe exists in the record.
+  Each of the fourteen checker steps now captures its output, prints it, and forces failure if the
+  log carries `SCRIPT ERROR` or `Parse Error`, with all seven logs uploaded from both jobs.
+  **SECOND, SIX CHECKERS COULD PASS ON A SCAN OF NOTHING**, 0 of 7 having guarded it while each
+  printed its own scanned count. Pointing `check_layers` at a directory with no scripts gave
+  `scripts scanned: 0` then `PASS`, exit 0; it now fails, and the comparison run against the
+  unmodified tool on the same empty scan is what says the guard does something. `CHANGELOG.md` has
+  carried the rule since `4.3.1` — *"a doc gate that passes because it found nothing to check is
+  worse than no gate"* — and it had never been turned on the tools. **`check_content` IS EXEMPT AND
+  THE EXEMPTION IS THE INTERESTING PART**: its whole input is `data/` and `scenes/areas`, which the
+  stripped job DELETES by design, so scanning nothing is legitimate for that checker and only for
+  it — guarding it would fail the stripped job for doing its job. The other six read `src/`,
+  `tests/`, `tools/` and `localization/`, none of which the strip touches, so zero there is always
+  a defect. **THIRD, A COMMENT CLAIMED A CHECK NOTHING PERFORMED.** `ladder.yml` said a stripped
+  template "must report exactly the same numbers"; the jobs are independent and nothing compares
+  their output. Reworded to what is enforced — both must exit 0, which catches the failure mode
+  that matters, an engine string that stops resolving once the game is gone — with the genuine
+  cross-job comparison named as a candidate row instead of implied. `5.3.4`, a PATCH; `src/`
+  byte-identical, the change being `ladder.yml` and six tools. Suite 2,287 → **2,291**, both from
+  this row's own DEVLOG heading through a computed plan: **the enforcement this row adds is not in
+  the suite at all**, which is the first time in this run that has been true.
+
 ## Sequencing rules
 
 1. **Breadth of systems, one shallow proof each.** This *replaces* "depth before breadth", which

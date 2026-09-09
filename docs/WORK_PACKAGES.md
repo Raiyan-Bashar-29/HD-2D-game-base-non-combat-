@@ -95,6 +95,7 @@ original board rather than continuing it.
 | T5.24 | **The roadmap's missing run, and whether completeness should be gated** | **DONE** — `5.3.1`, a PATCH, and a consuming game does nothing to its own code: `src/` and `tools/` are byte-identical. **THE ROW WAS TWO THINGS AND THE SECOND IS THE ONE THAT MATTERED.** `ROADMAP.md`'s package log recorded T5.15 and jumped to T5.21, with nothing for T5.16, T5.17, T5.18, T5.19 or T5.20 — five delivered packages, each with a DEVLOG entry and a board row, absent from the roadmap. T5.21 recorded the gap, T5.23 recorded it again and promoted it to the top of the next-package list without closing it, and **nothing was red because nothing counted the rows.** Writing five entries is bookkeeping; the question worth answering was whether roadmap completeness should be GATED the way `record_shape_test.gd` already gates two other structural facts. **IT SHOULD, AND T5.19 IS THE PRECEDENT RATHER THAN THE ANALOGY**: that row exists precisely because a third manual reconcile was the wrong answer, and its argument — a file either opens with its title or it does not, a package either has a row or it does not, neither question has a reading or a tone — transfers to "a package the DEVLOG records has no entry in `ROADMAP.md`" without a word changed. Same file's business, same MUST NOT line, no new case needed. **THE COUNTER-ARGUMENT WAS REAL AND IS ANSWERED BY THE SHAPE OF THE CHECK, NOT WAVED AWAY.** The roadmap's package log IS legitimately selective in a way the board is not — it records a package in whichever of three shapes fits: a log row under a phase, a tick beside an exit criterion, or a parenthesis in a phase's Done list. **T5.14 is only ever the second of those**, so a gate demanding a package-log row would have failed a package that is thoroughly recorded. So the check is `roadmap.contains(id)`, FINDABILITY — which is the identical choice T5.19 made one function above for the board, and for the identical reason it wrote down: "findable" is the property that matters and a stricter rule would fail eight packages that are genuinely recorded. **AND T5.16 HAD DECLINED TO TOUCH THE ROADMAP IN WRITING**, on the grounds that "no exit criterion covers a defect fix, and inventing one to have something to tick would be the ticking-without-proving this project spent T5.1 undoing". That is right about the CRITERIA list and says nothing about the package LOG, which is a different list in the same file answering a different question — and separating the two is what makes this assertable rather than a matter of editorial taste. **THE PLANT IS THE LIVE REPOSITORY, WHICH IS THE STRONGEST FORM AVAILABLE.** The assertion was written first and run before a single doc was edited: exit 1, six named failures, `FAIL T5.16 is findable in the roadmap — expected true, got false` and five more. Nothing was fabricated to make it fail, so gotcha 74's and gotcha 75's family — a plant that passes, or fails for the wrong reason — cannot apply to the red run; the questions that remained were whether it fails for one reason per package and whether it goes green for the right reason, and both were measured. **AND IT FOUND A SIXTH PACKAGE THE ROW HAD NOT NAMED: WP-07**, path actions, the signature non-combat mechanic, missing from the roadmap since 2026-08-26 and named by neither T5.21's nor T5.23's recording of this gap. **That is the whole argument for the gate over a third reconcile, delivered as a measurement rather than as a prediction**: two manual passes had looked at this and counted five. `record_shape_test.gd` 68 → 121 assertions, and every one of the 53 is a computed plan doing its job rather than a case this row wrote. 2,221 → **2,274 assertions**; see below |
 | T5.25 | **The gate that could not fail, and the numbers nothing was measuring** | **DONE** — `5.3.2`, a PATCH, and `src/` and `tools/` are byte-identical. **THE GATE T5.24 SHIPPED ONE ROW EARLIER COULD NOT FAIL FOR FOUR OF THE IDS IT WAS CHECKING.** Findability was `roadmap.contains(id)` and `board.contains(id)`, and `contains` cannot tell an id from a PREFIX of a longer one: `T5.1` is a substring of T5.10 through T5.19, `T5.2` of T5.20 through T5.24, `WP-09` of `WP-09b`, `WP-14` of `WP-14b`. Delete every genuine trace of those four packages and the suite stays green, because a sibling's own row spells the prefix. **WORTH SEPARATING FROM GOTCHA 76 RATHER THAN FILED UNDER IT**: 76 is that a mention may be incidental, which is a judgement about whether a trace counts; this is that the assertion was reading a DIFFERENT STRING, which is not a judgement — and the four ids affected are the four *oldest* in each family, the ones whose disappearance a reader is least likely to notice. One word boundary per call site, the dot escaped because an unescaped one matches any character and would let `T5x1` satisfy `T5.1` — the same defect mirrored. **THE LIVE REPOSITORY IS NOT THE PLANT THIS TIME, AND THAT IS THE POINT.** Measured before the change was written: all 52 packages satisfy the word-boundary form in both files, so the tree is green either way and T5.24's strongest-available plant — the repository itself — does not exist for this defect. So the proof is three runs against one plant, T5.2's seven genuine roadmap traces renamed away: tightened gate, no plant, **green 2,274**; tightened gate, plant, **red exit 1, ONE failure, `FAIL T5.2 is findable in the roadmap — expected true, got false`**; original `contains()` gate, SAME plant, **green 2,274**. The third run is the one that carries the row — without it the change is untested by construction, since runs one and two alone are also consistent with a gate that was already working. **AND THE SECOND HALF WAS THE RECORD, RECONCILED AGAINST MEASUREMENT RATHER THAN AGAINST ITSELF** — the failure mode T5.17 and T5.19 both hit by re-reading the documents instead of running the engine. Six documents quoted totals nothing had re-measured: `README.md` **555 assertions** against 2,274, stale since before `2.0.0`; `CLAUDE.md` "over 5,400 lines" against 8,986 and `2,173` in its own runner command; `TESTING.md` 1625/1551; `ARCHITECTURE.md` 2,173; `CONTEXT.md` a census of 166 files / 15,552 code lines taken before T5.23 added a file. **AND TWO SELF-CONTRADICTIONS IN THE FILE `CLAUDE.md` SENDS EVERY SESSION TO FIRST** — "the base is 5.0.0-complete" nine lines above declaring **5.3.1**, and Phase T5's second-idle criterion "still stands open" fourteen lines above "Phase T5 has no unticked exit criterion". `version_test.gd` missed the first because it reads only BOLD semvers and `5.0.0-complete` is unbolded, which is the same ungated-shape lesson as T5.19's. **The nine `**Commit:**` lines are written and deliberately NOT gated**, and the reason is a measurement rather than a preference: 15 of 52 packages had one, so the gate would fail 37 historical rows, and scoping it to "T5.16 onward" is the rotting exception list `HEADING_PATTERN`'s header refuses to become. `CONVENTIONS.md` gained the branch-naming rule the project never wrote down. 2,274 → **2,276 assertions**, both of them this row's own DEVLOG heading passing through a computed plan; see below |
 | T5.26 | **The ladder's own gate could not see an unwired checker** | **DONE** — `5.3.3`, a PATCH, one test file, and `src/` / `tools/` / `.github/` byte-identical. **`gates_test.gd`'s HEADER STATES ITS PURPOSE AS CATCHING "A GATE WRITTEN, COMMITTED, AND NEVER WIRED" AND IT COULD CATCH NEITHER SHAPE OF THAT.** `LADDER` was a const naming seven checkers with nothing asserting it named ALL of them, so an eighth `tools/check_*.gd` was invisible to the one case whose whole subject is a gate nobody runs — the defect being its own blind spot. And the wiring assertion was `workflow.contains(checker)`, **true of a workflow that names the checker in a COMMENT**, which this one does for every checker on purpose, the comments carrying each rung's reasoning. **MEASURED RATHER THAN ARGUED: both `run:` lines for `check_signals` commented out left the suite GREEN at 2,276** — running in neither job, ladder's own gate reporting fine. That is the comparison run and the row's whole evidence, the three-run shape T5.25 needed for the same reason: the tightened assertions are green on the live tree, so A and B alone cannot tell a fix from a no-op. **AND THE THING `contains` COULD NOT EXPRESS AT ALL IS THE COUNT BEING PER-JOB** — one bool for a whole file cannot say a checker is wired into the full job and missing from the stripped one, which is half a ladder, and the stripped half is the one that proves the template stands with no game present. So INVOCATIONS are counted — a non-comment line carrying the path and `--script` — against `JOBS.size()`, with the job names asserted so the number is not a fiction, which is `dev_tools_test.gd`'s empty-extractor guard applied to a const. The list is now derived from `tools/`, the pattern `test_runner.gd` has used for `CASES` since T2.2 and on `check_boundary.gd`'s argument that a list of what to check rots. **The plan is computed** — `42 + JOBS.size() + LADDER.size() * 2 + on_disk.size()` — so wiring an eighth checker never means editing a number. **Three plants, three different failures, exactly one each**: both steps commented `expected 2, got 0`; stripped step alone removed `expected 2, got 1`; eighth checker unlisted `expected true, got false`, on a run whose total rose by one unaided. **Gotcha 78**, not filed under 77 — 77 is a substring matching a sibling ID, this is a substring unable to tell a step from a comment; same mistake, second document, one row apart, so the generalisation is recorded rather than the instance: when a gate reads a FILE, ask which parts are prose. 2,276 → **2,287 assertions**; see below |
+| T5.27 | **A checker can skip a file and still print PASS** | **DONE** — `5.3.4`, a PATCH, `src/` byte-identical; the change is `ladder.yml` and six of the seven tools. **RUNGS 5–11 READ ONLY THE EXIT CODE** while rung 4 has `ErrorWatch`, and the question was whether that gap hides anything. **It does, and a throwaway probe measured it rather than arguing it**: a loop of three calling a function that indexes an empty array on the second printed `SCRIPT ERROR: Out of bounds get index '9'`, then `loop finished, items processed: 2 of 3`, then `PASS`, **exit 0**. Gotcha 24 exactly — the error aborts the INNERMOST FRAME ONLY, the loop finishes, a file is silently unscanned, and the tool reports success. **AND THE FIRST PLANT DID NOT SHOW IT**: the same error injected into `check_layers._scan_script` gave exit 1, so the tool died rather than lying and the premise looked false — the minimal probe is what separated "dies" from "continues and reports PASS", which is gotcha 75's family and why the probe is in the record. All fourteen steps now capture a log, print it, and force failure on `SCRIPT ERROR`/`Parse Error` even at exit 0; seven logs uploaded from both jobs; each step still names its checker beside `--script` once per job, so T5.26's invocation gate is untouched. **SECOND, SIX CHECKERS COULD PASS ON A SCAN OF NOTHING** — 0 of 7 guarded it while all seven printed their scanned count. `check_layers` aimed at a script-free directory gave `scripts scanned: 0` then `PASS`, exit 0; guarded it fails, and **the comparison against the unmodified tool on the same empty scan is the row** rather than the guard's own green run. The rule was already written for doc gates at `4.3.1` — "worse than no gate" — and never turned on the tools; the count lives beside each collector's `append` so it cannot drift from the scan. **`check_content` IS EXEMPT AND THE EXEMPTION IS THE INTERESTING PART**: its whole input is `data/` and `scenes/areas`, which the stripped job DELETES by design, so a zero scan is legitimate there and nowhere else — the first exemption in this run derived from what the strip removes rather than from what a gate can judge. **THIRD, A COMMENT CLAIMED A CHECK NOTHING PERFORMED** — "a stripped template must report exactly the same numbers", twice, with the jobs independent and nothing comparing them; reworded to what is enforced (both exit 0, which catches the failure that matters) and the real cross-job comparison named as a candidate. 167 files, 15,852 code lines. 2,287 → **2,291 assertions**, both from this row's own DEVLOG heading through a computed plan — **the enforcement here is not in the suite at all**, the first time that is true in this run; see below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -5073,4 +5074,86 @@ with nothing comparing them; no checker asserts its own scan was non-empty, 0 of
 of 16 call sites against a shape `TESTING.md` spells out. Those touch `ladder.yml` and seven tools
 and are their own rows.
 
-**Commit:** on `claude/t5-26-ladder-gate`, targeting `main`.
+**Commit:** `83c9fdd` on `claude/t5-26-ladder-gate`, PR #57, targeting `main`, plus `c14b24a`
+recording its CI run. Filled in by T5.27 — the same ordering problem T5.26 named in T5.25's line
+and then repeated, which is the argument for the closing checklist naming the follow-up commit
+rather than pretending item 6 can be satisfied before the commit exists.
+
+---
+## T5.27 · A checker can skip a file and still print PASS — **DONE**
+
+**The premise, measured with a throwaway probe rather than asserted.** Rungs 5–11 were bare
+`run: godot --headless --script tools/check_*.gd` — exit code only, no log grep, no artifact —
+while rung 4 has `ErrorWatch`. The question was whether that gap can actually hide anything.
+
+```gdscript
+for i: int in [1, 2, 3]:
+    seen += _per_item(i)        # _per_item indexes an empty array when i == 2
+print("  loop finished, items processed: %d of 3" % seen)
+print("PASS")
+quit(0)
+```
+
+```
+SCRIPT ERROR: Out of bounds get index '9' (on base: 'Array[int]')
+  loop finished, items processed: 2 of 3
+PASS
+exit=0
+```
+
+**Gotcha 24 exactly** — the error aborts the innermost frame, the loop finishes, one item is
+silently unscanned, and the tool reports success. The exit code cannot see it.
+
+**AND THE FIRST PLANT DID NOT SHOW THIS, WHICH IS WHY THE PROBE IS IN THE RECORD.** Injecting the
+same error into `check_layers._scan_script` gave **exit 1** — the tool died rather than lying, so
+the premise looked false and the CI grep looked unjustified. A minimal probe is what separated
+"the tool dies" from "the tool continues and reports PASS". Gotcha 75's family: a plant that fails
+for the wrong reason is as misleading as one that passes.
+
+**The fix.** All fourteen checker steps now capture output to `check_<name>.log`, print it, and
+force failure if the log carries `SCRIPT ERROR` or `Parse Error` even at exit 0. Seven logs
+uploaded from both jobs. Each step still names its checker beside `--script` exactly once per job,
+so T5.26's invocation gate is unaffected — verified, 2 per checker.
+
+### Six checkers could pass on a scan of nothing
+
+| run | tool | scan | result |
+|---|---|---|---|
+| control | `check_layers` | `res://src` | `scripts scanned: 105`, `PASS`, exit 0 |
+| plant | `check_layers` **guarded** | `res://localization` | `scripts scanned: 0`, `FAIL — nothing was scanned`, **exit 1** |
+| comparison | `check_layers` **unmodified** | `res://localization` | `scripts scanned: 0`, **`PASS`, exit 0** |
+
+The comparison is the row: 0 of 7 tools guarded this while every one of them printed its own
+scanned count. `CHANGELOG.md` has stated the rule for doc gates since `4.3.1` — *"a doc gate that
+passes because it found nothing to check is worse than no gate"* — and it had never been turned on
+the tools. The count is incremented in each collector, beside the `append`, so it cannot drift
+from the scan it describes.
+
+**`check_content` IS EXEMPT, AND THE EXEMPTION IS THE INTERESTING PART.** Its entire input is
+`data/` and `scenes/areas`, which the stripped job **deletes on purpose**. Scanning nothing is a
+legitimate state for that checker and for no other, so guarding it would fail the stripped job for
+doing exactly what it exists to do. The other six read `src/`, `tests/`, `tools/` and
+`localization/` — none of which the strip touches — so zero there is always a defect. This is the
+first exemption in the run that comes from what the strip removes rather than from what a gate can
+judge.
+
+### A comment claimed a check nothing performed
+
+`ladder.yml` said a stripped template **"must report exactly the same numbers"**, twice. The jobs
+are independent and nothing compares their output; the claim had been true every time anyone
+checked it by hand and was enforced by nothing. Reworded to state what *is* enforced — both jobs
+must exit 0, which catches the failure mode that matters, an engine string that stops resolving
+once the game is gone — and to name the real mechanism as a candidate: each job publishes its
+counts, a third job diffs them. Recorded rather than implied.
+
+**Scope.** `ladder.yml` and six tools; `src/` byte-identical. 167 files, 15,852 code lines.
+**Suite 2,287 → 2,291, and not one of the four is an assertion this row wrote — the enforcement
+here is not in the suite at all**, which is the first time that has been true in this run and the
+reason the assertion total is the wrong measure of it. **Two came from the DEVLOG heading, as
+predicted, and two were a surprise**: the plant table above quotes `res://src` and
+`res://localization`, and `docs_test.gd` asserts that every `res://` path the documents name
+resolves. Writing the evidence down added assertions about the evidence. Predicted +2, measured
++4 — which is the fifth time in this run that a number had to be read off a run rather than
+reasoned to.
+
+**Commit:** on `claude/t5-27-checker-blindspots`, targeting `main`.

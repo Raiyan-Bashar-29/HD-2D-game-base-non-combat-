@@ -51,6 +51,11 @@ const WORD_CHARS: String = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
 const RESERVED: String = "NO EMITTER"
 
 var _violations: int = 0
+## HOW MANY FILES THIS RUN ACTUALLY OPENED, counted in the collector so it cannot drift
+## from the scan. A gate that scanned NOTHING reports PASS, and `CHANGELOG.md` says of
+## doc gates that one passing because it found nothing to check is worse than no gate.
+## That rule was never applied to these tools until T5.27.
+var _scanned: int = 0
 var _signals: Dictionary[String, String] = {}
 var _emitters: Dictionary[String, int] = {}
 var _listeners: Dictionary[String, int] = {}
@@ -69,6 +74,10 @@ func _initialize() -> void:
 		print("FAIL — %d signal violation(s)" % _violations)
 		quit(1)
 		return
+	if _scanned == 0:
+		print("FAIL — nothing was scanned, so this gate could only ever pass")
+		quit(1)
+		return
 	print("PASS")
 	quit(0)
 
@@ -84,6 +93,7 @@ func _collect_files(directory: String, extension: String, into: Array[String]) -
 	for file_name: String in DirAccess.get_files_at(directory):
 		if file_name.ends_with(extension):
 			into.append("%s/%s" % [directory, file_name])
+			_scanned += 1
 
 
 ## THE GATE'S OWN REASONING, CHECKED RATHER THAN ASSUMED. If either of these ever appears, a

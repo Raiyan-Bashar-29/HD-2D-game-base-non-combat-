@@ -233,7 +233,7 @@ func _the_journal_draws_the_tally() -> void:
 	var screen := JournalScreen.new()
 	attach(screen)
 	screen.notify_opened()
-	var objective: Label = _objective_label(screen)
+	var objective: Label = _objective_for(screen, FixtureContent.COUNT_QUEST)
 	equal("the objective line is drawn", objective != null, true)
 	# READ, NOT GLANCED AT (gotcha 28): the numbers are asserted separately from the summary, so a
 	# line that drew the right words and the wrong tally cannot pass.
@@ -243,12 +243,12 @@ func _the_journal_draws_the_tally() -> void:
 	_bag.add(FixtureContent.STACK_ITEM, 1)
 	screen.refresh()
 	equal("taking one more redraws the tally",
-			_objective_label(screen).text.contains("2 / 3"), true)
+			_objective_for(screen, FixtureContent.COUNT_QUEST).text.contains("2 / 3"), true)
 	# AND THE OTHER QUEST, whose step is not a count, must be untouched by any of this.
 	Flags.set_flag(FixtureContent.QUEST_START_FLAG, true)
 	tracker.evaluate()
 	screen.refresh()
-	var plain: Label = _objective_label(screen)
+	var plain: Label = _objective_for(screen, FixtureContent.QUEST)
 	equal("an uncounted objective draws no tally at all", plain.text.contains(" / "), false)
 	equal("and still draws its own line",
 			plain.text.contains(tr("fixture.quest.step.first")), true)
@@ -324,16 +324,31 @@ func _code_of(path: String) -> String:
 	return "\n".join(out)
 
 
-## The last Label in the list, which is the objective under the last quest drawn. Found by type
-## rather than by index, so a heading added to the journal cannot silently make this assert about
-## the wrong row.
-func _objective_label(screen: JournalScreen) -> Label:
-	var found: Label = null
+## THE OBJECTIVE UNDER ONE NAMED QUEST, addressed through that quest's own row.
+##
+## IT USED TO RETURN THE LAST LABEL IN THE LIST, and that was a bet on the order
+## `QuestTracker.ids_in_state` returns. The old comment here guarded the right way against the
+## wrong risk — "found by type rather than by index, so a heading cannot make this assert about
+## the wrong row" — while the order of the QUESTS was the thing that was not fixed: until T5.31
+## `ids_in_state` sorted with `Array[StringName].sort()`, which orders by the interned handle
+## rather than alphabetically (gotcha 33). So with two quests active this helper read whichever
+## one the allocator happened to put last, and the bet came due the moment another system
+## interned a name earlier in the boot — which is exactly how T5.31 found it.
+##
+## The journal draws a Button row and then that quest's objective Label, per quest, so the
+## objective wanted is the first Label after the row carrying that quest's name.
+func _objective_for(screen: JournalScreen, quest_id: StringName) -> Label:
+	var wanted: String = tr(QuestDb.quest(quest_id).name_key)
+	var under_it: bool = false
 	for child: Node in screen._list.get_children():
+		var row: Button = child as Button
+		if row != null:
+			under_it = row.text == wanted
+			continue
 		var label: Label = child as Label
-		if label != null:
-			found = label
-	return found
+		if under_it and label != null:
+			return label
+	return null
 
 
 ## A bag on a carrier of its own, with a `save_id` that is not the player and a `carrier_id`

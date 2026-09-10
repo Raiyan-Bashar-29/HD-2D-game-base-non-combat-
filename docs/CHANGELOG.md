@@ -19,6 +19,69 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.5.0
+
+*2026-09-10 — `Clock` and `Weather` reach the flag surface, so an authored condition can finally
+ask what time it is. And a documented gotcha turned out to have a site nobody had fixed.*
+
+**A consuming game does: nothing, to keep working.** Four new flags appear, none of them saved.
+If you want to use them, read on; if you do not, merge and carry on.
+
+**WHAT WAS BROKEN, AND IT WAS STRUCTURAL RATHER THAN MISSING.** `Clock` held the day, the hour and
+the phase and emitted four signals, and never once called `Flags.set_flag`. `FlagQuery` is the ONE
+evaluator that both `DialogueNode` and `QuestStep` go through, and it reads `Flags` and nothing
+else. So **no authored condition in the base could mention time or weather at all** — including
+the shop hours `clock.gd`'s own header names as a reason a clock is foundational.
+
+**WHAT YOU CAN NOW WRITE**, on any dialogue node or quest step, with no code:
+
+| flag | shape | the test to use |
+|---|---|---|
+| `time/hour` | int, 0–23 | `AT_LEAST 9` with `AT_MOST 17` is a shop's opening hours |
+| `time/day` | int, from 1 | `AT_LEAST` to gate on the world having run a while |
+| `time/phase/<name>` | bool, exactly one exists | `IS_TRUE` / `IS_FALSE` — `time/phase/dusk` |
+| `weather/kind/<name>` | bool, exactly one exists | `IS_TRUE` / `IS_FALSE` — `weather/kind/rain` |
+
+The `<name>` is the `GameEnums.DayPhase` / `GameEnums.WeatherKind` entry lowercased, so
+`time/phase/deep_night` and `weather/kind/overcast`. All four are declared through
+`Flags.declare_derived`, which means **they are never written to a save file** and are recomputed
+from the clock's own saved state on load. Do not put your own flags under `time/` or `weather/`:
+those namespaces belong to those two files, whole, and a flag of yours there would silently stop
+being saved.
+
+**WHY A PHASE IS A NAME AND NOT A NUMBER, because the obvious design is the wrong one and you may
+be about to propose it.** `time/phase` holding the `GameEnums.DayPhase` ordinal, read with
+`EQUALS`, was rejected on two measurements. First, ordinals are a storage format: `GameEnums` is
+append-only *precisely because* its numbers live inside authored `.tscn` and `.tres` files, so
+inserting a phase would silently re-point every authored condition at its neighbour, with no parse
+error to announce it. Second, and sharper — **an ordering comparison on a phase is already
+meaningless.** Run `phase_for_hour` across a day and the ordinals come out
+`6,6,6,6,6,0,0,1,1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,5`: `DEEP_NIGHT` is the highest number and the
+earliest hours, because a day wraps and an enum does not. `AT_LEAST DUSK` would hold at 00:00 and
+fail at 06:00.
+
+**And publishing the plain string name would have been worse, silently.** A String flag is
+unreadable by every test in the closed set: `FlagQuery.passes` against a flag holding `"DUSK"`
+returns **false** for `EQUALS` and `IS_TRUE` alike, logging `expected int` / `expected bool`. It
+would have shipped four flags that looked right in a debug dump and answered nothing. A bool under
+the name is stable against an enum insertion *and* readable, with no seventh comparison added to a
+set whose own file says it stays closed.
+
+**THE ONE BEHAVIOUR CHANGE, AND IT IS A FIX.** `QuestTracker.ids_in_state` used
+`Array[StringName].sort()`, which orders by the StringName's interned handle rather than
+alphabetically — **gotcha 33, which `area_db.gd`, `equipment.gd` and `inventory.gd` each already
+carried a note about and each already fixed.** This was the site nobody fixed, and its own comment
+claimed "sorted, so the journal draws a stable order". It was not stable: it was the allocator's
+order, and it changed the moment anything else interned a name earlier in the boot — which is
+exactly how this row found it, when four new flag names shifted the table and a journal assertion
+one system away went red. **So your journal now lists quests in genuinely alphabetical id order.**
+If you had a test asserting the old sequence, it will differ, and the old sequence was never a
+thing the base promised.
+
+There is deliberately **no `time/minute`**, and no calendar, weekday, month or season — the latter
+are game choices under [`ADR-0007`](decisions/ADR-0007-template-default-vs-game-choice.md).
+
+---
 ## 5.4.1
 
 *2026-09-10 — the extension surface was the one consumer document never performed. It has been

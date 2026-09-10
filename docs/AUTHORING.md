@@ -833,9 +833,14 @@ already write?"** The six writers, and where each is documented:
 | a path action succeeding | `PathAction.success_flag` | § Add an NPC, step 3 |
 | holding an item | `Equipment` — `equip/<wearer>/<item id>` | § Make an item equippable |
 | carrying N of an item | `Inventory` — `bag/<carrier>/<item id>` | § Count items in a quest step |
+| the time of day | `Clock` — `time/hour`, `time/day`, `time/phase/<name>` | § Gate on the time or the weather |
+| the weather | `Weather` — `weather/kind/<name>` | § Gate on the time or the weather |
 
 **An item count IS a flag**, as of T3.3 — see the next section. That is the seventh writer, and it
 is the only one whose value is a *number* rather than a truth.
+
+**And so is the clock**, as of T5.31 — the eighth and ninth writers, and the only two you never
+have to set: they publish themselves and are never saved. See § Gate on the time or the weather.
 
 **THE `obj/` FIELD NAMES, BECAUSE GUESSING ONE COSTS YOU A STEP THAT CAN NEVER FINISH.** Each
 prefab persists under one field, and every one of them is shorter than the word you would guess:
@@ -1011,6 +1016,56 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 ```
 
 `--flag` applies **after** the area lands, because `--new-game` clears every flag first.
+
+---
+
+## Gate on the time or the weather
+
+**You set nothing. `Clock` and `Weather` publish these themselves, every tick, and none of them is
+saved** — they are recomputed from the clock's own saved state on load. Name one in any
+`condition_flag` and it works, in a conversation or in a quest step alike.
+
+| Write this in `condition_flag` | With this test | And it means |
+|---|---|---|
+| `time/hour` | `AT_LEAST 9` | it is 09:00 or later |
+| `time/hour` | `AT_MOST 17` | it is no later than 17:59 |
+| `time/day` | `AT_LEAST 3` | the third day has begun |
+| `time/phase/dusk` | `IS_TRUE` | it is dusk right now |
+| `time/phase/deep_night` | `IS_FALSE` | it is anything but the small hours |
+| `weather/kind/rain` | `IS_TRUE` | it is raining |
+| `weather/kind/clear` | `IS_FALSE` | the sky is doing something |
+
+The `<name>` on the end is a `GameEnums.DayPhase` or `GameEnums.WeatherKind` entry **lowercased**:
+`dawn`, `morning`, `midday`, `afternoon`, `dusk`, `night`, `deep_night`; and `clear`, `cloudy`,
+`overcast`, `rain`, `storm`, `fog`, `snow`, `wind`.
+
+**Shop hours are two conditions, and a quest step or a dialogue node has one each.** So a shop that
+is open 09:00–17:59 is a step gated on `time/hour AT_LEAST 9` whose *next* step is gated on
+`AT_MOST 17`, or — far more usually — a conversation whose nodes branch on one of them. If you
+need both at once on a single line, that is a game writing a tiny listener in its own code root
+that sets a flag of its own; the base deliberately does not grow an expression language for it.
+
+**A PHASE IS A NAME, NOT A NUMBER, AND THE TRAP IS WORTH ONE PARAGRAPH.** There is no `time/phase`
+holding a number, and you must not go looking for one. Enum ordinals are a storage format —
+`GameEnums` is append-only precisely because its numbers sit inside your `.tscn` and `.tres` files
+— so an `EQUALS 4` on a phase would be correct only by accident of enum order. And an *ordering*
+comparison on a phase is meaningless regardless: across a day the ordinals run
+`6,6,6,6,6,0,0,1,1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,5`, because `DEEP_NIGHT` is the last enum entry and
+the earliest hours. Equality on a named bool is the only sound question, which is why it is the
+only one offered.
+
+**Exactly one phase flag and one weather flag exist at a time.** The others are *erased*, not set
+false — so `IS_FALSE` on `time/phase/dawn` is true all day, exactly as you want, and a debug dump
+stays one row per concept instead of fifteen.
+
+**Do not put your own flags under `time/` or `weather/`.** Those two namespaces belong whole to
+those two files and are declared derived, so a flag of yours there would silently stop being
+saved.
+
+There is deliberately no `time/minute`: a minute is a continuous value for interpolating a
+lighting gradient, not a question a condition asks, and publishing it would rewrite a flag 1,440
+times a day. For a `night_only` rest point, note you do not need a flag at all — `RestPoint` has an
+`@export var night_only` that asks `Clock.is_night()` directly.
 
 ---
 

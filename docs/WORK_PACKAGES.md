@@ -105,6 +105,7 @@ original board rather than continuing it.
 | T5.28 | **A template rule, a template default and a game choice are three different things** | **DONE** — `5.3.5`, a PATCH, and `src/` / `tools/` / `.github/` byte-identical. **THE ROW RANKED FIRST FIVE TIMES AND NEVER TAKEN.** `TEMPLATE.md` § *"The one constraint nobody has scoped"* has said since 2026-08-26 that *"what is missing is the distinction between a template default and a game choice, which no document currently draws"*, and nothing ever scheduled it. `CONTEXT.md` deferred it each time for one honest reason — *"it is prose and cannot be proved by running the engine"* — **while also recording that it "DECIDES the two rows under it rather than guessing"**, both of which carried *"Scope depends on the taxonomy row above"*. **So deferring the cheap row kept the expensive ones frozen**, and three candidate rows were unscopable indefinitely for want of one distinction. **THE ANSWER IS THREE KINDS, NOT TWO**, which is what made it tractable: a TEMPLATE RULE is foreclosed for every game and carries a checker where the rule is mechanical; a TEMPLATE DEFAULT ships a working value **and a seam**; a GAME CHOICE means the base builds nothing and offers only the seam and the facts. **AND THE TEST THAT SEPARATES A DEFAULT FROM A RULE IS MECHANICAL RATHER THAN EDITORIAL — DOES A SEAM EXIST?** A "default" a game cannot replace without editing `src/` is a rule that has not admitted it; "is this a default or a rule" was a matter of tone, "can a game replace it without editing src/" is a fact about the repository. It is immediately productive: applied to `game_root.gd:28`'s `const PLAYER_SCENE` it says the player prefab is a **rule pretending to be a default**, which is the next row. **APPLIED RATHER THAN DESCRIBED** — RULES: no combat, the layer rule, the demo-name boundary (the last two already have checkers, which is what a rule looks like mechanised). DEFAULT: time, because `Clock`, `NpcSchedule` and `Weather` are already here so a cycle extends a present system. GAME CHOICES: a chapter sequencer, since a `story/chapter` int flag with `AT_LEAST` is already a complete chapter model through the one `FlagQuery` and a `Chapter` resource would add a second way to say one thing; and an economy, genre rather than structure, on `Harvestables`' footing. **TWO CANDIDATE ROWS CLOSED BY A REFUSAL RATHER THAN BUILT**, and writing the refusal down is the point — otherwise each is rediscovered, ranked, deferred for want of a reason, and ranked again, which is what happened three times. **AND THE CUTSCENES ROW NEEDED A REASON, NOT A PACKAGE**: a draft of this row proposed building the staging seam because nine `cutscene` mentions across eight files under `src/` looked like unpaid IOUs, and **read in full every one is a RECEIPT** — *"deletes nothing here — it calls `Audio.duck()` from its own occasion"*, *"forced by a cutscene, without touching this file"*, *"a cutscene can later ask for the same fade"* — each a statement that the file is already cutscene-ready and the game supplies the occasion. Reading a comment as a debt is how a comment becomes a work package. **Also settled: `Fixtures.activate()` is ASSERTED, not skipped**, reversing `TESTING.md`, because a skip reports GREEN so the one condition the check exists to catch is the one nobody sees — T5.27's failure one row earlier; `bag_mirror_test.gd` converted and **the plan gate caught the arithmetic before the suite did**, `planned 10 outcomes and produced 11`. **NO NEW GATE, AND SAYING SO IS PART OF THE ROW** — `record_shape_test.gd` and `docs_test.gd` already cover an ADR, and inventing one to have one is what the previous four rows were about; see below |
 | T5.29 | **The player prefab was a rule pretending to be a default** | **DONE** — `5.4.0`, a MINOR: the base gained a seam a game may ignore. **ADR-0007 FOUND THIS WITHIN AN HOUR OF EXISTING, WHICH IS THE ROW'S BEST ARGUMENT FOR ITSELF.** `game_root.gd:28` held `const PLAYER_SCENE := "res://scenes/characters/player.tscn"` — engine code, in the **core** layer, naming the prefab a consuming game replaces FIRST — while `GameConfig` exposed exactly two `[game]` keys with no `player_scene` among them. `ARCHITECTURE.md` states the contract as "a game adds content and resources; it does not add code under `src/`", so **a game with a differently-shaped protagonist had no legal way to get one.** T5.28's seam test asks one question — *does a seam exist?* — and a "default" a game cannot replace without editing `src/` is a RULE that has not admitted it; this is the first thing the test caught, and finding it an hour after writing the ADR is the strongest evidence the distinction was worth a package. **THE COMPARISON RUN IS WHAT MAKES IT A DEFECT RATHER THAN A PREFERENCE**, the same shape T5.25–T5.27 each needed: `[game] world/player_scene` pointed at a scene that does not exist, then boot. **Old code: `0 warnings, 0 errors`** — the key silently ignored, the player spawned from the const, a game's stated choice discarded without a word. **New seam: `1 errors`, `Player scene missing or invalid at <the missing path>`** on the existing `Log.error("boot", …)` path. **The old run is the row**: what was broken was not a wrong path but that setting it did nothing — the plant alone only shows the error path works. **THE FALLBACK IS THE ONE ASYMMETRY AND IT IS DELIBERATE**: `world/first_area` has none, because a template nobody has put a game in yet legitimately starts in no area, but a game can never legitimately have NO player, so an unset key means the template's own prefab rather than `load("")` and an empty world. `scenes/characters/` is Engine per `TEMPLATE.md`, so `GameConfig` naming that path is engine naming engine — not the boundary leak the `const` in `core` was. **`game_root.gd` DID NOT GROW** — 26 of its 60-line hard budget before and after, a path moved and no logic added, which matters because that file's header records the previous project's equivalent reaching 3,983 lines. **TWO STALE COUNTS FELL OUT OF IT**, neither gated and both T5.25's class: `GameConfig`'s header said it owned "the four facts a game author writes once" and `SYSTEMS_INVENTORY.md` said "the four values a consuming game sets" — five now. And **`NEW_GAME.md` § 2 gained the one exception to "Keep, and never edit to start a game"**, because a fork points PAST the template's prefab rather than editing it, which is the instruction that section already gave and could not previously be obeyed. 2,294 → **2,300 assertions**, three in `core_test.gd` and no new case; see below |
 | T5.30 | **Performing the extension surface, the one consumer document never walked** | **DONE** — `5.4.1`, a PATCH, and `src/` / `tools/` / `tests/` / `.github/` byte-identical with **no game code committed**. `SYSTEMS_INVENTORY.md` listed the extension surface beside `AUTHORING.md`, `ART_CONTRACT.md` and `TESTING.md`, and it was the only one of the four never performed — while each of the other three found defects reading had not. **THE VENUE IS THE METHOD, AND A DRAFT OF THIS ROW GOT IT WRONG**: `UPGRADING.md` records that "a stripped fork was made" and its synthetic versions "exist only in the throwaway repositories this document was performed against", `NEW_GAME.md` that "the whole strip above was performed against a fresh clone" — so a performance happens OUTSIDE the template and only findings come back. The draft had proposed adding a `game/` root to the base and wiring it into the checkers' scan roots, which would have committed a consuming game's proof into the template. **SIX FINDINGS.** *(1)* Three Tier 2 rows named a class and gave no path while the `Events` row gave one, so `UiScreen` was hunted in `src/ui/root/` — where `UiRoot` lives and it does not — before a grep found `src/ui/screens/ui_screen.gd`; every row now names its file. *(2)* The three override hooks were described in prose and named nowhere: a first attempt guessed `_on_shown()`, **which compiles and never runs**; they are `_build()`, `_opened()`, `_closed()`. *(3)* **THE SHARPEST, AND MEASURED RATHER THAN INFERRED: all seven checkers pass over a game code root** — a fork carrying three subclasses went green on every one, **including over a planted raw player-facing literal and a planted uncalled public method**, precisely what `check_strings.gd` and `check_methods.gd` exist to catch. A consuming game inherits none of the ladder's discipline. **Two of those gates should stay blind and that is a relief rather than a gap** — `check_boundary.gd` exists to prove the ENGINE does not know the game, so aiming it at a game's own root would fail an author for doing the right thing — and the other five are now a stated choice instead of an unnoticed absence. *(4)* **No document had a row for game CODE**, though Tier 2 tells a game to `extends Interactable`: `TEMPLATE.md`, `NEW_GAME.md` § 2 and `UPGRADING.md` § 5 each gained one. *(5)* **A game's own input action cannot be player-rebindable**, and the constraint is CORRECT rather than an oversight: `KeyBindings.rebind()` gates on the `Actions.REBINDABLE` const rather than `InputMap.has_action`, and its header records that asking `has_action` was a real bug — `debug_console` could be written into `input.cfg` and `reset_bindings()` would not restore the default. Stated now rather than discovered. *(6)* **TWO AUDIT PREDICTIONS WERE WRONG, WHICH IS THE ARGUMENT FOR PERFORMING OVER PREDICTING**: the audit said a game's own screen could not register because `ScreenKeys.menu_for()` is a closed `if`-chain, and it is — and it is irrelevant, since `UiRoot.open()` takes an INSTANCE and `UiRoot.find(node)` finds the stack by group, so `UiRoot.find(self).open(MyScreen.new())` is the whole of it, and `menu_for`'s only caller is boundary-exempt debug code. **Also fixed the closing checklist at the source**: item 6 asked for a commit that satisfying item 6 creates, which five rows running had worked around by filling in the previous row's SHA; it now says to do exactly that; see below |
+| T5.31 | **Clock and Weather on the flag surface** | **DONE** — `5.5.0`, a MINOR: the base gained a seam a game may ignore. **`Clock` HELD THE DAY, THE HOUR AND THE PHASE, EMITTED FOUR SIGNALS, AND NEVER ONCE CALLED `Flags.set_flag`** — while `src/core/state/flag_query.gd` is the ONE evaluator both `DialogueNode` and `QuestStep` go through and it reads `Flags` and nothing else. So **no authored condition in this template could mention time or weather at all**, including the shop hours `clock.gd`'s own header names as a reason a clock is foundational. Two independent audits converged here and it was their only convergence. The seam needed no invention: `Flags.declare_derived` already existed, is idempotent, and `_collect_save` SKIPS derived keys, so a published `time/hour` never reaches a save and recomputes from the clock's own saved state — `inventory.gd:59`'s shape since T3.3, including both of its store-wipe subscriptions, because `start_new_game` clears the flags and THEN emits while `game_loaded` fires after every section so the republish cannot depend on participant order. **THE UNPRICED COST WAS THE ROW, AND BOTH ANSWERS THE PLAN OFFERED WERE WRONG.** Ordinals do couple — `GameEnums` is append-only because its numbers live in authored `.tscn` files — but the sharper objection is that **ordering on a phase is meaningless whatever the numbering**: measured, `phase_for_hour` across a day yields `6,6,6,6,6,0,0,1,1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,5`, so DEEP_NIGHT is the HIGHEST ordinal and the EARLIEST hours and `AT_LEAST DUSK` would hold at 00:00 and fail at 06:00. **AND A STRING NAME WOULD HAVE BEEN UNREADABLE BY THE ONE EVALUATOR, WHICH A THROWAWAY PROBE MEASURED RATHER THAN ARGUED**: `FlagQuery.passes` against a flag holding `"DUSK"` returns FALSE for every test in the closed set, `EQUALS` and `IS_TRUE` alike, each logging `expected int` / `expected bool` — four flags that would have looked right in a dump and answered nothing, with no gate in this repository able to catch it, because writing a flag is not the same claim as its being ASKABLE. **So the third answer, which the plan did not consider**: `time/hour` and `time/day` as ordered ints, where `AT_LEAST 9` with `AT_MOST 17` is a shop's hours and the comparison means what an author expects; and a phase and a weather kind as **one bool under the lowercased name**, stable against an enum insertion AND readable, with **no seventh comparison** added to a set whose own file says it stays closed. Exactly one row exists at a time and it is **ERASED rather than set false** — `Inventory` erases a spent stack rather than zeroing it, an absent flag answers `IS_TRUE` false and `IS_FALSE` true, so the semantics are identical at a seventh of the rows and boot publishes four flags rather than seventeen; the erase comes FIRST, because a phase flag left true would make an authored dawn-only line fire at every hour after the first dawn. **THE PLANT IS THE REQUIRED SHAPE, ONE PATH RED AND THE OTHER GREEN**: publishing dropped from the `set_time` path only gave exit 1 on exactly two assertions, *"a jump onto the hour opens it"* and *"the flag was current inside that one too — expected 14, got 11"*, where **the `11` is what the tick path had published**. **AND THE ROW SURFACED A DOCUMENTED GOTCHA AT THE ONE SITE NOBODY HAD FIXED**: `QuestTracker.ids_in_state` sorted with `Array[StringName].sort()`, which orders by interned handle rather than alphabetically — gotcha 33, already noted and fixed in `area_db.gd`, `equipment.gd` and `inventory.gd`, while this function's own comment claimed *"sorted, so the journal draws a stable order"*. It was the allocator's order: four new flag names shifted the intern table and a journal assertion in `item_count_test.gd`, on a code path this row never touched, went red — baseline returning `[gather, errand]`, which is the order that is NOT alphabetical. **Two wrong hypotheses died before the right one**, a timing race (killed by the failure being deterministic across three runs) and pointer-sorting "disproved" by a two-element probe that came out alphabetical BY LUCK, which is why the second probe used eight names and returned `alpha, delta, echo, foxtrot, charlie, bravo, hotel, golf`. Fixed with the same `sort_custom(_before)`, and the test stopped reading "the last Label" — a bet on an order the base never promised — for a named quest's own row. `clock.gd` is now at **142 of its 150-line budget**, the tightest it has been. 2,302 → **2,331 assertions**, +29: 27 in the new case plus 2 in `record_shape_test`, whose plan is `_docs.size() + _packages.size() * 2 + 2`, so a new package id is worth exactly two. **MEASURED by diffing every case against `main`, and re-measured after the documentation landed** — which is what caught the second pair, since the pre-docs run read 2,329 and writing that down is the mistake the last two rows made; see below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -5418,4 +5419,159 @@ reading the right files and drawing the wrong conclusion, and only a fork could 
 `NEW_GAME.md`, `UPGRADING.md`, `SYSTEMS_INVENTORY.md` and the record. **`src/`, `tools/`, `tests/`
 and `.github/` byte-identical**, and no game code committed.
 
-**Commit:** on `claude/t5-30-extension-surface`, targeting `main`.
+**Commit:** `d47940b` on `claude/t5-30-extension-surface`, PR #61, targeting `main`. Filled in by
+T5.31 — the SHA cannot exist when the line is written, which is what item 6 above now says
+outright instead of leaving each row to rediscover it.
+
+
+## T5.31 · Clock and Weather on the flag surface — **DONE**
+
+**The defect was structural rather than missing.** `Clock` owned the day, the hour and the minute,
+emitted `minute_passed`, `hour_passed`, `day_passed` and `day_phase_changed` — and **never once
+called `Flags.set_flag`**. `src/core/state/flag_query.gd` is the ONE evaluator that both
+`DialogueNode` and `QuestStep` go through, and it reads `Flags` and nothing else.
+
+So **no authored condition in this template could mention time or weather at all.** Not the hour,
+not the day, not the phase. Including the shop hours `clock.gd`'s own header names as a reason a
+clock is foundational. Two independent audits converged here, and it was their only convergence.
+
+**The seam needed no invention, which is why this row is small.** `Flags.declare_derived` already
+existed, is idempotent, and `Flags._collect_save` SKIPS derived keys — so a published `time/hour`
+is never written to a save and recomputes from the clock's own saved state on load. Its only prior
+caller was `inventory.gd:59`, the `bag/` namespace, and that file's two store-wipe subscriptions
+came across with it: `Director.start_new_game` calls `Flags.clear_all()` and *then* emits
+`game_started`, and `Flags._apply_save` clears a store whose derived keys are deliberately absent
+from the file it restores from — so the republish hangs off `game_loaded`, which fires once after
+every section is applied and therefore does not depend on participant order.
+
+### The one unpriced cost, and BOTH answers the plan offered were wrong
+
+The plan said: publish enum ordinals and state the coupling, or publish stable string names.
+
+**Ordinals do couple** — `GameEnums` is append-only precisely because its numbers live inside
+authored `.tscn` and `.tres` files. But the sharper objection is that **an ordering comparison on a
+phase is meaningless whatever the numbering**, and that was measured rather than argued. Running
+`phase_for_hour` across a day:
+
+```
+00:6 01:6 02:6 03:6 04:6 05:0 06:0 07:1 08:1 09:1 10:1 11:2
+12:2 13:2 14:3 15:3 16:3 17:4 18:4 19:4 20:5 21:5 22:5 23:5
+```
+
+`DEEP_NIGHT` is the **highest** ordinal and the **earliest** hours, because a day wraps and an enum
+does not. `AT_LEAST DUSK` would hold at 00:00 and fail at 06:00. Equality is the only sound
+question about a phase, and that is true of any numbering you choose.
+
+**And a plain string name would have been unreadable by the one evaluator — silently.** A
+throwaway probe settled it, the shape T5.27 established:
+
+| `FlagQuery.passes` against | result |
+|---|---|
+| a flag holding `"DUSK"`, `EQUALS 4` | **false**, logging `probe/phase is String, expected int` |
+| a flag holding `"DUSK"`, `IS_TRUE` | **false**, logging `probe/phase is String, expected bool` |
+| a flag holding `4`, `EQUALS 4` | true |
+| a flag holding `true`, `IS_TRUE` | true |
+
+The closed set compares bools and ints and nothing else. **Publishing names as strings would have
+shipped four flags that looked correct in a debug dump and answered nothing** — and no gate in this
+repository would have caught it, because writing a flag is not the same claim as its being askable.
+
+**So the third answer, which the plan did not consider.** `time/hour` and `time/day` as ordered
+ints, where `AT_LEAST 9` with `AT_MOST 17` is a shop's opening hours and the comparison means what
+an author expects. A phase and a weather kind as **one bool under the lowercased name** —
+`time/phase/dusk`, `weather/kind/rain` — stable against an enum insertion *and* readable through
+`IS_TRUE` / `IS_FALSE`, with **no seventh comparison** added to a set whose own file says it stays
+closed.
+
+**Exactly one row exists at a time, and it is ERASED rather than set false.** `Inventory` erases a
+spent stack rather than zeroing it, for the reason its header gives — a row reading 0 for something
+the player does not have is a row in every dump forever. An absent flag answers `IS_TRUE` false and
+`IS_FALSE` true, so the query semantics are identical at a seventh of the rows, and boot publishes
+four flags rather than seventeen. The erase comes **first**: a phase flag left true would make an
+authored dawn-only line fire at every hour after the first dawn.
+
+### The gate and the plant
+
+**Gate.** A `FlagQuery` condition on `time/hour` flips at the right minute, on **both** publish
+paths — `_tick_minute` for a natural minute, `set_time` for a sleep, a cutscene, a debug command or
+a loaded save. Plus the ordering invariant `bag_mirror_test.gd` owns one system over: the flag must
+be current **inside** `hour_passed`, not one statement later.
+
+**Plant** — publishing dropped from the `set_time` path only:
+
+| run | result |
+|---|---|
+| control | `2331 passed, 0 failed`, exit 0 |
+| plant | **exit 1**, `2329 passed, 2 failed` |
+
+The two failures are exactly the set_time pair: *"a jump onto the hour opens it — expected true,
+got false"* and *"and the flag was current inside that one too — expected 14, got 11"*. **The `11`
+is the row the tick path had published**, which is what makes this a plant that fails one path and
+leaves the other green rather than a plant that breaks everything.
+
+### What the row surfaced: gotcha 33, at the one site nobody had fixed
+
+`QuestTracker.ids_in_state` sorted with `Array[StringName].sort()`. **That orders by the
+StringName's interned handle, not alphabetically** — which is gotcha 33, and `area_db.gd`,
+`equipment.gd` and `inventory.gd` each already carry a note about it and each already sort through
+`String`. This function was missed, and its own comment claimed *"Sorted, so the journal draws a
+stable order without holding one of its own."*
+
+It was not stable. It was the allocator's order. **Four new flag names shifted the intern table and
+a journal assertion in `item_count_test.gd` — on a code path this row never touched — went red.**
+The A/B is the evidence:
+
+| `src/` | `ids_in_state(ACTIVE)` returned |
+|---|---|
+| baseline | `[quest/fixture_gather, quest/fixture_errand]` |
+| with this row | `[quest/fixture_errand, quest/fixture_gather]` |
+
+Note that the **baseline** order is the one that is not alphabetical. A probe confirmed the cause
+rather than inferring it: eight names built in scrambled order sorted to `alpha, delta, echo,
+foxtrot, charlie, bravo, hotel, golf` — neither alphabetical nor insertion order. **Two wrong
+hypotheses died first**, and both cost less than the guessing that preceded them: a timing race,
+ruled out by the failure being deterministic across three runs; and pointer-ordered sorting
+"disproved" by a two-element probe that came out alphabetical **by luck**, which is why the second
+probe used eight names instead of two.
+
+Fixed with the same `sort_custom(_before)` the other three files use. And the test's helper stopped
+returning "the last Label in the list" — a bet on an order the base never actually promised — and
+started addressing a named quest through its own row. Its old comment had guarded the right way
+against the wrong risk: *"found by type rather than by index, so a heading cannot make this assert
+about the wrong row"*, while the order of the **quests** was the unfixed thing.
+
+### Deliberately not in scope
+
+- **`rest_point.gd` untouched.** An earlier draft claimed it hardcodes the hour; it does not. It
+  reads an authored `@export var night_only` and calls `Clock.is_night()`, and
+  `traversal_test.gd:95` asserts exactly that. Rewriting it would strip an `@export` from authored
+  `.tscn` instances.
+- **No `time/minute`.** A minute is a continuous value for interpolating a lighting gradient —
+  `day_fraction()` is what samples it — not a question an authored format asks, and publishing it
+  would rewrite a flag and announce it 1,440 times a day.
+- **No calendar, weekday, month or season.** ADR-0007 classifies those as GAME CHOICES.
+- **No `ScheduleEntry` day field.** A day-of-cycle is the optional follow-up row.
+
+**Scope.** `5.5.0`, a MINOR — the base gained a seam a game may ignore. Three `src/` files
+(`clock.gd`, `weather.gd`, `quest_tracker.gd`), one new test, plus `test_runner.gd`,
+`item_count_test.gd` and the record. `clock.gd` is at **142 of its 150-line budget**, which is the
+tightest it has been and worth knowing before the next change to it lands.
+
+2,302 → **2,331 assertions**, +29 — and the arithmetic is worth stating because the first run of it
+was wrong. 27 are the new case. The other **2 are `record_shape_test`**, whose plan is
+`_docs.size() + _packages.size() * 2 + 2`, so a new package id on the board is worth exactly two
+outcomes. **The pre-documentation run read 2,329, and writing that number down is precisely the
+mistake the last two rows made** — they predicted +2 and measured +4, and predicted +5 and measured
++6, both times because their own prose added a claim a computed plan counts. So this was measured
+twice, before and after the record landed, by diffing every case against `main`:
+
+```
+41c41
+< record_shape_test: 133
+---
+> record_shape_test: 135
+46a47
+> time_flags_test: 27
+```
+
+**Commit:** on `claude/t5-31-time-flags`, targeting `main`.

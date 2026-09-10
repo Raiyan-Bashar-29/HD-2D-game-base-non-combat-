@@ -10529,6 +10529,28 @@ not move**, which is the right answer twice over: the two new test functions bui
 from `FixtureContent` rather than from `data/`, and the two computed-plan cases that grew —
 `record_shape_test` and `doc_counts_test` — read `docs/`, which the strip does not touch.
 
+**Re-run on the commit that actually merged, because the branch moved after the record above was
+written.** `main`'s protection sets `required_status_checks.strict = true` — a branch must be
+current with the base before it can merge — so once PR #62 (T5.31) landed, this branch was behind
+`main` by exactly that merge commit and `main` had to be merged in. **A merge, not a rebase**, the
+branch being pushed and shared. The tree came out byte-identical to before it, since this branch
+already contained every T5.31 commit, and `git diff` between the two heads is empty. Run
+`34456450946` on `b93c95d`, both jobs `success`, and the numbers did not move:
+`=== 2355 passed, 0 failed, 0 skipped ===` and `=== 2281 passed, 0 failed, 25 skipped ===`, gap 74.
+The full ladder was re-run locally on the merged commit as well — import clean, boot
+`0 warnings, 0 errors`, suite 2,355 exit 0, all seven checkers exit 0 — because gotcha 53 says a
+failure straight after a checkout is a cache question before it is a code question, and the cheap
+answer is to ask the engine rather than to reason about the tree.
+
+**No admin override was used, and the first refusal was a misreading worth recording.** An earlier
+attempt at `gh pr merge 62` was refused as *"the base branch policy prohibits the merge"*, which
+read as a required review. It was not: reading
+`repos/<owner>/<repo>/branches/main/protection` shows two required contexts, `strict = true`,
+`enforce_admins = false` and **no review requirement at all**. `mergeStateStatus` was `CLEAN` on
+retry and the plain merge succeeded. So the refusal was transient — the required contexts had not
+yet been attributed to the protection when the first attempt ran — and reaching for `--admin`
+would have bypassed a gate that was about to pass on its own.
+
 **And that is the last CI record on this board.** The base is complete at `5.6.0`.
 **Commit:** on `claude/t5-32-day-of-cycle`, PR targeting `main`. No SHA, per board item 6 — the
 commit that satisfies this step is the one this line goes into. With no next row to fill it in, it

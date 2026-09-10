@@ -250,8 +250,8 @@ document, do not change that one.** `ItemDb`, `DialogueDb` and `ScheduleDb` find
 SCANNING a directory (ADR-0006), so nothing in any scene references most of `data/**`. Those
 resources are nobody's dependency, and Godot's exporter walks dependencies. Narrow that filter and
 your items, conversations and NPC schedules do not ship — while every editor run, both CI jobs,
-`check_content` and all 930 assertions stay perfectly green, because there the files are plainly on
-disk. `tests/unit/export_test.gd` now asserts the field, so a change fails rung 4 rather than a
+`check_content` and every assertion in the suite stay perfectly green, because there the files are
+plainly on disk. `tests/unit/export_test.gd` now asserts the field, so a change fails rung 4 rather than a
 release.
 
 The preset is committed (only `override.cfg` is gitignored), so a new game inherits a working one.

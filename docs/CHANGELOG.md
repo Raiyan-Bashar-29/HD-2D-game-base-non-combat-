@@ -19,6 +19,70 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.6.1
+
+*2026-09-10 — an audit of `5.6.0`, run because the base had just been declared finished. It found
+that `5.6.0` had quietly made a documented invariant violable, plus three wrong numbers in the
+documentation.*
+
+**A consuming game does: nothing, unless it authored a schedule with no every-day entry** — in
+which case `check_content` now fails and names the file, where before it passed and the NPC
+silently stood still. That is the bug being reported, not a new restriction.
+
+**PATCH, and three precedents in this file settle it rather than instinct.** The table above says
+MAJOR means *a file the game wrote must change*, and a new gate that fails existing content looks
+like exactly that. This project has been here three times and called it a PATCH every time:
+`5.3.3` ("a checker you wrote and wired into only the full job… will now fail rung 4 where before
+it passed silently"), `5.3.2` ("a package you logged and never named… will now fail rung 4 where
+before it may have passed on a sibling"), and `1.0.2`, which states the governing reason —
+**"That is the bug being fixed, not a new restriction: the case was never running."** A schedule
+with no every-day entry is already an NPC with no instructions. The gate converts a silent defect
+into a named build failure; it does not impose a rule the content previously satisfied.
+
+### What was broken, and `5.6.0` broke it
+
+`schedule_entry.gd` has always promised that **a day is always completely covered**, "because an
+NPC is always somewhere", and before `5.6.0` that was structurally true: every entry applied on
+every day, so the wrap-to-the-last-block fallback could never come up empty. `on_day_of_cycle` made
+it violable by authored data for the first time, and nothing noticed. Measured with a throwaway
+probe against `5.6.0`:
+
+```
+A: only day-specific entries, asked about a non-matching day
+   hours with NO block on day 2: 24 of 24
+   problems() reports: 0
+```
+
+So a schedule made only of day-specific entries answered **nothing at all** on any day it did not
+name, `problems()` was silent, `check_content` passed, and `NpcBrain.decide_for_hour` — which
+returns early on a null entry — left the NPC standing wherever it happened to be. That is precisely
+the "reads as random" failure `schedule_entry.gd`'s own header exists to prevent.
+
+**The fix is one rule: every schedule must carry at least one entry at `on_day_of_cycle = -1`.**
+That is necessary *and* sufficient for total coverage — `_applies_on` admits an every-day entry
+whatever day is asked, so the fallback is never empty and `entry_for_hour` never returns null. It
+is also the strongest form of the rule the `content` layer can actually check: "every day of the
+cycle is covered" would need `Clock.days_per_cycle`, and `content` may not touch an autoload.
+
+**If you are on `5.6.0`, the hole is open and unreported.** Grep your schedules for one with no
+`on_day_of_cycle = -1` entry; there is no gate on that version to do it for you.
+
+### And three documentation numbers were wrong
+
+| where | said | actually |
+|---|---|---|
+| `TESTING.md` opening | full `2302 passed`, stripped `2226 passed` | `2362` / `2288` |
+| `NEW_GAME.md` § 7 | "all 930 assertions stay green" | number deleted — it carried no weight |
+| T5.32's own record | `clock.gd`'s 3 spare lines were "the tightest any file has been" | `director.gd` has 3 too, and `dev_stage.gd` had 2 before T5.20 |
+
+**The `TESTING.md` pair is the one with a lesson.** It went stale through two consecutive rows
+because the closing checklist was read as "update `CLAUDE.md` and `ARCHITECTURE.md`", and it names
+four files, not two. The stale pair even disagreed with the rest of the repository — their
+difference was 76 while the board recorded a stripped gap of 74 for eight straight runs — and
+nothing caught that either. The checklist now lists all four explicitly and says the stripped number
+can only come from the CI job log, so that step finishes after CI rather than before.
+
+---
 ## 5.6.0
 
 *2026-09-10 — an NPC's day can differ from the day before it. A market day, or any weekly rhythm,

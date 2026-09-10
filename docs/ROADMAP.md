@@ -1441,6 +1441,39 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   against `main` after the documentation landed; the pre-docs run read 2,350 and a predicted +21
   would have been wrong by three. **This is the last planned row, and no chip was created because there is nothing to hand
   off to**: every row on the board is DONE and the base is complete.
+- **T5.33 The audit of a base declared finished — DONE, 2026-09-10.** T5.32 closed the board and
+  declared the base complete; the owner then asked for a full check before starting a game on it,
+  and **the check found that the row declaring the base finished had made a documented invariant
+  violable.** `schedule_entry.gd` has always promised a day is always completely covered, "because
+  an NPC is always somewhere", and before T5.32 that was STRUCTURALLY true — every entry applied on
+  every day, so `entry_for_hour`'s wrap-to-the-last-block fallback could never come up empty.
+  `on_day_of_cycle` made it violable by authored data and nothing noticed: not `problems()`, not
+  `check_content`, not one of 2,355 assertions. Measured with a throwaway probe rather than argued —
+  a schedule of only day-specific entries answers nothing on any day it does not name, **24 hours of
+  24**, while `problems()` returned 0, so the build passed on content that strands an NPC and
+  `NpcBrain.decide_for_hour`, returning early on null, left it standing wherever it was. The fix is
+  one rule at exactly the strength this layer supports: at least one entry at `-1`, which is
+  necessary AND sufficient for total coverage, the stronger "every day of the cycle is covered"
+  needing `Clock.days_per_cycle` that `content` may not reach for. Plant — the check disabled —
+  exit 1 on one assertion, `expected 1, got 0`, against an exit-0 control, with the
+  consequence assertion deliberately staying green because the gap exists whether or not the
+  validator reports it. **PATCH on three cited precedents** (`5.3.3`, `5.3.2`, `1.0.2`), the last
+  stating the reason: *"That is the bug being fixed, not a new restriction."* **Three documentation
+  numbers were also wrong**, and one carried a checklist defect: `TESTING.md` stated the suite as
+  `2302` / `2226`, stale through TWO consecutive rows because closing item 5 was being read as two
+  files when the suite size lives in four — and the stale pair even disagreed with the board's own
+  stripped gap of 74, its difference being 76. Item 5 now enumerates all four and says the stripped
+  number comes from the CI job log, so the step finishes after CI. `NEW_GAME.md`'s "all 930
+  assertions" had the number deleted rather than updated, the better fix for a count no reader
+  needs; and T5.32's claim that `clock.gd`'s three spare lines were the tightest in the base was
+  wrong twice — `director.gd` has three at 187 of 190, `dev_stage.gd` had two at 248 of 250 before
+  T5.20 split it. **What the audit confirmed is recorded too, a clean result being evidence**: zero
+  table column mismatches across every live document, after a naive sweep produced four hits that
+  were all false positives; and "Ten autoloads", "seven checkers", "eight template screens" and
+  `AUTHORING.md`'s per-area figures all correct against the code. 2,355 → **2,362 assertions**, +7,
+  five in `npc_test` and two in `record_shape_test` for this row's own board id, the pre-docs run
+  having read 2,360; the plan guard caught an off-by-one on the way, reporting `planned 85 outcomes
+  and produced 84` with every assertion passing.
 
 ## Sequencing rules
 

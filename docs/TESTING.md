@@ -10,11 +10,19 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 ```
 
 Exit 0 if every assertion passes, 1 otherwise. In a full checkout the last line reads
-`=== 2302 passed, 0 failed, 0 skipped ===`; in a stripped template it reads
-`=== 2226 passed, 0 failed, 25 skipped ===`, and the difference is entirely skips that say so.
+`=== 2362 passed, 0 failed, 0 skipped ===`; in a stripped template it reads
+`=== 2288 passed, 0 failed, 25 skipped ===`, and the difference is entirely skips that say so.
 **Re-measure this rather than quoting it** — the number moves with every package, and
 `docs_test.gd` and `doc_counts_test.gd` compute their plans from the documents, so editing a
 document can move it too.
+
+**And that warning was not enough, which is worth one line here because this file is where you
+would look.** Those two numbers sat at `2302` / `2226` through T5.31 and T5.32 and were wrong by
+the time you could read them — the close-out checklist named `CLAUDE.md` and `ARCHITECTURE.md` for
+the suite size and not this file, so two consecutive rows updated those two and left these. The
+stale pair even disagreed with the rest of the repository: their difference was 76 while the board
+recorded a stripped gap of 74 for eight straight runs. T5.33 fixed both numbers and added this file
+to the checklist. Re-measuring is still the instruction; a hedge in prose is not a gate.
 
 ---
 

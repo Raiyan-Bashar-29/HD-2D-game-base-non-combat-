@@ -27,9 +27,16 @@ extends ContentEntry
 ## that reading would have made a day-specific block leak into every day, which is the defect this
 ## whole change exists to make expressible in the first place.
 ##
+## EVERY SCHEDULE MUST CARRY AT LEAST ONE EVERY-DAY ENTRY, and `problems()` enforces it since
+## T5.33. That is not a style rule: one `-1` entry is exactly what makes the coverage promise in
+## `schedule_entry.gd` true, because `_applies_on` admits it whatever day is asked, so `latest` is
+## never null and this function never returns null. Without one, a schedule of only day-specific
+## blocks answers nothing on any other day and the NPC stands where it last was.
+##
 ## OWNS: the immutable schedule of one NPC, and validating its own shape.
 ## MUST NOT: know which NPC uses it, move anything, or touch an autoload — which is why nothing
-## here validates a day against the real cycle length; `schedule_entry.gd` records that cost.
+## here validates a day against the real cycle length; `schedule_entry.gd` records that cost. The
+## every-day rule above is the part of coverage that IS checkable without one.
 
 ## `id` is inherited from `ContentEntry`; for this catalogue it is `schedule/` plus this file name.
 ## In any order. Each runs until the next begins; the last wraps around midnight.
@@ -76,6 +83,7 @@ func problems() -> PackedStringArray:
 	# shape this change exists to allow - while a genuine collision is two entries agreeing on
 	# BOTH, and that one is still ambiguous in exactly the old way.
 	var slots: Dictionary[Vector2i, bool] = {}
+	var covers_every_day: bool = false
 	for entry: ScheduleEntry in entries:
 		if entry == null:
 			found.append("%s has an empty entry slot" % id)
@@ -88,5 +96,21 @@ func problems() -> PackedStringArray:
 				id, entry.from_hour, entry.on_day_of_cycle,
 			])
 		slots[slot] = true
+		if entry.on_day_of_cycle == -1:
+			covers_every_day = true
 		found.append_array(entry.problems(String(id)))
+	# THE COVERAGE GUARANTEE, AND T5.32 BROKE IT BEFORE T5.33 PUT IT BACK. `schedule_entry.gd`
+	# promises a day is ALWAYS completely covered, because an NPC is always somewhere. One
+	# every-day entry is exactly what makes that true: `_applies_on` admits it whatever day is
+	# asked, so `latest` is never null and `entry_for_hour` never returns null. Take the last one
+	# away and a schedule of only day-specific blocks answers NOTHING on any other day - measured
+	# at 24 hours of 24 - while `NpcBrain.decide_for_hour` returns early on null and leaves the
+	# NPC wherever it happened to be. That is the "reads as random" failure the entry header
+	# exists to prevent, and it needs no autoload to detect: one entry at `-1` is both necessary
+	# and sufficient, so this is the check the `content` layer can actually make.
+	if not entries.is_empty() and not covers_every_day:
+		found.append(
+			"%s has no every-day entry, so an NPC following it has no instructions at all on any "
+			% id
+			+ "day the schedule does not name; give one entry on_day_of_cycle = -1")
 	return found

@@ -10510,6 +10510,26 @@ being built, that is the next row, and it will have been found rather than inven
   is a game's presentation choice, and putting one in the base would have been the calendar this
   row refuses.
 
+
+**CI, read out of the job logs rather than off the green tick (gotcha 26).** Run `34454905464` on
+`claude/t5-32-day-of-cycle`, PR #63, both jobs `success`:
+
+| job | result |
+|---|---|
+| Ladder (full checkout) | `=== 2355 passed, 0 failed, 0 skipped ===` |
+| Ladder (stripped template) | `=== 2281 passed, 0 failed, 25 skipped ===` |
+
+**The stripped gap is 74, the eighth consecutive recorded run at exactly 74.** Still nothing
+enforces it — no assertion compares the two jobs, and `check_content.gd` stays deliberately exempt
+from the empty-scan guard because the strip deletes its whole input by design. So the gap holding is
+an observation each row makes by reading both logs, not a gate; T5.27 named the cross-job comparison
+as a candidate and it remains one, and with the board now closed it is a candidate a *game* would
+raise rather than a row here. **Twenty-four new assertions landed in the full job and the gap did
+not move**, which is the right answer twice over: the two new test functions build their content
+from `FixtureContent` rather than from `data/`, and the two computed-plan cases that grew —
+`record_shape_test` and `doc_counts_test` — read `docs/`, which the strip does not touch.
+
+**And that is the last CI record on this board.** The base is complete at `5.6.0`.
 **Commit:** on `claude/t5-32-day-of-cycle`, PR targeting `main`. No SHA, per board item 6 — the
 commit that satisfies this step is the one this line goes into. With no next row to fill it in, it
 stays as written, which is itself the record that this is the end of the board.

@@ -5751,6 +5751,14 @@ this board is DONE, the plan this row came from is exhausted, and the base is co
 and `CONTEXT.md`'s branch map are the handoff, and the next thing to happen to this repository is a
 game being started on it — `NEW_GAME.md` is that checklist.
 
-**Commit:** on `claude/t5-32-day-of-cycle`, PR targeting `main`. No SHA, per item 6 — the commit
-that satisfies this step is the one this line goes into. With no next row to fill it in, it stays
-as written, which is itself the record that this is the end of the board.
+**CI, from the job logs and not the tick (gotcha 26).** Run `34454905464`, PR #63, both jobs
+`success`: full checkout `=== 2355 passed, 0 failed, 0 skipped ===`, stripped template
+`=== 2281 passed, 0 failed, 25 skipped ===`. **The gap is 74, the eighth consecutive recorded run
+at exactly 74, and still nothing enforces it.** Twenty-four new assertions landed in the full job
+and the gap did not move, which is correct twice over: the new test functions build their content
+from `FixtureContent` rather than `data/`, and the two computed-plan cases that grew read `docs/`,
+which the strip does not touch.
+
+**Commit:** on `claude/t5-32-day-of-cycle`, PR #63, targeting `main`. No SHA, per item 6 — the
+commit that satisfies this step is the one this line goes into. With no next row to fill it in, it
+stays as written, which is itself the record that this is the end of the board.

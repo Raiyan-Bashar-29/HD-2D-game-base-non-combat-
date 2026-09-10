@@ -755,6 +755,37 @@ entries = Array[ScheduleEntry]([SubResource("morning"), SubResource("night")])
 - **Put waypoints somewhere the body can walk**, which is not the same as somewhere the navmesh
   covers. See `agent_max_climb`, above.
 
+**A MARKET DAY: ONE EXTRA ENTRY, NOT A SECOND SCHEDULE.** As of T5.32 an entry also carries
+`on_day_of_cycle`, and **`-1` means every day and is the default** — so everything above is
+complete and correct for a schedule that repeats daily, and every `.tres` written before the field
+existed keeps working with no edit. To make the keeper go somewhere else on one day of the cycle,
+leave the ordinary block alone and add one entry beside it:
+
+```
+[sub_resource type="Resource" id="market_morning"]
+script = ExtResource("2_entry")
+from_hour = 6
+on_day_of_cycle = 3
+waypoint = &"market_stall"
+activity = 0
+```
+
+- **A day-specific entry BEATS an every-day entry at the same hour.** That is the whole gesture:
+  the two collide on `from_hour` and the day breaks the tie, so you never rewrite the ordinary
+  block to make room for a special one.
+- **Every hour the special day says nothing about still runs the ordinary blocks.** Authoring one
+  unusual morning does not blank the rest of that day.
+- **The cycle length is `Clock.days_per_cycle`, which defaults to 7 and is your game's to set** —
+  from code at startup, the same way `seconds_per_minute` is set. Days run `1` to
+  `days_per_cycle`, and day 1 of a new game is day 1 of the cycle.
+- **Nothing validates a day against the real cycle length**, and this is the one trap here. An
+  `on_day_of_cycle` of `9` on a seven-day cycle parses, loads, passes `check_content` and is simply
+  a block that never runs. `NpcSchedule` and `ScheduleEntry` are in the `content` layer and may not
+  touch an autoload, so no validator there can ask `Clock` what the cycle length is —
+  `check_layers.gd` exists to refuse exactly that dependency. Count your own days.
+- **Two entries agreeing on the hour AND the day is still a reported defect**, because that one is
+  ambiguous in the old array-order way. Sharing only the hour is not.
+
 ### 2. Placing it, and the editable trap
 
 Declare the prefab as an `ExtResource` at the top of the area scene, then instance it:
@@ -833,7 +864,7 @@ already write?"** The six writers, and where each is documented:
 | a path action succeeding | `PathAction.success_flag` | § Add an NPC, step 3 |
 | holding an item | `Equipment` — `equip/<wearer>/<item id>` | § Make an item equippable |
 | carrying N of an item | `Inventory` — `bag/<carrier>/<item id>` | § Count items in a quest step |
-| the time of day | `Clock` — `time/hour`, `time/day`, `time/phase/<name>` | § Gate on the time or the weather |
+| the time of day | `Clock` — `time/hour`, `time/day`, `time/day_of_cycle`, `time/phase/<name>` | § Gate on the time or the weather |
 | the weather | `Weather` — `weather/kind/<name>` | § Gate on the time or the weather |
 
 **An item count IS a flag**, as of T3.3 — see the next section. That is the seventh writer, and it
@@ -1030,6 +1061,8 @@ saved** — they are recomputed from the clock's own saved state on load. Name o
 | `time/hour` | `AT_LEAST 9` | it is 09:00 or later |
 | `time/hour` | `AT_MOST 17` | it is no later than 17:59 |
 | `time/day` | `AT_LEAST 3` | the third day has begun |
+| `time/day_of_cycle` | `EQUALS 3` | it is day 3 of the repeating cycle — a market day |
+| `time/day_of_cycle` | `AT_LEAST 5` | it is the back half of the cycle |
 | `time/phase/dusk` | `IS_TRUE` | it is dusk right now |
 | `time/phase/deep_night` | `IS_FALSE` | it is anything but the small hours |
 | `weather/kind/rain` | `IS_TRUE` | it is raining |
@@ -1053,6 +1086,21 @@ comparison on a phase is meaningless regardless: across a day the ordinals run
 `6,6,6,6,6,0,0,1,1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,5`, because `DEEP_NIGHT` is the last enum entry and
 the earliest hours. Equality on a named bool is the only sound question, which is why it is the
 only one offered.
+
+**BUT `time/day_of_cycle` IS AN INT, AND THE PARAGRAPH ABOVE DOES NOT APPLY TO IT.** That is worth
+being explicit about, because the two sit in the same table and the reasoning looks transferable.
+It is not. A phase has an enum behind it and a day *wraps* where an enum does not, which is what
+makes ordering on it meaningless. A day of the cycle has no enum behind it and does not wrap inside
+its own range: it runs `1` to `Clock.days_per_cycle` and stops. So **both `EQUALS` and `AT_LEAST`
+mean exactly what you would expect** — `EQUALS 3` is one day, `AT_LEAST 5` is the back half of the
+cycle — and there is no bool-per-name row like `time/day_of_cycle/3` to look for. Ask the int.
+
+**And there are no weekday names, months, seasons or dates, deliberately.** A cycle *length* is a
+number, so the base supplies it as a default with a seam; a *calendar* — what day 3 is called, how
+many days are in a month, when autumn starts — is your game's own, and
+[ADR-0007](decisions/ADR-0007-template-default-vs-game-choice.md) is where that line is drawn. If
+you want "Market Day" on screen, that is a localization key your game maps from
+`time/day_of_cycle`, and the mapping lives in your code root rather than in `src/`.
 
 **Exactly one phase flag and one weather flag exist at a time.** The others are *erased*, not set
 false — so `IS_FALSE` on `time/phase/dawn` is true all day, exactly as you want, and a debug dump

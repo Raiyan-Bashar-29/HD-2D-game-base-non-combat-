@@ -15,8 +15,8 @@ extends Node
 ## `Flags.declare_derived` keeps every key out of the save file, so the day is stored once, by
 ## this file, in this file's own format.
 ##
-## OWNS: the current day, hour and minute; the rate time passes; the time-of-day phase; and
-## publishing all of those into the `time/` flag namespace.
+## OWNS: the current day, hour and minute; the rate time passes; the time-of-day phase; how many
+## days pass before the calendar repeats; and publishing all of those into the `time/` namespace.
 ## MUST NOT: change lighting, move an NPC, play a sound, or READ a flag it published — a
 ## projection that is also an input is a loop. It reports time passing. What that means is the
 ## listener's business. This is the boundary that keeps a day/night system from quietly turning
@@ -36,6 +36,15 @@ const FLAG_PREFIX: String = "time/"
 ## hours, and an ordering comparison on an hour means what an author expects it to mean.
 const FLAG_DAY: StringName = &"time/day"
 const FLAG_HOUR: StringName = &"time/hour"
+## AND SO IS THE DAY OF THE CYCLE — THE ONE PLACE THIS FILE DELIBERATELY DOES NOT COPY THE PHASE.
+## `_publish_phase` below argues at length for a bool-per-name, and every word of that argument is
+## about a PHASE: a day wraps where an enum does not, so `AT_LEAST DUSK` holds at 00:00 and fails
+## at 06:00, and equality is the only sound question to ask. A day of the cycle has neither half of
+## that problem. It runs 1..`days_per_cycle` with no wrap inside the range and no enum behind it to
+## be inserted into, so `EQUALS 3` is a market day and `AT_LEAST 5` is the back half of the cycle,
+## and both mean what an author reading them expects. The bool-per-name shape would also have cost
+## `days_per_cycle` rows in the store to answer what one ordered int answers.
+const FLAG_DAY_OF_CYCLE: StringName = &"time/day_of_cycle"
 ## A phase is published as ONE BOOL UNDER ITS OWN NAME, never as an ordinal. `_publish_phase`
 ## carries the two measurements that settled that, and they are the reason this is not
 ## `time/phase` holding a number.
@@ -49,6 +58,22 @@ const PHASE_PREFIX: String = "time/phase/"
 
 ## Real seconds per in-game minute. Set to 0 to freeze time without pausing the game.
 @export var seconds_per_minute: float = 1.0
+
+## HOW MANY DAYS PASS BEFORE THE CALENDAR REPEATS, AND IT IS A NUMBER BECAUSE A CALENDAR IS NOT
+## THIS FILE'S BUSINESS. ADR-0007 places time in the base as a template DEFAULT and a calendar in
+## the game as a GAME CHOICE, and the line between the two falls exactly here: a cycle length is a
+## FORMULA, so it is a default with a seam; weekday names, months, seasons and a date type are a
+## game's own, so this file has none of them and grows none. A game that wants a ten-day cycle
+## sets this and authors against `time/day_of_cycle`; a game that wants no rhythm at all leaves it
+## alone and never asks the flag.
+##
+## SET IT FROM CODE AT STARTUP, exactly as `seconds_per_minute` is set: these are exports on a
+## SCRIPT autoload, and Godot exposes no inspector for those. There is deliberately no setter that
+## republishes. `Director.start_new_game` emits `game_started` and `_republish` is connected to it,
+## so a value set before a game begins is published when it begins, and after that any tick
+## republishes within one in-game minute. A setter would have spent four lines closing a window no
+## caller can observe, in a file with three lines of budget left.
+@export var days_per_cycle: int = 7
 
 var day: int = 1
 var hour: int = 6
@@ -119,6 +144,19 @@ func phase_for_hour(of_hour: int) -> GameEnums.DayPhase:
 	if of_hour < 20:
 		return GameEnums.DayPhase.DUSK
 	return GameEnums.DayPhase.NIGHT
+
+
+## WHERE TODAY FALLS IN THE REPEATING CYCLE, 1 to `days_per_cycle`. Day 1 is day 1 of the cycle,
+## so a new game starts at the beginning of one rather than at an arbitrary offset into it.
+##
+## GUARDED WITH `maxi` BECAUSE A `days_per_cycle` OF 0 IS A MODULO BY ZERO, and 1 is the honest
+## reading of "no cycle": every day is day 1 of it, and an authored `EQUALS 1` is always true.
+##
+## PUBLIC, and the caller that matters is `NpcBrain` — it passes this into
+## `NpcSchedule.entry_for_hour` so a schedule may hold a block that runs on one day of the cycle
+## only. `_publish_time` is the other caller, which is what puts it on the flag surface.
+func day_of_cycle() -> int:
+	return (day - 1) % maxi(1, days_per_cycle) + 1
 
 
 ## True between dusk and dawn. Convenience for the many things that just want "is it dark".
@@ -234,6 +272,7 @@ func _phase_flag_named(key_name: String) -> StringName:
 func _publish_time() -> void:
 	Flags.set_flag(FLAG_DAY, day)
 	Flags.set_flag(FLAG_HOUR, hour)
+	Flags.set_flag(FLAG_DAY_OF_CYCLE, day_of_cycle())
 
 
 ## A PHASE IS A NAME, NOT A NUMBER, AND TWO MEASUREMENTS SETTLED THAT RATHER THAN A PREFERENCE.

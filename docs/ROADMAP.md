@@ -1397,6 +1397,50 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   `_docs.size() + _packages.size() * 2 + 2` so a new package id is worth exactly two. MEASURED by
   diffing every case against `main`, and the re-measure after the documentation landed is what
   caught the second pair — the first run read 2,329.
+- **T5.32 A schedule could only describe one day — DONE, 2026-09-10.** The row the plan called
+  **explicitly optional** — rated non-blocking, named *"the honest place to stop early if you
+  want to"* — put to the owner as a live three-way choice and built in full on their answer.
+  `ScheduleEntry` exported `from_hour` and nothing else, so an hour was an entry's whole address
+  and `NpcSchedule.entry_for_hour(hour)` was the whole lookup: **every NPC in every game built on
+  this base repeated one identical day, forever**, and a market day or any weekly rhythm was not
+  badly supported but inexpressible. In scope only because of ADR-0007, whose seam test puts a
+  cycle *length* on the template-default side — a formula, one modulo — and a *calendar* on the
+  game-choice side, so the row adds `days_per_cycle` and adds **no weekday names, no months, no
+  seasons and no date type**; the refusal is as much of the deliverable as the feature. It follows
+  T5.31's seam verbatim, because that seam was built for this: `time/day_of_cycle` publishes like
+  `time/day`, through `Flags.declare_derived` from `_publish_time()`, so it never reaches a save
+  and recomputes from the clock's own state, and adding the key was one line there and nothing
+  else. **An ORDERED int rather than the phase's bool-per-name, and the departure is stated rather
+  than drifted into**: T5.31's argument is entirely about a phase and rests on two properties a
+  day of the cycle lacks — no enum behind it, and no wrap inside its own range, which runs `1` to
+  `days_per_cycle` and stops — so `EQUALS 3` is a market day, `AT_LEAST 5` is the back half, and
+  the `AT_LEAST` assertion is one that could not be written at all under the phase's shape.
+  **The default is what makes it a MINOR, and `-1` does the work twice**: on the field it means
+  every day, so existing `.tres` need no edit; on the argument it means "no particular day", so an
+  existing `entry_for_hour(hour)` call still answers — and deliberately not "any day", which would
+  have leaked a day-specific block into every day. Two things had to change with the lookup and
+  one was nearly missed: `problems()` keyed its duplicate check on the hour alone, so left as it
+  was **`check_content.gd` would have failed the build on correctly authored data**, and `NpcBrain`
+  now reads `Clock.day_of_cycle()` itself at both sites. A stated cost, being a layering
+  consequence: nothing validates a day against the real cycle length, because `content` may not
+  touch an autoload and `check_layers.gd` exists to refuse it reaching up into `systems`.
+  **The plan's budget warning was wrong and measuring beat both remedies** — `clock.gd` was
+  predicted to pass 150 and landed at **147**, so neither the split nor a justified budget was
+  needed; the split was refused on evidence, since `phase_flag` is public *because* it is the
+  spelling an author writes, which would have made the move a MAJOR. Plant: the day argument
+  ignored in the lookup gave exit 1, `2346 passed, 4 failed` against a control of `2350 passed,
+  0 failed` — three new assertions failing together and a fourth, *"the day's first hour switches
+  over"*, a pre-existing assertion this row never touched catching the same regression
+  independently. Gotcha 79 did not bite, which is a result: a new flag name was published and
+  nothing in an untouched file went red, confirming T5.31's `QuestTracker.ids_in_state` fix was
+  the last site, so the list stays at seventy-nine. `5.6.0`, a MINOR. 2,331 → **2,355
+  assertions**, +24: 11 in `npc_test`, 8 in `time_flags_test`, 2 in `record_shape_test` and **3 in
+  `doc_counts_test`, which the row did not see coming** — that case makes a claim of every line
+  outside the list that mentions a gotcha and spells a number, so this row's own prose about
+  gotcha 79 became three assertions about itself, all three passing. Measured by diffing every case
+  against `main` after the documentation landed; the pre-docs run read 2,350 and a predicted +21
+  would have been wrong by three. **This is the last planned row, and no chip was created because there is nothing to hand
+  off to**: every row on the board is DONE and the base is complete.
 
 ## Sequencing rules
 

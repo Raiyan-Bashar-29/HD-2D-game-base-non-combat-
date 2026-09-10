@@ -10724,4 +10724,24 @@ has no open row and no chip was created.
   not re-perform `AUTHORING.md`, `ART_CONTRACT.md`, `TESTING.md` or the extension surface, each of
   which found defects when performed and would likely find more.
 
-**Commit:** on `claude/t5-33-audit`, PR targeting `main`. No SHA, per board item 6.
+**CI, read out of the job logs rather than off the green tick (gotcha 26).** Run `34461450820` on
+`claude/t5-33-audit`, PR #64, both jobs `success`:
+
+| job | result |
+|---|---|
+| Ladder (full checkout) | `=== 2362 passed, 0 failed, 0 skipped ===` |
+| Ladder (stripped template) | `=== 2288 passed, 0 failed, 25 skipped ===` |
+
+**The gap is 74, the ninth consecutive recorded run at exactly 74, and still nothing enforces it.**
+The five new assertions build their content from `FixtureContent` and the two computed ones read
+`docs/`, neither of which the strip touches, so the gap holding is the right answer.
+
+**And this is where the new closing item 5 earned itself immediately.** The stripped number cannot
+be measured locally, so `TESTING.md` was written with `2288` *inferred* from the 74 gap — a
+prediction, of exactly the kind this project forbids, and it was flagged as one at the time rather
+than presented as measured. The CI log then returned `2288`. **Being right does not make it a
+measurement**, which is the whole reason item 5 now says that step finishes after CI: had the gap
+moved by one, the file teaching the suite would have shipped a wrong number for the third row
+running.
+
+**Commit:** on `claude/t5-33-audit`, PR #64, targeting `main`. No SHA, per board item 6.

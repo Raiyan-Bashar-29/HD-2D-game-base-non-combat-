@@ -10416,8 +10416,11 @@ changes a consuming game's call site and would make this a MAJOR rather than a M
 found `Clock.phase_flag`, `Clock.FLAG_DAY` and `Clock.FLAG_HOUR` have exactly one consumer between
 them — `tests/unit/time_flags_test.gd` — so the split would have traded a real API break for a
 number while splitting one concern across two files. `clock.gd` now has three lines of budget left,
-the tightest any file in this base has been, and the next row to touch it genuinely does face the
-split. Written down here so that is not rediscovered.
+and the next row to touch it genuinely does face the split. Written down here so that is not
+rediscovered. *(T5.33 correction: this entry originally called that "the tightest any file in this
+base has been". It was wrong twice — `director.gd` is at 187 of its raised 190 with the same three,
+and `dev_stage.gd` was at 248 of 250 with two before T5.20 split it. `clock.gd` and `director.gd`
+are the two tightest, three lines each.)*
 
 **Verified.**
 
@@ -10555,3 +10558,190 @@ would have bypassed a gate that was about to pass on its own.
 **Commit:** on `claude/t5-32-day-of-cycle`, PR targeting `main`. No SHA, per board item 6 — the
 commit that satisfies this step is the one this line goes into. With no next row to fill it in, it
 stays as written, which is itself the record that this is the end of the board.
+
+## 2026-09-10 — T5.33 · The audit of a base declared finished
+
+**Did.** Audited the base one row after declaring it complete, and fixed what the audit found.
+`NpcSchedule.problems()` now requires at least one entry at `on_day_of_cycle = -1`, with the
+reasoning in its own header and in `schedule_entry.gd`'s. Five assertions in `npc_test.gd` across a
+new `_every_schedule_must_cover_every_day`, plus a `_problems_mentioning` helper, plus one existing
+assertion re-expressed. Corrected three documentation numbers, deleted a fourth, and fixed the
+closing checklist that let two of them rot. `5.6.1`, a PATCH.
+
+**Why.** T5.32 closed the board, declared the base complete and deliberately created no chip. The
+owner then asked for a full check before starting a game on it. **The check found that the row
+declaring the base finished had made a documented invariant violable, one day earlier.** Both halves
+of that are the argument for auditing something you have just called done: the defect was new, and
+the document that would have caught it was the one nobody re-read.
+
+**The finding.** `schedule_entry.gd` has always promised, in its own header, that a day is *always
+completely covered* — "The cost is that a gap in the day cannot be expressed - which is correct,
+because an NPC is always somewhere." Before T5.32 that was not a convention but a STRUCTURAL fact:
+every entry applied on every day, so `entry_for_hour`'s wrap-to-the-last-block fallback could never
+come up empty. `on_day_of_cycle` made it violable by authored data for the first time, and nothing
+in the repository noticed — not `problems()`, not `check_content`, not one of 2,355 assertions.
+
+**Measured, not argued.** A throwaway probe under `--headless --script`, which works because
+`NpcSchedule` and `ScheduleEntry` touch no autoload — the same property that makes them loadable by
+`check_content`:
+
+```
+=== A: only day-specific entries, asked about a day that matches none ===
+  hours with NO block on day 2: 24 of 24
+  problems() reports: 0  ->  []
+  and on the market day itself, gaps: 0
+=== B: mixed - one every-day entry present ===
+  gaps on day 2: 0, on day 3: 0        problems(): 0
+=== C: two day-specific entries, different days, same hour ===
+  day1 -> a_place   day2 -> b_place    problems(): 0
+=== D: a day ABOVE the cycle length ===
+  problems(): 0    ever selected across a 7-day cycle: false
+```
+
+Case A is the defect: an author who writes only day-specific entries gets an NPC with no
+instructions for twenty-four hours on every day the schedule does not name, and the build says
+nothing. `NpcBrain.decide_for_hour` returns early on a null entry, so the NPC keeps standing
+wherever it happened to be — precisely the "reads as random" failure the entry header exists to
+prevent. **Cases B, C and D came back correct, and that is why case A was worth acting on rather
+than a symptom of something broader**: an every-day block still covers a named special day, two
+day-specific entries on *different* days at one hour resolve independently and are correctly NOT
+reported as a collision, and an over-range day parses and is never selected — the cost T5.32 stated
+in writing, now confirmed by running it.
+
+**Connects.** T5.32 introduced the hole; this closes it. ADR-0007 and `check_layers.gd` are why the
+rule is the shape it is. `1.0.2`, `5.3.2` and `5.3.3` in `CHANGELOG.md` are the version precedent.
+T5.26's declined column-count gate is why the table scan here was rewritten before its result was
+believed.
+
+**One rule, at exactly the strength this layer supports.** Every schedule must carry at least one
+entry at `-1`. That is necessary *and* sufficient for total coverage: `_applies_on` admits an
+every-day entry whatever day is asked, so `latest` is never null and `entry_for_hour` never returns
+null. The stronger rule — every day of the cycle is covered — was rejected on layering rather than
+effort: it needs `Clock.days_per_cycle`, `NpcSchedule` is in `content`, and `check_layers.gd` exists
+to refuse `content` reaching up into `systems`. So coverage is now half enforced and half a stated
+cost, and both headers say which half is which rather than leaving a reader to find out.
+
+**Verified.**
+
+| rung | result |
+|---|---|
+| `--import` | exit 0, no `SCRIPT ERROR`, no `Parse Error` |
+| boot | `0 warnings, 0 errors` |
+| suite | `2362 passed, 0 failed, 0 skipped`, exit 0 |
+| seven checkers | each exit 0, each `PASS` |
+
+**Plant — the new check disabled with `if false and not covers_every_day`:**
+
+| run | result |
+|---|---|
+| control | `2362 passed, 0 failed`, exit 0 |
+| plant | **exit 1**, `2361 passed, 1 failed` |
+| control, restored | `2362 passed, 0 failed`, exit 0 |
+
+```
+FAILED: and that is reported as a problem rather than passing check_content — expected 1, got 0
+```
+
+**The 24-of-24 consequence assertion stays GREEN under the plant, deliberately, and that shape is
+worth keeping.** The gap exists whether or not the validator reports it. A single assertion bundling
+the consequence and the report would have gone red for the wrong reason, and taught a later reader
+that the plant changed the coverage rather than the reporting.
+
+**An existing assertion had to be re-expressed, which is the kind of thing a new rule does to a
+suite.** T5.32's collision case asserted `problems().size() == 1` on a schedule that also happens to
+have no every-day entry, so it now reports two. Rewritten to count problems by PHRASE through
+`_problems_mentioning`, because an assertion on a total silently depends on how many *other* rules
+the same resource breaks — fragile rather than strict, and it would have failed the next time any
+validator gained a rule.
+
+**Three documentation numbers were wrong.**
+
+| where | said | actually |
+|---|---|---|
+| `TESTING.md` opening | full `2302 passed`, stripped `2226 passed` | `2362` / `2288` |
+| `NEW_GAME.md` § 7 | "all 930 assertions stay green" | number deleted; it carried no weight |
+| T5.32's record | `clock.gd`'s 3 spare lines were "the tightest any file has been" | `director.gd` has 3; `dev_stage.gd` had 2 pre-T5.20 |
+
+**`TESTING.md` is the one with a lesson, because it was missed by two rows running.** Closing item 5
+was being read as "update `CLAUDE.md` and `ARCHITECTURE.md`" — the two files the T5.32 brief named —
+while the suite size is stated in FOUR places. T5.31 updated two and left two; T5.32 did exactly the
+same, in the file a newcomer reads to learn the suite. **The stale pair even contradicted the rest of
+the repository**: `2302 − 2226 = 76`, against a stripped gap the board recorded as exactly 74 for
+eight straight runs. Nothing caught that, and it is the cheapest kind of contradiction to catch.
+Item 5 now enumerates all four files and states that the stripped number can only come from the CI
+job log, so that step finishes AFTER CI rather than before.
+
+**`NEW_GAME.md`'s number was deleted rather than corrected.** The sentence's point is that a
+narrowed export filter fails while everything on disk stays green; no reader needs the total to
+follow it. Replacing a stale number with a fresh one only schedules the next staleness, so where a
+count carries no weight the right fix is to remove it.
+
+**T5.32's budget claim was wrong twice, and no gate could have caught it** because it was a claim
+about this base's own history rather than about its code: `director.gd` is at 187 of its raised 190
+with the same three spare lines, and `dev_stage.gd` stood at 248 of 250 — two — until T5.20 split it.
+The corrected statement is narrower and more useful: `clock.gd` and `director.gd` are the two
+tightest files in the base, three lines each, and the next row to touch either faces a split.
+
+**What the audit CONFIRMED, recorded because a clean result is evidence too.**
+- **Zero markdown table column mismatches across every live document** — the defect that recurred
+  in T5.15, T5.19 and T5.26. A naive sweep produced four hits and **all four were false positives**:
+  an ASCII tree inside a code fence, and T5.32's own deliberately escaped `\|`. The scan was
+  rewritten to track fences and escaped and inline-code pipes before its result was trusted. That is
+  T5.26's measurement repeating — it declined a column-count gate because three of four candidates
+  were false positives — and it is the reason this audit reports a clean result rather than four
+  findings.
+- "Ten autoloads" (10), "seven checkers" (7), "eight template screens" — `ScreenKeys.menu_for`'s
+  chain is exactly eight — all correct against the code.
+- `AUTHORING.md`'s "20 per area to `transitions_test`, 5 to `world_map_test`" is correct, and was
+  nearly reported as an off-by-one: `world_map_test` declares `PER_AREA = 4`, and the 5 is right
+  only because the plan also carries `PER_DEF = 1` with one def asserted per area.
+- `UPGRADING.md`'s and `NEW_GAME.md:149`'s run outputs are correctly attributed to named synthetic
+  forks and legitimately frozen — the contrast with the unattributed 930 is what made that a
+  finding and these not.
+- No TODO/FIXME/HACK debt under `src/`, `tools/`, `tests/`. Nine `NO CALLER` exemptions, each with
+  its reason. CHANGELOG headings ordered, no duplicates.
+
+**2,355 → 2,362, +7**: five in `npc_test` (79 → 84) and **two in `record_shape_test`** (137 → 139),
+this row's own package id passing through a computed plan — exactly the effect T5.32 documented one
+row earlier, and the pre-documentation run read 2,360, so a predicted +5 would have been wrong by
+two. `doc_counts_test` did NOT move, because this row spells no gotcha count anywhere. **The plan guard caught an
+off-by-one on the way** — `npc_test planned 85 outcomes and produced 84`, with all 84 passing — which
+is that mechanism doing exactly its job, and worth recording because a stale plan is the one test
+defect whose failure text reads like a crash.
+
+**Unblocks.** A game, again — but now with the coverage rule gated rather than promised. The board
+has no open row and no chip was created.
+
+**Gaps.**
+- A day above the cycle length is still silently inert. Unchanged by this row, argued in
+  `schedule_entry.gd` and flagged in `AUTHORING.md`; closing it needs `content` to read `systems`.
+- **The four files stating the suite size are still ungated.** This row fixed the numbers and the
+  checklist, not the absence of a check. A `docs_test`-style assertion comparing a stated total to
+  the runner's own is possible for the full checkout; the stripped number is not available inside
+  the suite at all, which is the same cross-job comparison T5.27 named and left open.
+- The audit was one session's sweep, not exhaustive. It covered the ladder, cross-document numeric
+  claims, table structure, TODO debt, exemptions and the code this row's predecessor touched. It did
+  not re-perform `AUTHORING.md`, `ART_CONTRACT.md`, `TESTING.md` or the extension surface, each of
+  which found defects when performed and would likely find more.
+
+**CI, read out of the job logs rather than off the green tick (gotcha 26).** Run `34461450820` on
+`claude/t5-33-audit`, PR #64, both jobs `success`:
+
+| job | result |
+|---|---|
+| Ladder (full checkout) | `=== 2362 passed, 0 failed, 0 skipped ===` |
+| Ladder (stripped template) | `=== 2288 passed, 0 failed, 25 skipped ===` |
+
+**The gap is 74, the ninth consecutive recorded run at exactly 74, and still nothing enforces it.**
+The five new assertions build their content from `FixtureContent` and the two computed ones read
+`docs/`, neither of which the strip touches, so the gap holding is the right answer.
+
+**And this is where the new closing item 5 earned itself immediately.** The stripped number cannot
+be measured locally, so `TESTING.md` was written with `2288` *inferred* from the 74 gap — a
+prediction, of exactly the kind this project forbids, and it was flagged as one at the time rather
+than presented as measured. The CI log then returned `2288`. **Being right does not make it a
+measurement**, which is the whole reason item 5 now says that step finishes after CI: had the gap
+moved by one, the file teaching the suite would have shipped a wrong number for the third row
+running.
+
+**Commit:** on `claude/t5-33-audit`, PR #64, targeting `main`. No SHA, per board item 6.

@@ -19,6 +19,15 @@ extends Resource
 ## disagree about who owns 14:00. The cost is that a gap in the day cannot be expressed - which
 ## is correct, because an NPC is always somewhere.
 ##
+## AND THAT INVARIANT IS NOW GUARDED RATHER THAN MERELY CLAIMED, WHICH IS T5.33. Adding
+## `on_day_of_cycle` in T5.32 made it violable by authored data for the first time: a schedule of
+## ONLY day-specific entries answers nothing on any other day - measured at 24 hours of 24 - and
+## `problems()` was silent, so `check_content` passed and the NPC simply stood wherever it was.
+## `NpcSchedule.problems` now requires at least one entry at `-1`, which is both necessary and
+## sufficient for total coverage and needs no autoload to check. The lesson is the general one:
+## an invariant a header asserts and no gate enforces is a comment, and the row that adds a new
+## degree of freedom is the row that has to go back and ask what the old promise rested on.
+##
 ## AND UNTIL T5.32 THERE WAS NO `on_day_of_cycle`, WHICH MEANT EVERY NPC REPEATED ONE IDENTICAL
 ## DAY FOREVER. `from_hour` was the entry's whole address and `entry_for_hour` was the whole
 ## lookup, so a market day — or any weekly rhythm at all — was not merely unauthored, it was

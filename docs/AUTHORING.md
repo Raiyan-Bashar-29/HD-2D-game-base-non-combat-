@@ -778,7 +778,14 @@ activity = 0
 - **The cycle length is `Clock.days_per_cycle`, which defaults to 7 and is your game's to set** —
   from code at startup, the same way `seconds_per_minute` is set. Days run `1` to
   `days_per_cycle`, and day 1 of a new game is day 1 of the cycle.
-- **Nothing validates a day against the real cycle length**, and this is the one trap here. An
+- **EVERY SCHEDULE NEEDS AT LEAST ONE ENTRY AT `-1`, and `check_content` fails one that has
+  none.** This is the rule to know, because breaking it is silent in the worst way. A schedule made
+  only of day-specific entries answers **nothing at all** on any day it does not name — measured at
+  24 hours of 24 — and `NpcBrain` returns early on that, so the NPC stands wherever it last was and
+  nothing says why. One every-day entry is exactly what guarantees full coverage, so the gate asks
+  for exactly that. T5.32 introduced the hole and T5.33 closed it; if you are reading a fork at
+  `5.6.0`, the hole is open and unreported.
+- **Nothing validates a day against the real cycle length**, and this is the other trap here. An
   `on_day_of_cycle` of `9` on a seven-day cycle parses, loads, passes `check_content` and is simply
   a block that never runs. `NpcSchedule` and `ScheduleEntry` are in the `content` layer and may not
   touch an autoload, so no validator there can ask `Clock` what the cycle length is —

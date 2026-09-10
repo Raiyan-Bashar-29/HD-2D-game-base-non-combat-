@@ -23,7 +23,7 @@ var _schedule: NpcSchedule = null
 
 
 func run() -> void:
-	plan(79)
+	plan(84)
 	_authored_waypoints_exist_somewhere()
 	_set_up()
 	_the_catalogue_is_sound()
@@ -31,6 +31,7 @@ func run() -> void:
 	_the_night_shift_wraps_past_midnight()
 	_a_market_day_resolves_differently()
 	_the_validator_tells_a_market_day_from_a_collision()
+	_every_schedule_must_cover_every_day()
 	_whereabouts_survive_a_save()
 	_tear_down()
 
@@ -142,19 +143,84 @@ func _the_validator_tells_a_market_day_from_a_collision() -> void:
 	var clashing := NpcSchedule.new()
 	clashing.id = FixtureContent.SCHEDULE
 	clashing.entries = both
-	var clashes: PackedStringArray = clashing.problems()
-	equal("but two agreeing on both is still one reported problem: %s" % str(clashes),
-		clashes.size(), 1)
+	# Counted by phrase, not by total: this schedule also has no every-day entry, which T5.33
+	# made a problem of its own, and asserting `size() == 1` would tie this assertion to how
+	# many OTHER rules the same resource happens to break.
+	equal("but two agreeing on both is still reported",
+		_problems_mentioning(clashing, "two entries starting at"), 1)
 	equal("and it names the day, so an author can find which of the two blocks to move",
-		clashes[0].contains("day %d" % FixtureContent.MARKET_DAY), true)
+		_problems_mentioning(clashing, "day %d of the cycle" % FixtureContent.MARKET_DAY), 1)
 
 	var below: Array[ScheduleEntry] = []
 	below.append(_bare_entry(FixtureContent.MORNING_HOUR, -2))
 	var nonsense := NpcSchedule.new()
 	nonsense.id = FixtureContent.SCHEDULE
 	nonsense.entries = below
+	# Two problems now, not one: the nonsense day AND the missing every-day entry below.
 	equal("a day below -1 is neither every day nor a day, and is reported",
-		nonsense.problems().size(), 1)
+		_problems_mentioning(nonsense, "neither -1 nor a day"), 1)
+
+
+## THE COVERAGE GUARANTEE, WHICH T5.32 BROKE AND AN AUDIT CAUGHT RATHER THAN A GATE.
+##
+## `schedule_entry.gd` promises a day is ALWAYS completely covered, "because an NPC is always
+## somewhere", and before `on_day_of_cycle` existed that was structurally true: any entry applied
+## on any day, so the wrap-to-last-block fallback could never come up empty. A day-specific entry
+## broke it, and nothing noticed — a schedule of only day-specific blocks answered NOTHING on any
+## other day while `problems()` returned zero, so `check_content` passed on content that strands
+## an NPC. `NpcBrain.decide_for_hour` returns early on a null entry, so the NPC keeps standing
+## wherever it happened to be: the "reads as random" failure that header exists to prevent.
+##
+## ONE ENTRY AT `-1` IS NECESSARY AND SUFFICIENT, which is why that is the rule rather than
+## "every day of the cycle is covered". The stronger rule would need `Clock.days_per_cycle`, and
+## `content` may not touch an autoload. This asserts both halves: that the rule is enforced, and
+## that satisfying it really does restore total coverage.
+func _every_schedule_must_cover_every_day() -> void:
+	var only_specific: Array[ScheduleEntry] = []
+	only_specific.append(_bare_entry(FixtureContent.MORNING_HOUR, FixtureContent.MARKET_DAY))
+	only_specific.append(_bare_entry(FixtureContent.EVENING_HOUR, FixtureContent.MARKET_DAY))
+	var stranded := NpcSchedule.new()
+	stranded.id = FixtureContent.SCHEDULE
+	stranded.entries = only_specific
+
+	# The consequence first, so the assertion below is guarding a measured failure and not a rule
+	# for its own sake: on any day the schedule does not name, EVERY hour comes back null.
+	var unanswered: int = 0
+	for hour: int in 24:
+		if stranded.entry_for_hour(hour, FixtureContent.ORDINARY_DAY) == null:
+			unanswered += 1
+	equal("with no every-day entry, every hour of an unnamed day answers nothing",
+		unanswered, 24)
+	equal("and that is reported as a problem rather than passing check_content",
+		_problems_mentioning(stranded, "no every-day entry"), 1)
+
+	# Adding one every-day entry restores total coverage, on the named day and every other.
+	var repaired: Array[ScheduleEntry] = only_specific.duplicate()
+	repaired.append(_bare_entry(FixtureContent.MORNING_HOUR, -1))
+	stranded.entries = repaired
+	equal("one every-day entry clears the problem", stranded.problems().size(), 0)
+	var still_null: int = 0
+	for hour: int in 24:
+		if stranded.entry_for_hour(hour, FixtureContent.ORDINARY_DAY) == null:
+			still_null += 1
+		if stranded.entry_for_hour(hour, FixtureContent.MARKET_DAY) == null:
+			still_null += 1
+	equal("and no hour on any day answers nothing again", still_null, 0)
+
+	# The fixture is the positive control: it has every-day entries, so it was never affected.
+	equal("the fixture schedule already satisfied the rule",
+		_problems_mentioning(_schedule, "no every-day entry"), 0)
+
+
+## Problems whose text contains a phrase. Counted rather than totalled, because a malformed
+## fixture legitimately reports several things at once and a bare `size()` would make each
+## assertion depend on how many OTHER rules the same resource happens to break.
+func _problems_mentioning(sched: NpcSchedule, phrase: String) -> int:
+	var n: int = 0
+	for problem: String in sched.problems():
+		if problem.contains(phrase):
+			n += 1
+	return n
 
 
 ## An entry with a waypoint, so `ScheduleEntry.problems` has nothing of its own to say and the

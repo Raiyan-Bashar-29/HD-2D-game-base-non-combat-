@@ -3,110 +3,104 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-10 · **T5.32 (a schedule could only describe one day) complete, at 5.6.0,
-a MINOR** — the base gained something a game may ignore, and every existing authored `.tres` stays
-valid unedited. **THIS IS THE LAST PLANNED ROW. THE BASE IS COMPLETE.** Every row on the board is
-DONE, no chip was created because there is nothing to hand off to, and the next thing to happen to
-this repository is a game being started on it — [`NEW_GAME.md`](NEW_GAME.md) is that checklist.
+**Last updated:** 2026-09-10 · **T5.33 (the audit of a base declared finished) complete, at 5.6.1,
+a PATCH.** The base is complete *and* audited. Every row on the board is DONE; the next thing to
+happen to this repository is a game being started on it, and [`NEW_GAME.md`](NEW_GAME.md) is that
+checklist.
 
-**IT WAS OPTIONAL, AND IT EXISTS BECAUSE THE OWNER CHOSE IT.** The plan rated this row
-non-blocking and named it *"the honest place to stop early if you want to"*. It was put to the
-owner as a live three-way choice — build it, close it by written refusal, or defer it and start a
-game — and the answer was to build it in full. That is worth recording: the row is here by
-decision, not by a board row implying it.
+**THE ROW THAT DECLARED THE BASE FINISHED HAD MADE A DOCUMENTED INVARIANT VIOLABLE, AND THE AUDIT
+FOUND IT ONE DAY LATER.** T5.32 closed the board and created no chip. The owner asked for a full
+check before starting a game — and that check is the whole argument for auditing something you have
+just called done.
 
-**`ScheduleEntry` EXPORTED `from_hour` AND NOTHING ELSE.** So an hour was an entry's whole address,
-`NpcSchedule.entry_for_hour(hour)` was the whole lookup, and **every NPC in every game built on
-this base repeated one identical day, forever**. A market day, a temple busy one day in seven, a
-character who takes a day off: not badly supported — *inexpressible*, with nothing in the
-repository saying so.
+`schedule_entry.gd` has always promised **a day is always completely covered**, "because an NPC is
+always somewhere". Before T5.32 that was not a convention but a STRUCTURAL fact: every entry applied
+on every day, so `entry_for_hour`'s wrap-to-the-last-block fallback could never come up empty.
+`on_day_of_cycle` made it violable by authored data, and **nothing noticed** — not `problems()`, not
+`check_content`, not one of 2,355 assertions.
 
-**IN SCOPE ONLY BECAUSE OF ADR-0007, AND THE LINE IT DRAWS IS THE WHOLE JUSTIFICATION.** Its seam
-test puts a cycle *length* on the TEMPLATE DEFAULT side — a formula, one number and one modulo —
-and a *calendar* on the GAME CHOICE side. So the row adds `days_per_cycle` and adds **no weekday
-names, no months, no seasons and no date type**, and that refusal is as much of the deliverable as
-the feature. `rest_point.gd` was not touched: it reads an authored `night_only` and calls
-`Clock.is_night()`, which `traversal_test.gd:95` asserts exactly, and an earlier draft's claim that
-it hardcodes the hour was false.
+**Measured with a throwaway probe rather than argued**, run under `--headless --script` because
+`NpcSchedule` and `ScheduleEntry` touch no autoload:
 
-It follows T5.31's seam verbatim, because **that seam was built for this**. `time/day_of_cycle`
-publishes like `time/day`: through `Flags.declare_derived`, from `_publish_time()`, which runs on
-both the tick and the jump path before their emits, plus `_republish()` on `game_started` /
-`game_loaded`. Adding the key was one line there and nothing else.
+```
+only day-specific entries, asked about a day that matches none
+  hours with NO block on day 2: 24 of 24
+  problems() reports: 0  ->  []
+```
 
-**AN ORDERED INT, NOT A BOOL-PER-NAME — A DEPARTURE FROM T5.31 ONE ROW LATER, STATED RATHER THAN
-DRIFTED INTO.** T5.31's argument for names is entirely an argument about a PHASE, and it rests on
-two properties: an enum behind it, and a day wrapping where an enum does not, so `AT_LEAST DUSK`
-holds at 00:00 and fails at 06:00. A day of the cycle has **neither** — no enum to be inserted
-into, and no wrap inside its own range, which runs `1` to `days_per_cycle` and stops. So `EQUALS 3`
-is a market day, `AT_LEAST 5` is the back half, and both mean what an author expects. The suite
-asserts the difference rather than arguing it: the `AT_LEAST 4` assertion is one that **could not
-be written at all** under the phase's shape.
+So an author who writes only day-specific entries gets an NPC with no instructions for
+twenty-four hours on every unnamed day, and the build says nothing. `NpcBrain.decide_for_hour`
+returns early on null, so the NPC stands wherever it happened to be — the "reads as random" failure
+that header exists to prevent. **The probe's three other cases came back correct**, which is what
+made the first one a defect rather than a symptom of a mess.
 
-**THE DEFAULT IS WHAT MAKES IT A MINOR, AND `-1` DOES THE WORK TWICE.** On the field it means every
-day, so every `.tres` authored before the field existed resolves as before, with no edit and no
-migration — `GameEnums`' append-only discipline, for the same reason: these numbers live inside
-authored files. On the *argument* it means "no particular day", so an existing
-`entry_for_hour(hour)` call site still compiles and still answers. What it deliberately does **not**
-mean is "any day" — that reading would leak a day-specific block into every day, which is the
-defect this row exists to fix arriving through the fix. There is an assertion on exactly that.
+**ONE RULE, AT EXACTLY THE STRENGTH THE LAYER SUPPORTS.** Every schedule must carry at least one
+entry at `-1`: necessary AND sufficient for total coverage, since `_applies_on` admits an every-day
+entry whatever day is asked. The stronger rule — every day of the cycle is covered — needs
+`Clock.days_per_cycle`, and `check_layers.gd` exists to refuse `content` reaching up into `systems`
+for it. So coverage is now half enforced and half a stated cost, and both headers say which is
+which.
 
-**TWO THINGS HAD TO CHANGE WITH THE LOOKUP, AND ONE WAS NEARLY MISSED.** `problems()` keyed its
-duplicate check on the hour alone — so left as it was, the very fixture proving the feature works
-would be reported as malformed content and **`check_content.gd` would have failed the build on
-correctly authored data**. Keyed on the pair `Vector2i(hour, day)`, a market day is legal and a
-genuine collision, two entries agreeing on both, still is not. And `NpcBrain` reads
-`Clock.day_of_cycle()` itself at both call sites rather than taking the day as a parameter: the
-hour is something a caller legitimately hypothesises about, while *which* day of the cycle it is is
-a fact `Clock` owns, and a second parameter would let two call sites disagree about the calendar.
-That is also what gives the new public method its `src/` caller for `check_methods.gd`.
+**PATCH, SETTLED ON THREE PRECEDENTS RATHER THAN INSTINCT.** A new gate that fails existing content
+looks like the MAJOR test *a file the game wrote must change*. This project has been here three
+times and called it PATCH every time — `5.3.3`, `5.3.2`, and `1.0.2`, which states the reason:
+*"That is the bug being fixed, not a new restriction."* A schedule with no every-day entry is
+already an NPC with no instructions.
 
-**A STATED COST, BEING A LAYERING CONSEQUENCE RATHER THAN AN OVERSIGHT.** Nothing validates a day
-against the real cycle length: `on_day_of_cycle = 9` on a seven-day cycle parses, loads, passes
-every checker and is simply a block that never runs. `NpcSchedule` and `ScheduleEntry` are in
-`content` and may not touch an autoload, so no validator there can ask `Clock` how long the cycle
-is — and `check_layers.gd` exists to refuse `content` reaching up into `systems` for a number. What
-*is* checked is the case needing no autoload: a value below `-1`. A draft header claimed
-`NpcSchedule.problems` caught the over-range case; it cannot, for the same reason, and the claim
-was corrected before commit rather than shipped as a comment promising a check nothing performs.
+**THE PLANT'S SHAPE IS THE POINT.** With the check disabled: exit 1, `2361 passed, 1 failed`,
+`expected 1, got 0`, against an exit-0 control of 2,362. And **the 24-of-24 consequence assertion
+stays GREEN under the plant** — deliberately, because the gap exists whether or not the validator
+reports it, and one assertion bundling both would go red for the wrong reason and teach a later
+reader that the gap was what changed.
 
-**THE PLAN'S BUDGET WARNING WAS WRONG, AND MEASURING BEAT BOTH REMEDIES.** `clock.gd` was at 142 of
-150 and predicted to go over, with the answer required to be a split or a justified budget rather
-than a quietly raised number. **Neither was needed: it landed at 147.** What would have cost the
-lines was a setter that republishes on assignment, dropped on an argument rather than to fit —
-`game_started` republishes, and a tick republishes within one in-game minute, so the window a
-setter closes is one no caller can observe, and `seconds_per_minute` has run without one since the
-file was written. **The split was refused on evidence**: `phase_flag`'s own header says it is public
-*because it is the spelling an author writes into a dialogue condition*, so moving it to a
-`ClockFlags` class changes a game's call site and makes this a MAJOR, and a grep found its only
-consumer is one test file. **`clock.gd` now has three lines of budget left** — the tightest any file
-in this base has been, and the next row to touch it genuinely does face the split.
+**AND THREE DOCUMENTATION NUMBERS WERE WRONG, ONE OF THEM CARRYING A CHECKLIST DEFECT.**
+`TESTING.md` stated the suite as `2302` / `2226` — **stale through two consecutive rows**, because
+closing item 5 was being read as "update `CLAUDE.md` and `ARCHITECTURE.md`" while the suite size
+lives in **four** files. The stale pair even disagreed with the rest of the repository: its
+difference was 76, against a stripped gap the board recorded as exactly 74 for eight straight runs,
+and nothing caught that either. Item 5 now enumerates all four and states that the stripped number
+can only come from the CI job log, so that step finishes AFTER CI. `NEW_GAME.md`'s "all 930
+assertions" had the number **deleted** rather than updated — the better fix for a count no reader
+needs, since replacing a stale number just schedules the next one. And T5.32's claim that
+`clock.gd`'s three spare lines were "the tightest any file in this base has been" was wrong twice:
+`director.gd` sits at 187 of its raised 190 with the same three, and `dev_stage.gd` was at 248 of
+250 with **two** before T5.20 split it. `clock.gd` and `director.gd` are the two tightest, three
+lines each, and the next row to touch either faces a split.
 
-**THE PLANT IS THE SHAPE THE PLAN ASKED FOR, AND A FOURTH FAILURE IS THE CHEAP EVIDENCE.** With the
-day argument ignored in the lookup: exit 1, `2346 passed, 4 failed`, against a control of
-`2350 passed, 0 failed`. Three are the new assertions failing together — *"an ordinary day gets the
-every-day block — expected fixture_post_a, got fixture_post_b"* among them. The fourth is *"the
-day's first hour switches over"*, a **pre-existing** assertion in
-`_the_night_shift_wraps_past_midnight` that this row never touched, catching the same regression
-independently: the cheapest possible evidence that the new entry did not open a hole in the old
-behaviour.
+**WHAT THE AUDIT CONFIRMED IS RECORDED TOO, BECAUSE A CLEAN RESULT IS EVIDENCE.** Zero markdown
+table column mismatches across every live document — the defect that recurred in T5.15, T5.19 and
+T5.26 — though a naive sweep produced four hits and **all four were false positives**, so the scan
+was rewritten to track code fences and escaped pipes before the result was trusted; that is T5.26's
+own measurement repeating, and why it declined a column-count gate. "Ten autoloads", "seven
+checkers" and "eight template screens" (`ScreenKeys.menu_for`'s chain is exactly eight) all check
+out, as does `AUTHORING.md`'s per-area arithmetic — which was nearly mis-reported as an off-by-one
+before `world_map_test`'s plan was read properly as `PER_AREA 4 + PER_DEF 1`. No TODO/FIXME debt
+under `src/`, `tools/` or `tests/`; nine `NO CALLER` exemptions each with a reason.
 
-**GOTCHA 79 DID NOT BITE, AND THAT IS A RESULT.** T5.31 filed it — publishing new flag names interns
-new StringNames and shifts the intern table, reordering anything sorting `StringName`s with
-`.sort()`. This row published a new flag name and **nothing in a file it never touched went red**,
-confirming that T5.31's fix at `QuestTracker.ids_in_state` was the last site. No new gotcha, so the
-list stays at seventy-nine and the four documents stating its length are untouched.
+Suite 2,355 → **2,362**, +7 — five in `npc_test` (79 → 84) and **two in `record_shape_test`**
+(137 → 139), this row's own package id on the board, exactly the effect T5.32 documented one row
+earlier. `doc_counts_test` did NOT move, because this row spells no gotcha count. Measured after
+the documentation landed: the pre-docs run read 2,360, so a predicted +5 would have been wrong by
+two in precisely the way the previous row wrote down. **The plan guard caught an off-by-one on the way** — `npc_test planned 85
+outcomes and produced 84`, every one of the 84 passing — which is that mechanism doing its job, and
+worth knowing because a wrong plan is the one test defect that reads like a crash.
 
-Suite 2,331 → **2,355**, +24 — 11 in `npc_test`, 8 in `time_flags_test`, and **2 in
-`record_shape_test`**, whose plan is `_docs.size() + _packages.size() * 2 + 2`, so a package id on
-the board is worth exactly two outcomes — **and 3 in `doc_counts_test`, which is the one this row
-did not see coming.** The pre-docs run read 2,350, so a prediction of +21 would have been wrong by
-two, and only a per-case diff found which two: that case appends a CLAIM for every line outside the
-gotcha list that mentions a gotcha and spells a number, and this row's own prose about gotcha 79
-added three such lines. All three assert `seventy-nine` and all three pass. **That is exactly what T5.31 meant
-by "their own prose added a claim a computed plan counts", now for the second computed plan** —
-which is the whole argument for measuring after the documentation lands rather than before.
-
+*(Previously: T5.32 gave a schedule a second dimension at `5.6.0`, and it was the row the plan
+called explicitly optional — rated non-blocking, named "the honest place to stop early", put to the
+owner as a three-way choice and built in full. `ScheduleEntry` exported `from_hour` and nothing
+else, so an hour was an entry's whole address and `entry_for_hour(hour)` the whole lookup: **every
+NPC in every game on this base repeated one identical day forever**, a market day being not badly
+supported but INEXPRESSIBLE. In scope only because of ADR-0007, whose seam test puts a cycle LENGTH
+on the template-default side and a CALENDAR on the game-choice side — so it added `days_per_cycle`
+and no weekday names, months, seasons or date type. `time/day_of_cycle` publishes as an ORDERED int
+rather than the phase's bool-per-name, and the departure was stated rather than drifted into: that
+argument rests on an enum behind the value and a day wrapping where an enum does not, and a day of
+the cycle has neither. `-1` did the work twice, meaning "every day" on the field and "no particular
+day" on the argument, which is what kept it a MINOR. `problems()` had to re-key on the PAIR or
+`check_content` would have failed the build on correctly authored data. The plan's warning that
+`clock.gd` would exceed its 150-line budget was wrong — it landed at 147, so neither a split nor a
+justified budget was needed — and `doc_counts_test` caught the row out by counting its own prose
+about gotcha 79, which is why the delta was measured per case rather than predicted.)*
 *(Previously: T5.31 put `Clock` and `Weather` on the flag surface at `5.5.0`, and the defect was
 structural rather than missing — `Clock` held the time, emitted four signals and **never once
 called `Flags.set_flag`**, while `flag_query.gd` is the ONE evaluator `DialogueNode` and `QuestStep`
@@ -303,7 +297,7 @@ another sheet, and every facing draws a different figure.
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version is** **5.6.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+**The version is** **5.6.1**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
 the owner's to close or to leave.
 
 **THERE IS NO NEXT PACKAGE, AND THAT IS THE HANDOFF.** T5.32 was the last planned row and it is
@@ -375,7 +369,7 @@ three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite shee
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 4 on the default one, the
 fourth being a second IDLE rather than a gait**,
 1 shared area material, **21 settings and 21 consumers**.
-Template version **5.6.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+Template version **5.6.1**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
 recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 

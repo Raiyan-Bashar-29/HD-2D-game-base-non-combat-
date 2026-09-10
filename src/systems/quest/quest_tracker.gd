@@ -117,13 +117,26 @@ func step_progress(step: QuestStep) -> Vector2i:
 ## Sorted, so the journal draws a stable order without holding one of its own. Sorted by id and
 ## not by "when it started", because start order is not saved and inventing one would be a
 ## second kind of state to keep consistent.
+##
+## `sort_custom` THROUGH `String`, NOT `sort()` — GOTCHA 33, AND THIS FILE WAS THE SITE IT WAS
+## NEVER FIXED AT. `Array[StringName].sort()` orders by the StringName's interned handle rather
+## than alphabetically, so "a stable order" was a claim this function did not deliver: the order
+## was the allocator's, and it changed when anything else interned a name earlier in the boot.
+## `area_db.gd`, `equipment.gd` and `inventory.gd` each carry this same note and each fixed it;
+## the three of them are why the cause here was findable in a minute. Measured rather than
+## reasoned: eight names built in scrambled order sorted to alpha, delta, echo, foxtrot,
+## charlie, bravo, hotel, golf — neither alphabetical nor insertion order.
 func ids_in_state(state: GameEnums.QuestState) -> Array[StringName]:
 	var out: Array[StringName] = []
 	for quest_id: StringName in _state:
 		if _state[quest_id] == state:
 			out.append(quest_id)
-	out.sort()
+	out.sort_custom(_before)
 	return out
+
+
+func _before(a: StringName, b: StringName) -> bool:
+	return String(a) < String(b)
 
 
 ## Re-derive every quest and announce what moved. Public so a test can drive it without a frame,

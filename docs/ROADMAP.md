@@ -1353,6 +1353,51 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   `dev_screens.gd`, which is boundary-exempt debug code. `5.4.1`, a PATCH; `src/`, `tools/`,
   `tests/` and `.github/` byte-identical.
 
+- **T5.31 Clock and Weather on the flag surface — DONE, 2026-09-10.** `Clock` held the day, the
+  hour and the phase, emitted `minute_passed`, `hour_passed`, `day_passed` and
+  `day_phase_changed`, and **never once called `Flags.set_flag`**. `src/core/state/flag_query.gd`
+  is the ONE evaluator both `DialogueNode` and `QuestStep` go through and it reads `Flags` and
+  nothing else, so **no authored condition in the base could mention time or weather at all** —
+  including the shop hours `clock.gd`'s own header names as a reason a clock is foundational. Two
+  independent audits converged here and it was their only convergence. The seam needed no
+  invention: `Flags.declare_derived` already existed, is idempotent, and `_collect_save` skips
+  derived keys, so a published `time/hour` never reaches a save and recomputes from the clock's
+  own saved state — the shape `inventory.gd:59` has run on since T3.3, including its two
+  store-wipe subscriptions (`game_started` clears the flags and *then* emits; `game_loaded` fires
+  after every section is applied, so the republish cannot depend on participant order).
+  **THE UNPRICED COST WAS THE ROW, AND BOTH OFFERED ANSWERS WERE WRONG.** The plan said publish
+  enum ordinals and state the coupling, or publish stable string names. Ordinals do couple —
+  `GameEnums` is append-only because its numbers live in authored `.tscn` files — but the sharper
+  objection is that **ordering on a phase is meaningless whatever the numbering**: measured,
+  `phase_for_hour` across a day yields `6,6,6,6,6,0,0,1,1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,5`, so
+  `DEEP_NIGHT` is the highest ordinal and the earliest hours and `AT_LEAST DUSK` would hold at
+  00:00 and fail at 06:00. **And a string name would have been unreadable by the one evaluator, which
+  a throwaway probe measured rather than argued**: `FlagQuery.passes` against a flag holding
+  `"DUSK"` returns FALSE for every test in the closed set, `EQUALS` and `IS_TRUE` alike, each
+  logging `expected int` / `expected bool` — four flags that would have looked right in a dump and
+  answered nothing. So the third answer: `time/hour` and `time/day` as ordered ints, where
+  `AT_LEAST 9` with `AT_MOST 17` is a shop's hours and an ordering comparison means what an author
+  expects; and a phase and a weather kind as **one bool under the name**, erased rather than set
+  false so exactly one row exists — `Inventory` erases a spent stack rather than zeroing it, and
+  an absent flag answers `IS_TRUE` false and `IS_FALSE` true, so the semantics are identical at a
+  seventh of the rows. **No seventh comparison was added** to a set whose own file says it stays
+  closed. **AND THE ROW SURFACED A DOCUMENTED GOTCHA AT THE ONE SITE NOBODY HAD FIXED**:
+  `QuestTracker.ids_in_state` sorted with `Array[StringName].sort()`, which orders by interned
+  handle rather than alphabetically — gotcha 33, with a note and a fix already in `area_db.gd`,
+  `equipment.gd` and `inventory.gd`, and this function's own comment claiming *"sorted, so the
+  journal draws a stable order"*. It was the allocator's order; four new flag names shifted the
+  intern table and a journal assertion in `item_count_test.gd` went red on a code path this row
+  never touched. Fixed with the same `sort_custom(_before)` the other three use, and the test's
+  helper stopped reading "the last Label" and started addressing a named quest's own row. The
+  plant is the required shape: publishing dropped from the `set_time` path only, exit 1 on
+  two assertions, *"a jump onto the hour opens it"* and *"the flag was current inside that one
+  too — expected 14, got 11"*, where the `11` is what the tick path had published — one path red,
+  the other green. `5.5.0`, a MINOR: the base gained a seam a game may ignore. 2,302 →
+  **2,331 assertions**, +29: 27 in the new case and 2 in `record_shape_test`, whose plan is
+  `_docs.size() + _packages.size() * 2 + 2` so a new package id is worth exactly two. MEASURED by
+  diffing every case against `main`, and the re-measure after the documentation landed is what
+  caught the second pair — the first run read 2,329.
+
 ## Sequencing rules
 
 1. **Breadth of systems, one shallow proof each.** This *replaces* "depth before breadth", which

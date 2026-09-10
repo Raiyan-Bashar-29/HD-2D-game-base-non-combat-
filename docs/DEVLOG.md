@@ -10117,3 +10117,206 @@ they are expected. Recorded here; not worth a row on its own.
   now say "`game/`, or scripts beside your areas" rather than mandating one. If two forks pick
   differently that is fine; if the base ever wants to scan it, that has to be settled first.
 - `src/systems/scene_director/director.gd` is still at 187 of its 190, seventh row running.
+
+
+## 2026-09-10 — T5.31 · Clock and Weather on the flag surface
+
+**Did.** Published `Clock` and `Weather` onto the flag surface through the existing
+`Flags.declare_derived` seam, so an authored dialogue condition or quest step can ask what time it
+is. Four keys: `time/hour` and `time/day` as ordered ints, `time/phase/<name>` and
+`weather/kind/<name>` as one bool each under the lowercased enum name, exactly one row existing at
+a time. New case `tests/unit/time_flags_test.gd`, 27 assertions. Also fixed
+`QuestTracker.ids_in_state`, which this row surfaced as an unfixed site of gotcha 33, and the
+`item_count_test.gd` helper that was coupled to the broken order. `5.4.1` → `5.5.0`, a MINOR.
+
+**Why.** `Clock` held the day, the hour, the minute and the phase, emitted four signals, and never
+once called `Flags.set_flag`. `src/core/state/flag_query.gd` is the ONE evaluator both
+`DialogueNode` and `QuestStep` go through and it reads `Flags` and nothing else — so no authored
+condition in the base could mention time or weather at all, including the shop hours `clock.gd`'s
+own header names as a reason a clock is foundational. Two independent audits converged here and it
+was their only convergence.
+
+**The unpriced cost, and both answers the plan offered were wrong.** The plan said publish enum
+ordinals and state the coupling, or publish stable string names.
+
+Ordinals do couple, because `GameEnums` is append-only precisely so its numbers can live inside
+authored `.tscn` files. But the sharper objection is that ordering on a phase is meaningless
+whatever the numbering, and a probe measured it: `phase_for_hour` across a day gives
+
+```
+00:6 01:6 02:6 03:6 04:6 05:0 06:0 07:1 08:1 09:1 10:1 11:2
+12:2 13:2 14:3 15:3 16:3 17:4 18:4 19:4 20:5 21:5 22:5 23:5
+```
+
+`DEEP_NIGHT` is the highest ordinal and the earliest hours, so `AT_LEAST DUSK` holds at 00:00 and
+fails at 06:00. Equality is the only sound question about a phase.
+
+And a plain string name would have been unreadable by the one evaluator, which a second throwaway
+probe measured rather than argued:
+
+```
+PROBE equals-on-string:  false     [flags] probe/phase is String, expected int
+PROBE is_true-on-string: false     [flags] probe/phase is String, expected bool
+PROBE equals-on-int:     true
+PROBE is_true-on-bool:   true
+```
+
+The closed set compares bools and ints and nothing else. Publishing names as strings would have
+shipped four flags that looked right in a debug dump and answered nothing, and no gate in this
+repository would have caught it, because writing a flag is not the same claim as its being askable.
+That is why every assertion in the new case goes through `FlagQuery.passes` and not
+`Flags.get_int`.
+
+So the third answer, which the plan did not consider: ints where ordering means something, and a
+bool under the name where only equality does. No seventh comparison added to a set whose own file
+says it stays closed. Erase-not-set-false, following `Inventory`, so one row exists per concept
+rather than seven and fifteen; the erase runs before the set, because a phase flag left true would
+make an authored dawn-only line fire at every hour after the first dawn.
+
+**Connects.** `Flags.declare_derived` (T3.3, `inventory.gd:59`) — second caller, and both of that
+file's store-wipe subscriptions came across with it, since `Director.start_new_game` clears the
+flags and then emits `game_started` while `Flags._apply_save` clears a store whose derived keys are
+deliberately absent from the file it restores from. `FlagQuery` (WP-08) unchanged: the point of the
+row is that nothing about the evaluator had to move. `bag_mirror_test.gd` (T5.28) is the shape of
+the ordering assertions. ADR-0007 is why time was in scope at all and why a calendar is not.
+
+**Verified.** Twelve rungs, from a fresh worktree with `--import` first (gotcha 53).
+
+| rung | result |
+|---|---|
+| `--check-only` per file | clean; only the expected `Identifier not found: SaveSystem` |
+| `--headless --import` | no `SCRIPT ERROR`, no `Parse Error` |
+| `--headless --quit-after 30` | `Session ended after 0.8s — 0 warnings, 0 errors` |
+| `test_runner.tscn` | `2331 passed, 0 failed, 0 skipped`, exit 0 |
+| seven checkers | each exit 0, each `PASS`, zero `SCRIPT ERROR` lines |
+| windowed capture | `Captured 960x540`, `0 warnings, 0 errors`, HUD reads `Day 1 | 18:40 | Dusk`, and the PNG was looked at |
+
+Boot publishes exactly four rows, which is the claim rather than an inference:
+
+```
+[flags] time/day = 1
+[flags] time/hour = 6
+[flags] time/phase/dawn = true
+[flags] weather/kind/clear = true
+```
+
+**The plant, one path red and the other green.** Publishing removed from the `set_time` path only:
+
+| run | result |
+|---|---|
+| control | `2331 passed, 0 failed`, exit 0 |
+| plant | exit 1, `2329 passed, 2 failed` |
+
+The two failures are both on the jump path — *"a jump onto the hour opens it — expected true, got
+false"* and *"and the flag was current inside that one too — expected 14, got 11"* — and the `11`
+is the value the tick path had published, which is what makes it a plant that separates the two
+publish sites rather than one that breaks everything. `set_time` is not a corner: a sleep, a
+cutscene, a debug command and a loaded save all route through it.
+
+**Assertion delta, measured twice and not predicted — and the first measurement was wrong.**
+Baseline on `main` at `5.4.1`: 2,302. Final: **2,331**, so **+29**.
+
+The run taken straight after the code landed read **2,329**, with a per-case diff of one line:
+
+```
+46a47
+> time_flags_test: 27
+```
+
+That number is what a lazier version of this entry would have recorded, and it would have been
+wrong by two. Re-running after the documentation landed:
+
+```
+41c41
+< record_shape_test: 133
+---
+> record_shape_test: 135
+46a47
+> time_flags_test: 27
+```
+
+**`record_shape_test` moved by two, and the cause is arithmetic rather than a surprise:** its plan
+is `plan(_docs.size() + _packages.size() * 2 + 2)`, so adding one package id to the board is worth
+exactly two outcomes. Accounted per case, which is what the house rule asks for: 27 new case + 2
+record shape = 29.
+
+This is the same trap the previous two rows fell into — one predicted +2 and measured +4, the other
+predicted +5 and measured +6, both because their own prose added something a computed plan counts.
+The only defence is to measure after the record is written, not before, and to diff per case rather
+than read the total.
+
+**CI, read out of the job logs rather than off the green tick (gotcha 26).** Run
+`34451843653` on `claude/t5-31-time-flags`, PR #62, both jobs `success`:
+
+| job | result |
+|---|---|
+| Ladder (full checkout) | `=== 2331 passed, 0 failed, 0 skipped ===` |
+| Ladder (stripped template) | `=== 2257 passed, 0 failed, 25 skipped ===` |
+
+**The stripped gap is 74, which is the seventh consecutive recorded run at exactly 74.** Nothing
+enforces that number — no assertion compares the two jobs, and `check_content.gd` is deliberately
+exempt from the empty-scan guard because the strip deletes its whole input by design. So the gap
+holding is an observation each row has to make by reading both logs, not a gate; T5.27 named the
+cross-job comparison as a candidate and it is still a candidate. Worth noting that 27 new
+assertions landed in the full job and the gap did not move, which is the right answer: the new case
+builds nothing from `data/` or `scenes/areas/`, so it survives the strip intact.
+
+**What the row surfaced: gotcha 33, at the one site nobody had fixed.**
+`QuestTracker.ids_in_state` sorted with `Array[StringName].sort()`, which orders by interned handle
+rather than alphabetically. `area_db.gd`, `equipment.gd` and `inventory.gd` each already carry a
+note about it and each already sort through `String`; this function was missed, and its own doc
+comment claimed *"Sorted, so the journal draws a stable order without holding one of its own."* It
+was the allocator's order. Publishing four new flag names shifted the intern table and a journal
+assertion in `item_count_test.gd`, on a code path this row never touched, went red:
+
+| `src/` | `ids_in_state(ACTIVE)` returned |
+|---|---|
+| baseline | `[quest/fixture_gather, quest/fixture_errand]` |
+| with this row | `[quest/fixture_errand, quest/fixture_gather]` |
+
+The baseline is the order that is not alphabetical, so the failure looked like the new code's fault
+and was the old code's. **Two wrong hypotheses died before the right one, and both were cheaper
+than the three rounds of guessing that preceded them.** First a timing race, on the theory that
+`Clock._process` was waking `QuestTracker` through `flag_changed` mid-block — killed by the failure
+being deterministic across three runs. Then pointer-ordered sorting, which a two-element probe
+appeared to disprove:
+
+```
+PROBE StringName sort: [&"aaa_probe", &"zzz_probe"]
+```
+
+That came out alphabetical **by luck** — two elements have even odds — and the eight-element probe
+is what confirmed the cause:
+
+```
+PROBE StringName sort: [alpha, delta, echo, foxtrot, charlie, bravo, hotel, golf]
+PROBE String sort:     [alpha, bravo, charlie, delta, echo, foxtrot, golf, hotel]
+PROBE orders agree: false
+```
+
+Fixed with the same `sort_custom(_before)` the other three files use. The test helper stopped
+returning "the last Label in the list" — a bet on an order the base never promised — and now
+addresses a named quest through its own row; its old comment guarded the right way against the
+wrong risk, saying it found the row by type rather than index so a heading could not mislead it,
+while the order of the quests was the unexamined thing.
+
+Recorded as **gotcha 79**, not folded into 33, because the lesson is different: 33 says sort
+StringNames through `String`, and 79 says a gotcha with a note in three files is not a gotcha that
+is fixed — grep for the pattern, not the note; suspect the untouched file when a change in one
+system reddens an assertion in another; and do not prove a cause on two data points.
+
+**Unblocks.** Any authored content that wants to be time- or weather-gated, with no code: shop
+hours, a night-only conversation, a quest step that waits for rain. And P4, the optional
+day-of-cycle row, which needs `time/day_of_cycle` published the same way and now has the shape to
+copy.
+
+**Gaps.** `clock.gd` is at 142 of its 150-line budget, the tightest it has been — the next change
+to it will likely need a split or a justified budget, and `docs/ARCHITECTURE.md` § Line budgets is
+where that argument goes. No `time/minute` (a continuous value for a lighting gradient, not a
+question a condition asks, and it would rewrite a flag 1,440 times a day). No calendar, weekday,
+month or season — ADR-0007 game choices. `rest_point.gd` deliberately untouched: it reads an
+authored `@export var night_only` and calls `Clock.is_night()`, and `traversal_test.gd:95` asserts
+exactly that, so rewriting it would strip an `@export` from authored `.tscn` instances. Shop hours
+still take two conditions, because a quest step and a dialogue node each carry one; a game wanting
+both on one line writes a small listener in its own code root, and the base deliberately grows no
+expression language for it.

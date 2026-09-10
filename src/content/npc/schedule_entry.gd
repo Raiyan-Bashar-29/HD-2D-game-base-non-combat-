@@ -19,6 +19,14 @@ extends Resource
 ## disagree about who owns 14:00. The cost is that a gap in the day cannot be expressed - which
 ## is correct, because an NPC is always somewhere.
 ##
+## AND UNTIL T5.32 THERE WAS NO `on_day_of_cycle`, WHICH MEANT EVERY NPC REPEATED ONE IDENTICAL
+## DAY FOREVER. `from_hour` was the entry's whole address and `entry_for_hour` was the whole
+## lookup, so a market day — or any weekly rhythm at all — was not merely unauthored, it was
+## inexpressible. The fix is one more field on the address, and the DEFAULT IS WHAT MAKES IT SAFE:
+## `-1` means every day, so every `.tres` authored before this field existed keeps resolving
+## exactly as it did, with no edit and no migration. That is the same append-only discipline
+## `GameEnums` runs on, for the same reason — these numbers live inside authored files.
+##
 ## OWNS: one block of one schedule.
 ## MUST NOT: know which NPC uses it, resolve its own waypoint, or touch an autoload -
 ## tools/check_content.gd loads this class under `--headless --script`, where autoload
@@ -26,6 +34,19 @@ extends Resource
 
 ## The hour this block begins, 0 to 23. It runs until the next entry's hour.
 @export_range(0, 23, 1) var from_hour: int = 0
+## Which day of `Clock.days_per_cycle` this block runs on, or `-1` for every day. A day-specific
+## entry BEATS an every-day entry at the same hour, which is how a market day is authored: leave
+## the ordinary block alone and add one entry beside it.
+##
+## THE UPPER BOUND IS GENEROUS RATHER THAN DERIVED, AND NOTHING VALIDATES AGAINST IT. This class
+## MUST NOT touch an autoload — `check_content.gd` loads it where `Clock` does not resolve — and
+## neither may `NpcSchedule`, so no validator in this layer can ask what the cycle length is. A
+## day past the end of the cycle therefore parses, loads, and is simply an entry that never runs.
+## That is a stated cost, not an oversight: the alternative is `content` reaching up into
+## `systems` for a number, which is the dependency `check_layers.gd` exists to refuse. What IS
+## checked below is the one case that needs no autoload — a value below `-1`, which is not "every
+## day" and not a day either.
+@export_range(-1, 30, 1) var on_day_of_cycle: int = -1
 ## Name of a Marker3D under the area's `Waypoints/` node.
 @export var waypoint: StringName = &""
 ## What to do on arrival.
@@ -42,4 +63,8 @@ func problems(context: String) -> PackedStringArray:
 	var found: PackedStringArray = PackedStringArray()
 	if waypoint == &"":
 		found.append("%s has an entry at %02d:00 with no waypoint" % [context, from_hour])
+	if on_day_of_cycle < -1:
+		found.append("%s has an entry at %02d:00 on day %d, which is neither -1 nor a day" % [
+			context, from_hour, on_day_of_cycle,
+		])
 	return found

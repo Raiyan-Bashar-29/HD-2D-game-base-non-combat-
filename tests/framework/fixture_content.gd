@@ -48,6 +48,14 @@ const MORNING_WAYPOINT: StringName = &"fixture_post_a"
 const EVENING_WAYPOINT: StringName = &"fixture_post_b"
 const MORNING_HOUR: int = 6
 const EVENING_HOUR: int = 18
+## THE MARKET DAY. One entry sharing `MORNING_HOUR` with the ordinary morning block and differing
+## only by day, so the two collide on the hour and can only be told apart by the day — which is
+## exactly the resolution T5.32 added and exactly what its plant removes. It sends the walker to
+## the EVENING waypoint, reusing a name that already exists in an area rather than inventing a
+## third: `npc_test._authored_waypoints_exist_somewhere` checks every waypoint a schedule names.
+const MARKET_DAY: int = 3
+## A day of the cycle that is NOT the market day, for asserting the ordinary block still wins.
+const ORDINARY_DAY: int = 2
 
 const QUEST: StringName = &"quest/fixture_errand"
 const QUEST_START_FLAG: StringName = &"fixture/asked"
@@ -182,23 +190,33 @@ static func _plain(node_id: StringName, next_node: StringName) -> DialogueNode:
 	return node
 
 
-## Two blocks, so the wrap past midnight has a previous day's block to wrap INTO.
+## Two every-day blocks, so the wrap past midnight has a previous day's block to wrap INTO, plus
+## one MARKET-DAY block colliding with the morning one on the hour. The every-day pair is appended
+## FIRST on purpose: `npc_test` derives its `first` and `latest` blocks by scanning for the
+## extreme `from_hour` and takes the earliest match, so the ordinary morning block must be the one
+## it finds — a fixture whose day-agnostic assertions depended on array order would be measuring
+## this function rather than the lookup.
 static func schedule() -> NpcSchedule:
 	var made := NpcSchedule.new()
 	made.id = SCHEDULE
 	var entries: Array[ScheduleEntry] = []
 	entries.append(_entry(MORNING_HOUR, MORNING_WAYPOINT, GameEnums.NpcActivity.STAND))
 	entries.append(_entry(EVENING_HOUR, EVENING_WAYPOINT, GameEnums.NpcActivity.STAND))
+	entries.append(_entry(
+		MORNING_HOUR, EVENING_WAYPOINT, GameEnums.NpcActivity.STAND, MARKET_DAY))
 	made.entries = entries
 	return made
 
 
+## `on_day_of_cycle` defaults to `-1` here for the same reason it does on the resource: every
+## caller written before the field existed keeps building an every-day entry.
 static func _entry(from_hour: int, waypoint: StringName,
-		activity: GameEnums.NpcActivity) -> ScheduleEntry:
+		activity: GameEnums.NpcActivity, on_day_of_cycle: int = -1) -> ScheduleEntry:
 	var entry := ScheduleEntry.new()
 	entry.from_hour = from_hour
 	entry.waypoint = waypoint
 	entry.activity = activity
+	entry.on_day_of_cycle = on_day_of_cycle
 	return entry
 
 

@@ -19,6 +19,87 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.6.0
+
+*2026-09-10 — an NPC's day can differ from the day before it. A market day, or any weekly rhythm,
+was not merely unauthored before this: it was inexpressible.*
+
+**A consuming game does: nothing, to keep working.** One new flag appears, one new field appears on
+`ScheduleEntry` with a default that means "every day", and one new optional argument appears on
+`NpcSchedule.entry_for_hour`. **Every schedule `.tres` you have already written stays valid with no
+edit**, and every call you have already written returns what it always returned. If you want a
+weekly rhythm, read on; if you do not, merge and carry on.
+
+**MINOR, and the table above is why.** *A file the game wrote must change* is the MAJOR test, and
+nothing here forces that: `on_day_of_cycle` defaults to `-1`, which means every day, so an existing
+entry that never mentions the field resolves exactly as before. The `on_day` argument defaults to
+`-1` for the same reason, so an existing `entry_for_hour(hour)` call site still compiles and still
+answers. This is the base gaining something a game may ignore — the MINOR row, exactly. It is the
+same append-only discipline `GameEnums` runs on, and for the same reason: these numbers live inside
+authored files.
+
+**WHAT WAS BROKEN.** `ScheduleEntry` exported `from_hour` and nothing else, so an hour was an
+entry's whole address, and `NpcSchedule.entry_for_hour(hour)` was the whole lookup. **Every NPC in
+every game built on this base therefore repeated one identical day, forever.** There was no way to
+author a stall that only appears on market day, a temple that is busy one day in seven, or a
+character who takes one day off — not badly, but at all.
+
+**WHAT YOU CAN NOW WRITE.** Two things, and they are independent — take either or both.
+
+*In a schedule*, one extra entry beside the ordinary one:
+
+| Field | Shape | Means |
+|---|---|---|
+| `on_day_of_cycle` | int, `-1` or `1`..`days_per_cycle` | `-1` (the default) is every day; a number is that one day |
+
+A day-specific entry **beats** an every-day entry at the same hour, which is the whole authoring
+gesture: you add a block, you never rewrite one. Every hour the special day says nothing about
+still runs the ordinary blocks. Worked snippet in
+[`AUTHORING.md`](AUTHORING.md) § Add an NPC → *1. A schedule, if it should move*.
+
+*In any dialogue condition or quest step*, one new flag:
+
+| flag | shape | the test to use |
+|---|---|---|
+| `time/day_of_cycle` | int, `1`..`days_per_cycle` | `EQUALS 3` is a market day; `AT_LEAST 5` is the back half of the cycle |
+
+**IT IS AN INT, AND THAT IS THE ONE PLACE THIS ENTRY DEPARTS FROM 5.5.0 — DELIBERATELY.** 5.5.0
+argues at length that a phase is a *name* and not a number, and none of that argument transfers
+here, so do not carry it across. It rests on two properties of a phase: there is an enum behind it,
+and a day wraps where an enum does not, so `AT_LEAST DUSK` holds at 00:00 and fails at 06:00. A day
+of the cycle has neither property. It has no enum behind it to be inserted into, and it does not
+wrap inside its own range — it runs `1` to `days_per_cycle` and stops. So `EQUALS` and `AT_LEAST`
+both mean what you expect, and there is no `time/day_of_cycle/3` bool to go looking for. Declared
+through `Flags.declare_derived` like the rest of `time/`, so **it never reaches a save file** and
+recomputes from the clock's own saved day on load.
+
+**SETTING THE CYCLE LENGTH.** `Clock.days_per_cycle` defaults to **7** and is an `@export`. Set it
+from code at startup, exactly as you already set `seconds_per_minute` — these are exports on a
+*script* autoload and Godot exposes no inspector for those. There is deliberately no setter that
+republishes: `Director.start_new_game` emits `game_started`, which the clock's `_republish` is
+connected to, so a value set before a game begins is published when it begins, and after that any
+tick republishes within one in-game minute.
+
+**TWO STATED COSTS, because both will reach you eventually and neither is a bug.**
+
+1. **Nothing validates a day against the real cycle length.** An `on_day_of_cycle` of `9` on a
+   seven-day cycle parses, loads, passes `check_content` and is simply a block that never runs.
+   `NpcSchedule` and `ScheduleEntry` live in the `content` layer and may not touch an autoload, so
+   no validator there can ask `Clock` how long the cycle is — `check_layers.gd` exists to refuse
+   exactly that dependency. What *is* checked is a value below `-1`, which needs no autoload.
+2. **There are no weekday names, months, seasons or a date type, and there will not be.** A cycle
+   *length* is a number, so the base supplies it as a default with a seam; a *calendar* is your
+   game's own. [ADR-0007](decisions/ADR-0007-template-default-vs-game-choice.md) draws that line,
+   and this row is on the default side of it only because a formula is all it adds. "Market Day" on
+   screen is a localization key your game maps from `time/day_of_cycle`, in your code root.
+
+**One thing to know if you subclass or replace `NpcBrain`.** It now reads `Clock.day_of_cycle()`
+itself and passes it into the lookup, rather than taking the day as a parameter. The hour stays a
+parameter because a caller legitimately hypothesises about it — the suite drives a whole day,
+`--npc-day` steps one — while *which day of the cycle it is* is a fact about the world that `Clock`
+owns, and a second parameter would let two call sites disagree about the calendar.
+
+---
 ## 5.5.0
 
 *2026-09-10 — `Clock` and `Weather` reach the flag surface, so an authored condition can finally

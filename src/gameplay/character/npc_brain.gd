@@ -161,10 +161,15 @@ func is_travelling() -> bool:
 
 ## Re-read the schedule for an hour and go. Public so the suite can drive a whole day in a loop
 ## rather than waiting twenty-four real minutes for one.
+##
+## THE DAY OF THE CYCLE IS READ HERE RATHER THAN TAKEN AS AN ARGUMENT, and that is deliberate:
+## the hour is something a caller legitimately hypothesises about — the suite drives a whole day,
+## `--npc-day` steps one — while WHICH day of the cycle it is is a fact about the world that
+## `Clock` owns. A second parameter would let two call sites disagree about the calendar.
 func decide_for_hour(hour: int) -> void:
 	if _schedule == null:
 		return
-	var entry: ScheduleEntry = _schedule.entry_for_hour(hour)
+	var entry: ScheduleEntry = _schedule.entry_for_hour(hour, Clock.day_of_cycle())
 	if entry == null:
 		return
 	_activity = entry.activity
@@ -181,7 +186,7 @@ func decide_for_hour(hour: int) -> void:
 func snap_to_hour(hour: int) -> void:
 	if _schedule == null:
 		return
-	var entry: ScheduleEntry = _schedule.entry_for_hour(hour)
+	var entry: ScheduleEntry = _schedule.entry_for_hour(hour, Clock.day_of_cycle())
 	if entry == null:
 		return
 	_activity = entry.activity

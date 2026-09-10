@@ -33,18 +33,22 @@ const OPENS: int = 9
 const CLOSES: int = 17
 ## Returned when the flag is not there at all, which is what an erased phase leaves.
 const ABSENT: int = -1
+## A day of the cycle to gate on. Any day but the first, so "the cycle wrapped back to 1" and "the
+## authored day is here" are two distinguishable claims rather than one.
+const MARKET_DAY: int = 3
 
 var _hour_inside_signal: int = ABSENT
 var _signals_seen: int = 0
 
 
 func run() -> void:
-	plan(27)
+	plan(35)
 	_the_keys_are_derived()
 	_a_condition_flips_on_the_right_minute()
 	_and_on_the_set_time_path_too()
 	_the_flag_is_current_when_the_signal_fires()
 	_exactly_one_phase_is_true()
+	_the_day_of_cycle_is_an_ordered_int()
 	_and_exactly_one_weather_kind()
 	_restore()
 
@@ -60,6 +64,8 @@ func _the_keys_are_derived() -> void:
 		Flags.is_derived(Clock.phase_flag(GameEnums.DayPhase.DAWN)), true)
 	equal("so is a weather kind",
 		Flags.is_derived(Weather.kind_flag(GameEnums.WeatherKind.CLEAR)), true)
+	equal("and so is the day of the cycle, which is computed from the saved day",
+		Flags.is_derived(Clock.FLAG_DAY_OF_CYCLE), true)
 
 
 ## THE GATE, on the natural path. `advance_minutes` is what a passing minute does, one
@@ -141,6 +147,41 @@ func _exactly_one_phase_is_true() -> void:
 		Flags.has_flag(StringName(Clock.PHASE_PREFIX.trim_suffix("/"))), false)
 
 
+## AND THE DAY OF THE CYCLE IS PUBLISHED AS AN ORDERED INT, WHICH IS THIS ROW'S ONE DEPARTURE FROM
+## THE PHASE ABOVE. The argument for a bool-per-name is entirely an argument about a PHASE: a day
+## wraps where an enum does not, so ordering on it is meaningless and equality is all that is
+## sound. A day of the cycle has no enum behind it and does not wrap inside its own range, so both
+## comparisons mean what an author expects — and the `AT_LEAST` assertion here is the one that
+## could not be written at all under the phase's shape. That is the difference, asserted rather
+## than argued.
+func _the_day_of_cycle_is_an_ordered_int() -> void:
+	Clock.set_time(1, 6, 0)
+	equal("the first day of a new game is day one of the cycle", _cycle_is(1), true)
+	# The wrap, which is the whole point of a cycle: the day AFTER the last one is the first again.
+	# Read off `Clock.days_per_cycle` rather than a literal, so this holds if the default moves.
+	Clock.set_time(Clock.days_per_cycle + 1, 6, 0)
+	equal("and the day after the cycle ends is day one again", _cycle_is(1), true)
+
+	Clock.set_time(MARKET_DAY, 6, 0)
+	equal("an authored EQUALS gates content on one day of the cycle", _cycle_is(MARKET_DAY), true)
+	Clock.set_time(MARKET_DAY + 1, 6, 0)
+	equal("and that content is shut again the next day", _cycle_is(MARKET_DAY), false)
+	equal("while the same day next cycle opens it again",
+		_cycle_holds_on_day(MARKET_DAY + Clock.days_per_cycle, MARKET_DAY), true)
+
+	# THE ORDERED COMPARISON, and the reason this is an int. `AT_LEAST DUSK` holds at 00:00 and
+	# fails at 06:00; `AT_LEAST 4` on a seven-day cycle is the back half of the week and nothing
+	# else, whatever the numbering.
+	Clock.set_time(5, 6, 0)
+	equal("the back half of the cycle is AT_LEAST, which a phase could never be",
+		FlagQuery.passes(Clock.FLAG_DAY_OF_CYCLE, GameEnums.FlagTest.AT_LEAST, 4), true)
+	# And no bool-per-name row was published beside it. This is `_exactly_one_phase_is_true`'s
+	# closing assertion inverted: there, the guard is that no ordinal exists to be compared by
+	# accident; here, that no name-shaped row exists to be asked instead of the int.
+	equal("and no bool-per-name row was published beside the int",
+		Flags.with_prefix("%s/" % Clock.FLAG_DAY_OF_CYCLE).is_empty(), true)
+
+
 ## The same shape one system over, so the two namespaces cannot drift apart in how they answer.
 func _and_exactly_one_weather_kind() -> void:
 	Weather.force(GameEnums.WeatherKind.RAIN)
@@ -156,6 +197,16 @@ func _and_exactly_one_weather_kind() -> void:
 func _is_open() -> bool:
 	return (FlagQuery.passes(Clock.FLAG_HOUR, GameEnums.FlagTest.AT_LEAST, OPENS)
 		and FlagQuery.passes(Clock.FLAG_HOUR, GameEnums.FlagTest.AT_MOST, CLOSES))
+
+
+## Asked the way an author asks it: one EQUALS on one ordered int.
+func _cycle_is(of_day: int) -> bool:
+	return FlagQuery.passes(Clock.FLAG_DAY_OF_CYCLE, GameEnums.FlagTest.EQUALS, of_day)
+
+
+func _cycle_holds_on_day(absolute_day: int, of_cycle_day: int) -> bool:
+	Clock.set_time(absolute_day, 6, 0)
+	return _cycle_is(of_cycle_day)
 
 
 func _phase_holds(of_phase: GameEnums.DayPhase) -> bool:

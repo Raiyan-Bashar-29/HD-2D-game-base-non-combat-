@@ -10245,6 +10245,22 @@ predicted +5 and measured +6, both because their own prose added something a com
 The only defence is to measure after the record is written, not before, and to diff per case rather
 than read the total.
 
+**CI, read out of the job logs rather than off the green tick (gotcha 26).** Run
+`34451843653` on `claude/t5-31-time-flags`, PR #62, both jobs `success`:
+
+| job | result |
+|---|---|
+| Ladder (full checkout) | `=== 2331 passed, 0 failed, 0 skipped ===` |
+| Ladder (stripped template) | `=== 2257 passed, 0 failed, 25 skipped ===` |
+
+**The stripped gap is 74, which is the seventh consecutive recorded run at exactly 74.** Nothing
+enforces that number — no assertion compares the two jobs, and `check_content.gd` is deliberately
+exempt from the empty-scan guard because the strip deletes its whole input by design. So the gap
+holding is an observation each row has to make by reading both logs, not a gate; T5.27 named the
+cross-job comparison as a candidate and it is still a candidate. Worth noting that 27 new
+assertions landed in the full job and the gap did not move, which is the right answer: the new case
+builds nothing from `data/` or `scenes/areas/`, so it survives the strip intact.
+
 **What the row surfaced: gotcha 33, at the one site nobody had fixed.**
 `QuestTracker.ids_in_state` sorted with `Array[StringName].sort()`, which orders by interned handle
 rather than alphabetically. `area_db.gd`, `equipment.gd` and `inventory.gd` each already carry a

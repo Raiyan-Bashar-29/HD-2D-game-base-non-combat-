@@ -5574,4 +5574,5 @@ twice, before and after the record landed, by diffing every case against `main`:
 > time_flags_test: 27
 ```
 
-**Commit:** on `claude/t5-31-time-flags`, targeting `main`.
+**Commit:** on `claude/t5-31-time-flags`, PR #62, targeting `main`. No SHA, per item 6 — the
+commit that satisfies this step is the one this line goes into, so the next row fills it in.

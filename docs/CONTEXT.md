@@ -88,6 +88,19 @@ two outcomes. **Measured twice, before and after the record landed, by diffing e
 `main`** — the pre-documentation run read 2,329, and writing THAT number down is the mistake the
 last two rows made, both times because their own prose added a claim a computed plan counts.
 
+**NEXT, AND IT IS THE LAST PLANNED ROW — AND OPTIONAL.** T5.32, a cycle above the day:
+`ScheduleEntry` exports `from_hour` and nothing else and `NpcSchedule.entry_for_hour(hour)` is the
+whole lookup, so every NPC repeats one identical day forever and a market day is inexpressible.
+`Clock` gains a `days_per_cycle` export and publishes `time/day_of_cycle` — an **ordered int**,
+because a day-of-cycle genuinely is ordered and `EQUALS 3` means what an author expects, which is
+the one place this row should NOT copy T5.31's bool-per-name shape. `on_day_of_cycle` defaults to
+`-1`, meaning every day, so every existing authored `.tres` stays valid unedited. **The audit rated
+it non-blocking and the plan calls it "the honest place to stop early"**: every other planned row
+is done, so declaring the base finished and starting a game on it is a legitimate alternative and
+the owner's call. One warning for whoever takes it: **`clock.gd` is at 142 of its 150-line budget**,
+so an export plus a const plus a publish line may not fit, and the answer is a split or a justified
+budget in `ARCHITECTURE.md` § Line budgets rather than a quietly raised number.
+
 *(Previously: T5.30 performed the extension surface at `5.4.1`, the one consumer document never
 walked, with `src/`, `tools/`, `tests/` and `.github/` byte-identical and no game code committed —
 because `UPGRADING.md` and `NEW_GAME.md` both record that a performance happens OUTSIDE the

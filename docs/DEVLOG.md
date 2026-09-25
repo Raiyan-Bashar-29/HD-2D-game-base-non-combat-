@@ -10745,3 +10745,103 @@ moved by one, the file teaching the suite would have shipped a wrong number for 
 running.
 
 **Commit:** on `claude/t5-33-audit`, PR #64, targeting `main`. No SHA, per board item 6.
+
+## 2026-09-26 — T6.0 · Planning Phase T6
+
+**Did.** Planned Phase T6 and wrote it into the record: `ROADMAP.md` § Phase T6 with eight rows and
+eight exit criteria, board rows T6.0–T6.8 with a file manifest and budget warning per row, the
+`CONTEXT.md` headline and next-package paragraph, and corrections to three "Commonly forgotten"
+items and to `CONTEXT.md`'s candidates list. `5.6.2`, a PATCH; `src/`, `tools/` and `tests/` are
+byte-identical.
+
+**Why.** The owner asked what the base had missed, given it will be the formula for many games. The
+base was complete at `5.6.1`, so the question was whether anything structural was absent that every
+game would otherwise build or retrofit — and the risk in answering it was the one `CONTEXT.md` warns
+about in as many words: inventing work twenty reasonable lines at a time.
+
+**So the answer was filtered, not brainstormed.** Three filters, all already in the repository:
+ADR-0007's seam test for what a template DEFAULT is; the refused list, which is not reopened; and the
+standing rule that work is found, not invented. A candidate survived only as a confirmed defect or as
+an undecided item on `SYSTEMS_INVENTORY.md` § "Commonly forgotten" — a list that says of itself it
+was written *"so they are decisions rather than oversights"*, and eight of whose fifteen items were
+still neither.
+
+**Method.** Three parallel explorations: an inventory of what exists; a sweep of everything refused,
+deferred or settled; and a presence check across thirty-six capabilities a general HD-2D exploration
+base usually needs, each marked present, partial or absent with a file cited. Then an adversarial
+review of the draft ranking, asked specifically to classify each candidate against ADR-0007 and to
+grep before accepting any "absent". Then every load-bearing claim re-read in the code before it was
+written into the record.
+
+**The review overturned three first premises — which is what it was for.**
+
+| premise | reality |
+|---|---|
+| shader warm-up is missing (forgotten #14) | built in T2.0 — `Director.WARM_UP_FRAMES = 3`, `_warm_up()` at `director.gd:198` |
+| per-section save versions were never exercised | exercised — `core_test.gd:134` registers a v3 probe and asserts the applier saw 3 |
+| the F2 freecam is declared but unbound | bound at `actions.gd:127`; it has no consumer |
+
+Proposing the first as a row would have rebuilt something that works. That the draft got it wrong is
+the ordinary case this project keeps recording: T5.30's audit predictions were wrong twice, and the
+fix is the same — read the code before writing the row.
+
+**It found one real defect by reading.** `SaveSystem.load_from_slot` does this for every section:
+
+```
+apply.call(DictRead.get_dict(wrapped, "data"), DictRead.get_int(wrapped, "v", 1))
+```
+
+— the STORED version, with no comparison against the version the running build registered. Every
+applier in the base (`flags`, `inventory`, `clock`, `weather`, `director`, `quest_tracker`,
+`dialogue`) takes `_from_version` and ignores it. The envelope has the guard — `_migrate` refuses
+`from_version > SCHEMA_VERSION` with "Save is from a newer build" — and the section level has no
+twin. So a section from a newer build is applied, differently shaped, as if current. **This is a
+claim from reading, not yet a measurement**, and T6.1's first job is to prove it red on today's code
+before touching it.
+
+**The owner decided three things.** Phase T6 only. Photo mode, a codex, in-area camera zones and
+positional ambient emitters are GAME CHOICES — each has its seam already (the F2 freecam;
+`Readable.has_been_read()`; framing living in the area scene; authored `AudioStreamPlayer3D` nodes).
+And font fallback proves both Bengali and CJK, so the chain is shown to generalise rather than to
+work for one font.
+
+**Connects.** ADR-0007 is the filter. `SYSTEMS_INVENTORY.md` § "Commonly forgotten" supplies the rows
+and, through T6.8, the exit criterion. `KeyBindings.text_for(action, pad)` (`key_bindings.gd:105`),
+which already exists with one caller, is why T6.2 needs no glyph system — only the fact of which
+device is active.
+
+**Two budgets found while writing the manifests, recorded so the rows do not rediscover them.**
+`save_system.gd` is at 172 of 180 and T6.1 and T6.4 both edit it; `director.gd` is at 187 of 190, so
+T6.4 cannot simply have `Director` register the save header. `settings.gd` at 141 of 150 takes a
+setting from both T6.5 and T6.7.
+
+**Verified.** Documentation only, so the claims to check are that the record still passes its own
+gates, that the version agrees with itself, and that nothing outside the record moved.
+
+| rung | result |
+|---|---|
+| `--import` | exit 0 |
+| boot | `0 warnings, 0 errors` |
+| suite | `2364 passed, 0 failed, 0 skipped`, exit 0 |
+| seven checkers | each exit 0, each `PASS` |
+| table structure | fence- and escape-aware scan across every live document: clean |
+| scope | `git status` shows only `docs/`, `CLAUDE.md` and `project.godot` changed |
+
+**2,362 → 2,364, +2**, both in `record_shape_test` (139 → 141) for this row's own package id.
+`docs_test` (122), `doc_counts_test` (9) and `version_test` (30) did not move, which is the check
+that the new prose named no unresolvable `res://` path, spelled no gotcha count, and left exactly two
+bold semvers live. Measured after the documentation landed.
+
+**Stale records corrected.** `CONTEXT.md`'s candidates list still offered time on the flag surface
+and the cycle above the day as open, two rows after T5.31 and T5.32 built them — struck through
+rather than deleted, because that list is where a reader looks for what is open. Forgotten #14 marked
+DONE (T2.0); #12 and #13 marked CLOSED (game's), #13 citing the owner's 2026-09-02 decision that the
+list itself had never recorded; #15 marked partly done, its player-facing half assigned to T6.4.
+
+**Unblocks.** T6.1, with its manifest on the board.
+
+**Gaps.** The defect in T6.1 is read, not run. The thirty-six-item presence check is one sweep and
+could miss what no search term named. And first-run defaults (forgotten #8) cannot be decided by
+reading at all — they wait on the owner's playtest, which outranks every row in this phase.
+
+**Commit:** on `claude/t6-0-plan`, PR targeting `main`. No SHA, per board item 6.

@@ -3,88 +3,73 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-10 · **T5.33 (the audit of a base declared finished) complete, at 5.6.1,
-a PATCH.** The base is complete *and* audited. Every row on the board is DONE; the next thing to
-happen to this repository is a game being started on it, and [`NEW_GAME.md`](NEW_GAME.md) is that
-checklist.
+**Last updated:** 2026-09-26 · **T6.0 (planning Phase T6) complete, at 5.6.2, a PATCH.** `src/`,
+`tools/` and `tests/` byte-identical. **Phases T1 to T5 are complete and stay complete; Phase T6 is
+OPEN, and the next package is T6.1.**
 
-**THE ROW THAT DECLARED THE BASE FINISHED HAD MADE A DOCUMENTED INVARIANT VIOLABLE, AND THE AUDIT
-FOUND IT ONE DAY LATER.** T5.32 closed the board and created no chip. The owner asked for a full
-check before starting a game — and that check is the whole argument for auditing something you have
-just called done.
+**THE OWNER OPENED A PHASE WITH ONE QUESTION:** this base will be the formula for many games —
+what belongs in it that we missed? The answer was **filtered, not brainstormed**. ADR-0007 decides
+what a template DEFAULT is; the refused list (cutscenes, an economy, a chapter sequencer, a
+calendar, combat, credits, jumping, expression conditions, quest rewards) stays refused; and work is
+found, not invented. So every T6 row is either a **confirmed defect** or an item on
+`SYSTEMS_INVENTORY.md` § "Commonly forgotten" that was still neither done nor decided — a list that
+says of itself it exists *"so they are decisions rather than oversights"*.
 
-`schedule_entry.gd` has always promised **a day is always completely covered**, "because an NPC is
-always somewhere". Before T5.32 that was not a convention but a STRUCTURAL fact: every entry applied
-on every day, so `entry_for_hour`'s wrap-to-the-last-block fallback could never come up empty.
-`on_day_of_cycle` made it violable by authored data, and **nothing noticed** — not `problems()`, not
-`check_content`, not one of 2,355 assertions.
+**Three explorations and an adversarial review, then every load-bearing claim re-read in the code.**
+The review overturned three first premises — shader warm-up was built in T2.0, per-section save
+versions are exercised by `core_test.gd:134`, and the F2 freecam is bound rather than unbound — and
+that is the whole argument for having run one.
 
-**Measured with a throwaway probe rather than argued**, run under `--headless --script` because
-`NpcSchedule` and `ScheduleEntry` touch no autoload:
+**IT FOUND ONE REAL DEFECT BY READING, AND THAT IS T6.1.** `SaveSystem.load_from_slot` hands each
+section's stored version straight to its applier with **no check that it is not newer than the
+running build**, and every applier ignores `_from_version`. The envelope has exactly that guard —
+`_migrate` refuses `from_version > SCHEMA_VERSION` — and the section level has no twin. A save written
+by a newer build would be applied, differently shaped, as if current. For a base games will update
+across many versions, it is the most consequential thing the sweep turned up. **It must be proved red
+on today's code before it is fixed.**
 
-```
-only day-specific entries, asked about a day that matches none
-  hours with NO block on day 2: 24 of 24
-  problems() reports: 0  ->  []
-```
+**The phase, in order** — manifests and budget warnings in `WORK_PACKAGES.md` § T6.0:
 
-So an author who writes only day-specific entries gets an NPC with no instructions for
-twenty-four hours on every unnamed day, and the build says nothing. `NpcBrain.decide_for_hour`
-returns early on null, so the NPC stands wherever it happened to be — the "reads as random" failure
-that header exists to prevent. **The probe's three other cases came back correct**, which is what
-made the first one a defect rather than a symptom of a mess.
+| row | what | closes |
+|---|---|---|
+| **T6.1** | a save section from a newer build is refused; the first worked migration in the suite | the defect |
+| T6.2 | the base knows the active input device; the prompt shows the right key | forgotten #4 |
+| T6.3 | a reusable confirm screen; "are you sure" on overwriting a save | forgotten #7 |
+| T6.4 | a slot shows where it was saved, and a damaged slot is shown as damaged | forgotten #15 |
+| T6.5 | losing window focus leaves nothing latched; pausing on it is a setting | forgotten #3 |
+| T6.6 | Bengali and CJK both render through a font fallback chain | structural |
+| T6.7 | dialogue can skip to its end and auto-advance | forgotten #5 |
+| T6.8 | every forgotten item marked DONE or CLOSED, gated by a text scan | the exit criterion |
 
-**ONE RULE, AT EXACTLY THE STRENGTH THE LAYER SUPPORTS.** Every schedule must carry at least one
-entry at `-1`: necessary AND sufficient for total coverage, since `_applies_on` admits an every-day
-entry whatever day is asked. The stronger rule — every day of the cycle is covered — needs
-`Clock.days_per_cycle`, and `check_layers.gd` exists to refuse `content` reaching up into `systems`
-for it. So coverage is now half enforced and half a stated cost, and both headers say which is
-which.
+**Two budgets to know before starting.** `save_system.gd` is at 172 of 180 and T6.1 and T6.4 both
+edit it; `director.gd` is at 187 of 190, so T6.4 cannot simply have `Director` register the save
+header. Measure before writing; an overrun is a split or a justified budget, never a raised number.
 
-**PATCH, SETTLED ON THREE PRECEDENTS RATHER THAN INSTINCT.** A new gate that fails existing content
-looks like the MAJOR test *a file the game wrote must change*. This project has been here three
-times and called it PATCH every time — `5.3.3`, `5.3.2`, and `1.0.2`, which states the reason:
-*"That is the bug being fixed, not a new restriction."* A schedule with no every-day entry is
-already an NPC with no instructions.
+**The owner decided three things.** T6 only — map markers, music by day phase, barks and a dialogue
+backlog wait for a game to ask. Photo mode, a codex, in-area camera zones and positional ambient
+emitters are **GAME CHOICES**, each with its seam already there. And font fallback proves **both**
+Bengali and CJK, so the chain is shown to generalise.
 
-**THE PLANT'S SHAPE IS THE POINT.** With the check disabled: exit 1, `2361 passed, 1 failed`,
-`expected 1, got 0`, against an exit-0 control of 2,362. And **the 24-of-24 consequence assertion
-stays GREEN under the plant** — deliberately, because the gap exists whether or not the validator
-reports it, and one assertion bundling both would go red for the wrong reason and teach a later
-reader that the gap was what changed.
+**Stale records fixed.** This file's candidates list still offered time on the flag surface and the
+day cycle as open, though T5.31 and T5.32 built both; and forgotten #12, #13 and #14 described
+settled work as missing.
 
-**AND THREE DOCUMENTATION NUMBERS WERE WRONG, ONE OF THEM CARRYING A CHECKLIST DEFECT.**
-`TESTING.md` stated the suite as `2302` / `2226` — **stale through two consecutive rows**, because
-closing item 5 was being read as "update `CLAUDE.md` and `ARCHITECTURE.md`" while the suite size
-lives in **four** files. The stale pair even disagreed with the rest of the repository: its
-difference was 76, against a stripped gap the board recorded as exactly 74 for eight straight runs,
-and nothing caught that either. Item 5 now enumerates all four and states that the stripped number
-can only come from the CI job log, so that step finishes AFTER CI. `NEW_GAME.md`'s "all 930
-assertions" had the number **deleted** rather than updated — the better fix for a count no reader
-needs, since replacing a stale number just schedules the next one. And T5.32's claim that
-`clock.gd`'s three spare lines were "the tightest any file in this base has been" was wrong twice:
-`director.gd` sits at 187 of its raised 190 with the same three, and `dev_stage.gd` was at 248 of
-250 with **two** before T5.20 split it. `clock.gd` and `director.gd` are the two tightest, three
-lines each, and the next row to touch either faces a split.
+**THE OWNER'S PLAYTEST OUTRANKS THIS QUEUE.** A defect found by playing becomes the next row ahead of
+anything above — found, not invented, the standard every T6 row had to meet.
 
-**WHAT THE AUDIT CONFIRMED IS RECORDED TOO, BECAUSE A CLEAN RESULT IS EVIDENCE.** Zero markdown
-table column mismatches across every live document — the defect that recurred in T5.15, T5.19 and
-T5.26 — though a naive sweep produced four hits and **all four were false positives**, so the scan
-was rewritten to track code fences and escaped pipes before the result was trusted; that is T5.26's
-own measurement repeating, and why it declined a column-count gate. "Ten autoloads", "seven
-checkers" and "eight template screens" (`ScreenKeys.menu_for`'s chain is exactly eight) all check
-out, as does `AUTHORING.md`'s per-area arithmetic — which was nearly mis-reported as an off-by-one
-before `world_map_test`'s plan was read properly as `PER_AREA 4 + PER_DEF 1`. No TODO/FIXME debt
-under `src/`, `tools/` or `tests/`; nine `NO CALLER` exemptions each with a reason.
+Suite 2,362 → **2,364**, +2, both in `record_shape_test` for this row's own package id; every other
+case unmoved, as a documentation-only row should leave them. Measured after the documentation landed.
 
-Suite 2,355 → **2,362**, +7 — five in `npc_test` (79 → 84) and **two in `record_shape_test`**
-(137 → 139), this row's own package id on the board, exactly the effect T5.32 documented one row
-earlier. `doc_counts_test` did NOT move, because this row spells no gotcha count. Measured after
-the documentation landed: the pre-docs run read 2,360, so a predicted +5 would have been wrong by
-two in precisely the way the previous row wrote down. **The plan guard caught an off-by-one on the way** — `npc_test planned 85
-outcomes and produced 84`, every one of the 84 passing — which is that mechanism doing its job, and
-worth knowing because a wrong plan is the one test defect that reads like a crash.
-
+*(Previously: T5.33 audited the base one row after T5.32 declared it finished, at `5.6.1`, and found
+the row declaring it finished had made a documented invariant violable. `schedule_entry.gd` always
+promised a day is completely covered; `on_day_of_cycle` let a schedule of only day-specific entries
+answer nothing for **24 hours of 24** on any unnamed day while `problems()` returned zero, so
+`check_content` passed on content that strands an NPC. The fix was one rule at the strength the
+`content` layer supports — at least one entry at `-1`, necessary and sufficient — with the plant red
+on exactly that assertion and the consequence assertion deliberately green under it. PATCH on three
+cited precedents. It also found `TESTING.md` stating a stale suite size through two rows, because
+closing item 5 was read as two files when the size lives in four; item 5 now lists all four and
+finishes after CI.)*
 *(Previously: T5.32 gave a schedule a second dimension at `5.6.0`, and it was the row the plan
 called explicitly optional — rated non-blocking, named "the honest place to stop early", put to the
 owner as a three-way choice and built in full. `ScheduleEntry` exported `from_hour` and nothing
@@ -297,16 +282,16 @@ another sheet, and every facing draws a different figure.
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version is** **5.6.1**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+**The version is** **5.6.2**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
 the owner's to close or to leave.
 
-**THERE IS NO NEXT PACKAGE, AND THAT IS THE HANDOFF.** T5.32 was the last planned row and it is
-done, so the board has no open row, no chip exists, and the paragraph below about the next row
-being a choice is now history rather than guidance. **The base is complete.** A new session
-arriving here should not go looking for a package: the next thing to happen to this repository is
-a game being started on it, and [`NEW_GAME.md`](NEW_GAME.md) is that checklist. If a genuine defect
-turns up while a game is being built, *that* is the next row, and it will have been found rather
-than invented — which is exactly the discipline the paragraph above states.
+**THE NEXT PACKAGE IS T6.1, AND IT IS A QUEUE AGAIN — FOR ONE PHASE.** From T5.32 until T6.0 this
+paragraph said there was no next package and the base was complete; T1 to T5 still are. The owner
+then opened Phase T6 (see the headline and `ROADMAP.md` § Phase T6), so the board holds eight
+planned rows with file manifests, and a new session takes **the lowest unfinished T6 row** rather
+than choosing. When T6.8 lands the phase closes and the older discipline returns unchanged: the
+next thing is a game started on this base through [`NEW_GAME.md`](NEW_GAME.md), and a genuine
+defect found while building one is the next row — found, not invented.
 
 *(Historical, and it was true through T5.31: the next package was a choice, not a queue.)* Nothing
 is blocking, **Phase T5 has no unticked exit criterion** — T5.23 took the last one. **T5.24 gated roadmap completeness, T5.25 made that
@@ -369,7 +354,7 @@ three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite shee
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 4 on the default one, the
 fourth being a second IDLE rather than a gait**,
 1 shared area material, **21 settings and 21 consumers**.
-Template version **5.6.1**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+Template version **5.6.2**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
 recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 
@@ -2295,17 +2280,12 @@ T5.20 and now T5.24 each came off it. What remains is a real choice, not a queue
   code root. **The base builds no sequencer and no cutscene resource** — a step enum would grow
   `GameEnums`, which is append-only because ordinals live in `.tscn` files, for a shape every game
   authors differently. What this row actually needed was a stated reason, and it has one.
-- **Time on the flag surface** — **scoped by ADR-0007 as a TEMPLATE DEFAULT**, so this row is now
-  buildable rather than gated. `Clock` never calls `Flags.set_flag`, and `flag_query.gd` is the ONE
-  evaluator both `DialogueNode` and `QuestStep` use, reading only `Flags` — so **no authored
-  condition can mention time or weather at all**, including the shop hours the Clock's own header
-  names as its purpose. The precedent is in-repo: `Flags.declare_derived` is idempotent and
-  `_collect_save` SKIPS derived flags, so a published `time/hour` is never saved and recomputes on
-  load; its only caller today is `inventory.gd:59`, the `bag/` namespace. **Price the ordinal cost
-  in the row**: `time/phase` and `weather/kind` would publish enum ordinals, so an authored
-  `AT_LEAST 5` would be right only by accident of enum order — publish stable names, or state the
-  coupling. A cycle above the day (`days_per_cycle`, `ScheduleEntry.on_day_of_cycle`) follows and
-  is non-blocking. A calendar with weekday names, months or seasons is a GAME CHOICE.
+- ~~**Time on the flag surface**~~ — **BUILT, T5.31 (`5.5.0`), and the cycle above the day with it,
+  T5.32 (`5.6.0`).** Kept here struck through rather than deleted, because this list is where a
+  reader looks for what is still open, and for two rows it said this was. T6.0 found it stale.
+  `time/hour` and `time/day` publish as ordered ints, a phase and a weather kind as one bool under
+  the lowercased name, `time/day_of_cycle` as an ordered int; all derived, none saved. A calendar
+  with weekday names, months or seasons remains a GAME CHOICE.
 - **A call recorder, to answer the 86.** T5.13's gate reports 86 public methods reached only from
   `tests/` or `tools/`, and a text scan cannot shrink that number.
 - **Split `tools/gen_placeholders.gd`**, at 234 of its 250 — sixteen lines spare, so it is a want

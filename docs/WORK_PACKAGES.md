@@ -120,6 +120,15 @@ original board rather than continuing it.
 | T5.31 | **Clock and Weather on the flag surface** | **DONE** — `5.5.0`, a MINOR: the base gained a seam a game may ignore. **`Clock` HELD THE DAY, THE HOUR AND THE PHASE, EMITTED FOUR SIGNALS, AND NEVER ONCE CALLED `Flags.set_flag`** — while `src/core/state/flag_query.gd` is the ONE evaluator both `DialogueNode` and `QuestStep` go through and it reads `Flags` and nothing else. So **no authored condition in this template could mention time or weather at all**, including the shop hours `clock.gd`'s own header names as a reason a clock is foundational. Two independent audits converged here and it was their only convergence. The seam needed no invention: `Flags.declare_derived` already existed, is idempotent, and `_collect_save` SKIPS derived keys, so a published `time/hour` never reaches a save and recomputes from the clock's own saved state — `inventory.gd:59`'s shape since T3.3, including both of its store-wipe subscriptions, because `start_new_game` clears the flags and THEN emits while `game_loaded` fires after every section so the republish cannot depend on participant order. **THE UNPRICED COST WAS THE ROW, AND BOTH ANSWERS THE PLAN OFFERED WERE WRONG.** Ordinals do couple — `GameEnums` is append-only because its numbers live in authored `.tscn` files — but the sharper objection is that **ordering on a phase is meaningless whatever the numbering**: measured, `phase_for_hour` across a day yields `6,6,6,6,6,0,0,1,1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,5`, so DEEP_NIGHT is the HIGHEST ordinal and the EARLIEST hours and `AT_LEAST DUSK` would hold at 00:00 and fail at 06:00. **AND A STRING NAME WOULD HAVE BEEN UNREADABLE BY THE ONE EVALUATOR, WHICH A THROWAWAY PROBE MEASURED RATHER THAN ARGUED**: `FlagQuery.passes` against a flag holding `"DUSK"` returns FALSE for every test in the closed set, `EQUALS` and `IS_TRUE` alike, each logging `expected int` / `expected bool` — four flags that would have looked right in a dump and answered nothing, with no gate in this repository able to catch it, because writing a flag is not the same claim as its being ASKABLE. **So the third answer, which the plan did not consider**: `time/hour` and `time/day` as ordered ints, where `AT_LEAST 9` with `AT_MOST 17` is a shop's hours and the comparison means what an author expects; and a phase and a weather kind as **one bool under the lowercased name**, stable against an enum insertion AND readable, with **no seventh comparison** added to a set whose own file says it stays closed. Exactly one row exists at a time and it is **ERASED rather than set false** — `Inventory` erases a spent stack rather than zeroing it, an absent flag answers `IS_TRUE` false and `IS_FALSE` true, so the semantics are identical at a seventh of the rows and boot publishes four flags rather than seventeen; the erase comes FIRST, because a phase flag left true would make an authored dawn-only line fire at every hour after the first dawn. **THE PLANT IS THE REQUIRED SHAPE, ONE PATH RED AND THE OTHER GREEN**: publishing dropped from the `set_time` path only gave exit 1 on exactly two assertions, *"a jump onto the hour opens it"* and *"the flag was current inside that one too — expected 14, got 11"*, where **the `11` is what the tick path had published**. **AND THE ROW SURFACED A DOCUMENTED GOTCHA AT THE ONE SITE NOBODY HAD FIXED**: `QuestTracker.ids_in_state` sorted with `Array[StringName].sort()`, which orders by interned handle rather than alphabetically — gotcha 33, already noted and fixed in `area_db.gd`, `equipment.gd` and `inventory.gd`, while this function's own comment claimed *"sorted, so the journal draws a stable order"*. It was the allocator's order: four new flag names shifted the intern table and a journal assertion in `item_count_test.gd`, on a code path this row never touched, went red — baseline returning `[gather, errand]`, which is the order that is NOT alphabetical. **Two wrong hypotheses died before the right one**, a timing race (killed by the failure being deterministic across three runs) and pointer-sorting "disproved" by a two-element probe that came out alphabetical BY LUCK, which is why the second probe used eight names and returned `alpha, delta, echo, foxtrot, charlie, bravo, hotel, golf`. Fixed with the same `sort_custom(_before)`, and the test stopped reading "the last Label" — a bet on an order the base never promised — for a named quest's own row. `clock.gd` is now at **142 of its 150-line budget**, the tightest it has been. 2,302 → **2,331 assertions**, +29: 27 in the new case plus 2 in `record_shape_test`, whose plan is `_docs.size() + _packages.size() * 2 + 2`, so a new package id is worth exactly two. **MEASURED by diffing every case against `main`, and re-measured after the documentation landed** — which is what caught the second pair, since the pre-docs run read 2,329 and writing that down is the mistake the last two rows made; see below |
 | T5.32 | **A schedule could only describe one day** | **DONE** — `5.6.0`, a MINOR: the base gained something a game may ignore, and every existing authored `.tres` stays valid unedited. **THE ROW THE PLAN CALLED EXPLICITLY OPTIONAL, AND THE OWNER CHOSE TO BUILD** — rated non-blocking, named *"the honest place to stop early if you want to"*, put to the owner as a live three-way choice and taken in full; recorded because it exists by decision rather than by implication. **`ScheduleEntry` EXPORTED `from_hour` AND NOTHING ELSE**, so an hour was an entry's whole address and `entry_for_hour(hour)` was the whole lookup — **every NPC in every game on this base repeated one identical day forever**, and a market day was not badly supported but INEXPRESSIBLE. **In scope only because of ADR-0007**, whose seam test puts a cycle LENGTH on the template-default side (a formula, one modulo) and a CALENDAR on the game-choice side, so this row adds `days_per_cycle` and adds no weekday names, no months, no seasons and no date type — the refusal being as much of the deliverable as the feature. **It follows T5.31's seam verbatim because that seam was built for it**: `time/day_of_cycle` publishes like `time/day`, through `Flags.declare_derived` from `_publish_time()`, so it never reaches a save and recomputes from the clock's own state — one line added there and nothing else. **AN ORDERED INT, NOT A BOOL-PER-NAME, WHICH IS A DEPARTURE FROM T5.31 ONE ROW LATER AND IS STATED RATHER THAN DRIFTED INTO**: that argument is entirely about a PHASE and rests on two properties a day of the cycle lacks — no enum behind it, and no wrap inside its own range, which runs `1` to `days_per_cycle` and stops. So `EQUALS 3` is a market day and `AT_LEAST 5` is the back half and both mean what an author expects; the `AT_LEAST` assertion is one that could not be written at all under the phase's shape. **THE DEFAULT IS WHAT MAKES IT A MINOR AND `-1` DOES THE WORK TWICE**: on the field it means every day, so existing `.tres` need no edit and no migration (`GameEnums`' append-only discipline, for the same reason — these numbers live in authored files); on the argument it means "no particular day", so an existing `entry_for_hour(hour)` call still compiles and still answers. What it deliberately does NOT mean is "any day", which would have leaked a day-specific block into every day — the defect arriving through the fix, and there is an assertion on exactly that. **TWO THINGS HAD TO CHANGE WITH THE LOOKUP AND ONE WAS NEARLY MISSED**: `problems()` keyed its duplicate check on the hour alone, so left alone **`check_content.gd` would have failed the build on correctly authored data** — the very fixture proving the feature reported as malformed; keyed on the pair `Vector2i(hour, day)` a market day is legal while a genuine collision still is not. And `NpcBrain` reads `Clock.day_of_cycle()` itself at both sites rather than taking the day as a parameter, because the hour is something a caller hypothesises about while which day it is is a fact `Clock` owns — which also gives the new public method its `src/` caller for `check_methods.gd`. **A STATED COST, being a layering consequence rather than an oversight**: nothing validates a day against the real cycle length, so `on_day_of_cycle = 9` on a seven-day cycle parses, loads, passes every checker and simply never runs — `content` may not touch an autoload and `check_layers.gd` exists to refuse it reaching up into `systems` for a number. A draft header claimed `NpcSchedule.problems` caught it; it cannot, and the claim was corrected before commit rather than shipped as a comment promising a check nothing performs. **THE BUDGET PREDICTION WAS WRONG AND MEASURING BEAT BOTH REMEDIES**: the plan warned `clock.gd` at 142 of 150 would go over and demanded a split or a justified budget, and **neither was needed — it landed at 147**. What would have cost the lines was a republishing setter, dropped on an argument rather than to fit (`game_started` republishes, and a tick republishes within one in-game minute, so the window is one no caller can observe); the split was refused on evidence, since `phase_flag`'s own header says it is public BECAUSE it is the spelling an author writes, making the move a MAJOR, and its only consumer is one test file. Three lines of budget remain — **T5.33 corrected this row's original claim that they were the tightest in the base**: `director.gd` has the same three at 187 of its raised 190, and `dev_stage.gd` had two at 248 of 250 before T5.20 split it, so `clock.gd` and `director.gd` are the two tightest and the next row to touch either faces a split. **The plant is the shape the plan asked for**: the day argument ignored in the lookup gave exit 1, `2346 passed, 4 failed` against a control of `2350 passed, 0 failed` — three new assertions failing together, and **a fourth that is the cheap evidence**: *"the day's first hour switches over"*, a pre-existing assertion this row never touched, catching the same regression independently. **Gotcha 79 did not bite, and that is a result** — a new flag name was published and nothing in an untouched file went red, confirming T5.31's `QuestTracker.ids_in_state` fix was the last site; no new gotcha, so the list stays at seventy-nine. 2,331 → **2,355 assertions**, +24: 11 in `npc_test`, 8 in `time_flags_test`, 2 in `record_shape_test` and **3 in `doc_counts_test`, which this row did not see coming** — that case makes a claim of every line outside the list mentioning a gotcha and spelling a number, so this row's own prose became three assertions about itself, all three passing. Measured by diffing every case against `main` AFTER the documentation landed; the pre-docs run read 2,350 and a predicted +21 would have been wrong by three. **THIS IS THE LAST PLANNED ROW: no chip was created, because there is nothing to hand off to.** Every row here is DONE and the base is complete; the next thing to happen to this repository is a game being started on it |
 | T5.33 | **The audit of a base declared finished** | **DONE** — `5.6.1`, a PATCH. **THE BASE WAS DECLARED COMPLETE AND THEN AUDITED, AND THE AUDIT FOUND THAT THE ROW DECLARING IT COMPLETE HAD MADE A DOCUMENTED INVARIANT VIOLABLE.** `schedule_entry.gd` has always promised **a day is always completely covered**, "because an NPC is always somewhere", and before T5.32 that was STRUCTURALLY true — every entry applied on every day, so the wrap-to-the-last-block fallback could never come up empty. `on_day_of_cycle` made it violable by authored data and nothing noticed. **Measured with a throwaway probe rather than argued**: a schedule of only day-specific entries answers NOTHING on any day it does not name — **24 hours of 24** — while `problems()` returned 0, so `check_content` PASSED on content that strands an NPC and `NpcBrain.decide_for_hour`, which returns early on null, left it standing wherever it happened to be. That is precisely the "reads as random" failure the entry header exists to prevent. **The fix is one rule and it is exactly the right strength**: every schedule must carry at least one entry at `-1`, which is necessary AND sufficient for total coverage, since `_applies_on` admits an every-day entry whatever day is asked. The stronger rule — every day of the cycle is covered — would need `Clock.days_per_cycle`, and `content` may not touch an autoload, so this is the strongest form the layer can actually check. **The plant is the check removed**: exit 1, one failure, `and that is reported as a problem rather than passing check_content — expected 1, got 0`, against an exit-0 control — and the "24 of 24 hours answer nothing" assertion stays GREEN under the plant, which is right and is why the two are separate: the consequence exists whether or not the validator reports it. **PATCH, settled on three precedents in `CHANGELOG.md` rather than instinct**, because a new gate that fails existing content looks like the MAJOR test *a file the game wrote must change*: `5.3.3`, `5.3.2` and `1.0.2` are all this shape and all PATCH, and `1.0.2` states the reason — *"That is the bug being fixed, not a new restriction."* A schedule with no every-day entry is already broken. **AND THREE DOCUMENTATION NUMBERS WERE WRONG, one of them with a lesson.** `TESTING.md` stated the suite as `2302` / `2226` — stale through **two consecutive rows**, because the closing checklist was being read as "update `CLAUDE.md` and `ARCHITECTURE.md`" when it governs FOUR files; the stale pair even disagreed with the rest of the repository, its difference being 76 against a stripped gap the board recorded as exactly 74 for eight straight runs, and nothing caught that either. Item 5 now lists all four files and says the stripped number can only come from the CI job log, so that step finishes AFTER CI. `NEW_GAME.md`'s "all 930 assertions" had the number **deleted** rather than updated, because it carried no weight — the better fix for a count no reader needs. And T5.32's own record claimed `clock.gd`'s three spare lines were "the tightest any file in this base has been", **wrong twice**: `director.gd` sits at 187 of its raised 190 with the same three, and `dev_stage.gd` was at 248 of 250 with TWO before T5.20 split it. **What the audit also CONFIRMED is worth recording, since a clean result is evidence too**: zero markdown table column mismatches across every live document — the defect that recurred in T5.15, T5.19 and T5.26 — found with a fence- and escape-aware scan after a naive one produced four hits that were all false positives; and "Ten autoloads", "seven checkers", "eight template screens" and `AUTHORING.md`'s per-area figures all verified correct against the code, the last of these nearly mis-reported before `world_map_test`'s plan was read properly as `PER_AREA 4 + PER_DEF 1`. 2,355 → **2,362 assertions**, +7 — five in `npc_test` and two in `record_shape_test` for this row's own board id, the pre-docs run having read 2,360; the plan guard caught an off-by-one on the way, reporting `planned 85 outcomes and produced 84` with every assertion passing, which is that mechanism doing its job |
+| T6.0 | **Planning Phase T6 — what every game on this formula would otherwise build first** | **DONE** — `5.6.2`, a PATCH, and `src/`, `tools/`, `tests/` are byte-identical. **THE OWNER ASKED WHAT THE BASE HAD MISSED, AND THE ANSWER WAS FILTERED RATHER THAN BRAINSTORMED.** ADR-0007 decides what a template DEFAULT is, the refused list rules out cutscenes, an economy, a chapter sequencer, a calendar, combat and credits, and the standing rule is that work is found, not invented — so every surviving row is either a confirmed defect or an undecided item on the project's own "Commonly forgotten" list. **Method: three parallel explorations and an adversarial review, then every load-bearing claim re-read in the code**, and the review **overturned three first premises**: shader warm-up was proposed as missing and was built in T2.0 (`Director.WARM_UP_FRAMES`); per-section save versions were proposed as never exercised and are exercised by `core_test.gd:134`; the F2 freecam was called unbound and is bound, merely unconsumed. **IT FOUND ONE REAL DEFECT BY READING**: `SaveSystem.load_from_slot` hands each section's stored version to its applier with no check that it is not newer than the running build, and every applier ignores that version — the envelope has the guard and the section level has no twin. That is T6.1, to be proved red before it is fixed. **The owner decided three things**: T6 only; photo mode, a codex, in-area camera zones and positional ambient emitters are GAME CHOICES, each with its seam named; and font fallback proves both Bengali and CJK. Stale records fixed in passing: `CONTEXT.md` listed time on the flag surface and the day cycle as open candidates though T5.31 and T5.32 built both, and three "Commonly forgotten" items described settled work as missing. See below for every candidate's classification and each row's file manifest |
+| T6.1 | **A save from a newer build must be refused, not applied** | **TODO — next.** The defect. Manifest below |
+| T6.2 | **The base knows which input device is active** | **TODO.** Forgotten #4. Manifest below |
+| T6.3 | **A reusable confirm screen, and "are you sure" on overwriting a save** | **TODO.** Forgotten #7. Manifest below |
+| T6.4 | **A save slot says where it was saved, and says so when it is damaged** | **TODO.** Forgotten #15. After T6.3. Manifest below |
+| T6.5 | **Losing window focus leaves nothing latched** | **TODO.** Forgotten #3. Measure first. Manifest below |
+| T6.6 | **Text in any script renders, not as tofu** | **TODO.** Bengali and CJK. Manifest below |
+| T6.7 | **Dialogue for fast and slow readers** | **TODO.** Forgotten #5. After T6.2. Manifest below |
+| T6.8 | **Close the list, and gate it** | **TODO — last.** The phase's exit criterion. Manifest below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -5933,4 +5942,123 @@ what it is for, and worth noting because a wrong plan is the one test defect tha
 **Scope.** `5.6.1`, a PATCH on three cited precedents. Two production files (`npc_schedule.gd`,
 `schedule_entry.gd`), one test file, and the record.
 
-**Commit:** on `claude/t5-33-audit`, PR targeting `main`. No SHA, per item 6.
+**Commit:** `87cce58` on `claude/t5-33-audit`, PR #64, targeting `main`, plus `71707ac` for the CI record. Filled in by T6.0.
+
+
+## T6.0 · Planning Phase T6 — **DONE**
+
+**The owner's question, 2026-09-26:** this base will be the formula for many games — what belongs in
+it that we may have missed? The answer below is FILTERED, not brainstormed, and the filter is the
+project's own: ADR-0007 decides what a template DEFAULT is, the refused list (cutscenes, economy,
+chapter sequencer, calendar, combat, credits, jumping, expression conditions, quest rewards) is not
+reopened, and work is found rather than invented. So every row is either a **confirmed defect** or an
+item on `SYSTEMS_INVENTORY.md` § "Commonly forgotten" that is still neither done nor decided.
+
+**Method.** Three parallel explorations — an inventory of what exists, a sweep of everything the owner
+refused or deferred, and a presence check across thirty-six capabilities a general HD-2D exploration
+base usually needs — then an adversarial review of the draft ranking, then every load-bearing claim
+re-read in the code before it was written here.
+
+**The review overturned three first premises**, which is why it ran:
+
+| premise | reality |
+|---|---|
+| shader warm-up is missing (forgotten #14) | built in T2.0 — `Director.WARM_UP_FRAMES = 3`, `_warm_up()` |
+| per-section save versions were never exercised | exercised — `core_test.gd:134` registers a v3 probe and asserts it |
+| the F2 freecam is declared but unbound | bound (`actions.gd:127`); it has no *consumer* |
+
+**And it found one real defect by reading.** `SaveSystem.load_from_slot` passes each section's
+stored `"v"` straight to its applier, with no check that it is not newer than the running build —
+and every applier in the base ignores `_from_version`. The envelope has exactly that guard
+(`_migrate` refuses `from_version > SCHEMA_VERSION`); the section level has no twin. A save written
+by a newer build would be applied, differently shaped, as if current. For a base that games will
+update across many versions, that is the most consequential thing this sweep found.
+
+### The owner's three decisions
+
+1. **Phase T6 only.** Map objective markers, music by day phase and weather, proximity barks and a
+   dialogue backlog all pass ADR-0007 as defaults but are neither defects nor on the forgotten list,
+   so they wait until a game asks.
+2. **Photo mode, a codex, in-area camera zones and positional ambient emitters are GAME CHOICES**,
+   each because its seam already exists: the F2 freecam is bound; `Readable.has_been_read()`
+   (`readable.gd:38`) exposes the fact a codex would collect; a scene may hold two rigs or tween the
+   rig's exports, since framing lives in the area scene (`hd2d_camera_rig.gd:20`); and positional
+   sound is an authored `AudioStreamPlayer3D`.
+3. **Font fallback proves both Bengali and CJK** — two scripts, so the chain is shown to generalise
+   rather than to work for one font.
+
+### Deferred until a real game needs one
+
+A platform or achievements seam; area streaming, LOD, pooling and occluders; mods or several content
+roots; graphics quality presets; a colorblind palette; right-to-left text.
+
+### Stale records fixed in this row
+
+- `CONTEXT.md` still listed **time on the flag surface** and **a cycle above the day** as open
+  candidates, though T5.31 and T5.32 built both.
+- "Commonly forgotten" **#14** (shader warm-up) described as missing work built in T2.0 → DONE.
+- **#12** (photo mode) and **#13** (credits) closed as game's — #12 by the owner's decision above,
+  #13 by the owner on 2026-09-02, which the list itself had never recorded.
+
+### Row manifests — read these files and nothing else
+
+**Budget warnings first, because two rows share tight files.** `save_system.gd` is at **172 of
+180** and both T6.1 and T6.4 edit it; `director.gd` is at **187 of 190**; `settings.gd` is at **141
+of 150** and both T6.5 and T6.7 add a setting. Measure with `check_budgets.gd` before writing, and
+where a row would overrun, the answer is a split or a justified budget in `ARCHITECTURE.md`
+§ Line budgets — never a quietly raised number.
+
+**T6.1 — a newer section is refused.** Write: `src/core/save/save_system.gd`,
+`tests/unit/save_recovery_test.gd`, one paragraph in `docs/UPGRADING.md` on bumping a section
+version and migrating. Read: `tests/unit/core_test.gd:134` for the version-probe pattern. **Prove the
+defect red on today's code before fixing it.** Then add the first worked migration the suite has —
+a probe at v2 migrating a hand-written v1 payload — as the model a game copies. PATCH.
+
+**T6.2 — the active input device.** Write: new `src/systems/input/input_device.gd` (a pure
+`device_for(event, previous)` that ignores mouse motion and sub-deadzone stick noise),
+`src/systems/input/actions.gd` (the stateful half — no new autoload), `src/core/events/events.gd`
+(`input_device_changed`), `src/ui/prompt/interact_prompt.gd` and `src/ui/screens/dialogue_screen.gd`
+as consumers, a new test case plus its line in `tests/test_runner.gd`'s `CASES`, and a note in
+`docs/ART_CONTRACT.md` on where an icon sheet will plug in. Reuse
+`KeyBindings.text_for(action, pad)` (`key_bindings.gd:105`), which already exists and has one
+caller. Hotplug cannot be driven headless — say so. MINOR.
+
+**T6.3 — a confirm screen.** Write: new `src/ui/screens/confirm_screen.gd`,
+`src/ui/screens/save_screen.gd` (overwrite routes through it), `localization/strings.csv`, a test.
+Read: `src/ui/screens/ui_screen.gd` (`closes_on_cancel`). The quit half of forgotten #7 is already
+covered by T5.10's quit-autosave — record that rather than build it.
+
+**T6.4 — where a slot was saved, and a damaged slot.** Write: `src/core/save/save_system.gd` (an
+optional header hook so `core` never asks `Director` — the layer rule), `src/ui/screens/save_screen.gd`,
+`localization/strings.csv`, tests. **`director.gd` has three lines left**, so register the area from
+somewhere that has room, or justify the budget. A slot that fails to read (`ERR_FILE_CORRUPT`,
+`save_system.gd:195,201`) is drawn as damaged, not empty. After T6.3.
+
+**T6.5 — focus loss.** Measure first, windowed: hold a key and alt-tab, and find out whether Godot 4.7
+already releases pressed inputs. Then the base's own latches, which the engine cannot release:
+`run_is_toggle` (`player_controller.gd:176`), hold-to-confirm progress in
+`src/gameplay/interaction/interaction_sensor.gd`, and capture in `src/ui/screens/rebind_screen.gd`.
+Write: `src/ui/root/ui_root.gd`, `src/core/events/events.gd` (`focus_lost`),
+`src/core/state/settings.gd` (`gameplay/pause_on_focus_loss`), a test.
+
+**T6.6 — fonts.** Write: `assets/fonts/` (new: Noto Sans Bengali, a CJK subset, and each OFL licence
+beside its font), `assets/theme/ui_theme.tres` (a fallback chain), a test that the chain names both
+in order, `docs/ART_CONTRACT.md` and `docs/NEW_GAME.md`. Capture one Bengali string (its conjuncts
+exercise real shaping) and one CJK string, against tofu before. Check whether any count needs
+`tr_n` before building plural support. If the eight-file limit is exceeded, split it into Bengali
+first and CJK second.
+
+**T6.7 — dialogue speed.** Write: `src/ui/screens/dialogue_screen.gd` (skip to the end of a
+conversation, and auto-advance), `src/core/state/settings.gd`
+(`gameplay/dialogue_auto_advance`), `localization/strings.csv`, `tests/unit/dialogue_test.gd`. A
+backlog screen is a separate row and stays out. After T6.2.
+
+**T6.8 — close the list.** Write: `docs/SYSTEMS_INVENTORY.md` (every forgotten item marked DONE or
+CLOSED with a package id, plus the owner's playtest verdict on first-run defaults, #8), a new text-scan
+test plus its `CASES` line, `docs/ROADMAP.md` (tick the phase), `docs/CONTEXT.md`. Last, because its
+gate cannot pass until everything above has landed.
+
+**The owner's playtest outranks this queue.** A defect found by playing becomes the next row ahead of
+anything here — found, not invented, which is the standard every row above had to meet.
+
+**Commit:** on `claude/t6-0-plan`, PR targeting `main`. No SHA, per item 6.

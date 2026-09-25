@@ -1475,6 +1475,57 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   having read 2,360; the plan guard caught an off-by-one on the way, reporting `planned 85 outcomes
   and produced 84` with every assertion passing.
 
+## Phase T6 — Player-facing robustness · **OPEN, planned 2026-09-26**
+
+*Goal: close every item on `SYSTEMS_INVENTORY.md`'s "Commonly forgotten" list as DONE or CLOSED
+(game's), fix the one save defect a multi-version formula cannot ship with, and put in place the two
+structural seams every shipped game needs and would otherwise retrofit expensively — the active
+input device, and text that renders in any script.*
+
+**Why this phase exists, and why it is not scope creep.** T1 to T5 are complete and stay complete.
+The owner opened this phase on 2026-09-26 with one question: *this base will be the formula for many
+games — what belongs in it that we missed?* The answer was filtered rather than brainstormed.
+ADR-0007 decides what a template DEFAULT is; the refused list rules out cutscenes, an economy, a
+chapter sequencer, a calendar, combat, credits and the rest; and the project's own standing rule is
+that work is found, not invented. What survived is one confirmed defect plus the items of the
+"Commonly forgotten" list — a list that says of itself it was written *"so they are decisions rather
+than oversights"* — that are still neither done nor decided. See T6.0 below for how each candidate
+was classified, including the ones refused.
+
+- **T6.0 Planning the phase — DONE, 2026-09-26.** Three parallel explorations (what exists, what the
+  owner already refused or deferred, a presence check across thirty-six capabilities a general HD-2D
+  base usually needs) and an adversarial review, with every load-bearing claim then re-read in the
+  code. **The review overturned three first premises, which is the argument for running one**: the
+  shader warm-up proposed as missing was built in T2.0 (`Director.WARM_UP_FRAMES`); per-section save
+  versions proposed as never exercised are exercised (`core_test.gd:134`); and the F2 freecam called
+  unbound is bound and merely unconsumed. **It found one real defect by reading**, now T6.1. The owner
+  decided three things: T6 only; photo mode, a codex, in-area camera zones and positional ambient
+  emitters are GAME CHOICES; and font fallback proves both Bengali and CJK. Stale records fixed on
+  the way.
+- **T6.1 A save from a newer build must be refused, not applied** — planned. The defect.
+- **T6.2 The base knows which input device is active** — planned. Forgotten #4.
+- **T6.3 A reusable confirm screen, and "are you sure" on overwriting a save** — planned. Forgotten #7.
+- **T6.4 A save slot says where it was saved, and says so when it is damaged** — planned. Forgotten #15.
+- **T6.5 Losing window focus leaves nothing latched** — planned. Forgotten #3.
+- **T6.6 Text in any script renders, not as tofu** — planned. Bengali and CJK, owner's choice.
+- **T6.7 Dialogue for fast and slow readers** — planned. Forgotten #5.
+- **T6.8 Close the list, and gate it** — planned. The phase's exit criterion.
+
+**Exit criteria for the phase:**
+
+- [ ] A save section written by a newer build is refused with defaults loaded, and the suite holds
+  one worked, exercised migration a game can copy. — T6.1
+- [ ] The base knows the last-used input device, and the interaction prompt shows the right key for
+  it. — T6.2
+- [ ] Overwriting an occupied save slot asks first, through a confirm screen a game can reuse. — T6.3
+- [ ] A save slot shows where it was saved, and a damaged slot is shown as damaged. — T6.4
+- [ ] Losing window focus leaves no base-owned input latched, and pausing on it is a setting. — T6.5
+- [ ] A Bengali string and a CJK string both render through the theme's fallback chain,
+  photographed. — T6.6
+- [ ] Dialogue can be skipped to its end and can auto-advance. — T6.7
+- [ ] **Every "Commonly forgotten" item is marked DONE or CLOSED (game's) with a package id, and a
+  text-scan assertion fails if one is not.** — T6.8
+
 ## Sequencing rules
 
 1. **Breadth of systems, one shallow proof each.** This *replaces* "depth before breadth", which

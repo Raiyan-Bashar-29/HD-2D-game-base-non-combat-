@@ -237,12 +237,23 @@ rather than oversights.
 11. **Localization from the first string.** Retrofitting 200 hard-coded strings is exactly
     the debt the previous project logged.
 12. **A photo mode,** which costs little and is how players market the game for you.
+    **CLOSED (game's) — owner decision, T6.0.** A GAME CHOICE under ADR-0007 because its seam
+    exists: `DEBUG_FREECAM` is bound to F2 (`actions.gd:127`) and has no consumer, so a game that
+    wants a photo mode builds one on it in its own code root.
 13. **Credits,** including every asset licence, tracked as they are added rather than
-    reconstructed in a panic.
+    reconstructed in a panic. **CLOSED (game's) — owner, 2026-09-02** (the WP-15 remnant), which
+    this list had never recorded until T6.0. The licence half still binds the base: any asset it
+    vendors ships with its licence beside it, which is what T6.6 will do for its two fonts.
 14. **Shader pre-compilation.** Godot compiles shaders on first use, which shows up as a
-    stutter the first time it rains. Needs a warm-up pass before shipping.
+    stutter the first time it rains. Needs a warm-up pass before shipping. **DONE — T2.0**, which
+    this item had gone on describing as missing: `Director.WARM_UP_FRAMES` renders the new area
+    behind the curtain before it is shown. What it cannot warm is a material that first appears
+    AFTER load — rain arriving mid-scene — and that is a timing measurement to take if a stutter is
+    ever seen, not a row. T6.0 corrected this item.
 15. **A corrupt-save path** that loses one slot instead of the whole profile. Atomic writes
-    are in; recovery messaging is not.
+    are in; recovery messaging is not. **Partly done:** `save_recovery_test.gd` covers every refusal
+    `load_from_slot` makes, so one bad slot already fails alone. The player-facing half — a damaged
+    slot shown as damaged rather than as empty — is **T6.4**.
 
 ---
 

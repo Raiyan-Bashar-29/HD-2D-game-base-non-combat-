@@ -19,6 +19,30 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.6.2
+
+*2026-09-26 — Phase T6 planned. Documentation only: `src/`, `tools/` and `tests/` are byte-identical.*
+
+**A consuming game does: nothing.** No code, scene, resource or setting changed. PATCH, on the table
+above — *nothing a game wrote is affected* — and on the same precedent as `5.3.5` and `5.4.1`, both
+documentation-only.
+
+**Read this entry anyway if you build on the base's saves.** The planning sweep found a defect in
+`SaveSystem.load_from_slot`, recorded here because it is present in every version up to and
+including this one: a save section written by a **newer** build is handed to an older build's
+applier with no refusal — the envelope refuses a newer schema version, but the section level has no
+such guard — and every applier in the base ignores the version it is given. If your game ever loads
+a save produced by a later build of itself (a player rolling back, a beta branch), that section is
+applied as if it were current. **T6.1 fixes it.** Until then, do not rely on a downgrade path.
+
+**What else changed in the record.** `ROADMAP.md` gains Phase T6 — player-facing robustness — with
+eight planned rows and one mechanical exit criterion; `WORK_PACKAGES.md` gains their board rows and
+file manifests. `CONTEXT.md` no longer lists time on the flag surface and the day cycle as open
+(`5.5.0` and `5.6.0` built them), and three "Commonly forgotten" items in `SYSTEMS_INVENTORY.md` were
+corrected: photo mode and credits closed as each game's own, and shader warm-up marked built — it
+has been since T2.0.
+
+---
 ## 5.6.1
 
 *2026-09-10 — an audit of `5.6.0`, run because the base had just been declared finished. It found

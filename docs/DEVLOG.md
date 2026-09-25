@@ -10844,4 +10844,10 @@ list itself had never recorded; #15 marked partly done, its player-facing half a
 could miss what no search term named. And first-run defaults (forgotten #8) cannot be decided by
 reading at all — they wait on the owner's playtest, which outranks every row in this phase.
 
-**Commit:** on `claude/t6-0-plan`, PR targeting `main`. No SHA, per board item 6.
+**CI, from the job logs (gotcha 26).** Run `36176645207`, PR #65, both jobs `success`:
+`=== 2364 passed, 0 failed, 0 skipped ===` and `=== 2290 passed, 0 failed, 25 skipped ===`. The gap is
+74, the tenth consecutive recorded run at exactly 74. `TESTING.md`'s stripped figure was written as
+2290 by inference before CI ran — as T5.33 did — and the log confirms it; it counts as measured only
+from this line on.
+
+**Commit:** on `claude/t6-0-plan`, PR #65, targeting `main`. No SHA, per board item 6.

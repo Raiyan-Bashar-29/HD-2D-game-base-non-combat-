@@ -29,11 +29,25 @@ extends TestCase
 ## what it writes on every path and still uses a slot of its own: the redirect removes the
 ## consequence of a leftover file, not the reason not to leave one.
 ##
-## OWNS: assertions about a save file the loader must refuse, or must partially skip.
+## A SECTION FROM A NEWER BUILD IS REFUSED, as of T6.1, and it was not before. The envelope had
+## that guard in `_migrate`; the section level had no twin, so a section a newer build wrote was
+## handed, differently shaped, to an applier that believed it current. The probe below registers
+## at `PROBE_VERSION`, and a section one past it must leave the probe at its defaults.
+##
+## AND THE SUITE'S FIRST WORKED MIGRATION, which is the model a game copies. `_probe_apply` is a
+## participant whose format changed at v2 — `old_key` became `new_key` — and it upgrades a v1
+## payload in place before reading it. See `docs/UPGRADING.md` § 4.
+##
+## OWNS: assertions about a save file the loader must refuse, partially skip, or migrate.
 ## MUST NOT: assert the round trip (that is `core_test.gd`), or name authored content.
 
-const FIXED: int = 17
+const FIXED: int = 26
 const PROBE: StringName = &"recovery_probe"
+## The probe's CURRENT section version: its format changed once, at v2. A section stored at v1 is
+## migrated, at v2 is read as it is, and at v3 was written by a build this one has never seen.
+const PROBE_VERSION: int = 2
+## What the probe holds when nothing was applied. The refusal asserts it is still this.
+const UNSET: String = "unset"
 ## Two below `MAX_SLOTS`, so it cannot collide with `core_test.gd`'s `MAX_SLOTS - 1`.
 const SLOT: int = SaveSystem.MAX_SLOTS - 2
 
@@ -41,6 +55,8 @@ const SLOT: int = SaveSystem.MAX_SLOTS - 2
 ## and "the section was applied" are different claims — and when the question is whether a
 ## malformed section was skipped, only the second one answers it.
 var _applied: int = 0
+## The probe's one piece of state, read from `new_key` after any migration.
+var _value: String = UNSET
 
 
 func run() -> void:
@@ -55,6 +71,9 @@ func run() -> void:
 	_a_section_that_is_not_a_dictionary_is_skipped_and_the_rest_loads()
 	_a_section_predating_versioning_is_skipped_and_the_rest_loads()
 	_a_section_that_is_absent_leaves_its_system_at_defaults()
+	_a_section_from_a_newer_build_is_refused_and_keeps_defaults()
+	_a_section_at_the_registered_version_is_applied_as_it_is()
+	_an_older_section_is_migrated_before_it_is_read()
 	_the_migration_path_has_no_reachable_success_case()
 
 
@@ -115,6 +134,37 @@ func _a_section_that_is_absent_leaves_its_system_at_defaults() -> void:
 	_disarm()
 
 
+## The section-level twin of `_a_save_from_a_newer_build_is_refused`. Not a whole-file refusal:
+## ONE BAD SECTION MUST NOT COST THE WHOLE FILE, so the load still returns OK and only this
+## participant is left where a new game would have it.
+func _a_section_from_a_newer_build_is_refused_and_keeps_defaults() -> void:
+	_arm('{"version":1,"sections":{"recovery_probe":{"v":3,"data":{"new_key":"from the future"}}}}')
+	equal("a section from a newer build does not fail the whole load",
+			SaveSystem.load_from_slot(SLOT), OK)
+	equal("but its applier was never called", _applied, 0)
+	equal("so the probe keeps its defaults", _value, UNSET)
+	_disarm()
+
+
+## The other side of that boundary, so the refusal above cannot pass by refusing everything.
+func _a_section_at_the_registered_version_is_applied_as_it_is() -> void:
+	_arm('{"version":1,"sections":{"recovery_probe":{"v":2,"data":{"new_key":"current"}}}}')
+	equal("a section at the registered version loads", SaveSystem.load_from_slot(SLOT), OK)
+	equal("its applier ran once", _applied, 1)
+	equal("and read it without migrating", _value, "current")
+	_disarm()
+
+
+## THE WORKED MIGRATION. A v1 payload spells the field `old_key`; the applier renames it before
+## reading, so the value survives a format change the player never saw.
+func _an_older_section_is_migrated_before_it_is_read() -> void:
+	_arm('{"version":1,"sections":{"recovery_probe":{"v":1,"data":{"old_key":"migrated"}}}}')
+	equal("an older section loads", SaveSystem.load_from_slot(SLOT), OK)
+	equal("its applier ran once", _applied, 1)
+	equal("and read the value through the renamed field", _value, "migrated")
+	_disarm()
+
+
 ## THE BOUNDARY, EXHAUSTIVELY, AND THE PIN THAT MAKES IT EXPIRE. Every integer a `version` field
 ## can hold falls into exactly one of three buckets and only the middle one loads, which is what
 ## makes `_migrate`'s success path unreachable rather than merely untested.
@@ -142,7 +192,8 @@ func _the_migration_path_has_no_reachable_success_case() -> void:
 ## `_applied` counts one block's calls rather than the whole case's.
 func _arm(text: String) -> void:
 	_applied = 0
-	SaveSystem.register(PROBE, _probe_collect, _probe_apply, 1)
+	_value = UNSET
+	SaveSystem.register(PROBE, _probe_collect, _probe_apply, PROBE_VERSION)
 	var file: FileAccess = FileAccess.open(SaveSystem.slot_path(SLOT), FileAccess.WRITE)
 	file.store_string(text)
 	file.close()
@@ -157,8 +208,15 @@ func _disarm() -> void:
 
 
 func _probe_collect() -> Dictionary:
-	return {"kept": true}
+	return {"new_key": _value}
 
 
-func _probe_apply(_data: Dictionary, _from: int) -> void:
+## COPY THIS SHAPE. One `if` per past version, each upgrading the payload IN PLACE to the next
+## shape and falling through, then one read of the current shape. The loader has already refused
+## a `from_version` above `PROBE_VERSION`, so no applier needs its own guard against the future.
+func _probe_apply(data: Dictionary, from_version: int) -> void:
 	_applied += 1
+	if from_version == 1:
+		data["new_key"] = data.get("old_key", UNSET)
+		data.erase("old_key")
+	_value = DictRead.get_string(data, "new_key", UNSET)

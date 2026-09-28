@@ -75,6 +75,17 @@ consuming game has to do about it**. Compare its newest heading against your `ba
    your own ladder tells you whether it happened.
 3. **It cannot promise a save file survives.** Saves carry a version and the template migrates
    its own fields; it knows nothing about yours.
+
+   **Changing the shape of your own section is yours to migrate, and the procedure is two steps.**
+   Pass the next number as `register()`'s fourth argument — `SaveSystem.register(&"id", collect,
+   apply, 2)` — and in your applier, upgrade an older payload in place before reading it: one
+   `if from_version == 1:` per past version, each producing the next shape and falling through.
+   Never bump `SCHEMA_VERSION` for this; that is the envelope's, and a section changes without it.
+   The loader refuses a section stored at a version ABOVE the one you registered — a save a newer
+   build of your game wrote — and leaves that section at its defaults, so your applier never has to
+   guard against the future (since `5.6.3`). The worked example to copy is
+   `_probe_apply` in [`tests/unit/save_recovery_test.gd`](../tests/unit/save_recovery_test.gd),
+   which renames `old_key` to `new_key` from v1 and asserts the value survives.
 4. **It cannot promise anything about a fork that edited `src/`.** That is not a limitation of
    the merge — it is the one rule the whole template rests on. See § 5.
 5. **There is no automatic upgrade, and there will not be one.** No script rewrites your files.

@@ -3,37 +3,32 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-26 · **T6.0 (planning Phase T6) complete, at 5.6.2, a PATCH.** `src/`,
-`tools/` and `tests/` byte-identical. **Phases T1 to T5 are complete and stay complete; Phase T6 is
-OPEN, and the next package is T6.1.**
+**Last updated:** 2026-09-28 · **T6.1 (a newer save section is refused) complete, at 5.6.3, a PATCH.**
+**Phases T1 to T5 are complete and stay complete; Phase T6 is OPEN, and the next package is T6.2.**
 
-**THE OWNER OPENED A PHASE WITH ONE QUESTION:** this base will be the formula for many games —
-what belongs in it that we missed? The answer was **filtered, not brainstormed**. ADR-0007 decides
-what a template DEFAULT is; the refused list (cutscenes, an economy, a chapter sequencer, a
-calendar, combat, credits, jumping, expression conditions, quest rewards) stays refused; and work is
-found, not invented. So every T6 row is either a **confirmed defect** or an item on
-`SYSTEMS_INVENTORY.md` § "Commonly forgotten" that was still neither done nor decided — a list that
-says of itself it exists *"so they are decisions rather than oversights"*.
+**THE DEFECT T6.0 FOUND BY READING WAS PROVED BY RUNNING, THEN FIXED.** On `5.6.2`, a save section
+stored at `"v": 3` for a participant registered at v2 was handed to its applier as if current:
+`but its applier was never called — expected 0, got 1` and `so the probe keeps its defaults —
+expected unset, got from the future`, the two failures the reading predicted. `load_from_slot` now
+refuses a section whose stored version exceeds the registered one — `Log.error`, defaults, carry on
+— the section-level twin of `_migrate`'s envelope refusal. One bad section still does not cost the
+file. Planting the guard out fails the same two assertions again.
 
-**Three explorations and an adversarial review, then every load-bearing claim re-read in the code.**
-The review overturned three first premises — shader warm-up was built in T2.0, per-section save
-versions are exercised by `core_test.gd:134`, and the F2 freecam is bound rather than unbound — and
-that is the whole argument for having run one.
+**AND THE SUITE HOLDS ITS FIRST WORKED MIGRATION.** `_probe_apply` in `save_recovery_test.gd`
+renames `old_key` → `new_key` from v1 and the value survives a load; a v2 block beside it keeps the
+refusal from passing by refusing everything. It was always reachable — the loader passed an older
+version through — and what was missing was an example, so `UPGRADING.md` § 4 now points a game at
+it. `SCHEMA_VERSION` stays 1; the envelope's migration stays unreachable and pinned.
 
-**IT FOUND ONE REAL DEFECT BY READING, AND THAT IS T6.1.** `SaveSystem.load_from_slot` hands each
-section's stored version straight to its applier with **no check that it is not newer than the
-running build**, and every applier ignores `_from_version`. The envelope has exactly that guard —
-`_migrate` refuses `from_version > SCHEMA_VERSION` — and the section level has no twin. A save written
-by a newer build would be applied, differently shaped, as if current. For a base games will update
-across many versions, it is the most consequential thing the sweep turned up. **It must be proved red
-on today's code before it is fixed.**
+**Budgets.** `save_system.gd` 172 → **176 of 180**, and T6.4 edits it next with four lines left.
+`director.gd` stays at 187 of 190.
 
-**The phase, in order** — manifests and budget warnings in `WORK_PACKAGES.md` § T6.0:
+**The phase, in order** — manifests in `WORK_PACKAGES.md` § T6.0:
 
 | row | what | closes |
 |---|---|---|
-| **T6.1** | a save section from a newer build is refused; the first worked migration in the suite | the defect |
-| T6.2 | the base knows the active input device; the prompt shows the right key | forgotten #4 |
+| ~~T6.1~~ | ~~a save section from a newer build is refused; the first worked migration~~ **DONE** | the defect |
+| **T6.2** | the base knows the active input device; the prompt shows the right key | forgotten #4 |
 | T6.3 | a reusable confirm screen; "are you sure" on overwriting a save | forgotten #7 |
 | T6.4 | a slot shows where it was saved, and a damaged slot is shown as damaged | forgotten #15 |
 | T6.5 | losing window focus leaves nothing latched; pausing on it is a setting | forgotten #3 |
@@ -41,24 +36,22 @@ on today's code before it is fixed.**
 | T6.7 | dialogue can skip to its end and auto-advance | forgotten #5 |
 | T6.8 | every forgotten item marked DONE or CLOSED, gated by a text scan | the exit criterion |
 
-**Two budgets to know before starting.** `save_system.gd` is at 172 of 180 and T6.1 and T6.4 both
-edit it; `director.gd` is at 187 of 190, so T6.4 cannot simply have `Director` register the save
-header. Measure before writing; an overrun is a split or a justified budget, never a raised number.
-
-**The owner decided three things.** T6 only — map markers, music by day phase, barks and a dialogue
-backlog wait for a game to ask. Photo mode, a codex, in-area camera zones and positional ambient
-emitters are **GAME CHOICES**, each with its seam already there. And font fallback proves **both**
-Bengali and CJK, so the chain is shown to generalise.
-
-**Stale records fixed.** This file's candidates list still offered time on the flag surface and the
-day cycle as open, though T5.31 and T5.32 built both; and forgotten #12, #13 and #14 described
-settled work as missing.
-
 **THE OWNER'S PLAYTEST OUTRANKS THIS QUEUE.** A defect found by playing becomes the next row ahead of
 anything above — found, not invented, the standard every T6 row had to meet.
 
-Suite 2,362 → **2,364**, +2, both in `record_shape_test` for this row's own package id; every other
-case unmoved, as a documentation-only row should leave them. Measured after the documentation landed.
+Suite 2,364 → **2,375**, +11: nine in `save_recovery_test` (17 → 26) and two in `record_shape_test`
+for this row's own package id; every other case unmoved. Measured per case against `main`, after the
+documentation landed.
+
+*(Previously: T6.0 planned Phase T6 at `5.6.2`, documentation only. The owner asked what a base
+meant as the formula for many games had missed, and the answer was filtered rather than
+brainstormed: ADR-0007 decides what a template default is, the refused list stays refused, and work
+is found, not invented — so every row is a confirmed defect or an undecided "Commonly forgotten"
+item. Three explorations and an adversarial review overturned three first premises (shader warm-up
+built in T2.0, section versions exercised by `core_test.gd:134`, the F2 freecam bound) and found one
+real defect by reading, which became T6.1. The owner decided T6 only; photo mode, a codex, in-area
+camera zones and positional ambient emitters are GAME CHOICES; and font fallback proves both Bengali
+and CJK.)*
 
 *(Previously: T5.33 audited the base one row after T5.32 declared it finished, at `5.6.1`, and found
 the row declaring it finished had made a documented invariant violable. `schedule_entry.gd` always
@@ -282,10 +275,10 @@ another sheet, and every facing draws a different figure.
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version is** **5.6.2**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+**The version is** **5.6.3**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
 the owner's to close or to leave.
 
-**THE NEXT PACKAGE IS T6.1, AND IT IS A QUEUE AGAIN — FOR ONE PHASE.** From T5.32 until T6.0 this
+**THE NEXT PACKAGE IS T6.2, AND IT IS A QUEUE AGAIN — FOR ONE PHASE.** From T5.32 until T6.0 this
 paragraph said there was no next package and the base was complete; T1 to T5 still are. The owner
 then opened Phase T6 (see the headline and `ROADMAP.md` § Phase T6), so the board holds eight
 planned rows with file manifests, and a new session takes **the lowest unfinished T6 row** rather
@@ -354,7 +347,7 @@ three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite shee
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 4 on the default one, the
 fourth being a second IDLE rather than a gait**,
 1 shared area material, **21 settings and 21 consumers**.
-Template version **5.6.2**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+Template version **5.6.3**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
 recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 

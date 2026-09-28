@@ -244,6 +244,10 @@ signal ui_mode_changed(mode: GameEnums.UiMode)
 # Settings and debug.
 # ---------------------------------------------------------------------------------------
 
+## The player picked up a different kind of device, so every prompt naming a button should
+## redraw. Emitted by Actions, and ONLY on a change: a stream of stick events from the same pad
+## is one fact, not sixty a second. Read the current answer with `Actions.device()`.
+signal input_device_changed(device: GameEnums.DeviceKind)
 ## A user setting changed at runtime, so systems can re-read it. Emitted by Settings.
 signal setting_changed(section: String, key: String, value: Variant)
 ## A developer console command was entered. NO EMITTER in the template, deliberately, and this

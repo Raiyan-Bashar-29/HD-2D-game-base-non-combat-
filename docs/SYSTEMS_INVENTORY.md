@@ -35,7 +35,7 @@ previous project started as a system that was allowed to know one thing too many
 | Autosave policy | `Autosave` under `GameRoot`. When a save is written unasked, whether it may be, and the toast that says it did. Two occasions — `game_ending`, and one frame after `area_entered` — and three refusals: the player's veto `gameplay/autosave`, a transition in flight, and no run in progress. `request()` is public, so a game's own occasion is one call and no edit to `src/` | SaveSystem, Director, Settings, Events | what a save contains, writing a file itself, or naming an area | **DONE — T5.10.** The SLOT was the design question, not the trigger: one past the manual six, so no manual save can reach it and no save already on disk changes meaning |
 | Flag store | Plot and world state, one source of truth. A prefix may be declared DERIVED, so its keys are readable and announced but left out of the save file — one publisher re-derives them | Log, Events, Save | what any flag means, and how to derive anything | DONE |
 | Game root | Builds the persistent tree, spawns the player, asks for the main menu | Director | game logic of any kind. 60-code-line hard budget | DONE |
-| Input actions | Action names and default bindings, declared in code | Log | what an action means; it names, never interprets | DONE |
+| Input actions | Action names and default bindings, declared in code. **Since T6.2 also which device is active** — keyboard and mouse or a pad — by the pure `InputDevice.device_for` rule, announced on `input_device_changed` only on a change; mouse motion and sub-deadzone stick drift are not a switch, and the last pad unplugged falls back to the keyboard | Log, Events | what an action means; it names, never interprets, and reads an event for its device only | DONE — hotplug proved by calling the handler, since no pad exists headless |
 | Key bindings store | One player's overrides of the input map, in user://input.cfg | Log, DictRead | naming an action or deciding a default; it never mentions Actions | DONE |
 | Verification harness | Parse gate, import gate, headless run, visual capture. **Rungs 5-11 grep their own logs for `SCRIPT ERROR` since T5.27** - the exit code alone cannot see a checker that skipped a file, gotcha 24 | Godot only | — | PART |
 
@@ -149,7 +149,7 @@ previous project started as a system that was allowed to know one thing too many
 | Main menu | New game, continue, load, settings, controls, quit. The boot path now stops here | Save, Director | loading an area or clearing a flag itself | DONE |
 | Save and load screen | Slot list with headers and playtime, in either direction | Save | the save format, or what a section holds | DONE |
 | Settings screen | Every entry in the Settings defaults table, generated from it. **Generation is why it needed no edit at all when T5.5 removed three settings** | Settings | applying a setting; it writes and Settings announces | DONE |
-| Key rebinding | Rebind a key or a pad button per action; overrides persist in user://input.cfg. Since T5.5 `rebind()` gates on `Actions.REBINDABLE` rather than `InputMap.has_action`, so an override that `reset_bindings()` could never undo cannot be stored | Actions, KeyBindings | naming an action or deciding a default | PART — no glyph swapping per device, and no duplicate-binding warning |
+| Key rebinding | Rebind a key or a pad button per action; overrides persist in user://input.cfg. Since T5.5 `rebind()` gates on `Actions.REBINDABLE` rather than `InputMap.has_action`, so an override that `reset_bindings()` could never undo cannot be stored | Actions, KeyBindings | naming an action or deciding a default | PART — the prompts name the right device's button in words since T6.2, but there are no button ICONS yet (`ART_CONTRACT.md` § Button prompts names the seam), and no duplicate-binding warning |
 | World map | `WorldMap` under `GameRoot`, found by group. Discovery is the flag `map/<area id>` and there is NO store, so it is already saved, already announced and writable by anything. `travel_to` emits `area_change_requested` and stops | Director, Flags, Events, AreaDb | loading an area, fading, placing the player, or keeping a copy of what is discovered | DONE — WP-11 |
 | Controller navigation | Every screen fully usable on a gamepad | Actions | — | DONE — a VBoxContainer of Buttons answers ui_up/ui_down and ui_accept, so no screen owns a cursor; proved windowed with real events |
 | UI accessibility | `UiAccessibility` under `UILayer`, the consumer of `accessibility/text_scale`. Scales the project theme's nine `font_sizes` from a CACHED base, so the whole UI grows at once and stepping the row up and back returns to where it started. **This is where an accessibility setting GOES** — the thing such a setting has to change is the theme every screen draws from, which is why a fork could not wire one without editing `src/` | Settings, Events, ThemeDB | knowing which screens exist, or reaching into a Control. A theme change propagates on its own | DONE — T5.5, and its presence in `game_root.tscn` is asserted through `SceneState` rather than by text; see gotcha 56 |
@@ -206,7 +206,13 @@ rather than oversights.
    that said an autosave would go there is gone, because it did not have to.
 3. **Window focus loss.** Unfocused should not mean the character keeps walking because a
    key was held when focus went away.
-4. **Controller hotplug** mid-session, and switching glyphs when it happens.
+4. **Controller hotplug** mid-session, and switching glyphs when it happens. **DONE — T6.2, in
+   words rather than icons.** `Actions.device()` follows the last device used and
+   `Events.input_device_changed` announces a switch; the interact prompt and the dialogue hint
+   redraw with `KeyBindings.text_for` for that device, and unplugging the last pad falls back to
+   the keyboard. It also fixed the hint, which said "Space to continue" when Space advanced
+   nothing. Icons are an art question: `ART_CONTRACT.md` § Button prompts. Hotplug itself cannot
+   be driven headless, so the handler is called directly and the engine's emission is untested.
 5. **Text speed and instant skip.** A player who reads fast will hate the game without it.
 6. **Autosave indicator,** and never autosaving during a transition. **BOTH DONE — T5.10, and
    the transition half turned out to be the sharp one.** The indicator is `notify.autosaved` on

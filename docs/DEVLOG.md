@@ -10911,4 +10911,59 @@ which is correct until one changes shape. The refusal loads defaults silently to
 only trace is the log — and whether a damaged or partly-refused slot should say so on screen is
 T6.4's question.
 
-**Commit:** on `claude/t6-1-newer-section`, PR targeting `main`. No SHA, per board item 6.
+**Commit:** `53c44ae` on `claude/t6-1-newer-section`, PR #66, targeting `main`, merged as `d955449`; no separate CI-record commit was made. Filled in by T6.2, which also confirmed the stripped `2301` from the CI job log (`Ladder (stripped template)`, job 108988875530: `=== 2301 passed, 0 failed, 25 skipped ===`).
+
+## 2026-09-28 — T6.2 · The base knows which input device is active
+
+**Did.** Forgotten #4. New `src/systems/input/input_device.gd`: a pure static
+`device_for(event, previous)` — a key, a click, a pad button, or a stick at or past
+`Actions.STICK_DEADZONE` switches the device; mouse motion, sub-deadzone drift and unrecognised
+events keep the previous answer. `Actions` holds the answer (`device()`), feeds it from `_input`
+through a public `observe()`, emits the new `Events.input_device_changed(device)` only on a change,
+and falls back to the keyboard when the last pad is unplugged. `GameEnums.DeviceKind` types the
+signal. Consumers: the interact prompt names the button (`[E]  Barter  The Keeper's Basket`) and the
+dialogue hint reads `{key} to continue`, both through `KeyBindings.text_for`, both redrawing on the
+signal. `ART_CONTRACT.md` § Button prompts says where an icon sheet will plug in.
+
+**Why.** No prompt in the base could name the button a pad player would press. **And the dialogue
+hint was wrong for everyone**: it said `Space to continue`, and Space advanced nothing — it was bound
+to `jump`, removed in T5.5, while the box has only ever listened for `interact`. Found by reading the
+second consumer the manifest named, not by the plan.
+
+**Decisions.** No new autoload — the stateful half is `Actions`, as the manifest said, and its MUST
+NOT line was narrowed in writing ("read an event for anything but its device") rather than dropped.
+The enum is `DeviceKind`, not `InputDevice`, because the first name collided with the new class and
+`check_layers.gd` failed (`core ... names InputDevice, which is systems`, `FAIL — 2 upward
+reference(s)`). Plugging a pad in changes nothing until it is pressed: owning a pad is not using one.
+
+**Connects.** `Events.input_device_changed` → `interact_prompt.gd`, `dialogue_screen.gd`.
+`KeyBindings.text_for` gains its second and third callers. `localization/strings.csv`: the
+`ui.dialogue.continue` value changed and `ui.prompt.button` was added, which is what `CHANGELOG.md`
+`5.7.0` tells a game with its own language column to act on.
+
+**Verified.** Plants, each a different failure: deadzone ignored `2405 passed, 1 failed` (`stick drift
+under the deadzone keeps the keyboard — expected 0, got 1`); announce on every event `2404 passed, 2
+failed` (`expected 1, got 3`, `expected 2, got 5`); dialogue unsubscribed `2405 passed, 1 failed`
+(`mid-conversation, the pad renames it — expected true, got false`). Windowed 960×540 captures,
+looked at: `--stand-by=Keeper` → `[E]  Barter  The Keeper's Basket`; `--talk=talk/gardener` → `E to
+continue`.
+
+| rung | result |
+|---|---|
+| `--import` | exit 0, no `SCRIPT ERROR`, no `Parse Error` |
+| boot | `0 warnings, 0 errors` |
+| suite | `2408 passed, 0 failed, 0 skipped`, exit 0 |
+| seven checkers | each exit 0, each `PASS`; `actions.gd` 107 / 150 |
+
+**2,375 → 2,408, +33: 31 in the new `input_device_test` and 2 in `record_shape_test` for this row's own package id; every other case unmoved**, measured per case against a `main` worktree after the
+documentation landed.
+
+**Unblocks.** T6.3 next; T6.7 (dialogue skip and auto-advance), which the board ordered after this
+row because its hints will name buttons the same way.
+
+**Gaps.** Hotplug cannot be driven headless: the suite calls the handler directly and the engine's
+emission of `joy_connection_changed` is untested. The pad variant of either prompt is asserted, never
+photographed — there is no pad here. No button icons. `KeyBindings`' header still claims `Actions`
+never mentions it, which stopped being true when `Actions` began calling `load_all()`.
+
+**Commit:** on `claude/t6-2-input-device`, PR targeting `main`. No SHA, per board item 6.

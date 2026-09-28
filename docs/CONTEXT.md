@@ -3,33 +3,32 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-28 · **T6.1 (a newer save section is refused) complete, at 5.6.3, a PATCH.**
-**Phases T1 to T5 are complete and stay complete; Phase T6 is OPEN, and the next package is T6.2.**
+**Last updated:** 2026-09-28 · **T6.2 (the base knows the active input device) complete, at 5.7.0, a MINOR.**
+**Phases T1 to T5 are complete and stay complete; Phase T6 is OPEN, and the next package is T6.3.**
 
-**THE DEFECT T6.0 FOUND BY READING WAS PROVED BY RUNNING, THEN FIXED.** On `5.6.2`, a save section
-stored at `"v": 3` for a participant registered at v2 was handed to its applier as if current:
-`but its applier was never called — expected 0, got 1` and `so the probe keeps its defaults —
-expected unset, got from the future`, the two failures the reading predicted. `load_from_slot` now
-refuses a section whose stored version exceeds the registered one — `Log.error`, defaults, carry on
-— the section-level twin of `_migrate`'s envelope refusal. One bad section still does not cost the
-file. Planting the guard out fails the same two assertions again.
+**THE BASE NOW KNOWS WHICH DEVICE THE PLAYER IS HOLDING.** `InputDevice.device_for(event, previous)`
+is the pure rule — mouse motion and sub-deadzone stick drift are NOT a switch — and `Actions` holds
+the answer (`Actions.device()`) and emits `Events.input_device_changed` only on a change. **No
+autoload was added**; `Actions`' MUST NOT was narrowed in writing. Unplugging the last pad falls back
+to the keyboard; **hotplug cannot be driven headless**, so the handler is called directly and the
+engine's emission is untested. The enum is `GameEnums.DeviceKind`, because `InputDevice` collided
+with the class and `check_layers.gd` read it as `core` naming `systems`.
 
-**AND THE SUITE HOLDS ITS FIRST WORKED MIGRATION.** `_probe_apply` in `save_recovery_test.gd`
-renames `old_key` → `new_key` from v1 and the value survives a load; a v2 block beside it keeps the
-refusal from passing by refusing everything. It was always reachable — the loader passed an older
-version through — and what was missing was an example, so `UPGRADING.md` § 4 now points a game at
-it. `SCHEMA_VERSION` stays 1; the envelope's migration stays unreachable and pinned.
+**AND THE DIALOGUE HINT HAD BEEN LYING.** It said `Space to continue`; Space was bound to the `jump`
+T5.5 removed and advanced nothing. Both prompts now ask `KeyBindings.text_for` for the active device
+— `[E]  Barter  The Keeper's Basket` and `E to continue`, photographed. Icons are not here:
+`ART_CONTRACT.md` § Button prompts names the one seam a sheet replaces.
 
-**Budgets.** `save_system.gd` 172 → **176 of 180**, and T6.4 edits it next with four lines left.
-`director.gd` stays at 187 of 190.
+**Budgets.** `actions.gd` 91 → 107 of 150. `save_system.gd` stays at **176 of 180** for T6.4, and
+`director.gd` at 187 of 190.
 
 **The phase, in order** — manifests in `WORK_PACKAGES.md` § T6.0:
 
 | row | what | closes |
 |---|---|---|
 | ~~T6.1~~ | ~~a save section from a newer build is refused; the first worked migration~~ **DONE** | the defect |
-| **T6.2** | the base knows the active input device; the prompt shows the right key | forgotten #4 |
-| T6.3 | a reusable confirm screen; "are you sure" on overwriting a save | forgotten #7 |
+| ~~T6.2~~ | ~~the base knows the active input device; the prompt shows the right key~~ **DONE** | forgotten #4 |
+| **T6.3** | a reusable confirm screen; "are you sure" on overwriting a save | forgotten #7 |
 | T6.4 | a slot shows where it was saved, and a damaged slot is shown as damaged | forgotten #15 |
 | T6.5 | losing window focus leaves nothing latched; pausing on it is a setting | forgotten #3 |
 | T6.6 | Bengali and CJK both render through a font fallback chain | structural |
@@ -39,9 +38,15 @@ it. `SCHEMA_VERSION` stays 1; the envelope's migration stays unreachable and pin
 **THE OWNER'S PLAYTEST OUTRANKS THIS QUEUE.** A defect found by playing becomes the next row ahead of
 anything above — found, not invented, the standard every T6 row had to meet.
 
-Suite 2,364 → **2,375**, +11: nine in `save_recovery_test` (17 → 26) and two in `record_shape_test`
-for this row's own package id; every other case unmoved. Measured per case against `main`, after the
-documentation landed.
+Suite 2,375 → **2,408**, +33: 31 in the new `input_device_test` and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `main`, after the documentation
+landed.
+
+*(Previously: T6.1 refused a save section from a newer build at `5.6.3`, a PATCH. Proved red first
+— a section stored at v3 for a probe registered at v2 reached its applier, `expected unset, got from
+the future` — then `load_from_slot` gained the section-level twin of `_migrate`'s refusal: `Log.error`,
+defaults, carry on, one bad section never costing the file. It also gave the suite its first worked
+migration, `old_key` → `new_key` from v1 in `save_recovery_test.gd`, which `UPGRADING.md` § 4 tells
+a game to copy. `save_system.gd` 172 → 176 of 180.)*
 
 *(Previously: T6.0 planned Phase T6 at `5.6.2`, documentation only. The owner asked what a base
 meant as the formula for many games had missed, and the answer was filtered rather than
@@ -275,10 +280,10 @@ another sheet, and every facing draws a different figure.
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version is** **5.6.3**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+**The version is** **5.7.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
 the owner's to close or to leave.
 
-**THE NEXT PACKAGE IS T6.2, AND IT IS A QUEUE AGAIN — FOR ONE PHASE.** From T5.32 until T6.0 this
+**THE NEXT PACKAGE IS T6.3, AND IT IS A QUEUE AGAIN — FOR ONE PHASE.** From T5.32 until T6.0 this
 paragraph said there was no next package and the base was complete; T1 to T5 still are. The owner
 then opened Phase T6 (see the headline and `ROADMAP.md` § Phase T6), so the board holds eight
 planned rows with file manifests, and a new session takes **the lowest unfinished T6 row** rather
@@ -347,7 +352,7 @@ three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite shee
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 4 on the default one, the
 fourth being a second IDLE rather than a gait**,
 1 shared area material, **21 settings and 21 consumers**.
-Template version **5.6.3**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+Template version **5.7.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
 recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 

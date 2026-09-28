@@ -19,6 +19,38 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.7.0
+
+*2026-09-28 — the base knows which input device is active, and the two prompts that name a button
+follow it.*
+
+**A consuming game does: nothing, unless it added its own language column to
+`localization/strings.csv`.** In that case: put `{key}` into your translation of
+`ui.dialogue.continue`, where the button belongs in your sentence, and translate the new row
+`ui.prompt.button` (`[{key}]` in English — the brackets are layout, so a language may lay the
+button out differently). A translation without `{key}` still works; it just never names the
+button. **MINOR**: the base gained a signal, an enum, two methods and a class a game may ignore.
+
+**What changed.** `Actions` now tracks the device the player last used — keyboard and mouse, or a
+pad — and emits `Events.input_device_changed(device)` only when it changes. Read the current answer
+with `Actions.device()`, and the words for an action with
+`KeyBindings.text_for(action, Actions.device() == GameEnums.DeviceKind.GAMEPAD)`. The rule is the
+pure `InputDevice.device_for(event, previous)`: a key, a click, a pad button or a stick past
+`Actions.STICK_DEADZONE` is a switch; **mouse motion and stick drift are not**, so a bumped desk or
+a pad on the sofa never flips the prompts. Unplugging the last pad falls back to the keyboard. No
+autoload was added.
+
+**Two consumers.** The interact prompt now names the button — `[E]  Barter  The Keeper's Basket`
+where it used to say only `Barter  The Keeper's Basket` — and the dialogue hint says `E to continue`.
+**Which fixes a defect: the hint used to say `Space to continue`, and Space advances nothing.**
+Space was bound to `jump`, which T5.5 removed; the dialogue box has only ever listened for
+`interact`. A game that asserted on the prompt's exact text will see the leading button.
+
+**Hotplug is not proved by the suite**, because no pad exists headless: the handler is called
+directly and the engine's own emission of `joy_connection_changed` is untested. Button ICONS are
+not here either — `docs/ART_CONTRACT.md` § Button prompts says where a sheet will plug in.
+
+---
 ## 5.6.3
 
 *2026-09-28 — the save defect `5.6.2` recorded, proved red and then fixed.*

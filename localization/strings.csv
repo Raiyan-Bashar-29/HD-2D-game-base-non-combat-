@@ -71,7 +71,8 @@ object.door.hall_out.label,Courtyard Door,[~~Courtyard Door~~]
 object.sign.hall.label,Brass Plaque,[~~Brass Plaque~~]
 object.sign.hall.text,"Lanterns are lit here at all hours, and no hour is admitted. Whatever the sky is doing outside, it is not doing it in the Lantern Hall.","[~~Lanterns are lit here at all hours, and no hour is admitted. Whatever the sky is doing outside, it is not doing it in the Lantern Hall.~~]"
 object.chest.hall.label,Iron Coffer,[~~Iron Coffer~~]
-ui.dialogue.continue,Space to continue,[~~Space to continue~~]
+ui.dialogue.continue,{key} to continue,[~~{key} to continue~~]
+ui.prompt.button,[{key}],[~~[{key}]~~]
 object.gardener.label,The Garden-Keeper,[~~The Garden-Keeper~~]
 talk.gardener.name,Garden-Keeper,[~~Garden-Keeper~~]
 talk.gardener.greet_first,"You are the first face I have seen since the frost. Mind the thorns, and do not touch the white roses.","[~~You are the first face I have seen since the frost. Mind the thorns, and do not touch the white roses.~~]"

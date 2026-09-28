@@ -484,6 +484,31 @@ area authors its own framing** — a seam nothing uses is a seam nobody has trie
 
 ---
 
+## Button prompts
+
+**Today a prompt names a button in WORDS, and that is complete, not a stub.** Since `5.7.0` the base
+knows which device the player last used (`Actions.device()`, announced on
+`Events.input_device_changed`), and the two prompts that name a button — the interact prompt and
+the dialogue box's continue hint — ask `KeyBindings.text_for(action, pad)` for it: `[E]` on a
+keyboard, the engine's name for the button on a pad. A rebind shows up there immediately, because
+the words come from the binding and not from a string.
+
+**An icon sheet replaces the words at exactly one seam, and it is `KeyBindings.text_for`.** Every
+prompt that names a button goes through it, so an icon sheet is a lookup from the same two facts —
+an action's binding and `Actions.device()` — to a cell, and nothing else in the UI has to learn that
+icons exist. What it will need, so a sheet drawn now is not drawn twice:
+
+- **One cell per physical button, not per action.** Rebinding moves an action to a different button;
+  a cell drawn per action would be wrong the moment a player rebinds.
+- **One sheet per pad family** — the south button is a cross on one pad and an A on another — so a
+  sheet chooses its family from the connected pad's name, and a keyboard sheet is its own family.
+- **The words stay as the fallback.** A button nobody drew a cell for must still be named, which is
+  what `text_for` already does.
+
+What does not exist yet, stated so nobody looks for it: the icon lookup itself, the per-family
+choice, and a `RichTextLabel` prompt able to draw an image inline — the prompt is a `Label` today.
+That work is a game's or a later row's, and none of it changes the seam above.
+
 ## What is deliberately not here
 
 **No Git LFS, and this one is a refusal rather than an omission.** `.gitattributes` keeps the

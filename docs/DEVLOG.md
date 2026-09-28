@@ -10850,4 +10850,65 @@ reading at all — they wait on the owner's playtest, which outranks every row i
 2290 by inference before CI ran — as T5.33 did — and the log confirms it; it counts as measured only
 from this line on.
 
-**Commit:** on `claude/t6-0-plan`, PR #65, targeting `main`. No SHA, per board item 6.
+**Commit:** `487e7f4` on `claude/t6-0-plan`, PR #65, targeting `main`, plus `488e493` for the CI record. Filled in by T6.1.
+
+
+## 2026-09-28 — T6.1 · A save from a newer build must be refused, not applied
+
+**Did.** Proved T6.0's read defect red on `5.6.2`, then fixed it: `SaveSystem.load_from_slot` now
+refuses a section whose stored `"v"` exceeds the version its participant registered — `Log.error`,
+the section left at defaults, the rest of the file loaded. Added the suite's first worked,
+exercised migration. `5.6.3`, a PATCH.
+
+**Why.** The envelope refused a newer schema in `_migrate`; the section level had no twin, and every
+applier in the base ignores `_from_version`. So a section a newer build wrote — a player rolling
+back, a beta branch — was applied, differently shaped, as if current. For a base games will update
+across many versions, that is the one save defect a formula cannot ship with.
+
+**Red first.** Three blocks added to `tests/unit/save_recovery_test.gd`, run against unmodified
+`src/`:
+
+```
+=== 2371 passed, 2 failed, 0 skipped ===
+FAILED: but its applier was never called — expected 0, got 1
+FAILED: so the probe keeps its defaults — expected unset, got from the future
+```
+
+The newer-section block failed on exactly the two assertions the reading predicted. The other two
+blocks — a v2 section read as it is, and a v1 section migrated `old_key` → `new_key` — were green on
+`5.6.2`, correctly: the loader always passed an older version through. The mechanism existed; the
+guard and an example did not.
+
+**The fix.** Four code lines. `save_system.gd` 172 → 176 of 180 by `check_budgets.gd`; no budget
+raised, and T6.4 inherits four lines of room.
+
+**Plant.** The guard's condition prefixed with `false and`: exit 1, `2371 passed, 2 failed`, the
+same two failures. Restored: exit 0, `2373 passed, 0 failed` (pre-documentation).
+
+**Connects.** `UPGRADING.md` § 4 item 3 now says how a game bumps a section and migrates it, and
+names `_probe_apply` as the example to copy. `CHANGELOG.md` `5.6.3` justifies the PATCH on `1.0.2`.
+`SYSTEMS_INVENTORY.md`'s save row and forgotten #15 record the refusal.
+
+**Verified.**
+
+| rung | result |
+|---|---|
+| `--check-only` | only `Identifier not found: Log` / `SaveSystem`, the expected autoload error |
+| `--import` | exit 0, no `SCRIPT ERROR`, no `Parse Error` |
+| boot | `0 warnings, 0 errors` |
+| suite | `2375 passed, 0 failed, 0 skipped`, exit 0 |
+| seven checkers | each exit 0, each `PASS`; `save_system.gd` 176 / 180 |
+
+**2,364 → 2,375, +11**, measured per case against a `main` worktree after the documentation landed:
+`save_recovery_test` 17 → 26 (the nine new assertions) and `record_shape_test` 141 → 143 (this
+row's own package id). `docs_test`, `doc_counts_test` and `version_test` did not move. The stripped
+figure in `TESTING.md` is written as 2301 by inference until the CI log confirms it.
+
+**Unblocks.** T6.2, and T6.4 — which edits `save_system.gd` next.
+
+**Gaps.** No applier in the base has migrated anything yet; each still ignores `_from_version`,
+which is correct until one changes shape. The refusal loads defaults silently to the player — the
+only trace is the log — and whether a damaged or partly-refused slot should say so on screen is
+T6.4's question.
+
+**Commit:** on `claude/t6-1-newer-section`, PR targeting `main`. No SHA, per board item 6.

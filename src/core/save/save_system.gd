@@ -58,6 +58,8 @@ var save_dir: String = DEFAULT_SAVE_DIR:
 
 ## Section version per participant, so a system can change its own format without forcing an
 ## envelope bump and without _migrate having to understand every other section. See ADR-0004.
+## A stored section NEWER than this is refused in `load_from_slot`; an older one is the applier's
+## to migrate — `tests/unit/save_recovery_test.gd` has the worked example.
 var _versions: Dictionary[StringName, int] = {}
 var _collectors: Dictionary[StringName, Callable] = {}
 var _appliers: Dictionary[StringName, Callable] = {}
@@ -219,8 +221,15 @@ func load_from_slot(slot: int) -> Error:
 			# handing a differently-shaped payload to an applier that cannot recognise it.
 			Log.warn("save", "Section '%s' predates section versioning - loading defaults" % key)
 			continue
+		var stored: int = DictRead.get_int(wrapped, "v", 1)
+		if stored > _versions[id]:
+			# The section-level twin of `_migrate`'s newer-build refusal, and it had none until
+			# T6.1: every applier trusts its `from_version`, so a shape this build has never seen
+			# would be applied as if current. A migration cannot be written for the future.
+			Log.error("save", "Section '%s' is from a newer build (v%d > v%d) - loading defaults" % [key, stored, _versions[id]])
+			continue
 		var apply: Callable = _appliers[id]
-		apply.call(DictRead.get_dict(wrapped, "data"), DictRead.get_int(wrapped, "v", 1))
+		apply.call(DictRead.get_dict(wrapped, "data"), stored)
 
 	Log.info("save", "Slot %d loaded (v%d, %.0fs played)" % [slot, version, _playtime])
 	Events.game_loaded.emit(slot)

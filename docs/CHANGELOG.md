@@ -19,6 +19,34 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.6.3
+
+*2026-09-28 — the save defect `5.6.2` recorded, proved red and then fixed.*
+
+**A consuming game does: nothing, unless a player loads a save a NEWER build of your game wrote** —
+in which case each section stored at a version above the one its participant registered now loads
+at that participant's defaults, with a `Log.error` naming it, where before the newer payload was
+handed to your applier as if current. The rest of the file still loads. That is the bug being fixed,
+not a new restriction — `1.0.2`'s words, and its reasoning holds here: no game could have been
+relying on a differently-shaped payload being misread, and every applier in the base ignored the
+version it was given. **PATCH.**
+
+**What changed.** `SaveSystem.load_from_slot` compares each section's stored `"v"` against the
+version `register()` recorded, and refuses a newer one — the section-level twin of the envelope's
+`Save is from a newer build` refusal, which already existed in `_migrate`. An OLDER section is
+still handed to its applier with its stored version, which is how a section migrates.
+
+**Proved before it was fixed.** On `5.6.2`, a section written at `"v": 3` for a probe registered at
+v2 failed two assertions: `but its applier was never called — expected 0, got 1` and `so the probe
+keeps its defaults — expected unset, got from the future`. With the guard those pass; with the
+guard planted out they fail again, identically.
+
+**If you change a section's shape**, this is now the whole procedure: register at the next
+version and upgrade the older payload inside your applier. `tests/unit/save_recovery_test.gd`
+holds the first worked migration in the suite — `old_key` renamed to `new_key` from v1 — and
+[`UPGRADING.md`](UPGRADING.md) § 4 says how to copy it.
+
+---
 ## 5.6.2
 
 *2026-09-26 — Phase T6 planned. Documentation only: `src/`, `tools/` and `tests/` are byte-identical.*

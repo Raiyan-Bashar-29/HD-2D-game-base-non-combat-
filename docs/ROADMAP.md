@@ -1502,7 +1502,11 @@ was classified, including the ones refused.
   decided three things: T6 only; photo mode, a codex, in-area camera zones and positional ambient
   emitters are GAME CHOICES; and font fallback proves both Bengali and CJK. Stale records fixed on
   the way.
-- **T6.1 A save from a newer build must be refused, not applied** — planned. The defect.
+- **T6.1 A save from a newer build must be refused, not applied — DONE, 2026-09-28, `5.6.3`.**
+  Proved red on `5.6.2` first — a section stored at v3 for a probe registered at v2 reached its
+  applier, `expected unset, got from the future` — then `load_from_slot` gained the section-level
+  twin of `_migrate`'s newer-build refusal. The suite's first worked migration (`old_key` →
+  `new_key` from v1) lives in `save_recovery_test.gd`, and `UPGRADING.md` § 4 points games at it.
 - **T6.2 The base knows which input device is active** — planned. Forgotten #4.
 - **T6.3 A reusable confirm screen, and "are you sure" on overwriting a save** — planned. Forgotten #7.
 - **T6.4 A save slot says where it was saved, and says so when it is damaged** — planned. Forgotten #15.
@@ -1513,7 +1517,7 @@ was classified, including the ones refused.
 
 **Exit criteria for the phase:**
 
-- [ ] A save section written by a newer build is refused with defaults loaded, and the suite holds
+- [x] A save section written by a newer build is refused with defaults loaded, and the suite holds
   one worked, exercised migration a game can copy. — T6.1
 - [ ] The base knows the last-used input device, and the interaction prompt shows the right key for
   it. — T6.2

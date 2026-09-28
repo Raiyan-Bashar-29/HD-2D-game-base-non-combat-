@@ -23,6 +23,11 @@ extends UiScreen
 ## `DialogueRunner` owns all of that; this renders `line_changed` and forwards two inputs.
 
 const SCREEN_ID: StringName = &"dialogue"
+## "{key} to continue", with the button filled in for whichever device `Actions` last saw. UNTIL
+## T6.2 THE HINT SAID "Space to continue" AND SPACE ADVANCED NOTHING: it was bound to `jump`,
+## which T5.5 removed, while this screen has only ever listened for `interact` - E, Enter, or the
+## pad's south button. A fixed string naming a key is a string that goes stale on the first
+## rebind; the binding is the only thing that knows.
 const CONTINUE_KEY: String = "ui.dialogue.continue"
 ## The reveal is this template's one piece of animated TEXT, so it is where reduce-motion has to
 ## be honoured. Named on the consumer, beside `gameplay/text_speed`, which this file already read.
@@ -89,8 +94,9 @@ func _build() -> void:
 	_choice_box.add_theme_constant_override(
 		&"separation", get_theme_constant(&"tight_separation", METRICS)
 	)
-	_hint = _label(tr(CONTINUE_KEY), HINT_VARIATION, ACCENT_COLOUR)
+	_hint = _label("", HINT_VARIATION, ACCENT_COLOUR)
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_write_hint()
 	column.add_child(_speaker)
 	column.add_child(_line)
 	column.add_child(_choice_box)
@@ -108,6 +114,18 @@ func _build() -> void:
 
 	runner.line_changed.connect(_on_line_changed)
 	runner.finished.connect(_on_finished)
+	Events.input_device_changed.connect(_on_device_changed)
+
+
+## The screen is open while the world runs, so a player can put the keyboard down and pick up a
+## pad mid-conversation; the hint follows them rather than waiting for the next line.
+func _on_device_changed(_device: GameEnums.DeviceKind) -> void:
+	_write_hint()
+
+
+func _write_hint() -> void:
+	var pad: bool = Actions.device() == GameEnums.DeviceKind.GAMEPAD
+	_hint.text = tr(CONTINUE_KEY).format({"key": KeyBindings.text_for(Actions.INTERACT, pad)})
 
 
 ## The reveal. Runs while the world does, because this screen does not pause it.

@@ -11,8 +11,17 @@ extends Node
 ## look empty, because these actions do not exist until the game runs. That is accepted.
 ## See docs/decisions/ADR-0003-input-map-in-code.md.
 ##
-## OWNS: the action name constants, and their default bindings.
-## MUST NOT: read input, or decide what any action means. Actions are named, not interpreted.
+## WHICH DEVICE THE PLAYER IS HOLDING LIVES HERE TOO, and the MUST NOT line below was NARROWED
+## to allow it rather than dropped. Since T6.2 this node reads every event for one fact only - did
+## it come from a pad, or from a keyboard and mouse - so a prompt can name the button the player
+## will actually press. The rule is `InputDevice.device_for`, a pure function; this file holds
+## its last answer and announces a change on `Events.input_device_changed`. It lives here rather
+## than in an eleventh autoload because adding one needs an ADR, and the fact is part of the
+## input map's own vocabulary: the two halves `KeyBindings.text_for(action, pad)` already reads.
+##
+## OWNS: the action name constants, their default bindings, and which device is active.
+## MUST NOT: decide what any action means, or read an event for anything but its device.
+## Actions are named, not interpreted.
 
 # Movement. Camera-relative, resolved by the player controller.
 const MOVE_UP: StringName = &"move_up"
@@ -63,6 +72,10 @@ const REBINDABLE: Array[StringName] = [
 
 const STICK_DEADZONE: float = 0.25
 
+## Keyboard until proven otherwise. A game that boots with a pad in hand switches on the first
+## press, and one that boots on a keyboard never shows a pad button it has no pad for.
+var _device: GameEnums.DeviceKind = GameEnums.DeviceKind.KEYBOARD_MOUSE
+
 
 func _ready() -> void:
 	_define_movement()
@@ -74,7 +87,43 @@ func _ready() -> void:
 	# AFTER the defaults, never before: installing an override erases the default of the same
 	# kind, so loading first would leave the defaults to overwrite the player's own choices.
 	KeyBindings.load_all()
+	Input.joy_connection_changed.connect(_on_joy_connection_changed)
 	Log.info("input", "Registered %d input actions" % InputMap.get_actions().size())
+
+
+## An autoload's `_input` sees every event before any screen does, so the device is already
+## current when the screen that event opens draws its first prompt.
+func _input(event: InputEvent) -> void:
+	observe(event)
+
+
+## Which kind of device the player last used. A prompt reads this, then asks
+## `KeyBindings.text_for(action, device() == GameEnums.DeviceKind.GAMEPAD)` for the words.
+func device() -> GameEnums.DeviceKind:
+	return _device
+
+
+## Feed one event through the rule, and announce a change. Public because the suite cannot press
+## a key: `Input.parse_input_event` is buffered until a main-loop flush that never comes mid-run,
+## the reason `InteractionSensor.cycle()` is public too.
+func observe(event: InputEvent) -> void:
+	_become(InputDevice.device_for(event, _device))
+
+
+func _become(next: GameEnums.DeviceKind) -> void:
+	if next == _device:
+		return
+	_device = next
+	Events.input_device_changed.emit(next)
+
+
+## The last pad was unplugged, so nothing can press a pad button and any prompt naming one is
+## wrong. PLUGGING a pad in changes nothing until it is pressed: owning a pad is not using one.
+## HOTPLUG CANNOT BE DRIVEN HEADLESS - no pad exists there - so the suite calls this handler
+## directly, and the engine's own emission of `joy_connection_changed` is untested by construction.
+func _on_joy_connection_changed(_pad: int, connected: bool) -> void:
+	if not connected and Input.get_connected_joypads().is_empty():
+		_become(GameEnums.DeviceKind.KEYBOARD_MOUSE)
 
 
 ## Put every rebindable action back to the binding declared in this file, and forget the

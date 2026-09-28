@@ -1507,7 +1507,12 @@ was classified, including the ones refused.
   applier, `expected unset, got from the future` — then `load_from_slot` gained the section-level
   twin of `_migrate`'s newer-build refusal. The suite's first worked migration (`old_key` →
   `new_key` from v1) lives in `save_recovery_test.gd`, and `UPGRADING.md` § 4 points games at it.
-- **T6.2 The base knows which input device is active** — planned. Forgotten #4.
+- **T6.2 The base knows which input device is active — DONE, 2026-09-28, `5.7.0`.** The pure
+  `InputDevice.device_for(event, previous)` decides — mouse motion and sub-deadzone stick drift are
+  not a switch — and `Actions` holds the answer, emitting `input_device_changed` only on a change;
+  no autoload was added. The interact prompt names the button (`[E]  Barter  …`) and the dialogue
+  hint follows the device mid-conversation, which also fixed it: it had said "Space to continue"
+  and Space advanced nothing. Hotplug is proved by calling the handler, since no pad exists headless.
 - **T6.3 A reusable confirm screen, and "are you sure" on overwriting a save** — planned. Forgotten #7.
 - **T6.4 A save slot says where it was saved, and says so when it is damaged** — planned. Forgotten #15.
 - **T6.5 Losing window focus leaves nothing latched** — planned. Forgotten #3.
@@ -1519,7 +1524,7 @@ was classified, including the ones refused.
 
 - [x] A save section written by a newer build is refused with defaults loaded, and the suite holds
   one worked, exercised migration a game can copy. — T6.1
-- [ ] The base knows the last-used input device, and the interaction prompt shows the right key for
+- [x] The base knows the last-used input device, and the interaction prompt shows the right key for
   it. — T6.2
 - [ ] Overwriting an occupied save slot asks first, through a confirm screen a game can reuse. — T6.3
 - [ ] A save slot shows where it was saved, and a damaged slot is shown as damaged. — T6.4

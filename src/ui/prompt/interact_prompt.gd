@@ -28,6 +28,12 @@ const CONTRAST_SETTING: String = "accessibility/high_contrast_prompts"
 const OUTLINE_PIXELS: int = 4
 ## The theme type the palette colours live under, spelled the same way the HUD spells it.
 const PALETTE: StringName = &"UiPalette"
+## The button that performs the verb, e.g. "[E]". Until T6.2 the prompt named the verb and never
+## the button, so a pad player was never told which one to press. The words come from
+## `KeyBindings.text_for` for whichever device `Actions` last saw, so a rebinding shows up here
+## too. A translatable WRAPPER, because the brackets are layout that a language may lay out
+## differently. Where an icon sheet will plug in instead is `docs/ART_CONTRACT.md` § Button prompts.
+const BUTTON_KEY: String = "ui.prompt.button"
 
 var _sensor: InteractionSensor = null
 var _target: Node3D = null
@@ -54,6 +60,7 @@ func _ready() -> void:
 	Events.player_spawned.connect(_on_player_spawned)
 	Events.ui_mode_changed.connect(_on_ui_mode_changed)
 	Events.setting_changed.connect(_on_setting_changed)
+	Events.input_device_changed.connect(_on_device_changed)
 	_apply_contrast()
 	if Director.player != null:
 		_on_player_spawned(Director.player)
@@ -104,7 +111,9 @@ func _redraw() -> void:
 		text = ""
 		visible = false
 		return
-	var line: String = "%s  %s" % [tr(_verb_key(_verb)), tr(_label_key) if _label_key != "" else ""]
+	var line: String = "%s  %s  %s" % [
+		_button_text(), tr(_verb_key(_verb)), tr(_label_key) if _label_key != "" else ""
+	]
 	# A hold interaction shows its progress, so the player knows to keep holding rather than
 	# concluding the button is broken.
 	if _sensor != null:
@@ -113,6 +122,20 @@ func _redraw() -> void:
 			line += "  [%s]" % "=".repeat(maxi(1, roundi(progress * 10.0)))
 	text = line.strip_edges()
 	visible = true
+
+
+## Empty when the action has no binding on this device, so the prompt still names the verb rather
+## than drawing an empty "[]".
+func _button_text() -> String:
+	var pad: bool = Actions.device() == GameEnums.DeviceKind.GAMEPAD
+	var words: String = KeyBindings.text_for(Actions.INTERACT, pad)
+	return tr(BUTTON_KEY).format({"key": words}) if words != "" else ""
+
+
+## A standing refusal is left alone: it is the reply to a press, and redrawing would cut it short.
+func _on_device_changed(_device: GameEnums.DeviceKind) -> void:
+	if _refusal_left <= 0.0:
+		_redraw()
 
 
 ## Enum name to localization key: USE -> "verb.use". Keeps the key list mechanical, so a new

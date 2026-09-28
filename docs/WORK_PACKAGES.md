@@ -122,8 +122,8 @@ original board rather than continuing it.
 | T5.33 | **The audit of a base declared finished** | **DONE** — `5.6.1`, a PATCH. **THE BASE WAS DECLARED COMPLETE AND THEN AUDITED, AND THE AUDIT FOUND THAT THE ROW DECLARING IT COMPLETE HAD MADE A DOCUMENTED INVARIANT VIOLABLE.** `schedule_entry.gd` has always promised **a day is always completely covered**, "because an NPC is always somewhere", and before T5.32 that was STRUCTURALLY true — every entry applied on every day, so the wrap-to-the-last-block fallback could never come up empty. `on_day_of_cycle` made it violable by authored data and nothing noticed. **Measured with a throwaway probe rather than argued**: a schedule of only day-specific entries answers NOTHING on any day it does not name — **24 hours of 24** — while `problems()` returned 0, so `check_content` PASSED on content that strands an NPC and `NpcBrain.decide_for_hour`, which returns early on null, left it standing wherever it happened to be. That is precisely the "reads as random" failure the entry header exists to prevent. **The fix is one rule and it is exactly the right strength**: every schedule must carry at least one entry at `-1`, which is necessary AND sufficient for total coverage, since `_applies_on` admits an every-day entry whatever day is asked. The stronger rule — every day of the cycle is covered — would need `Clock.days_per_cycle`, and `content` may not touch an autoload, so this is the strongest form the layer can actually check. **The plant is the check removed**: exit 1, one failure, `and that is reported as a problem rather than passing check_content — expected 1, got 0`, against an exit-0 control — and the "24 of 24 hours answer nothing" assertion stays GREEN under the plant, which is right and is why the two are separate: the consequence exists whether or not the validator reports it. **PATCH, settled on three precedents in `CHANGELOG.md` rather than instinct**, because a new gate that fails existing content looks like the MAJOR test *a file the game wrote must change*: `5.3.3`, `5.3.2` and `1.0.2` are all this shape and all PATCH, and `1.0.2` states the reason — *"That is the bug being fixed, not a new restriction."* A schedule with no every-day entry is already broken. **AND THREE DOCUMENTATION NUMBERS WERE WRONG, one of them with a lesson.** `TESTING.md` stated the suite as `2302` / `2226` — stale through **two consecutive rows**, because the closing checklist was being read as "update `CLAUDE.md` and `ARCHITECTURE.md`" when it governs FOUR files; the stale pair even disagreed with the rest of the repository, its difference being 76 against a stripped gap the board recorded as exactly 74 for eight straight runs, and nothing caught that either. Item 5 now lists all four files and says the stripped number can only come from the CI job log, so that step finishes AFTER CI. `NEW_GAME.md`'s "all 930 assertions" had the number **deleted** rather than updated, because it carried no weight — the better fix for a count no reader needs. And T5.32's own record claimed `clock.gd`'s three spare lines were "the tightest any file in this base has been", **wrong twice**: `director.gd` sits at 187 of its raised 190 with the same three, and `dev_stage.gd` was at 248 of 250 with TWO before T5.20 split it. **What the audit also CONFIRMED is worth recording, since a clean result is evidence too**: zero markdown table column mismatches across every live document — the defect that recurred in T5.15, T5.19 and T5.26 — found with a fence- and escape-aware scan after a naive one produced four hits that were all false positives; and "Ten autoloads", "seven checkers", "eight template screens" and `AUTHORING.md`'s per-area figures all verified correct against the code, the last of these nearly mis-reported before `world_map_test`'s plan was read properly as `PER_AREA 4 + PER_DEF 1`. 2,355 → **2,362 assertions**, +7 — five in `npc_test` and two in `record_shape_test` for this row's own board id, the pre-docs run having read 2,360; the plan guard caught an off-by-one on the way, reporting `planned 85 outcomes and produced 84` with every assertion passing, which is that mechanism doing its job |
 | T6.0 | **Planning Phase T6 — what every game on this formula would otherwise build first** | **DONE** — `5.6.2`, a PATCH, and `src/`, `tools/`, `tests/` are byte-identical. **THE OWNER ASKED WHAT THE BASE HAD MISSED, AND THE ANSWER WAS FILTERED RATHER THAN BRAINSTORMED.** ADR-0007 decides what a template DEFAULT is, the refused list rules out cutscenes, an economy, a chapter sequencer, a calendar, combat and credits, and the standing rule is that work is found, not invented — so every surviving row is either a confirmed defect or an undecided item on the project's own "Commonly forgotten" list. **Method: three parallel explorations and an adversarial review, then every load-bearing claim re-read in the code**, and the review **overturned three first premises**: shader warm-up was proposed as missing and was built in T2.0 (`Director.WARM_UP_FRAMES`); per-section save versions were proposed as never exercised and are exercised by `core_test.gd:134`; the F2 freecam was called unbound and is bound, merely unconsumed. **IT FOUND ONE REAL DEFECT BY READING**: `SaveSystem.load_from_slot` hands each section's stored version to its applier with no check that it is not newer than the running build, and every applier ignores that version — the envelope has the guard and the section level has no twin. That is T6.1, to be proved red before it is fixed. **The owner decided three things**: T6 only; photo mode, a codex, in-area camera zones and positional ambient emitters are GAME CHOICES, each with its seam named; and font fallback proves both Bengali and CJK. Stale records fixed in passing: `CONTEXT.md` listed time on the flag surface and the day cycle as open candidates though T5.31 and T5.32 built both, and three "Commonly forgotten" items described settled work as missing. See below for every candidate's classification and each row's file manifest |
 | T6.1 | **A save from a newer build must be refused, not applied** | **DONE** — `5.6.3`, a PATCH on `1.0.2`'s "the bug being fixed, not a new restriction". **PROVED RED BEFORE IT WAS FIXED**: on `5.6.2`, a section stored at `"v": 3` for a probe registered at v2 reached its applier — `but its applier was never called — expected 0, got 1` and `so the probe keeps its defaults — expected unset, got from the future`, exactly the two failures T6.0 predicted from reading. `load_from_slot` now refuses a section whose stored version exceeds the registered one — `Log.error`, defaults, continue — the section-level twin of `_migrate`'s envelope refusal; one bad section still does not cost the file. The plant (guard disabled) fails the same two assertions again. **And the suite's first worked, exercised migration**: `_probe_apply` in `save_recovery_test.gd` renames `old_key` → `new_key` from v1 and asserts the value survives, with a v2 boundary block so the refusal cannot pass by refusing everything; `UPGRADING.md` § 4 now tells a game to copy it. `save_system.gd` 172 → 176 of 180, no budget touched. See below |
-| T6.2 | **The base knows which input device is active** | **TODO — next.** Forgotten #4. Manifest below |
-| T6.3 | **A reusable confirm screen, and "are you sure" on overwriting a save** | **TODO.** Forgotten #7. Manifest below |
+| T6.2 | **The base knows which input device is active** | **DONE** — `5.7.0`, a MINOR: a signal, an enum, two methods and a class a game may ignore. The pure `InputDevice.device_for(event, previous)` decides and `Actions` holds the answer, emitting `input_device_changed` only on a change — **no autoload added**, `Actions`' MUST NOT narrowed rather than dropped. Mouse motion and sub-deadzone stick drift are not a switch; unplugging the last pad falls back to the keyboard. The interact prompt now names the button — `[E]  Barter  The Keeper's Basket`, photographed — and **the dialogue hint had said "Space to continue" while Space advanced nothing**, bound to the `jump` T5.5 removed; it now reads `E to continue` and follows the device mid-conversation. Three plants, three different failures. Hotplug cannot be driven headless and is proved by calling the handler. Suite 2,375 → 2,408; see below |
+| T6.3 | **A reusable confirm screen, and "are you sure" on overwriting a save** | **TODO — next.** Forgotten #7. Manifest below |
 | T6.4 | **A save slot says where it was saved, and says so when it is damaged** | **TODO.** Forgotten #15. After T6.3. Manifest below |
 | T6.5 | **Losing window focus leaves nothing latched** | **TODO.** Forgotten #3. Measure first. Manifest below |
 | T6.6 | **Text in any script renders, not as tofu** | **TODO.** Bengali and CJK. Manifest below |
@@ -6104,4 +6104,71 @@ are T6.4.
 
 **Scope.** `5.6.3`, a PATCH. One production file, one test file, and the record.
 
-**Commit:** on `claude/t6-1-newer-section`, PR targeting `main`. No SHA, per item 6.
+**Commit:** `53c44ae` on `claude/t6-1-newer-section`, PR #66, targeting `main`, merged as `d955449`; no separate CI-record commit was made. Filled in by T6.2.
+
+---
+
+## T6.2 · The base knows which input device is active — **DONE**
+
+**The gap, as T6.0 read it.** Forgotten #4: nothing in the base knew whether the player was on a
+keyboard or a pad, so no prompt could name the button they would press. The interact prompt named
+only the verb. `KeyBindings.text_for(action, pad)` already produced the words for either half and
+had one caller, the controls screen.
+
+**And a defect nobody had listed, found by reading the second consumer.** The dialogue box's hint
+read `Space to continue` — and Space advanced nothing. It had been bound to `jump`, which T5.5
+removed with its poller, while `DialogueScreen._unhandled_input` has only ever listened for
+`interact` (E, Enter, the pad's south button). A string naming a key goes stale on the first
+rebind; the hint now asks the binding.
+
+**The two halves, as the manifest asked.** `src/systems/input/input_device.gd` is one static,
+pure function, `device_for(event, previous)`: a key, a mouse click, a pad button, or a stick at or
+past `Actions.STICK_DEADZONE` is a switch; mouse MOTION, a stick under the deadzone, and any event
+it does not recognise keep the previous answer. `Actions` holds the answer (`device()`), feeds it
+from `_input` through a public `observe(event)`, and emits `Events.input_device_changed` only on a
+change. **No autoload was added.** `Actions`' MUST NOT said it may not "read input"; it now says it
+may not read an event for anything but its device — narrowed in writing, with the reason in its
+header, rather than silently widened.
+
+**One manifest deviation, forced by a checker.** The signal lives in `core` and needs a type, so
+the enum went into `GameEnums` — a ninth file the manifest did not list. It is `DeviceKind`, not
+`InputDevice`: the first spelling shared its name with the new class, and `check_layers.gd` read
+`GameEnums.InputDevice` as `core` naming a `systems` class — `FAIL — 2 upward reference(s)`, exit 1.
+Renamed, it passes. A text scan cannot tell an enum from a class of the same name, and should not
+have to.
+
+**Hotplug cannot be driven headless, and is not claimed.** Unplugging the last pad falls back to the
+keyboard (`Input.joy_connection_changed` → `_on_joy_connection_changed`); plugging one in changes
+nothing until it is pressed. The suite calls the handler with the arguments the engine would pass —
+headless has no pads, so `get_connected_joypads()` is empty — and the engine's own emission is
+untested by construction.
+
+**Assertions.** `tests/unit/input_device_test.gd`, 31: eleven on the rule (each non-switch asked
+from both devices, so a rule that always answers one cannot pass), seven on the state (one
+announcement per change, none for repeated pad input or a bumped mouse), three on the unplug, six
+on the prompt and four on the dialogue hint. Consumers are compared against `KeyBindings.text_for`,
+never a spelled key, so a rebind or an engine rename of a pad button does not break the case.
+
+**Three plants, three different failures.** Deadzone ignored: `2405 passed, 1 failed`, `stick drift
+under the deadzone keeps the keyboard — expected 0, got 1`. Announce on every event: `2404 passed,
+2 failed`, `more pad input is not announced again — expected 1, got 3` and `and that is the second
+announcement — expected 2, got 5`. The dialogue never subscribing: `2405 passed, 1 failed`,
+`mid-conversation, the pad renames it — expected true, got false`. Restored: `2406 passed`, before
+the documentation landed.
+
+**Photographed windowed**, 960×540: `--stand-by=Keeper` shows `[E]  Barter  The Keeper's Basket`,
+and `--talk=talk/gardener` shows `E to continue` at the foot of the box. The pad variant cannot be
+photographed without a pad — that is the suite's job, and it asserts it.
+
+**Budgets**, measured with `check_budgets.gd` before and after: `actions.gd` 91 → **107 of 150**,
+`interact_prompt.gd` 88 → 99, `dialogue_screen.gd` 136 → 143, `events.gd` 46 → 47, `input_device.gd`
+13. Nothing tight was touched.
+
+**Not in scope.** Button ICONS — `ART_CONTRACT.md` § Button prompts names `KeyBindings.text_for` as
+the one seam a sheet replaces and lists what it will need. The controls screen still labels its two
+columns rather than highlighting the active one. `KeyBindings`' header still says `Actions` never
+mentions it, which has been untrue since `Actions` called `load_all()`; recorded, not fixed here.
+
+**Scope.** `5.7.0`, a MINOR. Suite 2,375 → 2,408: +33: 31 in the new `input_device_test` and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
+
+**Commit:** on `claude/t6-2-input-device`, PR targeting `main`. No SHA, per item 6.

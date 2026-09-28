@@ -77,3 +77,9 @@ enum QuestState { UNSTARTED, ACTIVE, COMPLETE }
 ## it is not cosmetic: an OVERLAY suspends the player's input while the world keeps ticking
 ## (a conversation happens in real time), a MODAL stops the world as well.
 enum UiMode { GAMEPLAY, OVERLAY, MODAL }
+
+## Which kind of device the player last touched, so a prompt can name the button they will
+## actually press. Two values and no TOUCH: nothing in this template reads a touch event, and a
+## value nothing produces is a state a consumer has to handle for no reason. Appended, never
+## inserted — the same discipline as every enum above, although this one is never persisted.
+enum DeviceKind { KEYBOARD_MOUSE, GAMEPAD }

@@ -3,8 +3,8 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-29 · **T6.9 (running the suite destroyed the developer's real saves) complete, at 5.8.1, a PATCH, test-only.**
-**Phases T1 to T5 are complete and stay complete; Phase T6 is OPEN, and the next package is T6.4.**
+**Last updated:** 2026-09-29 · **T6.9 (running the suite destroyed the developer's real saves) complete, at 5.9.1, a PATCH, test-only.**
+**Phases T1 to T5 are complete and stay complete; Phase T6 is OPEN, and the next package is T6.5.**
 
 **A SUITE RUN NO LONGER TOUCHES `user://saves`.** Fourteen cases wrote or deleted slots there,
 because T5.22's `SaveFixture` had been wired into only the two cases it was written for. Measured
@@ -13,8 +13,8 @@ of the fourteen now calls `SaveFixture.activate()` first, and all seven survive.
 states the rule, and gotcha 79 carries it. **Nothing yet fails a new case that forgets.** That is
 recorded in `WORK_PACKAGES.md` § T6.9, not built.
 
-**Budgets unchanged.** `src/` is byte-identical: `save_system.gd` stays at **176 of 180** for T6.4,
-and `director.gd` at 187 of 190.
+**Budgets unchanged by T6.9**, because `src/` is byte-identical. T6.4 left `save_system.gd` at
+**179 of 180**, and `director.gd` stays at 187 of 190.
 
 **The phase, in order** — manifests in `WORK_PACKAGES.md` § T6.0:
 
@@ -23,9 +23,9 @@ and `director.gd` at 187 of 190.
 | ~~T6.1~~ | ~~a save section from a newer build is refused; the first worked migration~~ **DONE** | the defect |
 | ~~T6.2~~ | ~~the base knows the active input device; the prompt shows the right key~~ **DONE** | forgotten #4 |
 | ~~T6.3~~ | ~~a reusable confirm screen; "are you sure" on overwriting a save~~ **DONE** | forgotten #7 |
+| ~~T6.4~~ | ~~a slot shows where it was saved, and a damaged slot is shown as damaged~~ **DONE** | forgotten #15 |
 | ~~T6.9~~ | ~~the suite destroyed real saves; every case that saves redirects first~~ **DONE**, out of number order | owner-reported |
-| **T6.4** | a slot shows where it was saved, and a damaged slot is shown as damaged | forgotten #15 |
-| T6.5 | losing window focus leaves nothing latched; pausing on it is a setting | forgotten #3 |
+| **T6.5** | losing window focus leaves nothing latched; pausing on it is a setting | forgotten #3 |
 | T6.6 | Bengali and CJK both render through a font fallback chain | structural |
 | T6.7 | dialogue can skip to its end and auto-advance | forgotten #5 |
 | T6.8 | every forgotten item marked DONE or CLOSED, gated by a text scan | the exit criterion |
@@ -34,12 +34,19 @@ and `director.gd` at 187 of 190.
 anything above — found, not invented, the standard every T6 row had to meet. T6.9 is the first,
 numbered after T6.8 so that no planned id moves.
 
-Suite 2,437 → **2,439**, +2, both in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `main`, after the documentation landed.
+Suite 2,471 → **2,473**, +2, both in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `main`, after the documentation landed.
 
-*(Previously: T6.3 built a reusable confirm screen at `5.8.0`, a MINOR. Pressing an occupied slot
-opens `ConfirmScreen.asking(question_key, detail, on_yes)` with focus on No, and escape and pause
-cannot answer it; an empty slot saves at once. The quit half was recorded, not built: T5.10's
-quit-autosave answers it, except when autosave is off or a transition is in flight.)*
+*(Previously: T6.4 made a save slot name its place and a damaged slot say so, at `5.9.0`, a MINOR.
+`SaveSystem.header_provider` is an optional hook `WorldMap` sets, because `core` may not ask
+`Director`. The header holds the area id, and the name is localized when drawn. `slot_info` now
+answers `{}` for any file `load_from_slot` would refuse, so a damaged slot never becomes Continue.
+When saving, it counts as occupied, so writing over it asks first.)*
+
+*(Previously: T6.3 built a reusable confirm screen at `5.8.0`, a MINOR, and overwriting a save now
+asks first. `ConfirmScreen.asking(question_key, detail, on_yes)` sets `closes_on_cancel = false`,
+so escape and pause cannot answer it, and focus lands on No. An empty slot still saves at once.
+The quit half of forgotten #7 was recorded rather than built: T5.10's quit-autosave answers it,
+except when autosave is off or a transition is in flight.)*
 
 *(Previously: T6.2 taught the base which input device is active at `5.7.0`, a MINOR. The pure
 `InputDevice.device_for(event, previous)` decides, and mouse motion and sub-deadzone stick drift are
@@ -288,10 +295,10 @@ another sheet, and every facing draws a different figure.
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version is** **5.8.1**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+**The version is** **5.9.1**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
 the owner's to close or to leave.
 
-**THE NEXT PACKAGE IS T6.4, AND IT IS A QUEUE AGAIN — FOR ONE PHASE.** From T5.32 until T6.0 this
+**THE NEXT PACKAGE IS T6.5, AND IT IS A QUEUE AGAIN — FOR ONE PHASE.** From T5.32 until T6.0 this
 paragraph said there was no next package and the base was complete; T1 to T5 still are. The owner
 then opened Phase T6 (see the headline and `ROADMAP.md` § Phase T6), so the board holds eight
 planned rows with file manifests, and a new session takes **the lowest unfinished T6 row** rather
@@ -360,7 +367,7 @@ three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite shee
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 4 on the default one, the
 fourth being a second IDLE rather than a gait**,
 1 shared area material, **21 settings and 21 consumers**.
-Template version **5.8.1**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+Template version **5.9.1**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
 recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 

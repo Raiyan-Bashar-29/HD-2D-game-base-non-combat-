@@ -124,9 +124,9 @@ original board rather than continuing it.
 | T6.1 | **A save from a newer build must be refused, not applied** | **DONE** — `5.6.3`, a PATCH on `1.0.2`'s "the bug being fixed, not a new restriction". **PROVED RED BEFORE IT WAS FIXED**: on `5.6.2`, a section stored at `"v": 3` for a probe registered at v2 reached its applier — `but its applier was never called — expected 0, got 1` and `so the probe keeps its defaults — expected unset, got from the future`, exactly the two failures T6.0 predicted from reading. `load_from_slot` now refuses a section whose stored version exceeds the registered one — `Log.error`, defaults, continue — the section-level twin of `_migrate`'s envelope refusal; one bad section still does not cost the file. The plant (guard disabled) fails the same two assertions again. **And the suite's first worked, exercised migration**: `_probe_apply` in `save_recovery_test.gd` renames `old_key` → `new_key` from v1 and asserts the value survives, with a v2 boundary block so the refusal cannot pass by refusing everything; `UPGRADING.md` § 4 now tells a game to copy it. `save_system.gd` 172 → 176 of 180, no budget touched. See below |
 | T6.2 | **The base knows which input device is active** | **DONE** — `5.7.0`, a MINOR: a signal, an enum, two methods and a class a game may ignore. The pure `InputDevice.device_for(event, previous)` decides and `Actions` holds the answer, emitting `input_device_changed` only on a change — **no autoload added**, `Actions`' MUST NOT narrowed rather than dropped. Mouse motion and sub-deadzone stick drift are not a switch; unplugging the last pad falls back to the keyboard. The interact prompt now names the button — `[E]  Barter  The Keeper's Basket`, photographed — and **the dialogue hint had said "Space to continue" while Space advanced nothing**, bound to the `jump` T5.5 removed; it now reads `E to continue` and follows the device mid-conversation. Three plants, three different failures. Hotplug cannot be driven headless and is proved by calling the handler. Suite 2,375 → 2,408; see below |
 | T6.3 | **A reusable confirm screen, and "are you sure" on overwriting a save** | **DONE** — `5.8.0`, a MINOR: a class and three strings a game may ignore. `ConfirmScreen.asking(question_key, detail, on_yes)` is a `MenuScreen` with `closes_on_cancel = false`, so **escape and pause cannot answer it**, and focus lands on **No**, so mashing accept loses nothing. Pressing an occupied slot on the save screen asks `Overwrite this save?` under the header about to be lost; an empty slot saves at once. The quit half of forgotten #7 is T5.10's quit-autosave, recorded with its two refusals rather than built. Two plants, two different failures, and a control assertion proving the cancel event really reaches `UiRoot`. Photographed over the pause menu. Suite 2,408 → 2,437; see below |
-| T6.9 | **Running the suite destroyed the developer's real saves** | **DONE** — `5.8.1`, a PATCH, test-only: `src/` and `tools/` byte-identical. **OUT OF NUMBER ORDER ON PURPOSE**: an owner-reported defect, taken ahead of T6.4 under the playtest rule, and numbered after T6.8 so that no planned row's id moves. Fourteen cases wrote or deleted slots against the default `user://saves`, because only T5.22's two had ever called `SaveFixture.activate()`. Seven sentinel saves planted there: the unchanged suite passed 2,437 of 2,437 and **deleted all seven**; fixing only the three suspected cases still lost five; all fourteen redirected, all seven survive byte-identical. `TESTING.md` now states the rule. See below |
-| T6.4 | **A save slot says where it was saved, and says so when it is damaged** | **TODO — next.** Forgotten #15. Manifest below |
-| T6.5 | **Losing window focus leaves nothing latched** | **TODO.** Forgotten #3. Measure first. Manifest below |
+| T6.4 | **A save slot says where it was saved, and says so when it is damaged** | **DONE** — `5.9.0`, a MINOR: a hook, a constant and a static method a game may ignore. `SaveSystem.header_provider` is an optional Callable stored as the file's `"header"`, so `core` never asks `Director`; **`WorldMap` sets it, not `director.gd`**, which is at its budget, and `WorldMap.place_key` reads the area id back as a name key. The row reads `Slot 1 · Rose Courtyard · …`, photographed; an unmapped area or a pre-5.9.0 save reads `Unknown place`. **`slot_info` now answers `{}` for any file the loader would refuse**, so a file from a newer build is DAMAGED too, and Continue can no longer point at one. A damaged slot is a note when loading and, counted as occupied, asks before it is overwritten. Three plants, three different failures. `save_system.gd` 176 → 179 of 180. Suite 2,437 → 2,471; see below |
+| T6.9 | **Running the suite destroyed the developer's real saves** | **DONE** — `5.9.1`, a PATCH, test-only: `src/` and `tools/` byte-identical. **OUT OF NUMBER ORDER ON PURPOSE**: an owner-reported defect, taken ahead of T6.5 under the playtest rule, and numbered after T6.8 so that no planned row's id moves. Fourteen cases wrote or deleted slots against the default `user://saves`, because only T5.22's two had ever called `SaveFixture.activate()`. Seven sentinel saves planted there: the unchanged suite passed 2,437 of 2,437 and **deleted all seven**; fixing only the three suspected cases still lost five; all fourteen redirected, all seven survive byte-identical. `TESTING.md` now states the rule. See below |
+| T6.5 | **Losing window focus leaves nothing latched** | **TODO — next.** Forgotten #3. Measure first. Manifest below |
 | T6.6 | **Text in any script renders, not as tofu** | **TODO.** Bengali and CJK. Manifest below |
 | T6.7 | **Dialogue for fast and slow readers** | **TODO.** Forgotten #5. After T6.2. Manifest below |
 | T6.8 | **Close the list, and gate it** | **TODO — last.** The phase's exit criterion. Manifest below |
@@ -6248,14 +6248,84 @@ and it is one `ConfirmScreen.asking` call; the manifest did not ask for it.
 
 **Scope.** `5.8.0`, a MINOR. Suite 2,408 → 2,437: +29: 27 in the new `confirm_test` and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
 
-**Commit:** `2195b8a` on `claude/t6-3-confirm-screen`, PR #68, targeting `main`, merged as `2b409de`; no separate CI-record commit was made. Filled in by T6.9, which also took the stripped count from the CI job log (`Ladder (stripped template)`, job 109341273520: `=== 2363 passed, 0 failed, 25 skipped ===`; full job 109341273896: `=== 2437 passed, 0 failed, 0 skipped ===`). `TESTING.md` still stated `2301` from T6.1; T6.9 replaces it.
+**Commit:** `2195b8a` on `claude/t6-3-confirm-screen`, PR #68, targeting `main`, merged as `2b409de`; no separate CI-record commit was made. Filled in by T6.4, which also took the stripped count from the CI job log (`Ladder (stripped template)`, job 109341273520: `=== 2363 passed, 0 failed, 25 skipped ===`; full job 109341273896: `=== 2437 passed, 0 failed, 0 skipped ===`). `TESTING.md` had kept T6.1's stripped `2301` through T6.2 and T6.3; T6.4 replaces it.
+
+## T6.4 · A save slot says where it was saved, and says so when it is damaged — **DONE**
+
+**Closes forgotten #15.** Two defects on one screen. A slot's header named no place, because
+`core` cannot ask `Director` and nothing above `core` could add to the header. And a slot whose
+file did not parse was drawn as `Slot N · empty`, telling the player that a save they had made
+was never there.
+
+**The hook.** `SaveSystem.header_provider: Callable`, unset by default. `save_to_slot` calls it
+once per write and stores the answer as the envelope's `"header"`, and `slot_info` already
+returned everything except `"sections"`, so it hands the header back with no new reader. It is a
+public `var` and not a `register_header()` method: one line of budget instead of four, and
+`check_methods.gd` has nothing to ask about. One hook rather than a list, because a game that
+wants more fields returns a bigger Dictionary from its own provider.
+
+**Registered from `WorldMap`, not `director.gd`.** `director.gd` is at 187 of 190. `WorldMap`
+already reads `Director.current_area_id` in `travel_to`, and it is the system that knows an area's
+NAME, so the header's whole shape lives in one file: `HEADER_AREA` written by `_save_header`, and
+read back by the static `place_key(header)` that `SaveScreen` calls. `_exit_tree` clears the hook
+**only if it is still its own**, so a second map is not blanked by the first leaving. The header
+holds the area ID and not the name, so the name is localized when it is drawn and a save written
+in one language reads in another. An area with no `AreaDef`, and every save from before 5.9.0,
+reads `Unknown place` rather than dropping the field, so every row has the same shape.
+
+**Damaged.** `has_slot` true with `slot_info` empty. **`slot_info` had to get stricter for that
+to be true.** It returned `{}` only for unparseable JSON. A file with version 0, or from a newer
+build, parsed fine, drew a normal header, offered a load that `load_from_slot` refused, and
+`latest_slot` could make it Continue. It now refuses exactly what `_migrate` refuses, in the same
+line, with no extra budget. `SaveScreen._fill` became one `_add_slot` per slot: writing offers
+every slot as a row, reading offers a row only for a readable header and a note for the rest.
+
+**Is a damaged slot occupied? Yes.** When saving, it is a row, and `_on_slot` asks on `has_slot`,
+not on a readable header, so writing over it asks first, with `Slot N · damaged` as the detail. The
+file is still on disk, a player may be able to recover it by hand, and writing over it is as
+irreversible as writing over a good one. One press to answer is cheap; a lost file is not.
+
+**Assertions.** `tests/unit/slot_header_test.gd`, 32, on fixture content in `SaveFixture.ROOT`.
+Three on the hook's ownership. Five on the header and the row naming the place. Six on the two
+unnamed cases: an unmapped area, and no hook at all. Seven on damage: an unparseable file, a
+parseable file from version 99 with a `9999` stamp, which proves Continue skips it, agreement with
+`load_from_slot`, and a damaged autosave. Three on the load list and four on overwriting a damaged
+slot, where only Yes replaces it with a readable save. Four on the keys and on `{place}` being in
+both header strings.
+
+**Three plants, three different failures.** Damaged branch removed from `slot_text`: `a file that
+does not parse is damaged — expected Slot 4 · damaged, got Slot 4 · empty`, and the same for the
+future file and the autosave. Version refusal removed from `slot_info`: `a file from a newer build
+has no header either`, `so it is damaged too — … got Slot 5 · Unknown place · 9999-12-31T23:59:59`,
+and `and Continue never points at it`. The only-if-ours guard removed: `2468 passed, 1 failed`, `the
+first map leaving does not blank the second's hook`. Each exited 1; each was restored.
+
+**Photographed windowed**, 960×540, through a temporary `--t64-probe` in `dev_screens.gd`. It moved
+`save_dir` to `user://t64_probe`, wrote slot 1 on arrival, planted an unparseable slot 3 and a
+version-99 slot 4, and opened the load list. The capture shows `Slot 1 · Rose Courtyard ·
+2026-09-29 09:53:52 · 00:00 played`, and the autosave written on arrival with the same place.
+Slots 3 and 4 read `damaged` as notes, and slots 2, 5 and 6 still read `empty`. The probe was
+removed, `git diff src/systems/debug/` is empty, the scratch directory was deleted, and the
+player's `user://saves` was untouched and is empty.
+
+**Budgets**, measured with `check_budgets.gd` before and after: `save_system.gd` 176 → **179 of
+180**, `save_screen.gd` 71 → 73 of 250, and `world_map.gd` 67 → 76 of 250. No budget was raised.
+`director.gd` stays at 187 of 190.
+
+**Not in scope.** Focus loss (T6.5), font fallback (T6.6), dialogue skip (T6.7). A damaged file
+logs `is not valid save JSON` every time the list is drawn. That is an error condition truly
+present on disk, and the log says so; it is not suppressed.
+
+**Scope.** `5.9.0`, a MINOR. Suite 2,437 → 2,471: +34: 32 in the new `slot_header_test` and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
+
+**Commit:** `a90b57a` on `claude/t6-4-slot-header`, PR #69, targeting `main`, merged as `9b6a7e7`; no separate CI-record commit was made. Filled in by T6.9, which also took the stripped count from the CI job log (`Ladder (stripped template)`, job 109354905555: `=== 2397 passed, 0 failed, 25 skipped ===`; full job 109354905350: `=== 2471 passed, 0 failed, 0 skipped ===`).
 
 ## T6.9 · Running the suite destroyed the developer's real saves — **DONE**
 
-**Reported by the owner, taken ahead of T6.4.** `menus_test.gd` and `confirm_test.gd` each said
+**Reported by the owner, taken ahead of T6.5.** `menus_test.gd` and `confirm_test.gd` each said
 `THIS CASE OWNS user://saves FOR THE RUN`, deleted every slot at set-up, then wrote slots, all
 against `SaveSystem.save_dir`. Neither called `SaveFixture.activate()`, so that was still
-`DEFAULT_SAVE_DIR`. **Numbered T6.9, not inserted as T6.4**, so that no planned row's id, manifest
+`DEFAULT_SAVE_DIR`. **Numbered T6.9, not inserted as T6.5**, so that no planned row's id, manifest
 or chip prompt moves. A suffix was not available either: `record_shape_test.gd` reads a package id
 as `T<n>.<n>`, so `T6.3a` would have been read as T6.3.
 
@@ -6301,6 +6371,6 @@ structural answer is a runner that activates the scratch store before every case
 `save_dir_test.gd` would have to stop asserting the default at entry. That design question was
 recorded, not built.
 
-**Scope.** `5.8.1`, a PATCH, test-only. Suite 2,437 → **2,439**, +2, both in `record_shape_test` for this row's own package id; every other case unmoved, the fourteen changed cases included.
+**Scope.** `5.9.1`, a PATCH, test-only. T6.4 merged to `main` while this row was open, and the branch merged it in; its own `slot_header_test.gd` already activates the scratch store. Suite 2,471 → **2,473**, +2, both in `record_shape_test` for this row's own package id; every other case unmoved, the fourteen changed cases included.
 
-**Commit:** on `claude/heuristic-mclean-b574fd`, PR targeting `main`. No SHA, per item 6.
+**Commit:** on `claude/t6-9-suite-saves`, PR #70, targeting `main`. No SHA, per item 6.

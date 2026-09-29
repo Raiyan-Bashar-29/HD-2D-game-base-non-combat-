@@ -19,7 +19,7 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
-## 5.8.1
+## 5.9.1
 
 *2026-09-29 — running the suite no longer destroys the developer's real saves.*
 
@@ -39,6 +39,37 @@ files planted in the real directory, one per slot plus the autosave, and a full 
 all seven. Each of the fourteen now calls `SaveFixture.activate()` first, and all seven survive
 unchanged. Fixing only the three cases first suspected still lost five of the seven.
 `TESTING.md` states the rule.
+
+---
+## 5.9.0
+
+*2026-09-29 — a save slot says where it was saved, and a damaged slot says it is damaged.*
+
+**A consuming game does: nothing, unless it added its own language column to
+`localization/strings.csv`.** In that case, put `{place}` into your translations of
+`ui.save.slot` and `ui.save.autosave`, and translate three new rows: `ui.save.damaged`,
+`ui.save.autosave_damaged` and `ui.save.place_unknown`. A translation without `{place}` still
+works; it just never names the place. **MINOR**: the base gained a hook, a constant and a static
+method a game may ignore. No signal and no method changed shape, and no save written before this
+version stops loading — an old header simply has no place, and its row reads `Unknown place`.
+
+**One change in behaviour, and it is the fix.** `SaveSystem.slot_info` now answers `{}` for a file
+`load_from_slot` would refuse — a `version` of 0 or newer than `SCHEMA_VERSION` — and not only for
+one that does not parse. Before, such a file drew a normal header and offered a load that failed,
+and `latest_slot` could make it Continue. A game that read `slot_info` to show a file from a newer
+build will now get nothing, which is the point: `has_slot` true with `slot_info` empty means
+DAMAGED, and that is how `SaveScreen` draws it.
+
+**What changed.** `SaveSystem.header_provider` is an optional Callable returning a Dictionary,
+called on every write and stored in the file as `"header"`; `slot_info` hands it back. It is a
+hook because the answer lives above `core`, which may not ask `Director`. `WorldMap` sets it, to
+`{"area": <area id>}` under `WorldMap.HEADER_AREA`, and `WorldMap.place_key(header)` turns that
+back into the area's `name_key` — "" for an area with no `AreaDef`. The ID is saved, not the name,
+so a save written in one language reads in another. **A game wanting more in the header** sets
+`header_provider` after `WorldMap` is ready, and includes `HEADER_AREA` itself if it wants the
+place kept. The save screen now reads `Slot 1 · Rose Courtyard · … · 00:12 played`. A damaged slot
+reads `Slot 3 · damaged`: a note when loading, and a row when saving that **counts as occupied**, so
+writing over it asks first.
 
 ---
 ## 5.8.0

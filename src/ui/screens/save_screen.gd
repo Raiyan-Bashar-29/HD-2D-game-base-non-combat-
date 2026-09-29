@@ -6,7 +6,15 @@ extends MenuScreen
 ##
 ## THE HEADER IS READ, NOT THE SAVE. `SaveSystem.slot_info` parses the file and drops the
 ## sections before handing anything back, so drawing this list can never apply a save by
-## accident, and a slot whose contents are corrupt still shows a readable header.
+## accident, and a slot whose SECTIONS are corrupt still shows a readable header.
+##
+## A FILE WHOSE HEADER CANNOT BE READ IS DAMAGED, NOT EMPTY. `slot_info` answers {} both for no
+## file and for one `load_from_slot` would refuse, and until T6.4 this screen drew both as
+## "empty" — inviting the player to believe a save they made was never there. `has_slot` tells
+## the two apart. A damaged slot is a note when loading, for the empty slot's reason: pressing it
+## can only fail. When saving it is a row, and it COUNTS AS OCCUPIED for the overwrite question —
+## the file is still on disk, a player may be able to recover it by hand, and writing over it is
+## as irreversible as writing over a good one. One press to answer is cheap; a lost file is not.
 ##
 ## AN EMPTY SLOT IS A NOTE WHEN LOADING AND A ROW WHEN SAVING. Not a disabled button: there is
 ## nothing to come back for in an empty slot, so showing one you cannot press teaches nothing.
@@ -23,11 +31,16 @@ const SAVE_TITLE_KEY: String = "ui.save.title"
 const LOAD_TITLE_KEY: String = "ui.load.title"
 const SLOT_KEY: String = "ui.save.slot"
 const EMPTY_KEY: String = "ui.save.empty"
+const DAMAGED_KEY: String = "ui.save.damaged"
+## A header with no place it can name: a save from before headers carried one, or an area with no
+## `AreaDef`. Said, rather than the field silently dropped, so every row has the same shape.
+const PLACE_UNKNOWN_KEY: String = "ui.save.place_unknown"
 ## The autosave reads as its own row and not as "Slot 7", because it is not one: it is outside
 ## the numbering the six manual rows share, and a number would invite the player to look for
 ## six others like it.
 const AUTOSAVE_KEY: String = "ui.save.autosave"
 const AUTOSAVE_EMPTY_KEY: String = "ui.save.autosave_empty"
+const AUTOSAVE_DAMAGED_KEY: String = "ui.save.autosave_damaged"
 const SAVED_KEY: String = "notify.game_saved"
 const FAILED_KEY: String = "notify.save_failed"
 const HINT_KEY: String = "ui.save.hint"
@@ -60,22 +73,20 @@ static func for_saving() -> SaveScreen:
 ## THE TWO DIRECTIONS LIST DIFFERENT THINGS, and that asymmetry IS the slot policy made visible.
 ## `MAX_SLOTS` is the manual range, so the writing half cannot offer the autosave slot and this
 ## screen needs no filter to avoid it — it simply never counts that high. The reading half adds
-## it, because an autosave the player cannot come back to is not an autosave.
+## it, because an autosave the player cannot come back to is not an autosave. Writing offers every
+## slot; reading offers only one with a readable header, and says what the others are.
 func _fill() -> void:
 	for slot: int in SaveSystem.MAX_SLOTS:
-		if SaveSystem.has_slot(slot):
-			add_row(slot_text(slot), _on_slot.bind(slot))
-		elif writing:
-			add_row(tr(EMPTY_KEY).format({"slot": slot + 1}), _on_slot.bind(slot))
-		else:
-			add_note(tr(EMPTY_KEY).format({"slot": slot + 1}))
-	if writing:
-		return
-	var auto: int = SaveSystem.AUTOSAVE_SLOT
-	if SaveSystem.has_slot(auto):
-		add_row(slot_text(auto), _on_slot.bind(auto))
+		_add_slot(slot)
+	if not writing:
+		_add_slot(SaveSystem.AUTOSAVE_SLOT)
+
+
+func _add_slot(slot: int) -> void:
+	if writing or not SaveSystem.slot_info(slot).is_empty():
+		add_row(slot_text(slot), _on_slot.bind(slot))
 	else:
-		add_note(slot_text(auto))
+		add_note(slot_text(slot))
 
 
 ## What one slot's row says. Public so a test asserts the string the player reads rather than
@@ -83,10 +94,14 @@ func _fill() -> void:
 func slot_text(slot: int) -> String:
 	var info: Dictionary = SaveSystem.slot_info(slot)
 	var auto: bool = SaveSystem.is_autosave(slot)
+	if info.is_empty() and SaveSystem.has_slot(slot):
+		return tr(AUTOSAVE_DAMAGED_KEY) if auto else tr(DAMAGED_KEY).format({"slot": slot + 1})
 	if info.is_empty():
 		return tr(AUTOSAVE_EMPTY_KEY) if auto else tr(EMPTY_KEY).format({"slot": slot + 1})
+	var place: String = WorldMap.place_key(DictRead.get_dict(info, "header"))
 	return tr(AUTOSAVE_KEY if auto else SLOT_KEY).format({
 		"slot": slot + 1,
+		"place": tr(PLACE_UNKNOWN_KEY if place == "" else place),
 		"when": DictRead.get_string(info, "saved_utc", ""),
 		"played": played_as_text(DictRead.get_float(info, "playtime_seconds", 0.0)),
 	})
@@ -95,6 +110,7 @@ func slot_text(slot: int) -> String:
 ## AN OCCUPIED SLOT ASKS FIRST, AN EMPTY ONE DOES NOT. Overwriting is the one thing on this
 ## screen a player cannot take back, and an empty slot has nothing to lose — asking there too
 ## would teach the player to press through the question. The detail is the header about to go.
+## `has_slot`, not a readable header, so a DAMAGED slot asks too; the header explains why.
 func _on_slot(slot: int) -> void:
 	if writing and SaveSystem.has_slot(slot):
 		push(ConfirmScreen.asking(OVERWRITE_KEY, slot_text(slot), _write.bind(slot)))

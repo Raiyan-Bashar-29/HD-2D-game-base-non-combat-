@@ -11263,6 +11263,9 @@ check does not hear. `SaveSystem.save_to_slot` and `load_from_slot`, unchanged, 
   0 errors`. (Run while the sentinels were planted, boot logged 7 errors, the main menu reading
   files that are not save JSON. That was the sentinels. It was clean once they were removed.)
 - All seven checkers exit 0. `test_runner.gd` 182 of 250, `save_fixture.gd` 31 of 250.
+- CI on `3e62559`, both jobs green: full `=== 2487 passed, 0 failed, 0 skipped ===` (job 109424173775),
+  stripped `=== 2413 passed, 0 failed, 25 skipped ===` (job 109424174438). `TESTING.md` still said
+  T6.9's stripped `2399`, which T6.10 never re-measured, and now says `2413`.
 - Windowed 960x540 capture at 18:40, frozen, looked at: the courtyard at dusk, the HUD's
   `18:40 | Dusk`, the `[E]` prompt. Session `0 warnings, 0 errors`.
 

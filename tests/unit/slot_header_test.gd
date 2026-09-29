@@ -15,7 +15,7 @@ extends TestCase
 ##
 ## Fixture content only: the place is `FixtureContent.PLACE_A`, whose name key is deliberately
 ## untranslated, so `tr()` hands the key back and a row can be matched against it exactly.
-## Every file lands in `SaveFixture.ROOT`, never in the player's own saves.
+## Every file lands in `SaveFixture.root()`, never in the player's own saves.
 ##
 ## OWNS: assertions about the save header's place, and the damaged slot.
 ## MUST NOT: re-assert the slot list's direction policy (menus_test.gd), the confirm screen itself

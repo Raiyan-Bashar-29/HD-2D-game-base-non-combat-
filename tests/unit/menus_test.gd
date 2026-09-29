@@ -16,7 +16,7 @@ extends TestCase
 ## event never reaches the frame that would deliver it.
 ##
 ## THIS CASE OWNS THE SCRATCH SAVE STORE FOR THE RUN, never `user://saves`: set-up points
-## `SaveSystem` at `SaveFixture.ROOT` first, then empties every slot there, because "a first
+## `SaveSystem` at `SaveFixture.root()` first, then empties every slot there, because "a first
 ## run offers no Continue" is not assertable while a slot exists, and empties them again after.
 ##
 ## OWNS: assertions about menu rows, what raises a menu, and slot headers.

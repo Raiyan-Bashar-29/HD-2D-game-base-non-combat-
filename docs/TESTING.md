@@ -10,8 +10,8 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 ```
 
 Exit 0 if every assertion passes, 1 otherwise. In a full checkout the last line reads
-`=== 2522 passed, 0 failed, 0 skipped ===`; in a stripped template it reads
-`=== 2399 passed, 0 failed, 25 skipped ===`, and the difference is entirely skips that say so.
+`=== 2621 passed, 0 failed, 0 skipped ===`; in a stripped template it reads
+`=== 2517 passed, 0 failed, 25 skipped ===`, and the difference is entirely skips that say so.
 **Re-measure this rather than quoting it** — the number moves with every package, and
 `docs_test.gd` and `doc_counts_test.gd` compute their plans from the documents, so editing a
 document can move it too.
@@ -201,11 +201,16 @@ redirected content root and never say so.
 **A case that writes, deletes or saves through ANY path calls `SaveFixture.activate()` first.**
 That is `save_to_slot`, `delete_slot`, and anything that reaches them: a save screen row, an
 `Autosave.request()`. It points `SaveSystem.save_dir` at `SaveFixture.root()`, emptied, and the
-runner points it back after every case. **Nothing fails if you forget.** The case passes, and it
-has written into, or deleted from, the real `user://saves` of whoever ran the suite. Until
-T6.9, fourteen cases did exactly that: a full run destroyed every real slot and the
-autosave, and the suite stayed at 0 failed. Deleting "only the slot I wrote" is no defence,
-because a slot number the suite picks is a slot number a player may have filled.
+runner points it back after every case. **If you forget, the suite fails** (T6.12):
+`<case> used the save store without SaveFixture.activate(): saved slot N in
+user://test_runs/<pid>/saves_unclaimed`. Before every case the runner parks the store in that
+second scratch directory, `SaveFixture.unclaimed()`, so the forgetful case never reaches the real
+`user://saves`. It then fails any case that saved, or loaded a real file, while parked. Until
+T6.9, fourteen cases saved without activating: a full run destroyed every real slot and the
+autosave, and the suite stayed at 0 failed. **Two things the check does not hear:** a file you
+write by hand and delete without ever loading it, and `has_slot`/`slot_info` reads. Parking still
+keeps both away from real saves, but call `activate()` anyway: every case in the run parks in the
+same directory, and your case should own its store.
 
 **Settings need nothing from a case, and that is the difference.** Since T6.11 the runner points
 `Settings.file_path` at `SaveFixture.settings_path()`, once, before the
@@ -311,6 +316,6 @@ Stated so nobody reads a green run as more than it is:
 ## Read next
 
 [`AUTHORING.md`](AUTHORING.md) · [`ARCHITECTURE.md`](ARCHITECTURE.md#the-extension-surface) ·
-[`CONTEXT.md`](CONTEXT.md) — the seventy-nine gotchas, several of which are the long form of the rules
+[`CONTEXT.md`](CONTEXT.md) — the eighty-one gotchas, several of which are the long form of the rules
 above · `tests/framework/test_case.gd` and `tests/test_runner.gd`, whose headers carry the
 reasoning in full.

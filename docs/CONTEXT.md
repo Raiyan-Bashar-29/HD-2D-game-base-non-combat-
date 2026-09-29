@@ -2,24 +2,25 @@
 
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
-**Last updated:** 2026-09-29 · **T6.13 (two suite runs at once, in two worktrees, no longer break each other) complete, at 5.12.0, a MINOR.**
-**Phases T1 to T5 are complete and stay complete; Phase T6 is OPEN. T6.5 and T6.6 have merged to `main` (PRs #71, #75), so the next package on `main` is T6.7.**
 
-**BRANCH MAP: T6.9 (PR #70) → T6.10 (PR #72) → T6.11 (PR #74) → T6.13 are stacked and unmerged;
-T6.12 (PR #73) is a sibling of T6.11 on T6.10.** Build from the newest that has merged. **Versions
-renumber at merge:** each row takes the next number after whatever `main` holds then. T6.12 and
-T6.13 both edit `tests/framework/save_fixture.gd`: whichever merges second moves T6.12's
-`UNCLAIMED` parking directory under `RunScratch.path("saves_unclaimed")`, or it stays shared.
+**Last updated:** 2026-09-29 · **T6.13 (two suite runs at once, in two worktrees, no longer break each other) complete, at 5.15.0, a MINOR.**
+**Phases T1 to T5 are complete and stay complete; Phase T6 is OPEN, and the next package is T6.8.**
 
 **EVERY PATH THE SUITE WRITES IS UNDER `user://test_runs/<pid>`, ONE DIRECTORY PER PROCESS.**
 `tests/framework/run_scratch.gd` owns it. The runner calls `RunScratch.begin()` before anything
 else, `beat()` before every case, and `finish()` after the report, which removes the directory.
-`SaveFixture.root()`, `SaveFixture.settings_path()`, `Fixtures.root()` and the five
-`Fixtures.*_dir()` are functions now, not constants, because the name carries the pid. Before,
-they were fixed names in the `user://` that every worktree shares, and `activate()` EMPTIES its
-directory: two suites started 0.3s apart failed 15 and 8, with a private `APPDATA` so nothing else
-touched it. **A new scratch path goes under `RunScratch.path()`**; `run_scratch_test.gd` lists
-every one and fails on any outside it.
+`SaveFixture.root()`, `SaveFixture.unclaimed()`, `SaveFixture.settings_path()`, `Fixtures.root()`
+and the five `Fixtures.*_dir()` are functions now, not constants, because the name carries the
+pid. Before, they were fixed names in the `user://` that every worktree shares, and `activate()`
+EMPTIES its directory: two suites started 0.3s apart failed 15 and 8, with a private `APPDATA` so
+nothing else touched it. **A new scratch path goes under `RunScratch.path()`**;
+`run_scratch_test.gd` lists every one and fails on any outside it.
+
+**T6.12'S PARKING DIRECTORY MOVED IN AT THE MERGE.** T6.12 and T6.13 were siblings, and T6.12
+landed first with `SaveFixture.UNCLAIMED = "user://test_saves_unclaimed"`, which `park()` empties
+before EVERY case: the same race, met on every case instead of only the ones that save. It is now
+`SaveFixture.unclaimed()`, `RunScratch.path("saves_unclaimed")`. Proved as T6.13 was: two suites
+on one private `APPDATA`, at several start offsets, both green.
 
 **`OS.is_process_running()` IS FALSE, ON WINDOWS, FOR ANY PROCESS YOU DID NOT START.** Measured:
 explorer's pid false, an `OS.create_process` child true. The first version pruned a sibling
@@ -33,28 +34,7 @@ doctored answer: a case testing a cleanup must clean a directory of its own.
 the reset removed the real `user://input.cfg` on every run. `KeyBindings.file_path` is a new var,
 and the runner points it at the run's own copy.
 
-
-**A DEBUG LAUNCH WRITES SCRATCH, NEVER THE DEVELOPER'S FILES, AND SO DOES THE SUITE.** Saves
-since T6.10: any launch with a user argument sets `SaveSystem.save_dir` to `user://dev_saves`,
-a redirect rather than a suppression, so the capture still shows `Autosaved.`. Settings since
-T6.11: `Settings.file_path` is where `save()` writes, `DevSaves` points it at
-`user://dev_settings.cfg` under the same rule, and the test runner points it at
-`user://test_settings.cfg` before the first case. `--real-saves` opts out of both. **Writes only:**
-the real `user://settings.cfg` is still READ at boot, so a capture looks like the developer's
-game, and scratch is never read back, so no launch inherits the last one's language.
-
-**THE SUITE WAS THE WORSE WRITER, AND NOBODY HAD SUSPECTED IT.** Five cases call
-`Settings.reset_to_defaults()`, which saves an empty config, so every green run left the
-developer's `settings.cfg` at ZERO BYTES. A planted sentinel now survives the capture with
-`--locale=en_XA` and a full suite run byte-identical; on T6.10's tip the capture rewrote its locale
-and the suite emptied it.
-
-**EVERY WORKTREE SHARES ONE `user://`, AND OTHER SESSIONS USE IT WHILE YOU DO.** T6.11's first
-sentinel run was contaminated by another session planting its own sentinels in the same minute.
-For any sentinel proof, give Godot a private `user://` with `APPDATA="$(cygpath -w <dir>)"`.
-
-**Budgets.** `settings.gd` **142 of 150**. `save_system.gd` stays at 179 of 180. T6.13: `run_scratch.gd`
-48, `test_runner.gd` 168, `key_bindings.gd` 105, all of 250.
+**Budgets.** `run_scratch.gd` 48, `test_runner.gd` 191, `key_bindings.gd` 105, all of 250.
 
 **The phase, in order** — manifests in `WORK_PACKAGES.md` § T6.0:
 
@@ -64,36 +44,75 @@ For any sentinel proof, give Godot a private `user://` with `APPDATA="$(cygpath 
 | ~~T6.2~~ | ~~the base knows the active input device; the prompt shows the right key~~ **DONE** | forgotten #4 |
 | ~~T6.3~~ | ~~a reusable confirm screen; "are you sure" on overwriting a save~~ **DONE** | forgotten #7 |
 | ~~T6.4~~ | ~~a slot shows where it was saved, and a damaged slot is shown as damaged~~ **DONE** | forgotten #15 |
+| ~~T6.5~~ | ~~losing window focus leaves nothing latched; pausing on it is a setting~~ **DONE** | forgotten #3 |
+| ~~T6.6~~ | ~~Bengali and CJK both render through a font fallback chain~~ **DONE** | structural |
 | ~~T6.9~~ | ~~the suite destroyed real saves; every case that saves redirects first~~ **DONE**, out of number order | owner-reported |
 | ~~T6.10~~ | ~~a capture or debug launch saves to scratch, never over the developer's saves~~ **DONE**, out of number order | found by T6.9 |
 | ~~T6.11~~ | ~~a debug launch or a suite run writes scratch settings, never the developer's file~~ **DONE**, out of number order | found by T6.10 |
+| ~~T6.12~~ | ~~a case that saves without activating the scratch store fails the suite~~ **DONE**, out of number order | found by T6.9 |
+| ~~T6.7~~ | ~~dialogue can skip to its end and auto-advance~~ **DONE** | forgotten #5 |
 | ~~T6.13~~ | ~~two suite runs at once, in two worktrees, cannot empty each other's scratch~~ **DONE**, out of number order | found by T6.11 |
-| ~~T6.5~~ | ~~losing window focus leaves nothing latched; pausing on it is a setting~~ **DONE** on `main`, PR #71 | forgotten #3 |
-| **T6.6** | Bengali and CJK both render through a font fallback chain | structural |
-| T6.7 | dialogue can skip to its end and auto-advance | forgotten #5 |
-| T6.8 | every forgotten item marked DONE or CLOSED, gated by a text scan | the exit criterion |
+| **T6.8** | every forgotten item marked DONE or CLOSED, gated by a text scan | the exit criterion |
+| T6.14 | a count that reaches a string picks its plural form (found by T6.6 as T6.10; T6.12 at T6.11's merge, T6.13 at T6.12's, T6.14 at T6.13's) | a defect |
 
 **THE OWNER'S PLAYTEST OUTRANKS THIS QUEUE.** A defect found by playing becomes the next row ahead of
 anything above — found, not invented, the standard every T6 row had to meet. T6.9 is the first,
-numbered after T6.8 so that no planned id moves. T6.10 is the second, found while proving T6.9, T6.11 the third, found by T6.10, and T6.13 the fourth, found by T6.11 (T6.12 is PR #73).
+numbered after T6.8 so that no planned id moves. T6.10 is the second, found while proving T6.9, T6.11 the third, found by T6.10, T6.12 the fourth, the gap T6.9 recorded, and T6.13 the fifth, found by T6.11.
 
-Suite 2,494 → **2,522**, +28: 26 in the new `run_scratch_test` and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against T6.11's tip, after the documentation landed. The stripped count is CI's.
+Suite 2,591 on `main` at `287e783` → **2,621**, +30: 28 in the new `run_scratch_test` (26 from T6.13, and 2 from the merge for the parking directory) and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `main`, after the documentation landed. The stripped count is CI's.
 
-*(Previously: T6.10 made a capture or debug launch save to `user://dev_saves`, at `5.10.0`, a MINOR.
-The capture rung's `--new-game` is a real run, so the autosave wrote the real slot, and three probes
-deleted real slots. `DevSaves` redirects `SaveSystem.save_dir` for any launch with user arguments;
-`--real-saves` opts out. It also fixed `--autosave-continue`, broken since the menu named the autosave.)*
+*(Previously: T6.7 let dialogue be skipped to its end and auto-advance, at `5.14.0`, a MINOR.
+Cancel during a conversation calls `DialogueScreen.skip()`, which walks the runner through
+`advance()`, so every node passed fires its effect; it stops at the first choice, and a second
+skip there does nothing. `gameplay/dialogue_auto_advance` is off by default and never answers a
+choice. The plant that stayed green was deleting the screen's own stop-at-a-choice check, because
+`advance()` already refuses there; the one that counts is `runner.stop()`, 13 failed.)*
 
-*(Previously: T6.9 stopped the suite touching `user://saves`, at `5.9.1`, a PATCH, test-only.
-Fourteen cases wrote or deleted slots there, and a green run of the unchanged suite deleted all
-seven planted sentinel saves. Each case now calls `SaveFixture.activate()` first, and all seven
-survive. Nothing yet fails a new case that forgets; that is recorded in `WORK_PACKAGES.md` § T6.9.)*
+*(Previously: T6.12 made a case that saves without `SaveFixture.activate()` fail the suite, at
+`5.13.1`, a PATCH, test-only. Before every case the runner parks the store at
+`user://test_saves_unclaimed` and fails a case that saves, or loads a real file, while parked.
+T6.9 to T6.12 landed out of number order, and the plural row moved from T6.10 to **T6.13**, now T6.14. Every
+worktree shares one `user://`: for any sentinel proof give Godot a private one with
+`APPDATA="$(cygpath -w <dir>)"`.)*
 
-*(Previously: T6.4 made a save slot name its place and a damaged slot say so, at `5.9.0`, a MINOR.
-`SaveSystem.header_provider` is an optional hook `WorldMap` sets, because `core` may not ask
-`Director`. The header holds the area id, and the name is localized when drawn. `slot_info` now
-answers `{}` for any file `load_from_slot` would refuse, so a damaged slot never becomes Continue.
-When saving, it counts as occupied, so writing over it asks first.)*
+*(Previously: T6.11 stopped a debug launch and the suite writing the developer's real settings, at
+`5.13.0`, a MINOR. `Settings.file_path` is where `save()` writes. `DevSaves` points it at
+`user://dev_settings.cfg` under T6.10's rule, and the runner points it at
+`user://test_settings.cfg` before the first case. Five cases call `reset_to_defaults()`, so every
+green run had left `settings.cfg` at zero bytes. Writes only: the real file is still read at boot.)*
+
+*(Previously: T6.6 made Bengali and CJK render from fonts the game ships, at `5.11.0`, a MINOR.
+Windows had hidden the tofu: Nirmala UI and YaHei drew the text through system fallback, so the
+before capture turned it off. `assets/fonts/font_chain.tres` has no base font and falls back to
+Noto Sans Bengali, then a Noto Sans SC subset, both at weight 600. `UiRoot.install_font_chain`
+installs it at boot rather than the theme naming it, because the theme loads before the first
+import and a fresh clone printed `Parse Error` (gotcha 81). The `tr_n` check found `RestPoint`'s
+`{hours}` reading "1 hours", now T6.14.)*
+
+*(Previously: T6.10 made a capture or debug launch save to `user://dev_saves`, claimed as `5.10.0`,
+landing as `5.12.0`, a MINOR. The capture rung's `--new-game` is a real run, so the autosave wrote
+the real slot, and three probes deleted real slots. `DevSaves` redirects `SaveSystem.save_dir` for
+any launch with user arguments; `--real-saves` opts out. It also fixed `--autosave-continue`.)*
+
+*(Previously: T6.9 stopped the suite touching `user://saves`, claimed as `5.9.1`, landing as
+`5.11.1`, a PATCH, test-only. Fourteen cases wrote or deleted slots there, and a green run of the
+unchanged suite deleted all seven planted sentinel saves. Each case now calls
+`SaveFixture.activate()` first, and all seven survive. Nothing yet fails a new case that forgets;
+that is recorded in `WORK_PACKAGES.md` § T6.9.)*
+
+*(Previously: T6.5 made losing window focus leave nothing latched at `5.10.0`, a MINOR. Measured
+first, windowed: the engine already clears a held key on focus loss, so the base releases only its
+own state on `Events.focus_lost` from `UiRoot`: a toggled run, a hold part-way to firing, a rebind
+waiting for a key. `gameplay/pause_on_focus_loss` is off by default. The first windowed run found a
+pause menu recorded and never drawn, because the engine propagates the notification, and that is
+gotcha 80.)*
+
+*(Previously: T6.4 made a save slot name where it was saved at `5.9.0`, a MINOR, and draw a damaged
+file as damaged. `SaveSystem.header_provider` is an optional hook `WorldMap` sets, because `core`
+may not ask `Director`; the header holds the area id and the name is localized when drawn.
+`slot_info` got stricter and answers `{}` for any file the loader would refuse, so a file from a
+newer build is damaged too and never becomes Continue. A damaged slot counts as occupied, so
+writing over it asks first. `save_system.gd` 176 → 179 of 180.)*
 
 *(Previously: T6.3 built a reusable confirm screen at `5.8.0`, a MINOR, and overwriting a save now
 asks first. `ConfirmScreen.asking(question_key, detail, on_yes)` sets `closes_on_cancel = false`,
@@ -348,10 +367,10 @@ another sheet, and every facing draws a different figure.
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version is** **5.12.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+**The version is** **5.15.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
 the owner's to close or to leave.
 
-**THE NEXT PACKAGE IS T6.5, AND IT IS A QUEUE AGAIN — FOR ONE PHASE.** From T5.32 until T6.0 this
+**THE NEXT PACKAGE IS T6.7, AND IT IS A QUEUE AGAIN — FOR ONE PHASE.** From T5.32 until T6.0 this
 paragraph said there was no next package and the base was complete; T1 to T5 still are. The owner
 then opened Phase T6 (see the headline and `ROADMAP.md` § Phase T6), so the board holds eight
 planned rows with file manifests, and a new session takes **the lowest unfinished T6 row** rather
@@ -419,8 +438,8 @@ mechanical move. `tools/gen_placeholders.gd` stays on the list at 234 of 250; T5
 three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 4 on the default one, the
 fourth being a second IDLE rather than a gait**,
-1 shared area material, **21 settings and 21 consumers**.
-Template version **5.12.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+1 shared area material, **24 settings and 24 consumers**.
+Template version **5.15.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
 recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 
@@ -1325,7 +1344,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Seventy-nine gotchas that each cost an hour
+## Eighty-one gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -2330,6 +2349,37 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     autosave wrote the real slot, and the probes deleted real slots. `DevSaves` now points every
     debug launch at `user://dev_saves`. The same test applied: a planted sentinel survived.
 
+80. **AN ENGINE NOTIFICATION ARRIVES BY PROPAGATION, AND A NODE IT IS BEING PROPAGATED TO CANNOT
+    TAKE A CHILD. `notification()` IN A TEST DOES NOT REPRODUCE THAT.** T6.5's `UiRoot` answered
+    `NOTIFICATION_APPLICATION_FOCUS_OUT` by emitting `Events.focus_lost`, and `ScreenKeys` answered
+    that by opening the pause menu, all synchronously. The engine sends the notification with
+    `propagate_notification` from the root, which marks each node busy while it walks it, so the
+    `add_child` failed: `Parent node is busy setting up children, add_child() failed`. **And
+    `UiRoot.open` appends to its stack BEFORE `add_child`,** so the stack recorded a screen that
+    was never in the tree. The world paused, nothing was drawn, and the log said
+    `Opened 'pause' at depth 1`. The suite had passed, because it sent the notification with
+    `_stack.notification(...)`, which marks nothing busy. The windowed capture caught it: a
+    stopped world, the prompt gone, and no menu. A probe then read `tree=false size=(0.0, 0.0)`
+    for the stack's top screen.
+    Rules. **A handler for an engine notification that could change the tree defers its work**
+    (`call_deferred`). **A test sends a notification the way the engine does**, with
+    `propagate_notification`, and asserts nothing is answered inside it. And a log line that
+    says a thing happened is not proof it did, when the call that makes it happen can fail
+    after the line is written.
+81. **THE PROJECT THEME LOADS BEFORE THE FIRST IMPORT, SO AN IMPORTED RESOURCE NAMED IN IT IS A
+    `Parse Error` ON EVERY FRESH CLONE.** T6.6's first version put the font chain in
+    `ui_theme.tres`, which is `gui/theme/custom`. The engine loads that theme at startup, before the
+    filesystem scan. On a fresh clone the fonts are not imported yet, so the first `--import`
+    printed `Parse Error: [ext_resource] referenced non-existent resource` twice. That is exactly
+    what CI's rung 2 greps for. **The second `--import` was clean**, and so was every run on the
+    machine that wrote it, because its `.godot/` already held the fonts. It was found only by
+    importing a copy of the tree with no `.godot/`. Rules. **The theme names no imported resource**:
+    a font, texture or stylebox image goes in its own file and is installed at runtime (the chain
+    is `UiRoot.install_font_chain`). And **a change to what loads at startup is proved on a tree
+    with no `.godot/`**, not on the working copy. The companion trap was on the same row: **on
+    Windows, system font fallback hides tofu.** Nirmala UI and YaHei drew Bengali and Chinese with
+    no bundled font at all, so the "before" capture had to switch `allow_system_fallback` off to
+    show what a player without those fonts sees.
 
 ## How work is sliced
 

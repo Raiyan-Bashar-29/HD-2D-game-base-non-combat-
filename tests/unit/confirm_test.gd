@@ -11,7 +11,7 @@ extends TestCase
 ## is the Button's own path, so a row wired to the wrong handler fails here.
 ##
 ## THIS CASE OWNS THE SCRATCH SAVE STORE FOR THE RUN, never `user://saves`, as `menus_test.gd`
-## does: set-up points `SaveSystem` at `SaveFixture.ROOT`, and every slot there is emptied at
+## does: set-up points `SaveSystem` at `SaveFixture.root()`, and every slot there is emptied at
 ## set-up and again after, because "an empty slot saves without asking" needs one to be empty.
 ##
 ## OWNS: assertions about the confirm screen and the overwrite question.

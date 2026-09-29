@@ -19,18 +19,21 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
-## 5.12.0
+## 5.15.0
 
 *2026-09-29 — two suite runs at the same time, in two worktrees, no longer break each other.*
 
 **A consuming game does: nothing, unless a test case of its own named a scratch path.** Every path
 the suite writes now lives under `user://test_runs/<pid>`, one directory per running process,
 removed at the end of the run; a crashed run's is pruned by a later run once its heartbeat file is
-15 minutes old. If a case YOUR game added wrote `SaveFixture.ROOT`, `SaveFixture.SETTINGS_PATH`,
-`Fixtures.ROOT` or one of `Fixtures.ITEM_DIR` / `DIALOGUE_DIR` / `SCHEDULE_DIR` / `QUEST_DIR` /
-`AREA_DEF_DIR`, it will not parse: each is now a function of the same name in lower case (`SaveFixture.root()`,
+15 minutes old. If a case YOUR game added wrote `SaveFixture.ROOT`, `SaveFixture.UNCLAIMED`,
+`SaveFixture.SETTINGS_PATH`, `Fixtures.ROOT` or one of `Fixtures.ITEM_DIR` / `DIALOGUE_DIR` /
+`SCHEDULE_DIR` / `QUEST_DIR` / `AREA_DEF_DIR`, it will not parse: each is now a function
+(`SaveFixture.root()`, `SaveFixture.unclaimed()`, `SaveFixture.settings_path()`,
 `Fixtures.quest_dir()`). A case that only calls `activate()`, as `TESTING.md` tells it to,
-changes nothing. A scratch directory of its own belongs under `RunScratch.path("<name>")`.
+changes nothing. A scratch directory of its own belongs under `RunScratch.path("<name>")`. **If
+your game has its own runner**, copy `RunScratch.begin()`, `beat()` and `finish()` from
+`tests/test_runner.gd` along with 5.13.1's `park()`.
 **MINOR, and the call is stated rather than hidden:** those constants were test-framework
 internals no document told a game to use, and the only `src/` change is additive.
 `KeyBindings.file_path` is a new var, defaulting to `KeyBindings.PATH`, which keeps its name and
@@ -43,12 +46,65 @@ with a private `APPDATA` holding nothing else, on the unchanged tree, two suites
 apart failed 15 and 8, and 6s apart 2 and 1, in runs that pass alone. On this tree the same
 pairs pass on both sides. **Liveness is a heartbeat file, not the pid**, because on Windows
 `OS.is_process_running()` answers false for any process the caller did not start, and a first
-version that trusted it deleted every concurrent run's directory. **And one real file was found on the way:** `options_test` rebinds a key
-and then resets, and the reset deleted `user://input.cfg`, the developer's real key bindings,
-on every suite run. The runner now points `KeyBindings.file_path` at the run's own copy.
+version that trusted it deleted every concurrent run's directory. **5.13.1's parking directory
+moved in with the rest.** `park()` empties it before EVERY case, so as the fixed name
+`user://test_saves_unclaimed` it was the same race, met far more often than `activate()`'s. **And
+one real file was found on the way:** `options_test` rebinds a key and then resets, and the reset
+deleted `user://input.cfg`, the developer's real key bindings, on every suite run. The runner now
+points `KeyBindings.file_path` at the run's own copy.
 
 ---
-## 5.11.0
+## 5.14.0
+
+*2026-09-29 — dialogue can be skipped to its end, and can move on by itself.*
+
+**A consuming game does: nothing.** Its settings screen gains one row, "Auto-advance dialogue",
+because the screen is generated from `Settings.DEFAULTS`, and the row is off. **MINOR**: the base
+gained a setting, two public methods on `DialogueScreen` (`skip()`, `hold_seconds()`) and four
+strings, and a game may ignore all of them. It is not a PATCH, because a key that did nothing now
+does something: **cancel (Escape, or the pad's B) during a conversation skips.** Before, it did
+nothing there, since a conversation has `closes_on_cancel = false`. A game that bound its own
+meaning to cancel while a conversation is open should read this.
+
+**What a skip does.** It walks the runner through `advance()`, so every node on the way is
+arrived at and its effect fires, exactly as if the player had read it. It stops at the first node
+that offers a choice and shows that choice whole, because a branch is the player's to take, and a
+second skip there does nothing. With no choice ahead, it runs the conversation to its end and the
+box closes. A cycle of plain lines stops the skip after 512 lines rather than hanging the game.
+
+**What auto-advance does.** `gameplay/dialogue_auto_advance`, off by default so a slow reader is
+never hurried. On, a whole line is held for 1.5 s plus its length at 15 characters a second,
+divided by `gameplay/text_speed`, and then moves on. It never answers a choice. The hint reads
+"Auto" while it is on.
+
+**Strings.** `ui.dialogue.skip`, `ui.dialogue.hint` and `ui.dialogue.hint_auto` join the continue
+hint, and `ui.settings.gameplay.dialogue_auto_advance` labels the row. A game with its own locale
+column adds four rows.
+
+---
+## 5.13.1
+
+*2026-09-29 — a test case that saves without `SaveFixture.activate()` now fails the suite, and
+cannot reach the developer's saves while it does.*
+
+**A consuming game does: nothing, unless one of YOUR cases saves or loads without
+`SaveFixture.activate()`.** That case now fails rung 4 by name, `<case> used the save store without
+SaveFixture.activate(): saved slot N in user://test_saves_unclaimed`. Add the call at the top of
+its set-up. **PATCH, on the precedents `5.6.1` cites:** the case was already writing into, and
+deleting from, your real `user://saves` while passing, so the gate names an existing defect rather
+than imposing a new rule. `src/` and `tools/` are byte-identical. **If your game has its own
+runner**, copy the `SaveFixture.park()` call and `_saves_were_claimed` from `tests/test_runner.gd`.
+
+**What changed.** Before every case the runner parks the store in `user://test_saves_unclaimed`,
+so no case starts on the shipped default. It then fails any case that saved, or loaded a real
+file, while the store was parked or on the default. It hears this through `Events.game_saved` and
+`game_loaded`, not by diffing a directory, which cannot see a write followed by a delete.
+`save_dir_test.gd` now asserts the store starts parked. Three cases with `activate()` removed
+each went red, and seven sentinel saves in the real directory survived every run.
+
+
+---
+## 5.13.0
 
 *2026-09-29 — neither a debug launch nor the suite writes the developer's real settings any more.*
 
@@ -75,7 +131,7 @@ writes the defaults to the real path, before anything can redirect it. That crea
 overwrites nothing.
 
 ---
-## 5.10.0
+## 5.12.0
 
 *2026-09-29 — a capture or debug launch no longer writes over the developer's real saves.*
 
@@ -99,7 +155,7 @@ the Continue row after the menu began naming the autosave, and is fixed. **Not c
 `--locale=` still writes the real `user://settings.cfg`.
 
 ---
-## 5.9.1
+## 5.11.1
 
 *2026-09-29 — running the suite no longer destroys the developer's real saves.*
 
@@ -119,6 +175,68 @@ files planted in the real directory, one per slot plus the autosave, and a full 
 all seven. Each of the fourteen now calls `SaveFixture.activate()` first, and all seven survive
 unchanged. Fixing only the three cases first suspected still lost five of the seven.
 `TESTING.md` states the rule.
+
+---
+## 5.11.0
+
+*2026-09-29 — Bengali and CJK text renders from fonts the game ships, not from the player's OS.*
+
+**A consuming game does: nothing, unless its own theme sets `default_font`.** In that case the
+chain is not installed. Your font keeps working exactly as before, and it still needs its own
+`fallbacks` for Bengali or CJK. **MINOR**: the base gained a resource, two fonts, a constant and a
+public static method a game may ignore, and nothing that rendered before moved. Latin still draws
+in the engine's own font, because the chain has no base font. It is not a PATCH, because a game
+that changes nothing now ships **3.3 MB more** and draws Bengali and CJK where it drew boxes.
+That is a new capability, not a fix to a promise the base had made.
+
+**What changed.** `assets/fonts/font_chain.tres` is a `FontVariation` with no base font and
+`fallbacks = [Noto Sans Bengali at weight 600, a Noto Sans SC subset at weight 600]`.
+`UiRoot.install_font_chain(theme, path)` puts it into the project theme at boot, unless the theme
+already has a `default_font` or the file is gone. **The theme itself names no font**, and that
+was measured, not chosen: the project theme loads before the first import, so a font named there
+is a `Parse Error` on every fresh clone (gotcha 81).
+
+**Why it mattered when nothing looked broken.** On Windows, system font fallback drew Bengali and
+Chinese from Nirmala UI and YaHei, so the developer's machine showed no tofu. With system fallback
+off, which is a player's machine without those fonts, every glyph was a box. `ART_CONTRACT.md`
+§ Fonts has the captures, the licences, and the recipe that cut the subset. **Hangul is not in
+the subset.** A game shipping Korean adds a font to the chain.
+
+**Found, and recorded as its own row rather than built:** `RestPoint` passes `{hours}` into a
+single string, so a rest of 60 to 119 minutes reads "1 hours". That is the one count in the base
+that needs a plural form (T6.14; numbered T6.10 when this shipped, renumbered as each earlier id was taken).
+
+---
+## 5.10.0
+
+*2026-09-29 — losing window focus leaves nothing latched, and pausing on it is a setting.*
+
+**A consuming game does: nothing, unless it added its own language column to
+`localization/strings.csv`.** In that case, translate one new row,
+`ui.settings.gameplay.pause_on_focus_loss`. The settings screen draws a row for every key in
+`Settings.DEFAULTS`, so without a translation that row shows its key. **MINOR**: the base gained
+a signal, a setting, and three public methods a game may ignore. No signal and no method changed
+shape. The new setting is **off by default**, so a game that changes nothing does not start pausing.
+
+**Three changes in behaviour, and each one is a fix.** On focus loss, a TOGGLED run stops,
+while the toggle-run setting stays as the player set it. A hold-to-confirm part-way to firing
+drops to zero. A rebind row waiting for a key stops waiting. The engine already releases held
+keys on focus loss (measured windowed, see DEVLOG T6.5), so a held run or a held interact key
+needed nothing from the base.
+
+**One more, found by the first windowed run.** `UiRoot.open` now returns false, and leaves the
+stack unchanged, when the engine refuses to add the screen. Before, the screen was recorded
+anyway, so the world paused under a menu that was never drawn. It happens when a screen is opened
+from inside an engine notification that is being propagated. A game that opens screens from its
+own `_notification` handler should defer the call (gotcha 80).
+
+**What changed.** `Events.focus_lost()` is emitted by `UiRoot` alone, deferred to the idle frame
+after `NOTIFICATION_APPLICATION_FOCUS_OUT`. It is not emitted when one of the game's own windows
+takes focus. `UiRoot.is_focus_loss(what)` and `UiRoot.announce_focus_lost()` are public so the
+rule can be asserted without a window. `gameplay/pause_on_focus_loss` is read by `ScreenKeys`, and
+`ScreenKeys.pause_for_focus_loss(stack)` opens the pause menu only where the pause key would work.
+It never toggles, so losing focus twice does not close the menu. **A game with its own latch** — a
+toggled crouch, a charged action — connects to `Events.focus_lost` and drops it.
 
 ---
 ## 5.9.0

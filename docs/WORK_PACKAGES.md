@@ -118,21 +118,23 @@ original board rather than continuing it.
 | T5.29 | **The player prefab was a rule pretending to be a default** | **DONE** — `5.4.0`, a MINOR: the base gained a seam a game may ignore. **ADR-0007 FOUND THIS WITHIN AN HOUR OF EXISTING, WHICH IS THE ROW'S BEST ARGUMENT FOR ITSELF.** `game_root.gd:28` held `const PLAYER_SCENE := "res://scenes/characters/player.tscn"` — engine code, in the **core** layer, naming the prefab a consuming game replaces FIRST — while `GameConfig` exposed exactly two `[game]` keys with no `player_scene` among them. `ARCHITECTURE.md` states the contract as "a game adds content and resources; it does not add code under `src/`", so **a game with a differently-shaped protagonist had no legal way to get one.** T5.28's seam test asks one question — *does a seam exist?* — and a "default" a game cannot replace without editing `src/` is a RULE that has not admitted it; this is the first thing the test caught, and finding it an hour after writing the ADR is the strongest evidence the distinction was worth a package. **THE COMPARISON RUN IS WHAT MAKES IT A DEFECT RATHER THAN A PREFERENCE**, the same shape T5.25–T5.27 each needed: `[game] world/player_scene` pointed at a scene that does not exist, then boot. **Old code: `0 warnings, 0 errors`** — the key silently ignored, the player spawned from the const, a game's stated choice discarded without a word. **New seam: `1 errors`, `Player scene missing or invalid at <the missing path>`** on the existing `Log.error("boot", …)` path. **The old run is the row**: what was broken was not a wrong path but that setting it did nothing — the plant alone only shows the error path works. **THE FALLBACK IS THE ONE ASYMMETRY AND IT IS DELIBERATE**: `world/first_area` has none, because a template nobody has put a game in yet legitimately starts in no area, but a game can never legitimately have NO player, so an unset key means the template's own prefab rather than `load("")` and an empty world. `scenes/characters/` is Engine per `TEMPLATE.md`, so `GameConfig` naming that path is engine naming engine — not the boundary leak the `const` in `core` was. **`game_root.gd` DID NOT GROW** — 26 of its 60-line hard budget before and after, a path moved and no logic added, which matters because that file's header records the previous project's equivalent reaching 3,983 lines. **TWO STALE COUNTS FELL OUT OF IT**, neither gated and both T5.25's class: `GameConfig`'s header said it owned "the four facts a game author writes once" and `SYSTEMS_INVENTORY.md` said "the four values a consuming game sets" — five now. And **`NEW_GAME.md` § 2 gained the one exception to "Keep, and never edit to start a game"**, because a fork points PAST the template's prefab rather than editing it, which is the instruction that section already gave and could not previously be obeyed. 2,294 → **2,300 assertions**, three in `core_test.gd` and no new case; see below |
 | T5.30 | **Performing the extension surface, the one consumer document never walked** | **DONE** — `5.4.1`, a PATCH, and `src/` / `tools/` / `tests/` / `.github/` byte-identical with **no game code committed**. `SYSTEMS_INVENTORY.md` listed the extension surface beside `AUTHORING.md`, `ART_CONTRACT.md` and `TESTING.md`, and it was the only one of the four never performed — while each of the other three found defects reading had not. **THE VENUE IS THE METHOD, AND A DRAFT OF THIS ROW GOT IT WRONG**: `UPGRADING.md` records that "a stripped fork was made" and its synthetic versions "exist only in the throwaway repositories this document was performed against", `NEW_GAME.md` that "the whole strip above was performed against a fresh clone" — so a performance happens OUTSIDE the template and only findings come back. The draft had proposed adding a `game/` root to the base and wiring it into the checkers' scan roots, which would have committed a consuming game's proof into the template. **SIX FINDINGS.** *(1)* Three Tier 2 rows named a class and gave no path while the `Events` row gave one, so `UiScreen` was hunted in `src/ui/root/` — where `UiRoot` lives and it does not — before a grep found `src/ui/screens/ui_screen.gd`; every row now names its file. *(2)* The three override hooks were described in prose and named nowhere: a first attempt guessed `_on_shown()`, **which compiles and never runs**; they are `_build()`, `_opened()`, `_closed()`. *(3)* **THE SHARPEST, AND MEASURED RATHER THAN INFERRED: all seven checkers pass over a game code root** — a fork carrying three subclasses went green on every one, **including over a planted raw player-facing literal and a planted uncalled public method**, precisely what `check_strings.gd` and `check_methods.gd` exist to catch. A consuming game inherits none of the ladder's discipline. **Two of those gates should stay blind and that is a relief rather than a gap** — `check_boundary.gd` exists to prove the ENGINE does not know the game, so aiming it at a game's own root would fail an author for doing the right thing — and the other five are now a stated choice instead of an unnoticed absence. *(4)* **No document had a row for game CODE**, though Tier 2 tells a game to `extends Interactable`: `TEMPLATE.md`, `NEW_GAME.md` § 2 and `UPGRADING.md` § 5 each gained one. *(5)* **A game's own input action cannot be player-rebindable**, and the constraint is CORRECT rather than an oversight: `KeyBindings.rebind()` gates on the `Actions.REBINDABLE` const rather than `InputMap.has_action`, and its header records that asking `has_action` was a real bug — `debug_console` could be written into `input.cfg` and `reset_bindings()` would not restore the default. Stated now rather than discovered. *(6)* **TWO AUDIT PREDICTIONS WERE WRONG, WHICH IS THE ARGUMENT FOR PERFORMING OVER PREDICTING**: the audit said a game's own screen could not register because `ScreenKeys.menu_for()` is a closed `if`-chain, and it is — and it is irrelevant, since `UiRoot.open()` takes an INSTANCE and `UiRoot.find(node)` finds the stack by group, so `UiRoot.find(self).open(MyScreen.new())` is the whole of it, and `menu_for`'s only caller is boundary-exempt debug code. **Also fixed the closing checklist at the source**: item 6 asked for a commit that satisfying item 6 creates, which five rows running had worked around by filling in the previous row's SHA; it now says to do exactly that; see below |
 | T5.31 | **Clock and Weather on the flag surface** | **DONE** — `5.5.0`, a MINOR: the base gained a seam a game may ignore. **`Clock` HELD THE DAY, THE HOUR AND THE PHASE, EMITTED FOUR SIGNALS, AND NEVER ONCE CALLED `Flags.set_flag`** — while `src/core/state/flag_query.gd` is the ONE evaluator both `DialogueNode` and `QuestStep` go through and it reads `Flags` and nothing else. So **no authored condition in this template could mention time or weather at all**, including the shop hours `clock.gd`'s own header names as a reason a clock is foundational. Two independent audits converged here and it was their only convergence. The seam needed no invention: `Flags.declare_derived` already existed, is idempotent, and `_collect_save` SKIPS derived keys, so a published `time/hour` never reaches a save and recomputes from the clock's own saved state — `inventory.gd:59`'s shape since T3.3, including both of its store-wipe subscriptions, because `start_new_game` clears the flags and THEN emits while `game_loaded` fires after every section so the republish cannot depend on participant order. **THE UNPRICED COST WAS THE ROW, AND BOTH ANSWERS THE PLAN OFFERED WERE WRONG.** Ordinals do couple — `GameEnums` is append-only because its numbers live in authored `.tscn` files — but the sharper objection is that **ordering on a phase is meaningless whatever the numbering**: measured, `phase_for_hour` across a day yields `6,6,6,6,6,0,0,1,1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,5`, so DEEP_NIGHT is the HIGHEST ordinal and the EARLIEST hours and `AT_LEAST DUSK` would hold at 00:00 and fail at 06:00. **AND A STRING NAME WOULD HAVE BEEN UNREADABLE BY THE ONE EVALUATOR, WHICH A THROWAWAY PROBE MEASURED RATHER THAN ARGUED**: `FlagQuery.passes` against a flag holding `"DUSK"` returns FALSE for every test in the closed set, `EQUALS` and `IS_TRUE` alike, each logging `expected int` / `expected bool` — four flags that would have looked right in a dump and answered nothing, with no gate in this repository able to catch it, because writing a flag is not the same claim as its being ASKABLE. **So the third answer, which the plan did not consider**: `time/hour` and `time/day` as ordered ints, where `AT_LEAST 9` with `AT_MOST 17` is a shop's hours and the comparison means what an author expects; and a phase and a weather kind as **one bool under the lowercased name**, stable against an enum insertion AND readable, with **no seventh comparison** added to a set whose own file says it stays closed. Exactly one row exists at a time and it is **ERASED rather than set false** — `Inventory` erases a spent stack rather than zeroing it, an absent flag answers `IS_TRUE` false and `IS_FALSE` true, so the semantics are identical at a seventh of the rows and boot publishes four flags rather than seventeen; the erase comes FIRST, because a phase flag left true would make an authored dawn-only line fire at every hour after the first dawn. **THE PLANT IS THE REQUIRED SHAPE, ONE PATH RED AND THE OTHER GREEN**: publishing dropped from the `set_time` path only gave exit 1 on exactly two assertions, *"a jump onto the hour opens it"* and *"the flag was current inside that one too — expected 14, got 11"*, where **the `11` is what the tick path had published**. **AND THE ROW SURFACED A DOCUMENTED GOTCHA AT THE ONE SITE NOBODY HAD FIXED**: `QuestTracker.ids_in_state` sorted with `Array[StringName].sort()`, which orders by interned handle rather than alphabetically — gotcha 33, already noted and fixed in `area_db.gd`, `equipment.gd` and `inventory.gd`, while this function's own comment claimed *"sorted, so the journal draws a stable order"*. It was the allocator's order: four new flag names shifted the intern table and a journal assertion in `item_count_test.gd`, on a code path this row never touched, went red — baseline returning `[gather, errand]`, which is the order that is NOT alphabetical. **Two wrong hypotheses died before the right one**, a timing race (killed by the failure being deterministic across three runs) and pointer-sorting "disproved" by a two-element probe that came out alphabetical BY LUCK, which is why the second probe used eight names and returned `alpha, delta, echo, foxtrot, charlie, bravo, hotel, golf`. Fixed with the same `sort_custom(_before)`, and the test stopped reading "the last Label" — a bet on an order the base never promised — for a named quest's own row. `clock.gd` is now at **142 of its 150-line budget**, the tightest it has been. 2,302 → **2,331 assertions**, +29: 27 in the new case plus 2 in `record_shape_test`, whose plan is `_docs.size() + _packages.size() * 2 + 2`, so a new package id is worth exactly two. **MEASURED by diffing every case against `main`, and re-measured after the documentation landed** — which is what caught the second pair, since the pre-docs run read 2,329 and writing that down is the mistake the last two rows made; see below |
-| T5.32 | **A schedule could only describe one day** | **DONE** — `5.6.0`, a MINOR: the base gained something a game may ignore, and every existing authored `.tres` stays valid unedited. **THE ROW THE PLAN CALLED EXPLICITLY OPTIONAL, AND THE OWNER CHOSE TO BUILD** — rated non-blocking, named *"the honest place to stop early if you want to"*, put to the owner as a live three-way choice and taken in full; recorded because it exists by decision rather than by implication. **`ScheduleEntry` EXPORTED `from_hour` AND NOTHING ELSE**, so an hour was an entry's whole address and `entry_for_hour(hour)` was the whole lookup — **every NPC in every game on this base repeated one identical day forever**, and a market day was not badly supported but INEXPRESSIBLE. **In scope only because of ADR-0007**, whose seam test puts a cycle LENGTH on the template-default side (a formula, one modulo) and a CALENDAR on the game-choice side, so this row adds `days_per_cycle` and adds no weekday names, no months, no seasons and no date type — the refusal being as much of the deliverable as the feature. **It follows T5.31's seam verbatim because that seam was built for it**: `time/day_of_cycle` publishes like `time/day`, through `Flags.declare_derived` from `_publish_time()`, so it never reaches a save and recomputes from the clock's own state — one line added there and nothing else. **AN ORDERED INT, NOT A BOOL-PER-NAME, WHICH IS A DEPARTURE FROM T5.31 ONE ROW LATER AND IS STATED RATHER THAN DRIFTED INTO**: that argument is entirely about a PHASE and rests on two properties a day of the cycle lacks — no enum behind it, and no wrap inside its own range, which runs `1` to `days_per_cycle` and stops. So `EQUALS 3` is a market day and `AT_LEAST 5` is the back half and both mean what an author expects; the `AT_LEAST` assertion is one that could not be written at all under the phase's shape. **THE DEFAULT IS WHAT MAKES IT A MINOR AND `-1` DOES THE WORK TWICE**: on the field it means every day, so existing `.tres` need no edit and no migration (`GameEnums`' append-only discipline, for the same reason — these numbers live in authored files); on the argument it means "no particular day", so an existing `entry_for_hour(hour)` call still compiles and still answers. What it deliberately does NOT mean is "any day", which would have leaked a day-specific block into every day — the defect arriving through the fix, and there is an assertion on exactly that. **TWO THINGS HAD TO CHANGE WITH THE LOOKUP AND ONE WAS NEARLY MISSED**: `problems()` keyed its duplicate check on the hour alone, so left alone **`check_content.gd` would have failed the build on correctly authored data** — the very fixture proving the feature reported as malformed; keyed on the pair `Vector2i(hour, day)` a market day is legal while a genuine collision still is not. And `NpcBrain` reads `Clock.day_of_cycle()` itself at both sites rather than taking the day as a parameter, because the hour is something a caller hypothesises about while which day it is is a fact `Clock` owns — which also gives the new public method its `src/` caller for `check_methods.gd`. **A STATED COST, being a layering consequence rather than an oversight**: nothing validates a day against the real cycle length, so `on_day_of_cycle = 9` on a seven-day cycle parses, loads, passes every checker and simply never runs — `content` may not touch an autoload and `check_layers.gd` exists to refuse it reaching up into `systems` for a number. A draft header claimed `NpcSchedule.problems` caught it; it cannot, and the claim was corrected before commit rather than shipped as a comment promising a check nothing performs. **THE BUDGET PREDICTION WAS WRONG AND MEASURING BEAT BOTH REMEDIES**: the plan warned `clock.gd` at 142 of 150 would go over and demanded a split or a justified budget, and **neither was needed — it landed at 147**. What would have cost the lines was a republishing setter, dropped on an argument rather than to fit (`game_started` republishes, and a tick republishes within one in-game minute, so the window is one no caller can observe); the split was refused on evidence, since `phase_flag`'s own header says it is public BECAUSE it is the spelling an author writes, making the move a MAJOR, and its only consumer is one test file. Three lines of budget remain — **T5.33 corrected this row's original claim that they were the tightest in the base**: `director.gd` has the same three at 187 of its raised 190, and `dev_stage.gd` had two at 248 of 250 before T5.20 split it, so `clock.gd` and `director.gd` are the two tightest and the next row to touch either faces a split. **The plant is the shape the plan asked for**: the day argument ignored in the lookup gave exit 1, `2346 passed, 4 failed` against a control of `2350 passed, 0 failed` — three new assertions failing together, and **a fourth that is the cheap evidence**: *"the day's first hour switches over"*, a pre-existing assertion this row never touched, catching the same regression independently. **Gotcha 79 did not bite, and that is a result** — a new flag name was published and nothing in an untouched file went red, confirming T5.31's `QuestTracker.ids_in_state` fix was the last site; no new gotcha, so the list stays at seventy-nine. 2,331 → **2,355 assertions**, +24: 11 in `npc_test`, 8 in `time_flags_test`, 2 in `record_shape_test` and **3 in `doc_counts_test`, which this row did not see coming** — that case makes a claim of every line outside the list mentioning a gotcha and spelling a number, so this row's own prose became three assertions about itself, all three passing. Measured by diffing every case against `main` AFTER the documentation landed; the pre-docs run read 2,350 and a predicted +21 would have been wrong by three. **THIS IS THE LAST PLANNED ROW: no chip was created, because there is nothing to hand off to.** Every row here is DONE and the base is complete; the next thing to happen to this repository is a game being started on it |
+| T5.32 | **A schedule could only describe one day** | **DONE** — `5.6.0`, a MINOR: the base gained something a game may ignore, and every existing authored `.tres` stays valid unedited. **THE ROW THE PLAN CALLED EXPLICITLY OPTIONAL, AND THE OWNER CHOSE TO BUILD** — rated non-blocking, named *"the honest place to stop early if you want to"*, put to the owner as a live three-way choice and taken in full; recorded because it exists by decision rather than by implication. **`ScheduleEntry` EXPORTED `from_hour` AND NOTHING ELSE**, so an hour was an entry's whole address and `entry_for_hour(hour)` was the whole lookup — **every NPC in every game on this base repeated one identical day forever**, and a market day was not badly supported but INEXPRESSIBLE. **In scope only because of ADR-0007**, whose seam test puts a cycle LENGTH on the template-default side (a formula, one modulo) and a CALENDAR on the game-choice side, so this row adds `days_per_cycle` and adds no weekday names, no months, no seasons and no date type — the refusal being as much of the deliverable as the feature. **It follows T5.31's seam verbatim because that seam was built for it**: `time/day_of_cycle` publishes like `time/day`, through `Flags.declare_derived` from `_publish_time()`, so it never reaches a save and recomputes from the clock's own state — one line added there and nothing else. **AN ORDERED INT, NOT A BOOL-PER-NAME, WHICH IS A DEPARTURE FROM T5.31 ONE ROW LATER AND IS STATED RATHER THAN DRIFTED INTO**: that argument is entirely about a PHASE and rests on two properties a day of the cycle lacks — no enum behind it, and no wrap inside its own range, which runs `1` to `days_per_cycle` and stops. So `EQUALS 3` is a market day and `AT_LEAST 5` is the back half and both mean what an author expects; the `AT_LEAST` assertion is one that could not be written at all under the phase's shape. **THE DEFAULT IS WHAT MAKES IT A MINOR AND `-1` DOES THE WORK TWICE**: on the field it means every day, so existing `.tres` need no edit and no migration (`GameEnums`' append-only discipline, for the same reason — these numbers live in authored files); on the argument it means "no particular day", so an existing `entry_for_hour(hour)` call still compiles and still answers. What it deliberately does NOT mean is "any day", which would have leaked a day-specific block into every day — the defect arriving through the fix, and there is an assertion on exactly that. **TWO THINGS HAD TO CHANGE WITH THE LOOKUP AND ONE WAS NEARLY MISSED**: `problems()` keyed its duplicate check on the hour alone, so left alone **`check_content.gd` would have failed the build on correctly authored data** — the very fixture proving the feature reported as malformed; keyed on the pair `Vector2i(hour, day)` a market day is legal while a genuine collision still is not. And `NpcBrain` reads `Clock.day_of_cycle()` itself at both sites rather than taking the day as a parameter, because the hour is something a caller hypothesises about while which day it is is a fact `Clock` owns — which also gives the new public method its `src/` caller for `check_methods.gd`. **A STATED COST, being a layering consequence rather than an oversight**: nothing validates a day against the real cycle length, so `on_day_of_cycle = 9` on a seven-day cycle parses, loads, passes every checker and simply never runs — `content` may not touch an autoload and `check_layers.gd` exists to refuse it reaching up into `systems` for a number. A draft header claimed `NpcSchedule.problems` caught it; it cannot, and the claim was corrected before commit rather than shipped as a comment promising a check nothing performs. **THE BUDGET PREDICTION WAS WRONG AND MEASURING BEAT BOTH REMEDIES**: the plan warned `clock.gd` at 142 of 150 would go over and demanded a split or a justified budget, and **neither was needed — it landed at 147**. What would have cost the lines was a republishing setter, dropped on an argument rather than to fit (`game_started` republishes, and a tick republishes within one in-game minute, so the window is one no caller can observe); the split was refused on evidence, since `phase_flag`'s own header says it is public BECAUSE it is the spelling an author writes, making the move a MAJOR, and its only consumer is one test file. Three lines of budget remain — **T5.33 corrected this row's original claim that they were the tightest in the base**: `director.gd` has the same three at 187 of its raised 190, and `dev_stage.gd` had two at 248 of 250 before T5.20 split it, so `clock.gd` and `director.gd` are the two tightest and the next row to touch either faces a split. **The plant is the shape the plan asked for**: the day argument ignored in the lookup gave exit 1, `2346 passed, 4 failed` against a control of `2350 passed, 0 failed` — three new assertions failing together, and **a fourth that is the cheap evidence**: *"the day's first hour switches over"*, a pre-existing assertion this row never touched, catching the same regression independently. **Gotcha 79 did not bite, and that is a result** — a new flag name was published and nothing in an untouched file went red, confirming T5.31's `QuestTracker.ids_in_state` fix was the last site; no new gotcha, so the list stayed at 79. 2,331 → **2,355 assertions**, +24: 11 in `npc_test`, 8 in `time_flags_test`, 2 in `record_shape_test` and **3 in `doc_counts_test`, which this row did not see coming** — that case makes a claim of every line outside the list mentioning a gotcha and spelling a number, so this row's own prose became three assertions about itself, all three passing. Measured by diffing every case against `main` AFTER the documentation landed; the pre-docs run read 2,350 and a predicted +21 would have been wrong by three. **THIS IS THE LAST PLANNED ROW: no chip was created, because there is nothing to hand off to.** Every row here is DONE and the base is complete; the next thing to happen to this repository is a game being started on it |
 | T5.33 | **The audit of a base declared finished** | **DONE** — `5.6.1`, a PATCH. **THE BASE WAS DECLARED COMPLETE AND THEN AUDITED, AND THE AUDIT FOUND THAT THE ROW DECLARING IT COMPLETE HAD MADE A DOCUMENTED INVARIANT VIOLABLE.** `schedule_entry.gd` has always promised **a day is always completely covered**, "because an NPC is always somewhere", and before T5.32 that was STRUCTURALLY true — every entry applied on every day, so the wrap-to-the-last-block fallback could never come up empty. `on_day_of_cycle` made it violable by authored data and nothing noticed. **Measured with a throwaway probe rather than argued**: a schedule of only day-specific entries answers NOTHING on any day it does not name — **24 hours of 24** — while `problems()` returned 0, so `check_content` PASSED on content that strands an NPC and `NpcBrain.decide_for_hour`, which returns early on null, left it standing wherever it happened to be. That is precisely the "reads as random" failure the entry header exists to prevent. **The fix is one rule and it is exactly the right strength**: every schedule must carry at least one entry at `-1`, which is necessary AND sufficient for total coverage, since `_applies_on` admits an every-day entry whatever day is asked. The stronger rule — every day of the cycle is covered — would need `Clock.days_per_cycle`, and `content` may not touch an autoload, so this is the strongest form the layer can actually check. **The plant is the check removed**: exit 1, one failure, `and that is reported as a problem rather than passing check_content — expected 1, got 0`, against an exit-0 control — and the "24 of 24 hours answer nothing" assertion stays GREEN under the plant, which is right and is why the two are separate: the consequence exists whether or not the validator reports it. **PATCH, settled on three precedents in `CHANGELOG.md` rather than instinct**, because a new gate that fails existing content looks like the MAJOR test *a file the game wrote must change*: `5.3.3`, `5.3.2` and `1.0.2` are all this shape and all PATCH, and `1.0.2` states the reason — *"That is the bug being fixed, not a new restriction."* A schedule with no every-day entry is already broken. **AND THREE DOCUMENTATION NUMBERS WERE WRONG, one of them with a lesson.** `TESTING.md` stated the suite as `2302` / `2226` — stale through **two consecutive rows**, because the closing checklist was being read as "update `CLAUDE.md` and `ARCHITECTURE.md`" when it governs FOUR files; the stale pair even disagreed with the rest of the repository, its difference being 76 against a stripped gap the board recorded as exactly 74 for eight straight runs, and nothing caught that either. Item 5 now lists all four files and says the stripped number can only come from the CI job log, so that step finishes AFTER CI. `NEW_GAME.md`'s "all 930 assertions" had the number **deleted** rather than updated, because it carried no weight — the better fix for a count no reader needs. And T5.32's own record claimed `clock.gd`'s three spare lines were "the tightest any file in this base has been", **wrong twice**: `director.gd` sits at 187 of its raised 190 with the same three, and `dev_stage.gd` was at 248 of 250 with TWO before T5.20 split it. **What the audit also CONFIRMED is worth recording, since a clean result is evidence too**: zero markdown table column mismatches across every live document — the defect that recurred in T5.15, T5.19 and T5.26 — found with a fence- and escape-aware scan after a naive one produced four hits that were all false positives; and "Ten autoloads", "seven checkers", "eight template screens" and `AUTHORING.md`'s per-area figures all verified correct against the code, the last of these nearly mis-reported before `world_map_test`'s plan was read properly as `PER_AREA 4 + PER_DEF 1`. 2,355 → **2,362 assertions**, +7 — five in `npc_test` and two in `record_shape_test` for this row's own board id, the pre-docs run having read 2,360; the plan guard caught an off-by-one on the way, reporting `planned 85 outcomes and produced 84` with every assertion passing, which is that mechanism doing its job |
 | T6.0 | **Planning Phase T6 — what every game on this formula would otherwise build first** | **DONE** — `5.6.2`, a PATCH, and `src/`, `tools/`, `tests/` are byte-identical. **THE OWNER ASKED WHAT THE BASE HAD MISSED, AND THE ANSWER WAS FILTERED RATHER THAN BRAINSTORMED.** ADR-0007 decides what a template DEFAULT is, the refused list rules out cutscenes, an economy, a chapter sequencer, a calendar, combat and credits, and the standing rule is that work is found, not invented — so every surviving row is either a confirmed defect or an undecided item on the project's own "Commonly forgotten" list. **Method: three parallel explorations and an adversarial review, then every load-bearing claim re-read in the code**, and the review **overturned three first premises**: shader warm-up was proposed as missing and was built in T2.0 (`Director.WARM_UP_FRAMES`); per-section save versions were proposed as never exercised and are exercised by `core_test.gd:134`; the F2 freecam was called unbound and is bound, merely unconsumed. **IT FOUND ONE REAL DEFECT BY READING**: `SaveSystem.load_from_slot` hands each section's stored version to its applier with no check that it is not newer than the running build, and every applier ignores that version — the envelope has the guard and the section level has no twin. That is T6.1, to be proved red before it is fixed. **The owner decided three things**: T6 only; photo mode, a codex, in-area camera zones and positional ambient emitters are GAME CHOICES, each with its seam named; and font fallback proves both Bengali and CJK. Stale records fixed in passing: `CONTEXT.md` listed time on the flag surface and the day cycle as open candidates though T5.31 and T5.32 built both, and three "Commonly forgotten" items described settled work as missing. See below for every candidate's classification and each row's file manifest |
 | T6.1 | **A save from a newer build must be refused, not applied** | **DONE** — `5.6.3`, a PATCH on `1.0.2`'s "the bug being fixed, not a new restriction". **PROVED RED BEFORE IT WAS FIXED**: on `5.6.2`, a section stored at `"v": 3` for a probe registered at v2 reached its applier — `but its applier was never called — expected 0, got 1` and `so the probe keeps its defaults — expected unset, got from the future`, exactly the two failures T6.0 predicted from reading. `load_from_slot` now refuses a section whose stored version exceeds the registered one — `Log.error`, defaults, continue — the section-level twin of `_migrate`'s envelope refusal; one bad section still does not cost the file. The plant (guard disabled) fails the same two assertions again. **And the suite's first worked, exercised migration**: `_probe_apply` in `save_recovery_test.gd` renames `old_key` → `new_key` from v1 and asserts the value survives, with a v2 boundary block so the refusal cannot pass by refusing everything; `UPGRADING.md` § 4 now tells a game to copy it. `save_system.gd` 172 → 176 of 180, no budget touched. See below |
 | T6.2 | **The base knows which input device is active** | **DONE** — `5.7.0`, a MINOR: a signal, an enum, two methods and a class a game may ignore. The pure `InputDevice.device_for(event, previous)` decides and `Actions` holds the answer, emitting `input_device_changed` only on a change — **no autoload added**, `Actions`' MUST NOT narrowed rather than dropped. Mouse motion and sub-deadzone stick drift are not a switch; unplugging the last pad falls back to the keyboard. The interact prompt now names the button — `[E]  Barter  The Keeper's Basket`, photographed — and **the dialogue hint had said "Space to continue" while Space advanced nothing**, bound to the `jump` T5.5 removed; it now reads `E to continue` and follows the device mid-conversation. Three plants, three different failures. Hotplug cannot be driven headless and is proved by calling the handler. Suite 2,375 → 2,408; see below |
 | T6.3 | **A reusable confirm screen, and "are you sure" on overwriting a save** | **DONE** — `5.8.0`, a MINOR: a class and three strings a game may ignore. `ConfirmScreen.asking(question_key, detail, on_yes)` is a `MenuScreen` with `closes_on_cancel = false`, so **escape and pause cannot answer it**, and focus lands on **No**, so mashing accept loses nothing. Pressing an occupied slot on the save screen asks `Overwrite this save?` under the header about to be lost; an empty slot saves at once. The quit half of forgotten #7 is T5.10's quit-autosave, recorded with its two refusals rather than built. Two plants, two different failures, and a control assertion proving the cancel event really reaches `UiRoot`. Photographed over the pause menu. Suite 2,408 → 2,437; see below |
 | T6.4 | **A save slot says where it was saved, and says so when it is damaged** | **DONE** — `5.9.0`, a MINOR: a hook, a constant and a static method a game may ignore. `SaveSystem.header_provider` is an optional Callable stored as the file's `"header"`, so `core` never asks `Director`; **`WorldMap` sets it, not `director.gd`**, which is at its budget, and `WorldMap.place_key` reads the area id back as a name key. The row reads `Slot 1 · Rose Courtyard · …`, photographed; an unmapped area or a pre-5.9.0 save reads `Unknown place`. **`slot_info` now answers `{}` for any file the loader would refuse**, so a file from a newer build is DAMAGED too, and Continue can no longer point at one. A damaged slot is a note when loading and, counted as occupied, asks before it is overwritten. Three plants, three different failures. `save_system.gd` 176 → 179 of 180. Suite 2,437 → 2,471; see below |
-| T6.9 | **Running the suite destroyed the developer's real saves** | **DONE** — `5.9.1`, a PATCH, test-only: `src/` and `tools/` byte-identical. **OUT OF NUMBER ORDER ON PURPOSE**: an owner-reported defect, taken ahead of T6.5 under the playtest rule, and numbered after T6.8 so that no planned row's id moves. Fourteen cases wrote or deleted slots against the default `user://saves`, because only T5.22's two had ever called `SaveFixture.activate()`. Seven sentinel saves planted there: the unchanged suite passed 2,437 of 2,437 and **deleted all seven**; fixing only the three suspected cases still lost five; all fourteen redirected, all seven survive byte-identical. `TESTING.md` now states the rule. See below |
-| T6.10 | **A capture or debug launch wrote over the developer's real saves** | **DONE** — `5.10.0`, a MINOR: a class and a flag a game may ignore. **OUT OF NUMBER ORDER ON PURPOSE**, like T6.9, which found it. The ladder's capture rung runs `--new-game`, a real run, so the autosave wrote the real `autosave.json`, and `--save-state`/`--load-state`/`--cross-area-save` deleted real slots. The new `dev_saves.gd`, first of the debug nodes, sets `SaveSystem.save_dir` to `user://dev_saves` for any launch with user arguments; `--real-saves` opts out. **A redirect, not a suppression**, so the capture still photographs the toast. A planted sentinel was overwritten by one capture before and survives it byte-identical after. Also fixed `--autosave-continue`, which could not find the Continue row. `save_system.gd` untouched at 179 of 180. See below |
-| T6.11 | **A debug launch, and every suite run, wrote the developer's real settings** | **DONE** — `5.11.0`, a MINOR: a var and two constants a game may ignore. **OUT OF NUMBER ORDER ON PURPOSE**, like T6.9 and T6.10; T6.10 found it and recorded it undone. `Settings.PATH` was the only path, so a `--locale=en_XA` capture rewrote a sentinel's `locale="en"`, and **a green suite left it at zero bytes**, which T6.10 had not suspected. `Settings.file_path` is where `save()` writes; `DevSaves` points it at `user://dev_settings.cfg` under its existing rule, and the runner at `user://test_settings.cfg` before the first case. **Writes only, never re-read**, so no launch inherits the last one's language. The sentinel now survives both byte-identical. `settings.gd` 141 → 142 of 150. See below |
-| T6.13 | **Two suite runs at once, in two worktrees, broke each other** | **DONE** — `5.12.0`, a MINOR: a class and a var a game may ignore, and test-framework constants turned into functions. **OUT OF NUMBER ORDER ON PURPOSE**, like T6.9 to T6.11; T6.11 found it, and T6.12 is taken by PR #73. Every worktree shares one `user://`, and `SaveFixture.activate()` EMPTIES a fixed directory under it, so two suites started 0.3s apart failed 15 and 8. Every scratch path is now under `RunScratch.root()`, `user://test_runs/<pid>`, and both pass. **Liveness is a heartbeat, because the pid design failed its own proof**: on Windows `OS.is_process_running` is false for a process the caller did not start, so each run pruned every other. Also stopped `options_test` deleting the real `input.cfg`. See below |
-| T6.5 | **Losing window focus leaves nothing latched** | **TODO — next.** Forgotten #3. Measure first. Manifest below |
-| T6.6 | **Text in any script renders, not as tofu** | **TODO.** Bengali and CJK. Manifest below |
-| T6.7 | **Dialogue for fast and slow readers** | **TODO.** Forgotten #5. After T6.2. Manifest below |
-| T6.8 | **Close the list, and gate it** | **TODO — last.** The phase's exit criterion. Manifest below |
+| T6.5 | **Losing window focus leaves nothing latched** | **DONE** — `5.10.0`, a MINOR: a signal, a setting and three public methods a game may ignore. **Measured first, windowed**: Godot 4.7.2 clears a held key and its action on focus loss by itself, and sends no release event. So the base drops only its own latches on `Events.focus_lost` from `UiRoot`: a toggled run, a hold in progress, a rebind capture. `gameplay/pause_on_focus_loss`, **off by default**, makes `ScreenKeys` open the pause menu. **The first windowed run found the player stranded under an invisible menu**: the engine PROPAGATES the notification, `add_child` failed inside the walk, and the stack had recorded the screen anyway. The suite had used `notification()` and passed. Now the announcement is deferred, `UiRoot.open` rolls back a failed add, and the test propagates. Gotcha 80. Photographed. Suite 2,471 → 2,504; see below |
+| T6.6 | **Text in any script renders, not as tofu** | **DONE** — `5.11.0`, a MINOR: a resource, two fonts, a constant and a static method a game may ignore. **WINDOWS HID THE DEFECT**: with system fallback on, Nirmala UI and YaHei drew Bengali and Chinese with no bundled font, so the before capture switched `allow_system_fallback` off to show the boxes a player without those fonts sees. `assets/fonts/font_chain.tres` has no base font, so the engine's Latin is unchanged, and falls back to Noto Sans Bengali then a 2.8 MB Noto Sans SC subset, both at weight 600 to match. **THE THEME NAMES NO FONT, MEASURED**: it loads before the first import, and a copy of the tree with no `.godot/` printed `Parse Error` twice on rung 2's `--import`. So `UiRoot.install_font_chain` installs the chain at boot (gotcha 81). The suite shapes real strings headless: ক্ষ is one glyph from the Bengali font. The `tr_n` check found RestPoint's `{hours}`, which became T6.10 |
+| T6.9 | **Running the suite destroyed the developer's real saves** | **DONE** — `5.11.1`, a PATCH, test-only: `src/` and `tools/` byte-identical. **OUT OF NUMBER ORDER ON PURPOSE**: an owner-reported defect, taken ahead of T6.7 under the playtest rule, and numbered after T6.8 so that no planned row's id moves. Fourteen cases wrote or deleted slots against the default `user://saves`, because only T5.22's two had ever called `SaveFixture.activate()`. Seven sentinel saves planted there: the unchanged suite passed 2,437 of 2,437 and **deleted all seven**; fixing only the three suspected cases still lost five; all fourteen redirected, all seven survive byte-identical. `TESTING.md` now states the rule. See below |
+| T6.10 | **A capture or debug launch wrote over the developer's real saves** | **DONE** — `5.12.0` (claimed `5.10.0`, renumbered to land after T6.6), a MINOR: a class and a flag a game may ignore. **OUT OF NUMBER ORDER ON PURPOSE**, like T6.9, which found it. The ladder's capture rung runs `--new-game`, a real run, so the autosave wrote the real `autosave.json`, and `--save-state`/`--load-state`/`--cross-area-save` deleted real slots. The new `dev_saves.gd`, first of the debug nodes, sets `SaveSystem.save_dir` to `user://dev_saves` for any launch with user arguments; `--real-saves` opts out. **A redirect, not a suppression**, so the capture still photographs the toast. A planted sentinel was overwritten by one capture before and survives it byte-identical after. Also fixed `--autosave-continue`, which could not find the Continue row. `save_system.gd` untouched at 179 of 180. See below |
+| T6.11 | **A debug launch, and every suite run, wrote the developer's real settings** | **DONE** — `5.13.0` (claimed `5.11.0`, renumbered to land after T6.6), a MINOR: a var and two constants a game may ignore. **OUT OF NUMBER ORDER ON PURPOSE**, like T6.9 and T6.10; T6.10 found it and recorded it undone. `Settings.PATH` was the only path, so a `--locale=en_XA` capture rewrote a sentinel's `locale="en"`, and **a green suite left it at zero bytes**, which T6.10 had not suspected. `Settings.file_path` is where `save()` writes; `DevSaves` points it at `user://dev_settings.cfg` under its existing rule, and the runner at `user://test_settings.cfg` before the first case. **Writes only, never re-read**, so no launch inherits the last one's language. The sentinel now survives both byte-identical. `settings.gd` 141 → 142 of 150. See below |
+| T6.12 | **Nothing failed a case that saved without activating the scratch store** | **DONE** — `5.13.1`, a PATCH on `5.6.1`'s precedents, test-only: `src/` and `tools/` byte-identical. **OUT OF NUMBER ORDER ON PURPOSE**, the gap T6.9 recorded; Both halves T6.9 offered, because each alone leaves a hole: the runner PARKS the store in `user://test_saves_unclaimed` before every case, so a forgotten `activate()` cannot reach a real save, and FAILS a case that saves, or loads a real file, anywhere but the store it claimed. Heard on `game_saved`/`game_loaded`, not by a directory diff. **Three plants red**, each naming its case: `confirm_test` and `menus_test` (saves) and `save_recovery_test` (a hand-planted file, loaded then deleted). Seven sentinel saves survived every run. See below |
+| T6.14 | **A count that reaches a string picks its plural form** | **TODO.** Numbered T6.10 by T6.6, renumbered T6.12 at T6.11's merge because T6.10 was already taken by an unmerged DONE row, T6.13 at T6.12's merge for the same reason, and T6.14 at T6.13's, whose DONE row already held T6.13. Found by T6.6's `tr_n` check. `RestPoint` sends `{hours}` = `floori(minutes / 60)` into one key, so a rest under two hours reads "1 hours" or "0 hours slip past". It is the only count in the base with a noun beside it: `x{count}`, `{have} / {need}` and `{percent}%` carry none. Write: `src/gameplay/interactables/rest_point.gd`, the CSV (plural support in Godot's CSV importer must be checked in the 4.7 docs first, and `.po` is the fallback), a test. After T6.7 |
+| T6.7 | **Dialogue for fast and slow readers** | **DONE** — `5.14.0` (claimed `5.12.0`, renumbered to land after T6.12), a MINOR: a setting, two public methods a game may ignore, and cancel now doing something in a conversation where it did nothing. **A SKIP WALKS, IT DOES NOT JUMP**: cancel calls `DialogueScreen.skip()`, which drives the runner through `advance()`, so every node passed is arrived at and fires its effect; it stops at the first choice, shown whole, and a second skip there does nothing; with no choice ahead it runs to the end. A cycle stops after 512 lines. `gameplay/dialogue_auto_advance`, off by default, holds a whole line 1.5 s plus 15 characters a second over the text speed, and never answers a choice. **THE PLANT THAT STAYED GREEN**: deleting the screen's stop-at-a-choice check changes nothing, because the runner already refuses there; the red plant is `runner.stop()` as the skip, `2549 passed, 13 failed`. `dialogue_test.gd` would have been 305 of 250, so the cases are `dialogue_speed_test.gd`. Photographed |
+| T6.13 | **Two suite runs at once, in two worktrees, broke each other** | **DONE** — `5.15.0` (claimed `5.12.0`, renumbered to land after T6.7), a MINOR: a class and a var a game may ignore, and test-framework constants turned into functions. **OUT OF NUMBER ORDER ON PURPOSE**, like T6.9 to T6.11; T6.11 found it, and T6.12 was taken by PR #73. Every worktree shares one `user://`, and `SaveFixture.activate()` EMPTIES a fixed directory under it, so two suites started 0.3s apart failed 15 and 8. Every scratch path is now under `RunScratch.root()`, `user://test_runs/<pid>`, and both pass. **Liveness is a heartbeat, because the pid design failed its own proof**: on Windows `OS.is_process_running` is false for a process the caller did not start, so each run pruned every other. At the merge T6.12's parking directory, a fixed name `park()` empties before every case, moved under it too. Also stopped `options_test` deleting the real `input.cfg`. See below |
+| T6.8 | **Close the list, and gate it** | **TODO — next, and last.** The phase's exit criterion. Manifest below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -5758,7 +5760,7 @@ landed: 11 in `npc_test`, 8 in `time_flags_test`, 2 in `record_shape_test`, whos
 missed.** The pre-docs run read 2,350; +21 was the number in the first draft of this section, and
 it was wrong. Only a per-case diff said which case: `doc_counts_test` appends a CLAIM for every
 line **outside** the gotcha list that mentions a gotcha and spells a number, so the three sentences
-this row wrote about gotcha 79 not biting became two new assertions. Both assert `seventy-nine` and
+this row wrote about gotcha 79 not biting became two new assertions. Both asserted the spelled count, 79 then, and
 both pass. **T5.31 warned about a computed plan counting a row's own prose; this is the second
 computed plan doing it**, and it is the whole argument for measuring after the documentation lands
 rather than before.
@@ -5767,7 +5769,7 @@ rather than before.
 new StringNames and shifts the intern table, reordering anything sorting `StringName`s with
 `.sort()`. This row published a new flag name and **no assertion in a file it never touched went
 red**, which is the confirmation that T5.31's fix at `QuestTracker.ids_in_state` was the last site.
-No new gotcha, so the list stays at seventy-nine and the four documents stating its length are
+No new gotcha, so the list stayed at 79 and the four documents stating its length are
 untouched.
 
 **Scope.** `5.6.0`, a MINOR: the base gained something a game may ignore, and existing authored
@@ -6321,14 +6323,178 @@ present on disk, and the log says so; it is not suppressed.
 
 **Scope.** `5.9.0`, a MINOR. Suite 2,437 → 2,471: +34: 32 in the new `slot_header_test` and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
 
-**Commit:** `a90b57a` on `claude/t6-4-slot-header`, PR #69, targeting `main`, merged as `9b6a7e7`; no separate CI-record commit was made. Filled in by T6.9, which also took the stripped count from the CI job log (`Ladder (stripped template)`, job 109354905555: `=== 2397 passed, 0 failed, 25 skipped ===`; full job 109354905350: `=== 2471 passed, 0 failed, 0 skipped ===`).
+**Commit:** `a90b57a` on `claude/t6-4-slot-header`, PR #69, targeting `main`, merged as `9b6a7e7`; no separate CI-record commit was made. Filled in by T6.5, which also took the stripped count from the CI job log (`Ladder (stripped template)`, job 109354905555: `=== 2397 passed, 0 failed, 25 skipped ===`; full job 109354905350: `=== 2471 passed, 0 failed, 0 skipped ===`). `TESTING.md` had kept T6.3's stripped `2363` through T6.4; T6.5 replaces it.
+
+## T6.5 · Losing window focus leaves nothing latched; pausing on it is a setting — **DONE**
+
+**Closes forgotten #3.** An alt-tab while a key is held should not leave the character walking.
+The manifest said to measure whether the engine already handles that before writing code.
+
+**Measured first, windowed.** A temporary `SceneTree` probe in `src/systems/debug/` bound an action
+to D and logged `window_is_focused()`, `Input.is_physical_key_pressed(KEY_D)` and
+`Input.is_action_pressed` every 0.25s. A PowerShell driver held D with `keybd_event` (scancode
+0x20), alt-tabbed away two seconds later, and released D while the window was unfocused. The probe
+read `focused=true key=true action=true` at t=4.02 and `focused=false key=false action=false` at
+t=4.26, and it stayed false. The only key event logged was the press. **So Godot 4.7.2 clears the
+held state on focus loss and sends no release event.** A held walk, a held run and a held interact
+key needed nothing from the base. A pad was not measured, since none was attached. A first attempt
+with F13 registered nothing, and is recorded so nobody repeats it.
+
+**What the engine cannot release is the base's own state**, so each owner drops it on the new
+`Events.focus_lost`. `PlayerController` sets `_run_toggled` false and leaves `run_is_toggle`, the
+player's setting, alone. `InteractionSensor` sets `_hold` to zero and keeps its target, so the prompt
+has something to offer the moment the player returns. The next physics frame would have zeroed it
+anyway, but that frame waits while the tree is paused. `RebindScreen` stops listening, because the
+next key after an alt-tab is not a choice the player made on that row. It connects in `_init`, and
+freeing the screen drops the connection.
+
+**Who announces it.** `UiRoot`, since it already announces the one other fact about the world and
+input, the UI mode. It listens for `NOTIFICATION_APPLICATION_FOCUS_OUT` and not the window
+notification, because one of the game's own windows taking focus is not the player leaving.
+`is_focus_loss(what)` is static and public, so the rule is asserted without a window. **Who
+pauses.** `ScreenKeys`, not `UiRoot`: `UiRoot` must not know what a screen contains, and
+`ScreenKeys` is where a request on the bus becomes a screen. `pause_for_focus_loss(stack)` opens
+the pause menu only where the pause key itself would work. It never toggles, so losing focus twice
+leaves the menu up. This added `screen_keys.gd`, a file outside the manifest, and the reason is its
+own header's table.
+
+**The setting is OFF by default.** `gameplay/pause_on_focus_loss` is opt-in. A windowed capture
+launched from a terminal, which is how this project verifies everything visual, would otherwise
+pause whenever the developer clicked back to the terminal. So would a player glancing at a guide on
+a second monitor. The owner's first-run playtest (forgotten #8) can flip it, and the flip is one
+word.
+
+**THE DEFECT THE FIRST WINDOWED RUN FOUND.** The capture used a temporary probe in `dev_capture.gd`,
+calling `get_tree().root.propagate_notification(NOTIFICATION_APPLICATION_FOCUS_OUT)` at frame 40.
+That is the same call the SceneTree makes. The OS half could not be driven: Windows refused
+`SetForegroundWindow` to a process launched from the background, even with `AttachThreadInput`.
+The log said `Focus lost` and then `Opened 'pause' at depth 1`, and the PNG showed a stopped world
+with no menu. A second probe read the stack's top screen as `tree=false size=(0.0, 0.0)`, and the
+engine had printed `Parent node is busy setting up children, add_child() failed`. The engine
+PROPAGATES the notification, which marks each node busy as it walks, and `UiRoot.open` had appended
+to its stack BEFORE the failed `add_child`. So the player was stranded, paused under nothing. The
+suite had sent the notification with `notification()`, which marks nothing busy, and passed. Two
+fixes, one per half. `UiRoot` defers `announce_focus_lost`, so no listener runs inside the walk.
+And `open` checks `is_inside_tree()` after `add_child`, and rolls back with a `Log.error` and
+`false`, so a game's own careless listener cannot strand anyone either. Gotcha 80.
+
+**Assertions.** `tests/unit/focus_loss_test.gd`, 30. Three on which notification counts. Three on
+the propagation: nothing is heard inside it and nothing is added, then the deferred call's target
+is heard once. Three on the rollback, through an inner `Opener` node that opens a screen from its
+own `_notification` while the engine walks the stack. Three on the run toggle, three on the hold,
+five on the rebind, six on pausing (off by default, the bus route, open, modal, and not toggled), two
+on refusing over another screen, and one on the row's translation. `options_test` and
+`settings_consumers_test` loop over `DEFAULTS`, so they gained 3 and 1.
+
+**Plants.** Each exited 1, and each was restored. With the run toggle not cleared: `2498 passed,
+1 failed`, `focus loss drops it — expected false, got true`. With `WM_WINDOW_FOCUS_OUT` in `is_focus_loss`:
+`2500 passed, 2 failed`, `losing the application's focus is a focus loss — expected true, got
+false`. With the rollback in `open` disabled: `2498 passed, 4 failed`, starting with `a screen
+opened mid-propagation is refused — expected false, got true`. With the synchronous emit restored, the suite printed the engine's own `add_child() failed`, and
+`the engine's propagation is not answered inside itself — expected 0, got 1` and `so nothing is
+added to the stack mid-walk — expected 0, got 1` both failed.
+
+**Photographed windowed**, 960×540, `--new-game --time=18:40 --freeze-time`, frame 90, with the
+setting on in `user://settings.cfg`. The pause menu is drawn over the dimmed courtyard with
+Resume focused, and the log shows `Focus lost` and then `Opened 'pause' at depth 1` with no engine
+error. The control run, with the setting off, shows the courtyard running with the interact prompt
+up and no menu. Both PNGs were looked at. The probe was removed (`git status src/systems` clean), and
+the player's `settings.cfg` was restored from a copy.
+
+**Budgets**, measured on a `main` worktree and after: `settings.gd` 141 → **142 of 150**, which
+leaves T6.7 eight lines. `ui_root.gd` 103 → 116, `screen_keys.gd` 108 → 118,
+`player_controller.gd` 171 → 174, `interaction_sensor.gd` 177 → 180 and `rebind_screen.gd` 79 → 80,
+all of 250. `events.gd` 47 → 48 of 150. Nothing tight was touched.
+
+**Not in scope.** Font fallback (T6.6), dialogue skip and auto-advance (T6.7), closing the list
+(T6.8). Getting focus BACK does nothing: the pause menu waits for the player, and resuming on
+refocus would be the surprise this setting exists to prevent.
+
+**Scope.** `5.10.0`, a MINOR. Suite 2,471 → 2,504: +33: 30 in the new `focus_loss_test`, 3 in `options_test` and 1 in `settings_consumers_test` for the new setting's row and consumer, 2 in `record_shape_test` for this row's own package id, and −3 in `doc_counts_test`, because the three historical `seventy-nine` lines in `WORK_PACKAGES.md` became digits; every other case unmoved.
+
+**Commit:** `f0805ce` on `claude/t6-5-focus-loss`, PR #71, targeting `main`, merged as `26f48c1`; no separate CI-record commit was made. Filled in by T6.6, which also took the stripped count from the CI job log (`Ladder (stripped template)`, job 109373463415: `=== 2430 passed, 0 failed, 25 skipped ===`; full job 109373463289: `=== 2504 passed, 0 failed, 0 skipped ===`). `TESTING.md` had kept T6.4's stripped `2397` through T6.5; T6.6 replaces it.
+
+## T6.6 · Text in any script renders, not as tofu — **DONE**
+
+The owner chose both scripts: Bengali, whose conjuncts need real shaping, and CJK, which needs
+thousands of glyphs. The manifest asked for a capture against tofu before the change, and that is
+where the row's first finding came from.
+
+**Windows hid the defect.** The before capture, with the engine's defaults, drew Bengali, Chinese
+and Japanese correctly and no box at all. `ThemeDB.fallback_font` is a `FontFile` with
+`allow_system_fallback = true`, and Windows carries Nirmala UI and YaHei. So the defect is
+invisible on the machine the base is written on, and real on a Steam Deck or a bare Linux box. The
+capture that counts switched system fallback off on every font. Before the change, every non-Latin
+glyph was a hex box. After it, every one was drawn, with system fallback still off, so only the
+bundled fonts could have drawn them.
+
+**The fonts.** Downloaded with the owner's permission, which named each file, its source and its
+size: `NotoSansBengali[wdth,wght].ttf` (464 KB) and `NotoSansSC[wght].ttf` (17.8 MB), each with its
+`OFL.txt`, from `github.com/google/fonts`, plus fontTools 4.66.0 from PyPI to cut the subset. The
+Bengali font is committed unmodified. The SC font is subset to 8,392 code points (GB2312's 6,763
+hanzi, JIS level 1 and one row of level 2, kana, CJK punctuation, full/half-width forms) and pinned
+at weight 600: 2.8 MB. The licence reserves only the name `Source`, which the subset does not use.
+The recipe is in `ART_CONTRACT.md` § Fonts.
+
+**Weight 600, found by looking.** The first after capture drew every Bengali and CJK line visibly
+lighter than the Latin beside it, because the engine's default is Open Sans SemiBold. The chain
+asks the variable Bengali font for `wght` 600 through a `FontVariation`, and the SC subset was
+re-cut at 600. The second capture matched.
+
+**The theme names no font — the second finding, and the manifest's line it departs from.** The
+manifest said to put the chain in `ui_theme.tres`, and the first version did. It passed on the
+working copy. A copy of the tree with no `.godot/`, which is what CI and every consumer start
+from, printed `Parse Error: [ext_resource] referenced non-existent resource` twice on the first
+`--import`. The project theme is `gui/theme/custom`, which the engine loads at startup, before the
+filesystem scan has imported the fonts. That is exactly what rung 2 greps for. So the chain is its
+own resource, `assets/fonts/font_chain.tres`, and `UiRoot.install_font_chain(theme, path)` puts it
+into the project theme at boot. `UiAccessibility` and `UiRowStyles` already change the project
+theme at runtime, which is the precedent. A theme that already has a `default_font` is left alone,
+because a game that set its own type did it on purpose. After the move, the fresh-tree import
+printed 0 `Parse Error` lines, and the fresh boot logged `Font chain installed: 2 fallback(s)`. A
+Label on screen before the install picks the font up, which the capture showed. Gotcha 81.
+
+**Assertions.** `tests/unit/font_chain_test.gd`, 25. Five on the chain: a FontVariation, no base
+font, two fallbacks, Bengali then CJK. Five on coverage: the engine font has no Bengali and no
+hanzi, the Bengali link has Bengali, and the CJK link has hanzi and kana. Six on SHAPING, which
+runs headless because HarfBuzz is not the rasteriser: ক্ষ is three code points and ONE glyph from
+the Bengali font, the hanzi and kana come from the subset, and Latin still comes from the engine
+font. That last one matters because the Bengali font carries Latin too. Three read the theme from
+disk and find no font in it. Five cover the install rule, and one checks both licences.
+
+**The `tr_n` check, as the manifest asked, before any plural support.** Every `{…}` in
+`strings.csv` was read. `x{count}`, `{have} / {need}`, `{standing} of {needed}` and `{percent}%`
+carry no noun, so they need no plural form. One does: `RestPoint` sends `{hours}` =
+`floori(minutes / 60)` into a single key, so a rest under two hours reads "1 hours" or "0 hours
+slip past". The key is demo content, but the count comes from a template system, so every game
+meets it. That is **T6.13**, and it was not built here.
+
+**Plants.** Each exited 1, and each was restored byte-identical. With the chain's two fallbacks swapped: `2523 passed, 8 failed`, starting with `fallback 0 is the Bengali font — expected res://assets/fonts/NotoSansBengali-Variable.ttf, got res://assets/fonts/NotoSansSC-SemiBold-subset.ttf`. With `install_font_chain`'s check for an existing `default_font` removed: `2530 passed, 1 failed`, `a theme with its own font keeps it — expected true, got false`.
+
+**Photographed windowed**, 960×540, through a temporary `extends SceneTree` probe in
+`src/systems/debug/`. The probe drew four 64 px Labels (Latin with é and ñ, Bengali with ক্ষ স্ত্রী
+শ্রদ্ধা যুক্তাক্ষর, Chinese, Japanese), switched `allow_system_fallback` off, and for the after
+capture added a real `UiRoot`, so the install path under test is the shipped one. Before: the Latin
+line drawn, and every other glyph a hex box. After: all four lines drawn, weights matched, and Latin
+pixel-identical to before. Both PNGs were looked at. The probe was removed, and
+`git status src/systems` is clean.
+
+**Budgets.** `ui_root.gd` 116 → 127 of 250. The test is 105 code lines. Nothing tight was touched.
+
+**Not in scope.** Dialogue skip and auto-advance (T6.7), closing the list (T6.8), plural forms
+(T6.13). There is no Bengali or CJK locale: `strings.csv` keeps `en` and `en_XA`, and a game adds
+the column. Right-to-left text stays deferred. Hangul is not in the subset.
+
+**Scope.** `5.11.0`, a MINOR. Suite 2,504 → 2,533: +29: 25 in the new `font_chain_test`, 2 in `record_shape_test` for this row's own package id, and 2 in `docs_test` for the two font paths the board's plant record names; every other case unmoved.
+
+**Commit:** `487d4fd` on `claude/t6-6-font-fallback`, PR #75, targeting `main`, merged as `db0d6ec`; no separate CI-record commit was made. Filled in by T6.9, which also took the stripped count from the CI job log (`Ladder (stripped template)`, job 109434179199: `=== 2459 passed, 0 failed, 25 skipped ===`; full job 109434179375: `=== 2533 passed, 0 failed, 0 skipped ===`).
 
 ## T6.9 · Running the suite destroyed the developer's real saves — **DONE**
 
-**Reported by the owner, taken ahead of T6.5.** `menus_test.gd` and `confirm_test.gd` each said
+**Reported by the owner, taken ahead of T6.7.** `menus_test.gd` and `confirm_test.gd` each said
 `THIS CASE OWNS user://saves FOR THE RUN`, deleted every slot at set-up, then wrote slots, all
 against `SaveSystem.save_dir`. Neither called `SaveFixture.activate()`, so that was still
-`DEFAULT_SAVE_DIR`. **Numbered T6.9, not inserted as T6.5**, so that no planned row's id, manifest
+`DEFAULT_SAVE_DIR`. **Numbered T6.9, not inserted as T6.7**, so that no planned row's id, manifest
 or chip prompt moves. A suffix was not available either: `record_shape_test.gd` reads a package id
 as `T<n>.<n>`, so `T6.3a` would have been read as T6.3.
 
@@ -6365,7 +6531,7 @@ through any path, activates first, because nothing fails when it does not.
 
 **No new gotcha, and that was a choice.** This is gotcha 79's lesson again: T5.22 fixed the sites
 it had in front of it, not every site matching the pattern. The instance is appended to 79 rather
-than numbered 80. Renumbering would have meant rewriting three historical lines on this board,
+than given a number of its own. A new number would have meant rewriting three historical lines on this board,
 which `doc_counts_test.gd` reads as claims about the count.
 
 **What still is not gated.** Nothing makes a NEW case that saves without activating fail. The
@@ -6374,9 +6540,9 @@ structural answer is a runner that activates the scratch store before every case
 `save_dir_test.gd` would have to stop asserting the default at entry. That design question was
 recorded, not built.
 
-**Scope.** `5.9.1`, a PATCH, test-only. T6.4 merged to `main` while this row was open, and the branch merged it in; its own `slot_header_test.gd` already activates the scratch store. Suite 2,471 → **2,473**, +2, both in `record_shape_test` for this row's own package id; every other case unmoved, the fourteen changed cases included.
+**Scope.** `5.11.1`, a PATCH, test-only. T6.4, T6.5 and T6.6 merged to `main` while this row was open, and the branch merged each in. `slot_header_test.gd` activates the scratch store itself, and `focus_loss_test.gd` and `font_chain_test.gd` do not touch it. Suite 2,533 → **2,535**, +2, both in `record_shape_test` for this row's own package id; every other case unmoved, the fourteen changed cases included.
 
-**Commit:** `c6571cf`, then `2391b55` recording the stripped count, on `claude/t6-9-suite-saves`, PR #70, targeting `main`; unmerged when T6.10 branched from its tip. Filled in by T6.10.
+**Commit:** squash-merged to `main` as `8436c69`, PR #70, from `claude/t6-9-suite-saves`. Filled in by T6.11 at its second merge of `main`.
 
 ## T6.10 · A capture or debug launch wrote over the developer's real saves — **DONE**
 
@@ -6431,10 +6597,10 @@ arguments, so the sentinel run is its proof.
 through `Settings.set_value`, which persists, and `Settings.PATH` is a `const`. Same class of
 harm, but its fix is a `src/core` seam in a file at a tight budget, so it is its own task.
 
-**Scope.** `5.10.0`, a MINOR. Suite 2,473 → **2,483**, +10: 8 in `dev_tools_test` (seven new, and one more file in the wired-node count) and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
+**Scope.** `5.12.0` (claimed `5.10.0`; renumbered at T6.11's merge of `main`), a MINOR. Suite 2,473 → **2,483**, +10: 8 in `dev_tools_test` (seven new, and one more file in the wired-node count) and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
 
 **Commit:** on `claude/t6-10-capture-saves`, stacked on `claude/t6-9-suite-saves` (PR #70), PR
-targeting `main`, PR #72. Commit `a4ba31a`, filled in by T6.11. **Version collision to resolve at merge:** T6.5's PR #71 also
+targeting `main`, PR #72, squash-merged as `2fe62ae` from branch head `243d242`. Commit `a4ba31a`, filled in by T6.11; the merge SHA by T6.7. **Version collision to resolve at merge:** T6.5's PR #71 also
 claims `5.10.0`; whichever of the two merges second takes `5.11.0`.
 
 ## T6.11 · A debug launch, and every suite run, wrote the developer's real settings — **DONE**
@@ -6488,11 +6654,142 @@ proof after that ran with `APPDATA` pointed at a scratch directory, so `user://`
 before anything can redirect it. That creates a file and overwrites nothing. The suite's own
 process still READS the developer's real settings, which is why the runner's locale pin stays.
 
-**Scope.** `5.11.0`, a MINOR. `settings.gd` 141 → 142 of 150; `dev_saves.gd` 20 → 23.
+**Scope.** `5.13.0` (claimed as `5.11.0` before the merge of `main`), a MINOR. `settings.gd` 141 → 142 of 150; `dev_saves.gd` 20 → 23.
 
 **Commit:** on `claude/t6-11-dev-settings`, stacked on `claude/t6-10-capture-saves` (PR #72), PR
-targeting `main`. No SHA, per item 6. **Version renumbering at merge:** T6.5 merged to `main` as
-`5.10.0`, so T6.10 takes `5.11.0` when it merges, and this row then takes `5.12.0`.
+#74 targeting `main`, squash-merged as `9d8c34f`; filled in by T6.12. **Renumbered at the merge of `main`:** T6.5 took
+`5.10.0` and T6.6 `5.11.0` there first, so the stack lands after them as T6.9 `5.11.1`, T6.10
+`5.12.0` and this row `5.13.0`. T6.6's new plural row, which it numbered T6.10, became **T6.12**, then **T6.13** at T6.12's merge, whose DONE row already held T6.12, and **T6.14** at T6.13's.
+
+## T6.12 · Nothing failed a case that saved without activating the scratch store — **DONE**
+
+**The gap T6.9 recorded.** T6.9 redirected fourteen cases that wrote the developer's real
+`user://saves`, and `TESTING.md` stated the rule. Nothing enforced it. A diff of the directory
+around each case cannot see a write followed by a delete in an empty directory, and empty is the
+ordinary state on CI. **Numbered T6.12**, after T6.10, with T6.11 then in progress on another
+branch. The owner confirmed taking it before T6.5, which merged to `main` while this row was open.
+
+**Decided: both of T6.9's options, not one.** (b) alone, a check, goes red only AFTER the case has
+written or deleted a real slot: the first run of a bad case still costs the developer their
+saves. (a) alone, activating for every case, makes the omission harmless and silent, and silence
+is how fourteen piled up. So:
+
+- **Parked.** `SaveFixture.park()` points the store at `UNCLAIMED`, `user://test_saves_unclaimed`,
+  emptied, and the runner calls it before every case. No case starts on the shipped default, so
+  a forgotten `activate()` cannot reach a real save, crash or no crash.
+- **Checked.** The runner listens on `Events.game_saved` and `game_loaded`, signals `save_to_slot`
+  and `load_from_slot` already emit for a game's own listeners, so no seam was added to `src/`.
+  A save, or a load with a file behind it, while `save_dir` is `UNCLAIMED` or `DEFAULT_SAVE_DIR`
+  fails the case by name. A file left in `UNCLAIMED` fails it too, for a plant nothing announces.
+  A case that points the store at a scratch directory of its own, as `save_dir_test` does, has
+  made a choice and is not flagged.
+
+**Why loads count.** `save_recovery_test` plants files by hand and deletes them, and never saves,
+so the first version of the check passed it with `activate()` removed. Its loads are the tell: on
+the old default they read whatever the developer kept in that slot. Only a load with a FILE
+behind it counts, because `item_count_test` emits `game_loaded` by hand to stand in for one, and
+that tripped the first version of the load check.
+
+**`save_dir_test` changed its entry claim**, from "the store starts on the shipped default" to
+"the store starts parked", plus two assertions for `is_unclaimed`. 18 → 20.
+
+**Plants, each with seven sentinel saves in the real `user://saves`:**
+- `confirm_test` without `activate()`: exit 1, `saved slot 3 in user://test_saves_unclaimed`.
+- `menus_test` without it: exit 1, `saved slot 2 …, saved slot 6 …`, the autosave among them.
+- `save_recovery_test` without it: exit 1, `loaded slot 4 …`.
+- Every run, and the clean run: sentinels intact 7 of 7.
+
+**Not done: two suite runs at once still share `user://test_saves`.** Found while proving this: a
+clean run failed eleven assertions in `menus_test` and `smoke_test` because another session's
+suite overlapped it, and each `activate()` empties the directory. The re-run was green. Flagged as
+its own task: per-process scratch directories.
+
+**Landed after the whole stack.** T6.5 and T6.6 merged to `main` while this row was open, then
+T6.9 (`5.11.1`, `8436c69`), then T6.11 (`5.13.0`, `9d8c34f`), which carried T6.10 (`5.12.0`)
+with it. So this row is `5.13.1`, a PATCH on top. **The planned plural-form row moved twice.**
+T6.6 numbered it T6.10, colliding with the capture-saves T6.10. T6.11's merge renumbered it
+T6.12, colliding with this row, which was DONE with PR #73 and commits under that name. It is now
+**T6.13**: a planned row has only documents to update, so it moves, not the DONE row.
+
+**Scope.** `5.13.1`, a PATCH. Test-only: `tests/test_runner.gd`,
+`tests/framework/save_fixture.gd`, `tests/unit/save_dir_test.gd`, and the documents. Suite 2,556 on `main` at `9d8c34f` → **2,560**, +4: 2 in `save_dir_test` and 2 in `record_shape_test` for this row's package id; every other case unmoved.
+
+**Commit:** on `claude/t6-12-save-guard`, PR #73, targeting `main`, squash-merged as `76cd32d` from branch head `c81729f`; no separate CI-record commit. Filled in by T6.7, with the counts from the CI job log (`Ladder (stripped template)`, job 109474633431: `=== 2486 passed, 0 failed, 25 skipped ===`; full job 109474633769: `=== 2560 passed, 0 failed, 0 skipped ===`). `TESTING.md` still stated `2397` stripped when T6.7 branched from it.
+
+## T6.7 · Dialogue for fast and slow readers — **DONE**
+
+Forgotten #5 asked for text speed and an instant skip. Text speed was already there:
+`gameplay/text_speed` scales the reveal. What was missing was the skip, and for the reader at the
+other end, a way for the conversation to move on without a key press.
+
+**A skip walks the conversation, it does not jump it.** The screen's header already said why
+escape must not dismiss a conversation: a conversation has effects, and a player who escapes out
+of the middle skips the effect of the node they were about to reach. So cancel (Escape, or the
+pad's B) now calls `DialogueScreen.skip()`, which drives the runner through `advance()` node by
+node. Every node on the way is ARRIVED at, and its effect fires exactly as if it had been read.
+That is the same rule, not an exception to it: nothing is jumped over, only not read.
+
+**At a choice, the skip stops.** A branch is the player's to take. The skip stops at the first
+node offering a choice, shows the choice whole (the reveal is finished and the buttons appear),
+and a second skip there does nothing until the player answers. With no choice ahead, it runs to
+the end of the conversation and the box asks to close. A cycle of plain lines is authorable, so
+the loop stops after 512 lines with a warning rather than hanging the game on one key press.
+
+**Auto-advance is opt-in.** `gameplay/dialogue_auto_advance`, off by default, on the reasoning of
+`gameplay/pause_on_focus_loss`: a default that hurries a slow reader is the wrong default. On, a
+line that has finished revealing is held for 1.5 s plus its length at 15 characters a second, all
+divided by the text speed, because a player who slowed the text is a slower reader. The hold is
+counted from the frame the line became whole, so a line that arrived whole under reduce-motion
+is held just as long. It never answers a choice. The hint reads "Auto" while it is on, and
+redraws the moment the setting changes.
+
+**Cancel was free in a conversation.** `closes_on_cancel` is false for a conversation, so `UiRoot`
+already ignored cancel there, and the pause key refuses while a screen is open. No binding was
+added and none moved. The hint names the key through `KeyBindings.text_for(Actions.CANCEL, pad)`,
+so a rebind renames it.
+
+**Assertions.** `tests/unit/dialogue_speed_test.gd`, 25, split from `dialogue_test.gd` because
+that file would have gone to 305 of 250 lines. Fifteen on the skip: it stops at the menu with the
+conversation still running, the choice shown and the line whole; both nodes were announced; an
+effect planted on the menu fired once, and a second skip fires nothing; after the player answers,
+a skip through a plain line lands on the menu again and the effect fires again, as reading would
+have; after the closing line is picked, a skip ends the conversation and the box asks to close
+exactly once. One on a cycle. Nine on auto-advance: off by default, and off it waits however
+long; on, the hint changes and still names the skip key; half the hold is not enough and the
+whole hold is; at the menu it waits. The frame clock is stepped by calling `_process` with a
+chosen delta, because the suite is synchronous.
+
+**Plants.** Each exited 1, and each was restored. **The first stayed green, and that is the
+finding.** Deleting `not _waiting_on_choice()` from the skip loop changes nothing: the runner's
+`advance()` already refuses at a choice, so the loop spins to its limit and stops at the menu
+anyway. The screen's check stays as a second guard. The plant that counts is the tempting wrong
+skip, one that calls `runner.stop()`: `2549 passed, 13 failed`, starting with `a skip stops at
+the choice — expected menu, got` (nothing, because the conversation had ended). The first run
+of that plant failed on script errors instead, `Invalid access to property or key 'node_id'`,
+so the case now reads the node through a null-safe helper and fails on named assertions.
+
+**Photographed windowed**, 960×540, through a temporary `--probe-auto-advance` flag in
+`src/systems/debug/dev_screens.gd` that turned the setting on in memory without saving it. At
+frame 90: the greeting mid-reveal, and the hint `Auto  E to continue  Escape to skip`. At frame
+1,400 of the same scenario: the menu, `Well? Ask, or do not.`, with its three choices and focus on
+the first. Nothing had been pressed, so auto-advance moved the line and then waited at the
+choice. Both PNGs were looked at. The probe was removed, and `git status src/systems` is clean.
+
+**Found while photographing, and not this row's.** The second capture ran at about 2.3 frames a
+second, 1,500 frames in 638 s, while other sessions' suites were loading the machine. It logged
+`Keeper cannot reach 'dais'` twice, which is the message gotcha 21's persistence guard in
+`npc_brain.gd` prints. Why it fired at that frame rate was not investigated; nothing on the
+dialogue path touches it. The 90-frame capture and the ladder's own rung were clean.
+
+**Budgets.** `settings.gd` 143 (after T6.11) → 144 of 150, which leaves six lines. `dialogue_screen.gd` 143 →
+186 of 250. The new test is its own file.
+
+**Not in scope.** A backlog of past lines (its own row), closing the list (T6.8), plural forms
+(T6.14).
+
+**Scope.** `5.14.0` (claimed `5.12.0`, renumbered at the merge of `main`, where T6.10 to T6.12 had taken `5.12.0` to `5.13.1`), a MINOR. Suite 2,560 on `main` at `76cd32d` → 2,591, +31: 25 in the new `dialogue_speed_test`, 3 in `options_test` and 1 in `settings_consumers_test` for the new setting's row and consumer, and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
+
+**Commit:** on `claude/t6-7-dialogue-speed`, PR #78 targeting `main`. No SHA, per item 6. CI on `e6db60b`, PR #78: `Ladder (stripped template)`, job 109480897827: `=== 2517 passed, 0 failed, 25 skipped ===`; `Ladder (full checkout)`, job 109480898120: `=== 2591 passed, 0 failed, 0 skipped ===`. `TESTING.md` now states the stripped `2517`.
 
 ## T6.13 · Two suite runs at once, in two worktrees, broke each other — **DONE**
 
@@ -6501,7 +6798,7 @@ every worktree on the machine shares it, and every scratch path the suite used w
 under it: `user://test_saves`, `test_saves_stand_in`, `test_settings.cfg`, `test_fixtures`,
 `test_export_empty`, `content_scan_test`. `SaveFixture.activate()` and `deactivate()` EMPTY their
 directory and `Fixtures.activate()` rewrites its own, so a second suite deleted the first's slots
-and fixtures mid-case. **Numbered T6.13**, out of number order for T6.9's reason; T6.12 is PR #73.
+and fixtures mid-case. **Numbered T6.13**, out of number order for T6.9's reason; T6.12 was PR #73, a sibling that merged first.
 T6.11's SHA, per item 6: `15775bd`.
 
 **Measured red first, with nothing else able to touch it.** A scratch worktree at `15775bd`, two
@@ -6537,23 +6834,31 @@ and its tear-down calls `Actions.reset_bindings()`, which removed `user://input.
 file, on every run. `KeyBindings.PATH` was a `const`; `KeyBindings.file_path` is a static var on
 T6.11's pattern, and the runner points it at `RunScratch.path("input.cfg")`.
 
-**Assertions.** 26 in the new `tests/unit/run_scratch_test.gd`: the root is named for this
-process and exists; two pids never share one; ten scratch paths, including the two the runner
-pinned, are inside it; the player's bindings file is not the one written; a fresh heartbeat
+**Assertions.** 28 in the new `tests/unit/run_scratch_test.gd`: the root is named for this
+process and exists; two pids never share one; twelve scratch paths, including the three the runner
+pinned or parked and the parking directory added at the merge, are inside it; the player's bindings file is not the one written; a fresh heartbeat
 survives the real threshold and a stale one is removed, nested, and reported; a directory with no
 heartbeat yet, this process's own, and a folder not named by a number all survive; this run's
 heartbeat is fresh; `remove_tree` takes a nested tree and answers true when absent. Plus
 `dev_tools_test`'s three changed ones. **Four plants**, each exit 1 on exactly its own: see
 DEVLOG.md.
 
-**Not done.** T6.12's `UNCLAIMED` parking directory, `user://test_saves_unclaimed`, is on a sibling
-branch and is still a fixed name; whichever of the two merges second moves it under
-`RunScratch.path()`. `Log` stays disabled under the suite, so `user://logs` is not shared by it.
+**Merged after T6.12, and T6.12's parking directory moved in.** T6.12 landed first with
+`SaveFixture.UNCLAIMED`, the fixed `user://test_saves_unclaimed`, which `park()` empties before
+EVERY case. At the merge it became `SaveFixture.unclaimed()`, `RunScratch.path("saves_unclaimed")`,
+and every caller moved. Two suites on one private `APPDATA`, with `settings_effects_test`'s
+`activate()` planted out so something lands in the parking directory: the fixed name failed 6 and 5
+at 0.3s, three and two of them the other run's doing; per run, 1 and 1 at every offset, only the
+planted case. Unplanted, the merged tree passes 2,621 on both sides at 0.3s, 2s, 6s and 12s.
+
+**Not done.** `Log` stays disabled under the suite, so `user://logs` is not shared by it.
 **Over the size rule:** twelve code files, most one-line call-site renames; the two new files are 124 code
 lines.
 
-**Scope.** `5.12.0`, a MINOR. All of 250: `key_bindings.gd` 105, `fixtures.gd`
-81, `test_runner.gd` 168, `run_scratch.gd` 48, `dev_tools_test.gd` 224.
+**Scope.** `5.15.0` (claimed `5.12.0`, renumbered at the merge of `main`, where T6.12 and T6.7 had
+taken `5.13.1` and `5.14.0`), a MINOR. All of 250: `key_bindings.gd` 105, `fixtures.gd` 81,
+`test_runner.gd` 191 with T6.12's check, `run_scratch.gd` 48, `dev_tools_test.gd` 224.
+Suite 2,591 on `main` at `287e783` → **2,621**, +30: 28 in the new `run_scratch_test` (26 from T6.13, and 2 from the merge for the parking directory) and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `main`, after the documentation landed. The stripped count is CI's.
 
 **Commit:** on `claude/t6-13-parallel-suites`, stacked on `claude/t6-11-dev-settings` (PR #74),
-PR targeting `main`. No SHA, per item 6.
+PR #77 targeting `main`. No SHA, per item 6.

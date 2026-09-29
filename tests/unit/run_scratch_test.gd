@@ -21,7 +21,7 @@ const FOREIGN: String = "notes"
 
 
 func run() -> void:
-	plan(26)
+	plan(28)
 	_this_run_has_a_directory_of_its_own()
 	_every_scratch_path_is_inside_it()
 	_a_stale_run_is_pruned_and_a_live_one_is_not()
@@ -45,6 +45,10 @@ func _this_run_has_a_directory_of_its_own() -> void:
 func _every_scratch_path_is_inside_it() -> void:
 	var paths: Dictionary[String, String] = {
 		"the save store": SaveFixture.root(),
+		# T6.12's, joined at the merge: `park()` empties it before every case, so shared it is the
+		# likeliest race of all.
+		"the parking directory": SaveFixture.unclaimed(),
+		"the store the runner parked this case on": SaveSystem.save_dir,
 		"the settings file": SaveFixture.settings_path(),
 		"the settings file the runner pinned": Settings.file_path,
 		"the bindings file the runner pinned": KeyBindings.file_path,

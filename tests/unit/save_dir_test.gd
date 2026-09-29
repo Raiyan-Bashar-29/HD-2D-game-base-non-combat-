@@ -29,19 +29,26 @@ var _stand_in: String = RunScratch.path("saves_stand_in")
 
 
 func run() -> void:
-	plan(18)
-	_the_default_is_the_shipped_constant()
+	plan(20)
+	_a_case_starts_parked_and_unclaimed()
 	_activating_points_the_store_at_the_scratch_directory()
 	_a_write_while_redirected_leaves_the_previous_directory_untouched()
 	_deactivating_restores_the_default_and_empties_the_scratch()
 
 
-func _the_default_is_the_shipped_constant() -> void:
-	equal("the store starts on the shipped default",
-			SaveSystem.save_dir, SaveSystem.DEFAULT_SAVE_DIR)
-	equal("and nothing has redirected it yet", SaveFixture.is_active(), false)
-	equal("a slot path is built on it",
-			SaveSystem.slot_path(SLOT).begins_with(SaveSystem.DEFAULT_SAVE_DIR), true)
+## A case starts PARKED, not on the shipped default, and this asserted the default until T6.12.
+## The runner parks the store before every case so that a case forgetting `activate()` cannot
+## reach a real save. The last two assertions are the rule the runner fails a case on.
+func _a_case_starts_parked_and_unclaimed() -> void:
+	equal("the store starts parked, never on the shipped default",
+			SaveSystem.save_dir, SaveFixture.unclaimed())
+	equal("and nothing has claimed it yet", SaveFixture.is_active(), false)
+	equal("a slot path is built on the parking directory",
+			SaveSystem.slot_path(SLOT).begins_with(SaveFixture.unclaimed()), true)
+	equal("a write into the shipped default counts as unclaimed",
+			SaveFixture.is_unclaimed(SaveSystem.DEFAULT_SAVE_DIR), true)
+	equal("a write into the scratch store does not",
+			SaveFixture.is_unclaimed(SaveFixture.root()), false)
 
 
 func _activating_points_the_store_at_the_scratch_directory() -> void:

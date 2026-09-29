@@ -11024,4 +11024,58 @@ and the manifest did not ask for it. The question's two rows are Yes and No rath
 need a label override, which nobody needs yet. T6.2's stripped count `2334` had not reached
 `TESTING.md`, and this row replaces it.
 
-**Commit:** on `claude/t6-3-confirm-screen`, PR targeting `main`. No SHA, per board item 6.
+**Commit:** `2195b8a` on `claude/t6-3-confirm-screen`, PR #68, targeting `main`, merged as `2b409de`; no separate CI-record commit was made. Filled in by T6.4, which also took the stripped count from the CI job log (`Ladder (stripped template)`, job 109341273520: `=== 2363 passed, 0 failed, 25 skipped ===`; full job 109341273896: `=== 2437 passed, 0 failed, 0 skipped ===`).
+
+## 2026-09-29 — T6.4 · A save slot says where it was saved, and says so when it is damaged
+
+**Did.** Forgotten #15. First merged PR #68 (T6.3) with plain `gh pr merge 68 --merge`, since it
+was CLEAN with four green checks, then branched `claude/t6-4-slot-header` from `2b409de`.
+`SaveSystem.header_provider` is an optional Callable. `save_to_slot` stores what it returns as
+the envelope's `"header"`, and `slot_info` hands it back. `WorldMap` sets it to `{"area": <id>}`
+and clears it on exit, but only if it is still its own. `WorldMap.place_key(header)` turns that
+back into a name key. `SaveScreen` rows now read `Slot 1 · <place> · <stamp> · <played>`, and
+`Unknown place` when nothing names it. `slot_info` now answers `{}` for any file the loader would
+refuse, so `has_slot` with an empty header means damaged, drawn `Slot N · damaged`. New case
+`slot_header_test.gd`, 32 assertions. `5.9.0`, a MINOR.
+
+**Why.** A corrupt file was drawn as `empty`, which tells a player their save never existed. The
+worse case was found by reading, not planned: a file from a newer build PARSES, so it drew a
+normal header, offered a load that failed, and could become Continue. The place is the other half
+of forgotten #15's "recovery messaging". A header with only a timestamp does not tell six slots
+apart.
+
+**Connects.** `core` → `systems` is upward, so the hook is set from above, the way autoloads
+already hand `SaveSystem` their callables with `register`. `WorldMap`, not `director.gd`, which is
+at 187 of 190. `WorldMap` already reads `Director.current_area_id` and owns the name. The damaged
+slot reuses T6.3's route unchanged: `_on_slot` asks on `has_slot`, so a damaged slot counts as
+occupied with no new code, and the test asserts that decision rather than assuming it.
+
+**Verified.**
+- Fresh worktree, `--headless --import` first: no `SCRIPT ERROR` or `Parse Error`. Boot
+  `--quit-after 30`: `0 warnings, 0 errors`.
+- Suite before the documentation: `=== 2469 passed, 0 failed, 0 skipped ===`, and
+  `slot_header_test: 32/32`. After it: `=== 2471 passed, 0 failed, 0 skipped ===`, +34 against a `main` worktree measured per case: 32 in `slot_header_test` and 2 in `record_shape_test`, every other case unmoved.
+- All seven checkers exit 0. `check_budgets`: `save_system.gd 179 / 180`, `save_screen.gd 73 / 250`
+  and `world_map.gd 76 / 250`.
+- Three plants, each exit 1, each restored. Removing the damaged branch gave three failures, the
+  first `expected Slot 4 · damaged, got Slot 4 · empty`. Removing the version refusal gave three,
+  including `and Continue never points at it`. Removing the only-if-ours guard gave
+  `2468 passed, 1 failed`.
+- Windowed capture, 960×540, through a temporary `--t64-probe` in `dev_screens.gd` writing to
+  `user://t64_probe`. `Slot 1 · Rose Courtyard · 2026-09-29 09:53:52 · 00:00 played`, the autosave
+  with the same place, slots 3 and 4 `damaged`, and slots 2, 5 and 6 `empty`, all looked at. The probe was
+  removed (`git diff src/systems/debug/` empty), the scratch directory was deleted, and
+  `user://saves` is untouched and empty.
+
+**Unblocks.** T6.5, focus loss, next. Its manifest says to measure first, windowed, whether Godot
+4.7 releases held inputs on alt-tab. `save_system.gd` is now at 179 of 180, so the next row that
+touches it needs a justified budget or a split. No row in T6 plans to.
+
+**Gaps.** An area with no `AreaDef` names no place. The header could carry the area root's
+`display_name_key` instead, but `Director` keeps the root private and has no budget for a getter.
+A damaged file logs `is not valid save JSON` each time the list draws. That is true and is left
+loud. `menus_test.gd` and `confirm_test.gd` still write into the real `user://saves` rather than
+`SaveFixture.ROOT`, and empty it at set-up. That was not introduced here and is flagged as a
+separate task.
+
+**Commit:** on `claude/t6-4-slot-header`, PR targeting `main`. No SHA, per board item 6.

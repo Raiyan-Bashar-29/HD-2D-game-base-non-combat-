@@ -1518,7 +1518,12 @@ was classified, including the ones refused.
   pause cannot answer, with focus on No. Pressing an occupied slot on the save screen asks first
   and names the header about to be lost; an empty slot saves at once. The quit half of forgotten
   #7 was already answered by T5.10's quit-autosave and is recorded, not built. Photographed.
-- **T6.4 A save slot says where it was saved, and says so when it is damaged** — planned. Forgotten #15.
+- **T6.4 A save slot says where it was saved, and says so when it is damaged — DONE, 2026-09-29,
+  `5.9.0`.** `SaveSystem.header_provider` is an optional hook `WorldMap` sets, so `core` never
+  asks `Director`. The header carries the area id, and the row names the place, localized when
+  drawn. A file the loader would refuse, including one that parses but is from a newer build,
+  reads DAMAGED rather than empty. It cannot be loaded from the list and never becomes Continue,
+  and it counts as occupied, so overwriting it asks first. Closes forgotten #15. Photographed.
 - **T6.5 Losing window focus leaves nothing latched** — planned. Forgotten #3.
 - **T6.6 Text in any script renders, not as tofu** — planned. Bengali and CJK, owner's choice.
 - **T6.7 Dialogue for fast and slow readers** — planned. Forgotten #5.
@@ -1531,7 +1536,7 @@ was classified, including the ones refused.
 - [x] The base knows the last-used input device, and the interaction prompt shows the right key for
   it. — T6.2
 - [x] Overwriting an occupied save slot asks first, through a confirm screen a game can reuse. — T6.3
-- [ ] A save slot shows where it was saved, and a damaged slot is shown as damaged. — T6.4
+- [x] A save slot shows where it was saved, and a damaged slot is shown as damaged. — T6.4
 - [ ] Losing window focus leaves no base-owned input latched, and pausing on it is a setting. — T6.5
 - [ ] A Bengali string and a CJK string both render through the theme's fallback chain,
   photographed. — T6.6

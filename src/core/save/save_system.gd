@@ -56,6 +56,13 @@ var save_dir: String = DEFAULT_SAVE_DIR:
 		save_dir = value
 		_ensure_dir()
 
+## What a slot's HEADER says beyond the stamp and the playtime: where it was saved, say. Called
+## once per write, stored under `"header"`, and handed back by `slot_info`. A hook rather than a
+## call because the answer lives above this layer, and `core` asking `Director` would point a
+## dependency upward, which `tools/check_layers.gd` fails. Unset means no extras. ONE hook, not a
+## list: `WorldMap` sets it, and a game wanting more returns a bigger Dictionary from its own.
+var header_provider: Callable = Callable()
+
 ## Section version per participant, so a system can change its own format without forcing an
 ## envelope bump and without _migrate having to understand every other section. See ADR-0004.
 ## A stored section NEWER than this is refused in `load_from_slot`; an older one is the applier's
@@ -118,11 +125,16 @@ func has_slot(slot: int) -> bool:
 
 
 ## Read only the header of a slot, for the load menu. Never applies anything.
+##
+## EMPTY FOR ANY FILE `load_from_slot` WOULD REFUSE, not only one that does not parse: a version
+## `_migrate` cannot rescue is as unloadable as broken JSON, and a header drawn for it offers a
+## load that fails. So `has_slot` with an empty answer means DAMAGED — `SaveScreen` draws it so —
+## and `latest_slot`, which is Continue, can never point at one.
 func slot_info(slot: int) -> Dictionary:
 	if not has_slot(slot):
 		return {}
 	var parsed: Dictionary = _read_json(slot_path(slot))
-	if parsed.is_empty():
+	if parsed.is_empty() or DictRead.get_int(parsed, "version", 0) not in range(1, SCHEMA_VERSION + 1):
 		return {}
 	parsed.erase("sections")
 	return parsed
@@ -176,6 +188,8 @@ func save_to_slot(slot: int) -> Error:
 		"playtime_seconds": snappedf(_playtime, 0.1),
 		"sections": sections,
 	}
+	if header_provider.is_valid():
+		envelope["header"] = header_provider.call()
 
 	var err: Error = _write_atomic(slot_path(slot), JSON.stringify(envelope, "  "))
 	_busy = false

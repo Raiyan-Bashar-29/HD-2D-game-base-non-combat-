@@ -80,6 +80,7 @@ func _ready() -> void:
 	Events.dialogue_started.connect(_on_busy_started)
 	Events.dialogue_finished.connect(_on_busy_finished)
 	Events.ui_mode_changed.connect(_on_ui_mode_changed)
+	Events.focus_lost.connect(_on_focus_lost)
 
 	Events.player_spawned.emit(self)
 	Log.info("character", "Player ready at %s" % str(global_position))
@@ -248,6 +249,13 @@ func _on_ui_mode_changed(mode: GameEnums.UiMode) -> void:
 		release_input(&"ui")
 	else:
 		lock_input(&"ui")
+
+
+## THE ONE LATCH HERE THE ENGINE CANNOT RELEASE. Godot drops every held key on focus loss
+## (measured, T6.5), so a held run ends by itself; a TOGGLED run is this file's own state, and
+## left on it sends the player bolting on the first touch of a direction after an alt-tab.
+func _on_focus_lost() -> void:
+	_run_toggled = false
 
 
 func _on_setting_changed(section: String, key: String, value: Variant) -> void:

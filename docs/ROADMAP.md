@@ -1524,7 +1524,12 @@ was classified, including the ones refused.
   drawn. A file the loader would refuse, including one that parses but is from a newer build,
   reads DAMAGED rather than empty. It cannot be loaded from the list and never becomes Continue,
   and it counts as occupied, so overwriting it asks first. Closes forgotten #15. Photographed.
-- **T6.5 Losing window focus leaves nothing latched** — planned. Forgotten #3.
+- **T6.5 Losing window focus leaves nothing latched — DONE, 2026-09-29, `5.10.0`.** Measured
+  first: the engine already releases held keys on focus loss. So the base releases only its own
+  latches, a toggled run, a hold in progress and a rebind capture, on `Events.focus_lost` from
+  `UiRoot`. `gameplay/pause_on_focus_loss`, off by default, opens the pause menu. The first
+  windowed run found the menu recorded and never drawn, because the engine propagates the
+  notification. Gotcha 80. Closes forgotten #3. Photographed.
 - **T6.6 Text in any script renders, not as tofu** — planned. Bengali and CJK, owner's choice.
 - **T6.7 Dialogue for fast and slow readers** — planned. Forgotten #5.
 - **T6.8 Close the list, and gate it** — planned. The phase's exit criterion.
@@ -1537,7 +1542,7 @@ was classified, including the ones refused.
   it. — T6.2
 - [x] Overwriting an occupied save slot asks first, through a confirm screen a game can reuse. — T6.3
 - [x] A save slot shows where it was saved, and a damaged slot is shown as damaged. — T6.4
-- [ ] Losing window focus leaves no base-owned input latched, and pausing on it is a setting. — T6.5
+- [x] Losing window focus leaves no base-owned input latched, and pausing on it is a setting. — T6.5
 - [ ] A Bengali string and a CJK string both render through the theme's fallback chain,
   photographed. — T6.6
 - [ ] Dialogue can be skipped to its end and can auto-advance. — T6.7

@@ -10,8 +10,8 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 ```
 
 Exit 0 if every assertion passes, 1 otherwise. In a full checkout the last line reads
-`=== 2471 passed, 0 failed, 0 skipped ===`; in a stripped template it reads
-`=== 2363 passed, 0 failed, 25 skipped ===`, and the difference is entirely skips that say so.
+`=== 2504 passed, 0 failed, 0 skipped ===`; in a stripped template it reads
+`=== 2397 passed, 0 failed, 25 skipped ===`, and the difference is entirely skips that say so.
 **Re-measure this rather than quoting it** — the number moves with every package, and
 `docs_test.gd` and `doc_counts_test.gd` compute their plans from the documents, so editing a
 document can move it too.
@@ -284,6 +284,6 @@ Stated so nobody reads a green run as more than it is:
 ## Read next
 
 [`AUTHORING.md`](AUTHORING.md) · [`ARCHITECTURE.md`](ARCHITECTURE.md#the-extension-surface) ·
-[`CONTEXT.md`](CONTEXT.md) — the seventy-nine gotchas, several of which are the long form of the rules
+[`CONTEXT.md`](CONTEXT.md) — the eighty gotchas, several of which are the long form of the rules
 above · `tests/framework/test_case.gd` and `tests/test_runner.gd`, whose headers carry the
 reasoning in full.

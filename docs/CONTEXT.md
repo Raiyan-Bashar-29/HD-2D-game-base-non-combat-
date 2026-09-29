@@ -3,25 +3,29 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-29 · **T6.4 (a save slot says where it was saved, and says so when it is damaged) complete, at 5.9.0, a MINOR.**
-**Phases T1 to T5 are complete and stay complete; Phase T6 is OPEN, and the next package is T6.5.**
+**Last updated:** 2026-09-29 · **T6.5 (losing window focus leaves nothing latched; pausing on it is a setting) complete, at 5.10.0, a MINOR.**
+**Phases T1 to T5 are complete and stay complete; Phase T6 is OPEN, and the next package is T6.6.**
 
-**A SAVE SLOT NOW NAMES ITS PLACE, AND A DAMAGED ONE SAYS SO.** The row reads `Slot 1 · Rose
-Courtyard · <stamp> · 00:00 played`, photographed. `SaveSystem.header_provider` is an optional hook
-called on every write and stored as `"header"`, because `core` may not ask `Director`. `WorldMap`
-sets it, not `director.gd`, which is at its budget; it already reads `Director.current_area_id` and
-owns an area's name. The header holds the area ID and the name is localized when drawn. An area
-with no `AreaDef`, and every save from before 5.9.0, reads `Unknown place`.
+**THE ENGINE ALREADY RELEASES A HELD KEY ON FOCUS LOSS, SO THE BASE RELEASES ONLY ITS OWN.**
+Measured windowed before any code: a probe held D by injected keystroke and alt-tabbed away, and
+read `key=true action=true` at t=4.02 and `focused=false key=false action=false` at t=4.26. No
+release event is sent; the polled state is simply cleared. A pad was not measured. What no engine
+can release is the base's own state, so `UiRoot` announces `Events.focus_lost` and each owner drops
+its own: a toggled run (`PlayerController`), a hold part-way to firing (`InteractionSensor`), a
+rebind waiting for a key (`RebindScreen`). `ScreenKeys` opens the pause menu if
+`gameplay/pause_on_focus_loss` is on. **It is OFF by default**, so a capture launched from a
+terminal, or a click on a second monitor, never pauses the game.
 
-**DAMAGED IS `has_slot` TRUE WITH `slot_info` EMPTY, AND `slot_info` GOT STRICTER.** It now answers
-`{}` for any file `load_from_slot` would refuse, including one that parses but carries version 0
-or a version from the future. Before, that file drew a normal header, offered a load that failed,
-and could become Continue. The suite plants one with a `9999` stamp to prove Continue skips it. A
-damaged slot is a note when loading. When saving it is a row that **counts as occupied**, so
-writing over it asks first: the file is still on disk, and a player may be able to recover it.
+**THE FIRST WINDOWED RUN FOUND A STRANDED PLAYER THAT THE SUITE HAD PASSED.** The engine delivers
+focus-out by PROPAGATING it down the tree, and opening the pause menu from inside that walk failed
+with `Parent node is busy setting up children, add_child() failed`. The stack still recorded the
+screen, so the world paused under a menu that was never drawn, while the log said `Opened 'pause'`.
+The test had called `notification()` on the stack alone, which does not mark it busy. Now UiRoot
+defers the announcement, and the test propagates. Gotcha 80.
 
-**Budgets.** `save_system.gd` 176 → **179 of 180**, with no budget raised; `save_screen.gd` 71 →
-73 of 250 and `world_map.gd` 67 → 76 of 250. `director.gd` stays at 187 of 190.
+**Budgets.** `settings.gd` 141 → **142 of 150**, which leaves T6.7 eight lines. `ui_root.gd` 103 →
+116, `screen_keys.gd` 108 → 118, `player_controller.gd` 171 → 174 and `interaction_sensor.gd` 177 →
+180, all of 250. `save_system.gd` and `director.gd` were not touched.
 
 **The phase, in order** — manifests in `WORK_PACKAGES.md` § T6.0:
 
@@ -31,16 +35,23 @@ writing over it asks first: the file is still on disk, and a player may be able 
 | ~~T6.2~~ | ~~the base knows the active input device; the prompt shows the right key~~ **DONE** | forgotten #4 |
 | ~~T6.3~~ | ~~a reusable confirm screen; "are you sure" on overwriting a save~~ **DONE** | forgotten #7 |
 | ~~T6.4~~ | ~~a slot shows where it was saved, and a damaged slot is shown as damaged~~ **DONE** | forgotten #15 |
-| **T6.5** | losing window focus leaves nothing latched; pausing on it is a setting | forgotten #3 |
-| T6.6 | Bengali and CJK both render through a font fallback chain | structural |
+| ~~T6.5~~ | ~~losing window focus leaves nothing latched; pausing on it is a setting~~ **DONE** | forgotten #3 |
+| **T6.6** | Bengali and CJK both render through a font fallback chain | structural |
 | T6.7 | dialogue can skip to its end and auto-advance | forgotten #5 |
 | T6.8 | every forgotten item marked DONE or CLOSED, gated by a text scan | the exit criterion |
 
 **THE OWNER'S PLAYTEST OUTRANKS THIS QUEUE.** A defect found by playing becomes the next row ahead of
 anything above — found, not invented, the standard every T6 row had to meet.
 
-Suite 2,437 → **2,471**, +34: 32 in the new `slot_header_test` and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `main`, after the documentation
+Suite 2,471 → **2,504**, +33: 30 in the new `focus_loss_test`, 3 in `options_test` and 1 in `settings_consumers_test` for the new setting's row and consumer, 2 in `record_shape_test` for this row's own package id, and −3 in `doc_counts_test`, because the three historical `seventy-nine` lines in `WORK_PACKAGES.md` became digits; every other case unmoved. Measured per case against `main`, after the documentation
 landed.
+
+*(Previously: T6.4 made a save slot name where it was saved at `5.9.0`, a MINOR, and draw a damaged
+file as damaged. `SaveSystem.header_provider` is an optional hook `WorldMap` sets, because `core`
+may not ask `Director`; the header holds the area id and the name is localized when drawn.
+`slot_info` got stricter and answers `{}` for any file the loader would refuse, so a file from a
+newer build is damaged too and never becomes Continue. A damaged slot counts as occupied, so
+writing over it asks first. `save_system.gd` 176 → 179 of 180.)*
 
 *(Previously: T6.3 built a reusable confirm screen at `5.8.0`, a MINOR, and overwriting a save now
 asks first. `ConfirmScreen.asking(question_key, detail, on_yes)` sets `closes_on_cancel = false`,
@@ -295,10 +306,10 @@ another sheet, and every facing draws a different figure.
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version is** **5.9.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+**The version is** **5.10.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
 the owner's to close or to leave.
 
-**THE NEXT PACKAGE IS T6.5, AND IT IS A QUEUE AGAIN — FOR ONE PHASE.** From T5.32 until T6.0 this
+**THE NEXT PACKAGE IS T6.6, AND IT IS A QUEUE AGAIN — FOR ONE PHASE.** From T5.32 until T6.0 this
 paragraph said there was no next package and the base was complete; T1 to T5 still are. The owner
 then opened Phase T6 (see the headline and `ROADMAP.md` § Phase T6), so the board holds eight
 planned rows with file manifests, and a new session takes **the lowest unfinished T6 row** rather
@@ -366,8 +377,8 @@ mechanical move. `tools/gen_placeholders.gd` stays on the list at 234 of 250; T5
 three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 4 on the default one, the
 fourth being a second IDLE rather than a gait**,
-1 shared area material, **21 settings and 21 consumers**.
-Template version **5.9.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+1 shared area material, **22 settings and 22 consumers**.
+Template version **5.10.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
 recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 
@@ -1272,7 +1283,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Seventy-nine gotchas that each cost an hour
+## Eighty gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -2266,6 +2277,23 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     eight-element one confirmed it: `alpha, delta, echo, foxtrot, charlie, bravo, hotel, golf`. A
     probe with two possible orders has even odds of lying to you.
 
+80. **AN ENGINE NOTIFICATION ARRIVES BY PROPAGATION, AND A NODE IT IS BEING PROPAGATED TO CANNOT
+    TAKE A CHILD. `notification()` IN A TEST DOES NOT REPRODUCE THAT.** T6.5's `UiRoot` answered
+    `NOTIFICATION_APPLICATION_FOCUS_OUT` by emitting `Events.focus_lost`, and `ScreenKeys` answered
+    that by opening the pause menu, all synchronously. The engine sends the notification with
+    `propagate_notification` from the root, which marks each node busy while it walks it, so the
+    `add_child` failed: `Parent node is busy setting up children, add_child() failed`. **And
+    `UiRoot.open` appends to its stack BEFORE `add_child`,** so the stack recorded a screen that
+    was never in the tree. The world paused, nothing was drawn, and the log said
+    `Opened 'pause' at depth 1`. The suite had passed, because it sent the notification with
+    `_stack.notification(...)`, which marks nothing busy. The windowed capture caught it: a
+    stopped world, the prompt gone, and no menu. A probe then read `tree=false size=(0.0, 0.0)`
+    for the stack's top screen.
+    Rules. **A handler for an engine notification that could change the tree defers its work**
+    (`call_deferred`). **A test sends a notification the way the engine does**, with
+    `propagate_notification`, and asserts nothing is answered inside it. And a log line that
+    says a thing happened is not proof it did, when the call that makes it happen can fail
+    after the line is written.
 
 ## How work is sliced
 

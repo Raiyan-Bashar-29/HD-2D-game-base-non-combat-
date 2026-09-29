@@ -19,6 +19,38 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.10.0
+
+*2026-09-29 — losing window focus leaves nothing latched, and pausing on it is a setting.*
+
+**A consuming game does: nothing, unless it added its own language column to
+`localization/strings.csv`.** In that case, translate one new row,
+`ui.settings.gameplay.pause_on_focus_loss`. The settings screen draws a row for every key in
+`Settings.DEFAULTS`, so without a translation that row shows its key. **MINOR**: the base gained
+a signal, a setting, and three public methods a game may ignore. No signal and no method changed
+shape. The new setting is **off by default**, so a game that changes nothing does not start pausing.
+
+**Three changes in behaviour, and each one is a fix.** On focus loss, a TOGGLED run stops,
+while the toggle-run setting stays as the player set it. A hold-to-confirm part-way to firing
+drops to zero. A rebind row waiting for a key stops waiting. The engine already releases held
+keys on focus loss (measured windowed, see DEVLOG T6.5), so a held run or a held interact key
+needed nothing from the base.
+
+**One more, found by the first windowed run.** `UiRoot.open` now returns false, and leaves the
+stack unchanged, when the engine refuses to add the screen. Before, the screen was recorded
+anyway, so the world paused under a menu that was never drawn. It happens when a screen is opened
+from inside an engine notification that is being propagated. A game that opens screens from its
+own `_notification` handler should defer the call (gotcha 80).
+
+**What changed.** `Events.focus_lost()` is emitted by `UiRoot` alone, deferred to the idle frame
+after `NOTIFICATION_APPLICATION_FOCUS_OUT`. It is not emitted when one of the game's own windows
+takes focus. `UiRoot.is_focus_loss(what)` and `UiRoot.announce_focus_lost()` are public so the
+rule can be asserted without a window. `gameplay/pause_on_focus_loss` is read by `ScreenKeys`, and
+`ScreenKeys.pause_for_focus_loss(stack)` opens the pause menu only where the pause key would work.
+It never toggles, so losing focus twice does not close the menu. **A game with its own latch** — a
+toggled crouch, a charged action — connects to `Events.focus_lost` and drops it.
+
+---
 ## 5.9.0
 
 *2026-09-29 — a save slot says where it was saved, and a damaged slot says it is damaged.*

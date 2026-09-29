@@ -1551,9 +1551,14 @@ was classified, including the ones refused.
   `settings.cfg`, and a green suite left it at zero bytes. `Settings.file_path` is where `save()`
   writes; `DevSaves` and the test runner point it at scratch, writes only, and a planted sentinel
   survives both. No exit criterion covers a defect fix, so none is ticked.
+- **T6.12 Nothing failed a case that saved without activating the scratch store — DONE,
+  2026-09-29, `5.13.1`.** The gap T6.9 recorded. The runner parks the store in a scratch
+  directory before every case and fails a case that saves, or loads a real file, while parked.
+  Three cases with `activate()` removed went red, and seven sentinel saves survived every run.
+  Test-only. No exit criterion covers a defect fix, so none is ticked.
 - **T6.7 Dialogue for fast and slow readers** — planned. Forgotten #5.
 - **T6.8 Close the list, and gate it** — planned. The phase's exit criterion.
-- **T6.12 A count that reaches a string picks its plural form** — planned, found by T6.6, which numbered it T6.10.
+- **T6.13 A count that reaches a string picks its plural form** — planned, found by T6.6, which numbered it T6.10; T6.12 at T6.11's merge, T6.13 at T6.12's.
   `RestPoint` sends `{hours}` into one key, so a short rest reads "1 hours" or "0 hours".
 
 **Exit criteria for the phase:**

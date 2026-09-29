@@ -2,35 +2,37 @@
 
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
-
-**Last updated:** 2026-09-29 · **T6.11 (neither a debug launch nor the suite writes the developer's real settings) complete, at 5.13.0, a MINOR.**
+**Last updated:** 2026-09-29 · **T6.12 (a test case that saves without activating the scratch store fails the suite) complete, at 5.13.1, a PATCH.**
 **Phases T1 to T5 are complete and stay complete; Phase T6 is OPEN, and the next package is T6.7.**
 
-**BRANCH MAP: T6.9 (PR #70) → T6.10 (PR #72) → T6.11 (PR #74) are stacked, and #74 has `main`
-merged in**, so it lands all three at once if it merges first. **They were renumbered at that
-merge**, because T6.5 took `5.10.0` and T6.6 `5.11.0` on `main` first: T6.9 is `5.11.1`, T6.10
-`5.12.0`, T6.11 `5.13.0`. T6.6's new plural row, which it numbered T6.10, is **T6.12**.
+**A CASE THAT SAVES WITHOUT `SaveFixture.activate()` NOW FAILS THE SUITE, AND CANNOT REACH REAL
+SAVES WHILE IT DOES.** Before every case the runner calls `SaveFixture.park()`, which points the
+store at `user://test_saves_unclaimed`. It listens on `Events.game_saved` and `game_loaded`, and
+fails a case that saves, or loads a real file, while the store is parked or on the shipped
+default. A file left in the parked directory fails it too. Both halves, because a check alone
+goes red only after real slots are gone, and parking alone is silent. Three plants went red by
+name, and seven sentinel saves survived every run. `save_dir_test` now asserts a case starts
+parked, not on the default. Settings need none of this: T6.11 points the whole run at a scratch
+settings file once, before the first case.
 
-**A DEBUG LAUNCH WRITES SCRATCH, NEVER THE DEVELOPER'S FILES, AND SO DOES THE SUITE.** Saves
-since T6.10: any launch with a user argument sets `SaveSystem.save_dir` to `user://dev_saves`,
-a redirect rather than a suppression, so the capture still shows `Autosaved.`. Settings since
-T6.11: `Settings.file_path` is where `save()` writes, `DevSaves` points it at
-`user://dev_settings.cfg` under the same rule, and the test runner points it at
-`user://test_settings.cfg` before the first case. `--real-saves` opts out of both. **Writes only:**
-the real `user://settings.cfg` is still READ at boot, so a capture looks like the developer's
-game, and scratch is never read back, so no launch inherits the last one's language.
+**LANDED LAST OF A STACK, AND THE PLURAL ROW MOVED TWICE.** T6.9, T6.10 and T6.11 reached `main`
+first, so this row is `5.13.1`. T6.6 had numbered its plural-form row T6.10 and T6.11's merge
+renumbered it T6.12, both ids already held by DONE rows with PRs. It is now **T6.13**.
 
-**THE SUITE WAS THE WORSE WRITER, AND NOBODY HAD SUSPECTED IT.** Five cases call
-`Settings.reset_to_defaults()`, which saves an empty config, so every green run left the
-developer's `settings.cfg` at ZERO BYTES. A planted sentinel now survives the capture with
-`--locale=en_XA` and a full suite run byte-identical; on T6.10's tip the capture rewrote its locale
-and the suite emptied it.
+**EVERY WORKTREE SHARES ONE `user://`, AND OTHER SESSIONS USE IT WHILE YOU DO.** Two suite runs at
+once share `user://test_saves`, and each `activate()` empties it: T6.12's clean runs went red
+three times, in `menus_test`, `smoke_test` and `slot_header_test`, while another session's suite
+overlapped, and re-ran green. Per-process scratch directories are flagged as their own task. For
+any sentinel proof, give Godot a private `user://` with `APPDATA="$(cygpath -w <dir>)"`.
 
-**EVERY WORKTREE SHARES ONE `user://`, AND OTHER SESSIONS USE IT WHILE YOU DO.** T6.11's first
-sentinel run was contaminated by another session planting its own sentinels in the same minute.
-For any sentinel proof, give Godot a private `user://` with `APPDATA="$(cygpath -w <dir>)"`.
+**Budgets.** Test-only. `test_runner.gd` 182 of 250 and `save_fixture.gd` about 35 of 250.
+`settings.gd` stays at 143 of 150, `save_system.gd` 179 of 180.
 
-**Budgets.** `settings.gd` **143 of 150**. `save_system.gd` stays at 179 of 180.
+*(Previously: T6.11 stopped a debug launch and the suite writing the developer's real settings, at
+`5.13.0`, a MINOR. `Settings.file_path` is where `save()` writes. `DevSaves` points it at
+`user://dev_settings.cfg` under T6.10's rule, and the runner points it at
+`user://test_settings.cfg` before the first case. Five cases call `reset_to_defaults()`, so every
+green run had left `settings.cfg` at zero bytes. Writes only: the real file is still read at boot.)*
 
 **The phase, in order** — manifests in `WORK_PACKAGES.md` § T6.0:
 
@@ -45,15 +47,16 @@ For any sentinel proof, give Godot a private `user://` with `APPDATA="$(cygpath 
 | ~~T6.9~~ | ~~the suite destroyed real saves; every case that saves redirects first~~ **DONE**, out of number order | owner-reported |
 | ~~T6.10~~ | ~~a capture or debug launch saves to scratch, never over the developer's saves~~ **DONE**, out of number order | found by T6.9 |
 | ~~T6.11~~ | ~~a debug launch or a suite run writes scratch settings, never the developer's file~~ **DONE**, out of number order | found by T6.10 |
+| ~~T6.12~~ | ~~a case that saves without activating the scratch store fails the suite~~ **DONE**, out of number order | found by T6.9 |
 | **T6.7** | dialogue can skip to its end and auto-advance | forgotten #5 |
 | T6.8 | every forgotten item marked DONE or CLOSED, gated by a text scan | the exit criterion |
-| T6.12 | a count that reaches a string picks its plural form (found by T6.6, which numbered it T6.10) | a defect |
+| T6.13 | a count that reaches a string picks its plural form (found by T6.6 as T6.10; T6.12 at T6.11's merge) | a defect |
 
 **THE OWNER'S PLAYTEST OUTRANKS THIS QUEUE.** A defect found by playing becomes the next row ahead of
 anything above — found, not invented, the standard every T6 row had to meet. T6.9 is the first,
-numbered after T6.8 so that no planned id moves. T6.10 is the second, found while proving T6.9, and T6.11 the third, found by T6.10.
+numbered after T6.8 so that no planned id moves. T6.10 is the second, found while proving T6.9, T6.11 the third, found by T6.10, and T6.12 the fourth, the gap T6.9 recorded.
 
-Suite, with `main` merged in: 2,535 on `main` at `8436c69` → **2,556**, +21: 17 in `dev_tools_test` (T6.10's 8, T6.11's 9) and 4 in `record_shape_test`, 2 for each of the two package ids; every other case unmoved. Measured per case against `main` at `db0d6ec` (2,533, where T6.9's 2 were still in this branch's count).
+Suite 2,556 on `main` at `9d8c34f` → **2,560**, +4: 2 in `save_dir_test` (a case starts parked, and the `is_unclaimed` rule both ways) and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
 
 *(Previously: T6.6 made Bengali and CJK render from fonts the game ships, at `5.11.0`, a MINOR.
 Windows had hidden the tofu: Nirmala UI and YaHei drew the text through system fallback, so the
@@ -61,7 +64,7 @@ before capture turned it off. `assets/fonts/font_chain.tres` has no base font an
 Noto Sans Bengali, then a Noto Sans SC subset, both at weight 600. `UiRoot.install_font_chain`
 installs it at boot rather than the theme naming it, because the theme loads before the first
 import and a fresh clone printed `Parse Error` (gotcha 81). The `tr_n` check found `RestPoint`'s
-`{hours}` reading "1 hours", now T6.12.)*
+`{hours}` reading "1 hours", now T6.13.)*
 
 *(Previously: T6.10 made a capture or debug launch save to `user://dev_saves`, claimed as `5.10.0`,
 landing as `5.12.0`, a MINOR. The capture rung's `--new-game` is a real run, so the autosave wrote
@@ -341,7 +344,7 @@ another sheet, and every facing draws a different figure.
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version is** **5.13.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+**The version is** **5.13.1**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
 the owner's to close or to leave.
 
 **THE NEXT PACKAGE IS T6.7, AND IT IS A QUEUE AGAIN — FOR ONE PHASE.** From T5.32 until T6.0 this
@@ -413,7 +416,7 @@ three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite shee
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 4 on the default one, the
 fourth being a second IDLE rather than a gait**,
 1 shared area material, **22 settings and 22 consumers**.
-Template version **5.13.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+Template version **5.13.1**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
 recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 

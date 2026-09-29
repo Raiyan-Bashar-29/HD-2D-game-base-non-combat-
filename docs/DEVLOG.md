@@ -11415,3 +11415,120 @@ branch's. Its documents had reworded T6.9 after T6.5 and T6.6 ("taken ahead of T
 a CI stripped count, so T6.9's own text was taken from `main`. T6.10, T6.11 and T6.12 were kept from
 here. T6.9's board commit line now carries `8436c69`.
 `8436c69` is 2,535; this merged tree is `=== 2556 passed, 0 failed, 0 skipped ===`, +21, with `--import`, boot and all seven checkers green again.
+
+## 2026-09-29 — T6.12 · Nothing failed a case that saved without activating the scratch store
+
+**Did.** Closed the gap T6.9 recorded. Before every case, `tests/test_runner.gd` calls the new
+`SaveFixture.park()`, which points the store at `user://test_saves_unclaimed`, emptied. The runner
+listens on `Events.game_saved` and `game_loaded`, and fails a case that saved, or loaded a file
+that exists, while `save_dir` was that directory or `DEFAULT_SAVE_DIR`. A file left in the parked
+directory fails it too. `save_dir_test.gd` now asserts a case starts parked, and asserts the
+`is_unclaimed` rule both ways, 18 → 20. The owner confirmed taking this ahead of T6.5. T6.5 had
+already merged to `main` by then, and T6.11 is another open branch, so this is T6.12, stacked on
+T6.10. `5.10.1`, a PATCH.
+
+**Why.** T6.9 offered two options, a runner that activates for every case, or a check that fails
+a write to the default. Each alone leaves a hole. The check alone goes red only after a bad case
+has already written or deleted the developer's slots. Activating for every case alone makes the
+omission harmless and silent, and silence is how fourteen piled up. Parking is not activating: a
+case still has to claim the store, and the runner says so by name if it does not. The signals
+already exist for a game's own listeners, so `src/` gained no test-only seam, the line
+`fixtures.gd`'s header draws.
+
+**Connects.** `tests/framework/save_fixture.gd`, whose header now explains the two halves.
+`TESTING.md`'s rule, which said "nothing fails if you forget", now says what fails and what the
+check does not hear. `SaveSystem.save_to_slot` and `load_from_slot`, unchanged, and their signals.
+
+**Verified.**
+- `--headless --import` first in the worktree, exit 0.
+- **Plants**, each run with seven sentinel files in the real, otherwise empty `user://saves`,
+  `slot_00.json` to `slot_05.json` and `autosave.json`, each holding its own name:
+  - `confirm_test` with `activate()` commented out: `=== 2485 passed, 1 failed ===`, exit 1,
+    `confirm_test used the save store without SaveFixture.activate(): saved slot 3 in
+    user://test_saves_unclaimed`. Sentinels intact 7 of 7.
+  - `menus_test` without it: exit 1, `saved slot 2 …, saved slot 6 …`. 7 of 7.
+  - `save_recovery_test` without it: **green on the first version of the check**, which heard only
+    saves. It plants files by hand, loads them, and deletes them. Loads were added, and it went
+    red: exit 1, `loaded slot 4 in user://test_saves_unclaimed`. 7 of 7.
+- **The load check's first version had a false positive**: `item_count_test` emits
+  `game_loaded(1)` by hand to stand in for a load, with no file behind it. Only a load of a slot
+  that exists counts now.
+- **A clean run failed eleven assertions once**, in `menus_test` and `smoke_test`, while the plant
+  runs of the same code passed. Another session's headless suite, log
+  `project_gulistan_2026-09-29T18-51-32.log`, ran from 18:51:32 to 18:51:43 against the same
+  `user://test_saves`, overlapping this run's 18:51:34 to 18:51:46. The re-run: `=== 2485 passed,
+  0 failed, 0 skipped ===`, exit 0, sentinels intact 7 of 7.
+- **Broken assertion**: `save_dir_test`'s `is_unclaimed(ROOT)` expected `true`: `=== 2486 passed,
+  1 failed ===`, exit 1. (Reverting it with `git checkout` also reverted this row's uncommitted
+  edits to that file, which the next run caught at once. Re-applied.)
+- Sentinels removed afterwards. The real `user://saves` is empty, and still empty after the final
+  suite and the capture.
+- Final, after the documentation landed: `=== 2487 passed, 0 failed, 0 skipped ===`, exit 0.
+  Measured per case against T6.10's tip, run in a temporary worktree at 2,483: +4, 2 in
+  `save_dir_test` and 2 in `record_shape_test` for this row's package id, every other case
+  unmoved.
+- `--check-only` on the three changed files: only the documented autoload identifier, `Events`.
+- `--import`: zero `SCRIPT ERROR` / `Parse Error` lines. Boot `--quit-after 30`: `0 warnings,
+  0 errors`. (Run while the sentinels were planted, boot logged 7 errors, the main menu reading
+  files that are not save JSON. That was the sentinels. It was clean once they were removed.)
+- All seven checkers exit 0. `test_runner.gd` 182 of 250, `save_fixture.gd` 31 of 250.
+- CI on `3e62559`, both jobs green: full `=== 2487 passed, 0 failed, 0 skipped ===` (job 109424173775),
+  stripped `=== 2413 passed, 0 failed, 25 skipped ===` (job 109424174438). `TESTING.md` still said
+  T6.9's stripped `2399`, which T6.10 never re-measured, and now says `2413`.
+- Windowed 960x540 capture at 18:40, frozen, looked at: the courtyard at dusk, the HUD's
+  `18:40 | Dusk`, the `[E]` prompt. Session `0 warnings, 0 errors`.
+
+**Unblocks.** T6.6, the next planned row. T6.5 is on `main`. Any later case that saves is caught
+by the runner if it forgets, so the rule in `TESTING.md` is now enforced.
+
+**Gaps.** **Two suite runs at once still share `user://test_saves`** and `user://test_fixtures`,
+and each `activate()` empties it. That caused the one red clean run above. Flagged as its own task:
+per-process scratch directories. **The check does not hear** a file written by hand and deleted
+without ever being loaded, or a bare `has_slot`/`slot_info` read. Parking keeps both away from
+real saves, so they are harmless, just unannounced. **This branch conflicts with `main`**, as
+T6.9's and T6.10's do, since T6.5 landed. Merge in order T6.9, T6.10, T6.12, taking each version
+after whatever `main` holds.
+
+**Commit:** on `claude/t6-12-save-guard`, stacked on T6.10's PR #72. No SHA, per board item 6.
+
+### 2026-09-29 — T6.12, `main` merged in
+
+**Did.** T6.5 (`5.10.0`) and T6.6 (`5.11.0`) merged to `main` while PR #73 was open, and PR #73 carries
+T6.9 and T6.10 too. Merging `main` in conflicted in ten files, all documents except
+`project.godot` and `settings_consumers_test.gd`. The stack renumbered in order: T6.9 `5.11.1`,
+T6.10 `5.12.0`, T6.12 `5.12.1`, and CHANGELOG, board, ROADMAP and CONTEXT now say so. The plan
+kept both sides of `settings_consumers_test` (T6.9's `SaveFixture.activate()` and T6.5's new
+assertion, plan 79). **An id collision:** T6.6 had planned `RestPoint`'s plural form as T6.10, not
+knowing the open capture-saves T6.10. That row was DONE with a PR and commits under the name, and
+the planned row had only documents, so the planned row moved, to **T6.13**. The entries above
+that say "T6.10" for the plural are left as written, because they record what was true then.
+
+**Verified.** `--import`, 0 `SCRIPT ERROR`/`Parse Error` lines. Suite `=== 2549 passed, 0 failed, 0
+skipped ===`, exit 0, which is `main`'s 2,533 plus the stack's 16. The first run failed three
+assertions in `slot_header_test` while another process's log (`20-24-52`) was writing
+`test_saves`. That is the shared-directory race again, and the re-run was clean.
+
+**Then T6.9 itself landed** on `main`, squash-merged from PR #70 as `8436c69`, at the same `5.11.1`
+this stack had given it. It had been re-resolved on its own branch against T6.5 and T6.6, so
+`main`'s wording of the T6.9 DEVLOG entry, board section and row replaced this branch's copies,
+and the board's T6.9 commit line now names `8436c69`. Everything T6.10 and T6.12 added was kept.
+`main` still called the plural-form row T6.10, and this branch keeps it at T6.13. Suite
+`=== 2549 passed, 0 failed, 0 skipped ===`, all seven checkers exit 0, boot `0 warnings, 0 errors`.
+The ladder's windowed capture at `--shot-frame=70` photographed `Loading 48%` three times running
+after this merge. Frames were slow because other sessions' Godot processes (`base 5.10.2`) were
+running: a 260-frame run took 113 s. Outside the documents the tree is byte-identical to
+`2e40f4a`, whose frame-70 capture had shown the courtyard, and a capture at frame 240 shows the
+courtyard at dusk, the HUD and the `[E]` prompt. That run logged one `Keeper cannot reach 'dais'`,
+from simulating at about 2 fps, and no other error.
+
+**Then T6.11 landed** on `main`, squash-merged from PR #74 as `9d8c34f` at `5.13.0`, carrying T6.10
+(`5.12.0`) with it. This row is now `5.13.1`. T6.11's merge had renumbered the plural-form row
+from T6.10 to **T6.12**, which collided with this row: DONE, with PR #73 and commits under the
+name. So the planned row moved again, to **T6.13**, and the board and CONTEXT record both moves.
+The documents were rebuilt on `main`'s versions, with T6.12's own content re-applied, rather than
+merging this branch's older copies of T6.9 to T6.11. `save_fixture.gd` keeps both headers and
+both constants, T6.11's `SETTINGS_PATH` and this row's `UNCLAIMED`. The runner keeps T6.11's
+one-time settings redirect beside this row's per-case park and check. `dev_saves.gd` and
+`dev_tools_test.gd` are `main`'s. Suite `=== 2560 passed, 0 failed, 0 skipped ===`: `main`'s
+2,556 and this row's 4.
+All seven checkers exit 0, boot `0 warnings, 0 errors`, and the frame-70 windowed capture shows the courtyard at dusk again, with the HUD and the `[E]` prompt.

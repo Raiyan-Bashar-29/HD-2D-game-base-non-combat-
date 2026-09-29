@@ -276,8 +276,11 @@ func _press_continue() -> bool:
 	if screen == null or screen.rows == null:
 		Log.error("test", "--autosave-continue found no main menu")
 		return false
-	var wanted: String = tr(MainMenuScreen.CONTINUE_KEY).format(
-		{"slot": SaveSystem.latest_slot() + 1})
+	# The menu NAMES the autosave rather than numbering it, and this still built "Slot 7" after it
+	# stopped, so the one run this probe exists for found no row. T6.10 found it.
+	var wanted: String = tr(MainMenuScreen.CONTINUE_AUTOSAVE_KEY) \
+		if SaveSystem.latest_slot() == SaveSystem.AUTOSAVE_SLOT \
+		else tr(MainMenuScreen.CONTINUE_KEY).format({"slot": SaveSystem.latest_slot() + 1})
 	for child: Node in screen.rows.get_children():
 		var row: Button = child as Button
 		if row == null or row.text != wanted:

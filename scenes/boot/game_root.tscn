@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3]
+[gd_scene load_steps=23 format=3]
 
 [ext_resource type="Script" path="res://src/core/boot/game_root.gd" id="1_root"]
 [ext_resource type="Script" path="res://src/ui/hud/screen_fade.gd" id="2_fade"]
@@ -22,6 +22,7 @@
 [ext_resource type="Script" path="res://src/systems/debug/dev_scenario_shots.gd" id="20_scenario"]
 [ext_resource type="Script" path="res://src/ui/root/ui_row_styles.gd" id="21_rows"]
 [ext_resource type="Script" path="res://src/systems/debug/dev_screens.gd" id="22_screens"]
+[ext_resource type="Script" path="res://src/systems/debug/dev_saves.gd" id="23_saves"]
 
 [node name="GameRoot" type="Node"]
 script = ExtResource("1_root")
@@ -70,6 +71,9 @@ script = ExtResource("2_fade")
 
 [node name="LoadingIndicator" type="Label" parent="UILayer"]
 script = ExtResource("9_load")
+
+[node name="DevSaves" type="Node" parent="."]
+script = ExtResource("23_saves")
 
 [node name="DevCapture" type="Node" parent="."]
 script = ExtResource("3_dev")

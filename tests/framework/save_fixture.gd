@@ -19,11 +19,21 @@ extends RefCounted
 ## `deactivate()` to have run, on exactly `fixtures.gd`'s reasoning: the run that failed to clean
 ## up is the run that crashed, and it is the next case that pays for it.
 ##
-## OWNS: the scratch save directory, and pointing `SaveSystem` at it and back.
+## AND THE SETTINGS FILE, T6.11, the seventh root. `Settings.PATH` was a `const` too, and the
+## suite's `reset_to_defaults()` saved it: a green run left the developer's `settings.cfg` at ZERO
+## BYTES. Unlike the store it is not per case. The runner points `Settings.file_path` here once,
+## before the first case, because a settings write is not something a case opts into: five
+## cases do it, most on their first line, and a per-case switch is the one a new case forgets
+## (T6.9's recorded gap). Never emptied: nothing reads it back, so nothing in it can go stale.
+##
+## OWNS: the scratch save directory and pointing `SaveSystem` at it and back, and the name of the
+## scratch settings file.
 ## MUST NOT: write save FILES (a case builds the file it wants to assert about), or assert
 ## anything.
 
 const ROOT: String = "user://test_saves"
+## Where every settings write of a suite run goes. Set by `test_runner.gd`, read by nothing.
+const SETTINGS_PATH: String = "user://test_settings.cfg"
 
 static var _active: bool = false
 

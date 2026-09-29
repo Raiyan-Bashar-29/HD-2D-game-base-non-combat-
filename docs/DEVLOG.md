@@ -11733,4 +11733,4 @@ asked for; it is recorded as such in the list and is overridden by that playtest
 The gate checks that a verdict exists and names a real package, never that it is right.
 Suite 2,621 on `claude/t6-13-parallel-suites` at `8021b59` → **2,655**, +34: 32 in the new `forgotten_list_test` (two, plus two for each of fifteen items) and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `8021b59`, after the documentation landed. The stripped count is CI's.
 
-**Commit:** on `claude/t6-8-close-the-list`. No SHA, per board item 6.
+**Commit:** on `claude/t6-8-close-the-list`, PR #79, built on T6.13's PR #77. No SHA, per board item 6.

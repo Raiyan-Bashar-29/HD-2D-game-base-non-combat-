@@ -6910,4 +6910,4 @@ a defect inside the phase and comes next.
 **Scope.** `5.15.1`, a PATCH: one new case and its `CASES` line, and documents. Suite 2,621 on `claude/t6-13-parallel-suites` at `8021b59` → **2,655**, +34: 32 in the new `forgotten_list_test` (two, plus two for each of fifteen items) and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `8021b59`, after the documentation landed. The stripped count is CI's.
 
 **Commit:** on `claude/t6-8-close-the-list`, built on `claude/t6-13-parallel-suites` (PR #77),
-PR PR_NUMBER targeting `main`. No SHA, per item 6.
+PR #79 targeting `main`. No SHA, per item 6.

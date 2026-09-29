@@ -157,6 +157,7 @@ previous project started as a system that was allowed to know one thing too many
 | Row styles | `UiRowStyles` under `UILayer`, `UiAccessibility`'s sibling: that one owns the theme's font SIZES, this one owns its Button STYLES. Derives `normal`, `hover`, `pressed`, `disabled` and `focus` — plus the `_mirrored` and `hover_pressed` spellings — from the palette at boot, and writes them into `MenuRow` and `ChoiceRow`. **Nothing here picks a colour**: `hover` is `surface` moved toward `text`, so the SAME expression lightens a dark row and darkens a light one | ThemeDB, the project Theme | authoring a colour of its own, knowing which screens exist, or overwriting a variation a game already styled | DONE — T5.15, 4.2.0. Photographed before and after on the shipped palette AND on a light one; the directional claim is the one a picture cannot carry and is asserted instead |
 | Loading screen | Covers threaded area loads | Director | — | DONE — fade plus a progress readout drawn above it; the one node after ScreenFade |
 | Project UI theme | `assets/theme/ui_theme.tres`, wired as `gui/theme/custom`: every font size, colour and inset the UI draws with. Type variations carry sizes; a `UiPalette` and a `UiMetrics` carry the colours and insets once each, NOT copied into the variations | nothing | a localization key, or a size only one screen could want | DONE — T2.1. One edit to that file restyled the menu, the inventory screen and the HUD at once, demonstrated by captures before and after; a test case fails if a screen writes a colour or a font size down again |
+| Font fallback chain | `assets/fonts/font_chain.tres`: a `FontVariation` with NO base font, so the engine's Latin is unchanged, and `fallbacks = [Noto Sans Bengali, Noto Sans SC subset]`, both at weight 600. `UiRoot.install_font_chain` puts it into the project theme at boot, because the theme loads before the first import and cannot name a font (gotcha 81) | ThemeDB, the project Theme | overwriting a `default_font` a game's theme already set | DONE — T6.6, 5.11.0. Photographed before and after with system fallback OFF, since Windows fonts hid the tofu. The suite shapes real strings headless and asserts each glyph's font, and that ক্ষ is one glyph |
 
 ## 6. Content pipeline and production
 
@@ -207,7 +208,13 @@ rather than oversights.
    button one statement before `quit()`. Nothing in `game_root.gd` changed to allow it — the note
    that said an autosave would go there is gone, because it did not have to.
 3. **Window focus loss.** Unfocused should not mean the character keeps walking because a
-   key was held when focus went away.
+   key was held when focus went away. **DONE — T6.5.** Godot 4.7.2 already releases every held key
+   and action on focus loss, measured windowed with an injected keystroke and an alt-tab, so a held
+   walk stops by itself. The base released its own latches: a toggled run, a hold part-way to
+   firing, and a rebind waiting for a key, each dropped on `Events.focus_lost`, which `UiRoot`
+   emits. Pausing is the setting `gameplay/pause_on_focus_loss`, off by default, and `ScreenKeys`
+   opens the pause menu when it is on. `focus_loss_test.gd` asserts it; photographed. A pad's held
+   buttons were not measured, since no pad was attached.
 4. **Controller hotplug** mid-session, and switching glyphs when it happens. **DONE — T6.2, in
    words rather than icons.** `Actions.device()` follows the last device used and
    `Events.input_device_changed` announces a switch; the interact prompt and the dialogue hint
@@ -258,7 +265,9 @@ rather than oversights.
 13. **Credits,** including every asset licence, tracked as they are added rather than
     reconstructed in a panic. **CLOSED (game's) — owner, 2026-09-02** (the WP-15 remnant), which
     this list had never recorded until T6.0. The licence half still binds the base: any asset it
-    vendors ships with its licence beside it, which is what T6.6 will do for its two fonts.
+    vendors ships with its licence beside it. T6.6 did this for its two fonts:
+    `assets/fonts/*-OFL.txt`, with the licence also in each font's `name` table so an export
+    carries it.
 14. **Shader pre-compilation.** Godot compiles shaders on first use, which shows up as a
     stutter the first time it rains. Needs a warm-up pass before shipping. **DONE — T2.0**, which
     this item had gone on describing as missing: `Director.WARM_UP_FRAMES` renders the new area

@@ -27,13 +27,27 @@ extends Control
 ## the index, not the implementation - a central pause that reaches into ten nodes is the
 ## god object all over again.
 ##
-## OWNS: the stack, the tree's paused state, and the UiMode announcement.
+## FOCUS LOSS IS ANNOUNCED HERE AND HANDLED NOWHERE HERE. This node already says, once, when
+## the world's relationship to input changes, and losing the window is that kind of fact; but
+## what it MEANS - drop a toggled run, open the pause menu - belongs to each owner, so this only
+## emits `Events.focus_lost`. `ScreenKeys` does the pausing, being where requests become screens.
+##
+## THE FONT CHAIN IS INSTALLED HERE, AND ONLY BECAUSE NOTHING EARLIER CAN (T6.6). The project
+## theme loads at engine start, before a fresh clone's first scan has imported a font, so a theme
+## naming a font prints `Parse Error` on every first open. The chain is its own resource and this
+## node, the first UI there is, puts it into the project theme once it is imported. A Label
+## already drawn picks it up: the theme's `changed` reaches it, which a windowed capture showed.
+##
+## OWNS: the stack, the tree's paused state, the UiMode and focus-lost announcements, and
+## installing the font chain.
 ## MUST NOT: know what any screen contains, know the player exists, or read gameplay input.
 ## It announces the mode; the player's own components take their own lock on hearing it.
 
 ## Anything may find the stack with UiRoot.find(node) rather than a hard-coded scene path,
 ## which would break the first time the UI tree is rearranged.
 const GROUP: StringName = &"ui_root"
+## The template's fallback chain. Its header says why it is not a line in the theme.
+const FONT_CHAIN_PATH: String = "res://assets/fonts/font_chain.tres"
 
 var _stack: Array[UiScreen] = []
 var _mode: GameEnums.UiMode = GameEnums.UiMode.GAMEPLAY
@@ -46,6 +60,7 @@ func _ready() -> void:
 	# MOUSE_FILTER_STOP on itself, so only an actually-open screen blocks the pointer.
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_to_group(GROUP)
+	install_font_chain(ThemeDB.get_project_theme(), FONT_CHAIN_PATH)
 	# NOTE: this node does NOT listen for an area change. WP-06 and WP-12 independently solved
 	# the same problem — a conversation opened during a fade-out kept running over the newly
 	# loaded area — and only one solution may survive. `ScreenKeys` owns it, because it fires on
@@ -59,6 +74,47 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	if is_inside_tree():
 		get_tree().paused = false
+
+
+## APPLICATION focus, not WM_WINDOW focus: a popup or a second window of this game taking focus
+## is not the player leaving.
+##
+## DEFERRED, AND THE FIRST WINDOWED RUN IS WHY. The engine delivers this by PROPAGATING it down
+## the tree, so it arrives while this node's children are being walked - and a listener that
+## opened the pause menu got `Parent node is busy setting up children, add_child() failed`. The
+## stack recorded the screen, the world paused, and nothing was drawn: a player stranded under an
+## invisible menu, with the log saying "Opened 'pause'". The suite had called `notification()` on
+## this node alone, which does not mark it busy, and passed.
+func _notification(what: int) -> void:
+	if is_focus_loss(what):
+		announce_focus_lost.call_deferred()
+
+
+## Give `theme` the chain at `chain_path` as its default font. Returns whether it did. A theme
+## that already has a default font is left alone, because a game that set real type set it on
+## purpose, and it gives that font its own fallbacks (docs/ART_CONTRACT.md § Fonts). No theme, or
+## no chain because a game deleted the fonts, is not an error either: it draws as it did before.
+static func install_font_chain(theme: Theme, chain_path: String) -> bool:
+	if theme == null or theme.default_font != null or not ResourceLoader.exists(chain_path):
+		return false
+	var chain: Font = load(chain_path) as Font
+	if chain == null:
+		return false
+	theme.default_font = chain
+	Log.info("ui", "Font chain installed: %d fallback(s)" % chain.fallbacks.size())
+	return true
+
+
+## Which notification counts. Static and public so the rule is asserted without a window.
+static func is_focus_loss(what: int) -> bool:
+	return what == NOTIFICATION_APPLICATION_FOCUS_OUT
+
+
+## Public, on `ScreenKeys.unwind`'s reasoning: the suite is synchronous and never reaches the idle
+## frame a deferred call lands on, so it asserts the deferral and then calls this.
+func announce_focus_lost() -> void:
+	Log.info("ui", "Focus lost")
+	Events.focus_lost.emit()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -108,6 +164,13 @@ func open(screen: UiScreen) -> bool:
 		return false
 	_stack.append(screen)
 	add_child(screen)
+	# add_child CAN FAIL - on a node the engine is propagating a notification through - and a
+	# screen recorded but never in the tree pauses the world under nothing. Gotcha 80.
+	if not screen.is_inside_tree():
+		_stack.erase(screen)
+		screen.queue_free()
+		Log.error("ui", "Screen '%s' could not be added; the stack is unchanged" % screen.screen_id)
+		return false
 	# DEFERRED so a screen asking to close cannot free itself from inside its own emission,
 	# which is a crash rather than a bug report.
 	screen.close_requested.connect(_on_close_requested.bind(screen), CONNECT_DEFERRED)

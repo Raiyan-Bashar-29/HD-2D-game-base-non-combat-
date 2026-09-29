@@ -53,7 +53,7 @@ For any sentinel proof, give Godot a private `user://` with `APPDATA="$(cygpath 
 anything above — found, not invented, the standard every T6 row had to meet. T6.9 is the first,
 numbered after T6.8 so that no planned id moves. T6.10 is the second, found while proving T6.9, and T6.11 the third, found by T6.10.
 
-Suite, with `main` merged in: 2,533 on `main` → **2,556**, +23: 17 in `dev_tools_test` (T6.10's 8, T6.11's 9) and 6 in `record_shape_test`, 2 for each of the three package ids; every other case unmoved. Measured per case against `main` at `db0d6ec`.
+Suite, with `main` merged in: 2,535 on `main` at `8436c69` → **2,556**, +21: 17 in `dev_tools_test` (T6.10's 8, T6.11's 9) and 4 in `record_shape_test`, 2 for each of the two package ids; every other case unmoved. Measured per case against `main` at `db0d6ec` (2,533, where T6.9's 2 were still in this branch's count).
 
 *(Previously: T6.6 made Bengali and CJK render from fonts the game ships, at `5.11.0`, a MINOR.
 Windows had hidden the tofu: Nirmala UI and YaHei drew the text through system fallback, so the

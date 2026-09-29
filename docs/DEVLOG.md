@@ -11201,14 +11201,14 @@ plural is T6.10.
 
 ## 2026-09-29 — T6.9 · Running the suite destroyed the developer's real saves
 
-**Did.** Owner-reported, taken ahead of T6.5. `menus_test.gd` and `confirm_test.gd` said they owned
+**Did.** Owner-reported, taken ahead of T6.7. `menus_test.gd` and `confirm_test.gd` said they owned
 `user://saves` for the run and cleared every slot there, and neither had called
 `SaveFixture.activate()`. The report also asked about `settings_effects_test.gd`. Grepping for
 every call that touches the store found **fourteen** unredirected cases, not three. Each now calls
 `SaveFixture.activate()` first: at the top of `_set_up` where a case has one, directly after
 `plan()` otherwise. The two headers now say the scratch store. `TESTING.md` states the rule,
-gotcha 79 records the instance, and the version is `5.9.1`, a PATCH. Numbered T6.9 rather than
-T6.5 so that no planned row's id moves. A suffix was not possible, because `record_shape_test.gd`
+gotcha 79 records the instance, and the version is `5.11.1`, a PATCH. Numbered T6.9 rather than
+T6.7 so that no planned row's id moves. A suffix was not possible, because `record_shape_test.gd`
 reads `T6.3a` as T6.3.
 
 **Why.** Since T5.22, `SaveFixture` has existed so that the suite never touches a developer's
@@ -11238,6 +11238,10 @@ not the sites someone happened to fix.
   skipped ===`, exit 0, measured per
   case against `main` at 2,471: +2, both in `record_shape_test` for this row's package id,
   every other case unmoved. Sentinels planted for that run survived it too, 7 of 7.
+- After `main` brought T6.5 and T6.6 in: `=== 2535 passed, 0 failed, 0 skipped ===`, exit 0, against
+  `main` at 2,533, +2, both in `record_shape_test`. A real `autosave.json` that was not this row's
+  was in `user://saves` by then, so only the six slot sentinels were planted, all six survived,
+  and that file's md5 was unchanged by the run.
 - `--check-only` on the fourteen changed cases: only the documented autoload identifiers.
 - Boot `--quit-after 30`: `0 warnings, 0 errors`.
 - All seven checkers exit 0: budgets, content, boundary, strings, layers, signals, methods.
@@ -11251,8 +11255,8 @@ not the sites someone happened to fix.
   demo content no test may name. Every worktree shares one `user://`, so that file was left for
   its owner.
 
-**Unblocks.** T6.5, next, unchanged. T6.4 merged to `main` while this row was open, and it was merged
-into the branch before the final ladder. Its new `slot_header_test.gd` already activates the scratch
+**Unblocks.** T6.7, next, unchanged. T6.4, T6.5 and T6.6 merged to `main` while this row was open, and each was merged
+into the branch before the final ladder. T6.4's `slot_header_test.gd` already activates the scratch
 store, and any later case that saves belongs in the scratch store from
 the first line, and `TESTING.md` says so.
 
@@ -11404,3 +11408,10 @@ is now **T6.12**. `settings_consumers_test.gd` took `main`'s `plan(79)` and kept
 `--import` zero script errors, boot `0 warnings, 0 errors`, `=== 2556 passed, 0 failed, 0
 skipped ===`, which is +23 over `main`'s measured 2,533: 17 in `dev_tools_test` and 6 in
 `record_shape_test`, every other case unmoved. All seven checkers exit 0, and the isolated sentinel run on the merged tree left `settings.cfg` byte-identical through the capture and the suite.
+
+**A second merge of `main`, minutes later**, because PR #70 (T6.9) squash-merged as `8436c69` at
+`5.11.1`, the number this branch had already given it. Its test code was identical to this
+branch's. Its documents had reworded T6.9 after T6.5 and T6.6 ("taken ahead of T6.7") and recorded
+a CI stripped count, so T6.9's own text was taken from `main`. T6.10, T6.11 and T6.12 were kept from
+here. T6.9's board commit line now carries `8436c69`.
+`8436c69` is 2,535; this merged tree is `=== 2556 passed, 0 failed, 0 skipped ===`, +21, with `--import`, boot and all seven checkers green again.

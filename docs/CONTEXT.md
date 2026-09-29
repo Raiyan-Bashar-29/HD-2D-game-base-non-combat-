@@ -3,7 +3,7 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-29 · **T6.7 (dialogue for fast and slow readers) complete, at 5.12.0, a MINOR.**
+**Last updated:** 2026-09-29 · **T6.7 (dialogue for fast and slow readers) complete, at 5.14.0, a MINOR.**
 **Phases T1 to T5 are complete and stay complete; Phase T6 is OPEN, and the next package is T6.8.**
 
 **A SKIP WALKS THE CONVERSATION; IT DOES NOT JUMP IT.** Cancel (Escape, or the pad's B) during a
@@ -28,7 +28,7 @@ The plant that counts is the tempting wrong skip, `runner.stop()`, which ends th
 and fires no effect: `2549 passed, 13 failed`.
 
 **Budgets.** `dialogue_test.gd` would have gone to 305 of 250, so the new cases are their own
-file, `tests/unit/dialogue_speed_test.gd`, with a `CASES` line. `settings.gd` 142 → **143 of 150**.
+file, `tests/unit/dialogue_speed_test.gd`, with a `CASES` line. `settings.gd` 143 → **144 of 150**.
 `dialogue_screen.gd` 143 → 186 of 250.
 
 **The phase, in order** — manifests in `WORK_PACKAGES.md` § T6.0:
@@ -41,21 +41,51 @@ file, `tests/unit/dialogue_speed_test.gd`, with a `CASES` line. `settings.gd` 14
 | ~~T6.4~~ | ~~a slot shows where it was saved, and a damaged slot is shown as damaged~~ **DONE** | forgotten #15 |
 | ~~T6.5~~ | ~~losing window focus leaves nothing latched; pausing on it is a setting~~ **DONE** | forgotten #3 |
 | ~~T6.6~~ | ~~Bengali and CJK both render through a font fallback chain~~ **DONE** | structural |
+| ~~T6.9~~ | ~~the suite destroyed real saves; every case that saves redirects first~~ **DONE**, out of number order | owner-reported |
+| ~~T6.10~~ | ~~a capture or debug launch saves to scratch, never over the developer's saves~~ **DONE**, out of number order | found by T6.9 |
+| ~~T6.11~~ | ~~a debug launch or a suite run writes scratch settings, never the developer's file~~ **DONE**, out of number order | found by T6.10 |
+| ~~T6.12~~ | ~~a case that saves without activating the scratch store fails the suite~~ **DONE**, out of number order | found by T6.9 |
 | ~~T6.7~~ | ~~dialogue can skip to its end and auto-advance~~ **DONE** | forgotten #5 |
 | **T6.8** | every forgotten item marked DONE or CLOSED, gated by a text scan | the exit criterion |
-| T6.10 | a count that reaches a string picks its plural form (found by T6.6) | a defect |
+| T6.13 | a count that reaches a string picks its plural form (found by T6.6 as T6.10; T6.12 at T6.11's merge) | a defect |
 
 **THE OWNER'S PLAYTEST OUTRANKS THIS QUEUE.** A defect found by playing becomes the next row ahead of
-anything above — found, not invented, the standard every T6 row had to meet.
+anything above — found, not invented, the standard every T6 row had to meet. T6.9 is the first,
+numbered after T6.8 so that no planned id moves. T6.10 is the second, found while proving T6.9, T6.11 the third, found by T6.10, and T6.12 the fourth, the gap T6.9 recorded.
 
 Suite 2,533 → **2,564**, +31: 25 in the new `dialogue_speed_test`, 3 in `options_test` and 1 in `settings_consumers_test` for the new setting's row and consumer, and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `main`, after the documentation landed.
 
-*(Previously: T6.6 made text in any script render at `5.11.0`, a MINOR. Windows system fonts had
-hidden the tofu, so the before capture turned system fallback off. `assets/fonts/font_chain.tres`
-has no base font and falls back to Noto Sans Bengali, then a Noto Sans SC subset, both at weight
-600. The theme names no font, because it loads before the first import and a fresh clone printed
-`Parse Error`, so `UiRoot.install_font_chain` installs the chain at boot: gotcha 81. The `tr_n`
-check found RestPoint's `{hours}`, which became T6.10.)*
+*(Previously: T6.12 made a case that saves without `SaveFixture.activate()` fail the suite, at
+`5.13.1`, a PATCH, test-only. Before every case the runner parks the store at
+`user://test_saves_unclaimed` and fails a case that saves, or loads a real file, while parked.
+T6.9 to T6.12 landed out of number order, and the plural row moved from T6.10 to **T6.13**. Every
+worktree shares one `user://`: for any sentinel proof give Godot a private one with
+`APPDATA="$(cygpath -w <dir>)"`.)*
+
+*(Previously: T6.11 stopped a debug launch and the suite writing the developer's real settings, at
+`5.13.0`, a MINOR. `Settings.file_path` is where `save()` writes. `DevSaves` points it at
+`user://dev_settings.cfg` under T6.10's rule, and the runner points it at
+`user://test_settings.cfg` before the first case. Five cases call `reset_to_defaults()`, so every
+green run had left `settings.cfg` at zero bytes. Writes only: the real file is still read at boot.)*
+
+*(Previously: T6.6 made Bengali and CJK render from fonts the game ships, at `5.11.0`, a MINOR.
+Windows had hidden the tofu: Nirmala UI and YaHei drew the text through system fallback, so the
+before capture turned it off. `assets/fonts/font_chain.tres` has no base font and falls back to
+Noto Sans Bengali, then a Noto Sans SC subset, both at weight 600. `UiRoot.install_font_chain`
+installs it at boot rather than the theme naming it, because the theme loads before the first
+import and a fresh clone printed `Parse Error` (gotcha 81). The `tr_n` check found `RestPoint`'s
+`{hours}` reading "1 hours", now T6.13.)*
+
+*(Previously: T6.10 made a capture or debug launch save to `user://dev_saves`, claimed as `5.10.0`,
+landing as `5.12.0`, a MINOR. The capture rung's `--new-game` is a real run, so the autosave wrote
+the real slot, and three probes deleted real slots. `DevSaves` redirects `SaveSystem.save_dir` for
+any launch with user arguments; `--real-saves` opts out. It also fixed `--autosave-continue`.)*
+
+*(Previously: T6.9 stopped the suite touching `user://saves`, claimed as `5.9.1`, landing as
+`5.11.1`, a PATCH, test-only. Fourteen cases wrote or deleted slots there, and a green run of the
+unchanged suite deleted all seven planted sentinel saves. Each case now calls
+`SaveFixture.activate()` first, and all seven survive. Nothing yet fails a new case that forgets;
+that is recorded in `WORK_PACKAGES.md` § T6.9.)*
 
 *(Previously: T6.5 made losing window focus leave nothing latched at `5.10.0`, a MINOR. Measured
 first, windowed: the engine already clears a held key on focus loss, so the base releases only its
@@ -324,7 +354,7 @@ another sheet, and every facing draws a different figure.
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version is** **5.12.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+**The version is** **5.14.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
 the owner's to close or to leave.
 
 **THE NEXT PACKAGE IS T6.7, AND IT IS A QUEUE AGAIN — FOR ONE PHASE.** From T5.32 until T6.0 this
@@ -396,7 +426,7 @@ three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite shee
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 4 on the default one, the
 fourth being a second IDLE rather than a gait**,
 1 shared area material, **24 settings and 24 consumers**.
-Template version **5.12.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+Template version **5.14.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
 recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 
@@ -2294,6 +2324,17 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     pointer-ordered sorting, which a **two-element probe disproved by luck** before an
     eight-element one confirmed it: `alpha, delta, echo, foxtrot, charlie, bravo, hotel, golf`. A
     probe with two possible orders has even odds of lying to you.
+    **T6.9 is the same lesson, and it cost real saves.** T5.22 built `SaveFixture` and redirected
+    the two cases it had in front of it. Fourteen more kept calling `save_to_slot` and
+    `delete_slot` against the real `user://saves`, and two of them said they owned it. **A green
+    run deleted every real slot and the autosave**, and nothing failed, because a test that
+    deletes what it wrote passes whether or not it was writing somewhere that mattered. Rule:
+    **a case that saves through ANY path calls `SaveFixture.activate()` first** (`TESTING.md`).
+    To check a claim like this, plant a sentinel file where the harm would land and see whether
+    it survives the run. A green suite cannot tell you.
+    **T6.10 found the same harm outside the suite.** A `--new-game` capture is a real run, so the
+    autosave wrote the real slot, and the probes deleted real slots. `DevSaves` now points every
+    debug launch at `user://dev_saves`. The same test applied: a planted sentinel survived.
 
 80. **AN ENGINE NOTIFICATION ARRIVES BY PROPAGATION, AND A NODE IT IS BEING PROPAGATED TO CANNOT
     TAKE A CHILD. `notification()` IN A TEST DOES NOT REPRODUCE THAT.** T6.5's `UiRoot` answered

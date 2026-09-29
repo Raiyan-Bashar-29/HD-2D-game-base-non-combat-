@@ -48,7 +48,7 @@ const GATE_SITES: Array[Array] = [
 
 
 func run() -> void:
-	plan(46)
+	plan(63)
 	_the_verbs_are_the_command_lines_own()
 	_a_malformed_argument_is_refused_whole()
 	_the_console_runs_a_line_and_keeps_a_transcript()
@@ -57,6 +57,8 @@ func run() -> void:
 	_staging_that_draws_waits_for_a_settled_area()
 	_every_debug_flag_has_a_node_to_parse_it()
 	_no_flag_is_dispatched_by_two_nodes()
+	_a_debug_launch_never_saves_over_the_real_store()
+	_a_debug_launch_never_writes_the_real_settings()
 
 
 ## The vocabulary, and that a typed line reaches the verb it names. `run()` takes the SAME
@@ -281,7 +283,7 @@ func _every_debug_flag_has_a_node_to_parse_it() -> void:
 		wired += 1
 		equal("%s has a node in game_root.tscn" % path.get_file(),
 			parent_of_script(GAME_ROOT, path), ".")
-	equal("every debug script that reads the command line was checked", wired, 6)
+	equal("every debug script that reads the command line was checked", wired, 7)
 
 
 ## NO TWO DEBUG FILES DISPATCH THE SAME FLAG, AND T5.20 IS WHY THIS EXISTS. That package split
@@ -339,3 +341,57 @@ func _debug_scripts() -> Array[String]:
 			found.append(DEBUG_DIR + file_name)
 	found.sort()
 	return found
+
+
+## A DEBUG LAUNCH SAVES TO SCRATCH, T6.10. The rule is asserted and not the redirect, because the
+## suite's own process has no user arguments: the redirect is proved by the sentinel run quoted
+## in DEVLOG.md, where a capture left a planted `autosave.json` byte-identical.
+func _a_debug_launch_never_saves_over_the_real_store() -> void:
+	var none: PackedStringArray = PackedStringArray()
+	equal("a plain launch keeps the real store", DevSaves.save_dir_for(none), "")
+	equal("the ladder's capture saves to scratch",
+		DevSaves.save_dir_for(PackedStringArray(["--new-game", "--shot=a.png"])),
+		DevSaves.SCRATCH_DIR)
+	# A probe that shoots nothing still deletes the slot it used, so `--shot` is not the trigger.
+	equal("so does a probe with no shutter",
+		DevSaves.save_dir_for(PackedStringArray(["--save-state=2"])), DevSaves.SCRATCH_DIR)
+	equal("and the opt-out keeps the real store",
+		DevSaves.save_dir_for(PackedStringArray(["--new-game", DevSaves.REAL_SAVES_FLAG])), "")
+	equal("scratch is not the real store",
+		DevSaves.SCRATCH_DIR != SaveSystem.DEFAULT_SAVE_DIR, true)
+	# `SaveFixture.activate()` empties its directory; shared, a suite in another session would
+	# delete the file a two-process probe pair left for its second half.
+	equal("nor the suite's", DevSaves.SCRATCH_DIR != SaveFixture.ROOT, true)
+	var scene: String = FileAccess.get_file_as_string(GAME_ROOT)
+	var at: int = scene.find("[node name=\"DevSaves\"")
+	equal("the redirect is the first debug node", at >= 0 and at == scene.find("[node name=\"Dev"),
+		true)
+
+
+## AND SETTINGS, T6.11. Here the REDIRECT itself is asserted, not only the rule: `apply` is static,
+## so the suite hands it the ladder's arguments and reads both paths back, then writes one setting
+## to prove `save()` goes where the path says. Both are put back, because the runner's own
+## redirect must hold for every case after this one.
+func _a_debug_launch_never_writes_the_real_settings() -> void:
+	equal("the suite itself writes its settings to scratch", Settings.file_path,
+		SaveFixture.SETTINGS_PATH)
+	var store: String = SaveSystem.save_dir
+	var settings: String = Settings.file_path
+	equal("a plain launch redirects nothing", DevSaves.apply(PackedStringArray()), false)
+	equal("and leaves the settings file where it was", Settings.file_path, settings)
+
+	DirAccess.remove_absolute(DevSaves.SCRATCH_SETTINGS)
+	DevSaves.apply(PackedStringArray(["--new-game", "--locale=en_XA"]))
+	equal("a capture's settings go to scratch", Settings.file_path, DevSaves.SCRATCH_SETTINGS)
+	equal("and its saves go with them", SaveSystem.save_dir, DevSaves.SCRATCH_DIR)
+	Settings.set_value(Settings.LOCALE, Settings.get_string(Settings.LOCALE))
+	equal("and a setting it changes is written there",
+		FileAccess.file_exists(DevSaves.SCRATCH_SETTINGS), true)
+	SaveSystem.save_dir = store
+	Settings.file_path = settings
+
+	equal("the opt-out redirects nothing",
+		DevSaves.apply(PackedStringArray(["--new-game", DevSaves.REAL_SAVES_FLAG])), false)
+	equal("scratch is not the player's file",
+		DevSaves.SCRATCH_SETTINGS != Settings.PATH, true)
+	equal("nor the suite's", DevSaves.SCRATCH_SETTINGS != SaveFixture.SETTINGS_PATH, true)

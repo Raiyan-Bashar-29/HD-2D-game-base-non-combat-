@@ -1536,13 +1536,33 @@ was classified, including the ones refused.
   loads before the first import and a fresh clone printed `Parse Error` (gotcha 81). Windows
   system fonts had hidden the tofu, so the before capture turned system fallback off. Photographed:
   the ক্ষ conjunct and the hanzi and kana shaped, and the suite asserts ক্ষ is ONE glyph. The `tr_n`
-  check found one count needing a plural form, RestPoint's hours, which is T6.10.
-- **T6.7 Dialogue for fast and slow readers — DONE, 2026-09-29, `5.12.0`.** Cancel during a
+  check found one count needing a plural form, RestPoint's hours, which is T6.13.
+- **T6.9 Running the suite destroyed the developer's real saves — DONE, 2026-09-29, `5.11.1`** (claimed `5.9.1`; renumbered at the merge).
+  An owner-reported defect, taken ahead of T6.5 and numbered after T6.8 so no planned id moves.
+  Fourteen cases wrote or deleted slots in the real `user://saves`, and a green run deleted all
+  seven planted sentinel saves. Each case now calls `SaveFixture.activate()` first, and all seven
+  survive. Test-only. No exit criterion covers a defect fix, so none is ticked.
+- **T6.10 A capture or debug launch wrote over the developer's real saves — DONE, 2026-09-29,
+  `5.12.0`** (claimed `5.10.0`). Found while proving T6.9. A `--new-game` capture is a real run, so the autosave wrote
+  the real slot, and three probes deleted real slots. `DevSaves` points any debug launch with user
+  arguments at `user://dev_saves` (`--real-saves` opts out), and a planted sentinel survives the
+  capture. No exit criterion covers a defect fix, so none is ticked.
+- **T6.11 A debug launch, and every suite run, wrote the developer's real settings — DONE,
+  2026-09-29, `5.13.0`** (claimed `5.11.0`). Found by T6.10. A `--locale=` capture rewrote the real
+  `settings.cfg`, and a green suite left it at zero bytes. `Settings.file_path` is where `save()`
+  writes; `DevSaves` and the test runner point it at scratch, writes only, and a planted sentinel
+  survives both. No exit criterion covers a defect fix, so none is ticked.
+- **T6.12 Nothing failed a case that saved without activating the scratch store — DONE,
+  2026-09-29, `5.13.1`.** The gap T6.9 recorded. The runner parks the store in a scratch
+  directory before every case and fails a case that saves, or loads a real file, while parked.
+  Three cases with `activate()` removed went red, and seven sentinel saves survived every run.
+  Test-only. No exit criterion covers a defect fix, so none is ticked.
+- **T6.7 Dialogue for fast and slow readers — DONE, 2026-09-29, `5.14.0`.** Cancel during a
   conversation skips: the screen walks the runner through `advance()`, so every node passed fires
   its effect, and it stops at the first choice. `gameplay/dialogue_auto_advance`, off by default,
   moves a whole line on after a hold and never answers a choice. Photographed. Closes forgotten #5.
 - **T6.8 Close the list, and gate it** — planned. The phase's exit criterion.
-- **T6.10 A count that reaches a string picks its plural form** — planned, found by T6.6.
+- **T6.13 A count that reaches a string picks its plural form** — planned, found by T6.6, which numbered it T6.10; T6.12 at T6.11's merge, T6.13 at T6.12's.
   `RestPoint` sends `{hours}` into one key, so a short rest reads "1 hours" or "0 hours".
 
 **Exit criteria for the phase:**

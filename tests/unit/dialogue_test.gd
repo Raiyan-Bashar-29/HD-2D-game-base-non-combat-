@@ -57,6 +57,9 @@ func _the_authored_catalogue_is_sound() -> void:
 
 
 func _set_up() -> void:
+	# This case writes or deletes slots; redirected so they are not the developer's own. The
+	# runner deactivates after every case.
+	SaveFixture.activate()
 	Flags.clear_all()
 	Fixtures.activate()
 	_runner = DialogueRunner.new()

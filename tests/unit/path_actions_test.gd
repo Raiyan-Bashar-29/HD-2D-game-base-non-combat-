@@ -24,6 +24,9 @@ var _outcomes: Array[bool] = []
 
 func run() -> void:
 	plan(48)
+	# This case writes or deletes slots; redirected so they are not the developer's own. The
+	# runner deactivates after every case.
+	SaveFixture.activate()
 	Flags.clear_all()
 	_standing_is_a_clamped_namespace()
 	_the_authored_actions_are_sound()

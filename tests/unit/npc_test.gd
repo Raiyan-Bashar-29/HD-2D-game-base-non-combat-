@@ -37,6 +37,9 @@ func run() -> void:
 
 
 func _set_up() -> void:
+	# This case writes or deletes slots; redirected so they are not the developer's own. The
+	# runner deactivates after every case.
+	SaveFixture.activate()
 	Fixtures.activate()
 	_schedule = ScheduleDb.schedule(FIXTURE)
 

@@ -49,6 +49,9 @@ var _before: Vector2i = Vector2i.ZERO
 
 func run() -> void:
 	plan(23)
+	# This case writes or deletes slots; redirected so they are not the developer's own. The
+	# runner deactivates after every case.
+	SaveFixture.activate()
 	_a_session_runs_end_to_end()
 	_the_whole_session_logged_nothing()
 	_a_checkout_with_a_game_in_it_can_start_one()

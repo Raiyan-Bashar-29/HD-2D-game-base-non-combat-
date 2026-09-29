@@ -30,6 +30,11 @@ extends Node
 ##    directory and fails on a file that exists and is not listed. Gotcha 22 is this failure
 ##    one layer down: a file that does not parse is invisible to a green run.
 ##
+## AND ONE WAY A SUITE PASSES WHILE DOING HARM (T6.12): a case saves without
+## `SaveFixture.activate()`. Before every case the store is parked in a scratch directory, so the
+## write cannot reach a real save, and `_saves_were_claimed()` fails the case that made it. Why it
+## takes both halves is in `tests/framework/save_fixture.gd`'s header.
+##
 ## OWNS: discovering cases, tallying them, enforcing the plans and the exit code.
 ## MUST NOT: contain assertions of its own, or any game logic.
 
@@ -102,6 +107,8 @@ var _skipped: int = 0
 var _failures: Array[String] = []
 var _skips: Array[String] = []
 var _watch: ErrorWatch = null
+## Saves and loads the running case made in a directory it never claimed. Cleared before each case.
+var _unclaimed_uses: Array[String] = []
 
 
 ## The exit code is ARMED TO FAILURE on the first line and only cleared at the end. quit() sets
@@ -112,14 +119,20 @@ func _ready() -> void:
 	get_tree().quit(1)
 	_watch = ErrorWatch.new()
 	OS.add_logger(_watch)
+	Events.game_saved.connect(_on_store_used.bind("saved"))
+	Events.game_loaded.connect(_on_store_used.bind("loaded"))
 	Log.info("test", "=== test run starting ===")
 	# Determinism: a clock that advances mid-assertion makes time assertions flaky.
 	Clock.paused = true
+	# NO CASE WRITES THE DEVELOPER'S SETTINGS FILE, T6.11. Before the first case, not per case:
+	# SaveFixture.gd says why. The real file was already READ, so the pin below is still needed.
+	Settings.file_path = SaveFixture.SETTINGS_PATH
 	# AND SO IS THE LANGUAGE, for the same reason one step further out. Several cases compare
 	# `tr()` output, so a developer who left the pseudolocale selected - or any consuming
 	# game whose default is not English - would fail assertions that have nothing to do with
-	# their change. T5.1 hit exactly that: a `--locale=en_XA` capture PERSISTS the setting,
-	# because a language choice should, and the next suite run failed in four unrelated cases.
+	# their change. T5.1 hit exactly that: a `--locale=en_XA` capture PERSISTED the setting, and
+	# the next suite run failed in four unrelated cases. A capture writes scratch since T6.11,
+	# but a PLAYER'S language choice still persists, as it should, and the suite reads that file.
 	# The fallback is read rather than hard-coded, so this pins the project's own language.
 	var declared: Dictionary = {"locale": ProjectSettings.get_setting(FALLBACK_LOCALE, "en")}
 	TranslationServer.set_locale(DictRead.get_string(declared, "locale", "en"))
@@ -182,11 +195,14 @@ func _run_case(path: String) -> void:
 		return
 
 	test_case.name = path.get_file().get_basename()
+	SaveFixture.park()
+	_unclaimed_uses.clear()
 	add_child(test_case)
 	Log.debug("test", "--- %s ---" % test_case.name)
 	var before: int = _watch.script_errors
 	test_case.run()
 	_no_script_errors(test_case.name, before)
+	_saves_were_claimed(test_case.name)
 	_tally(test_case)
 	# Free explicitly: anything left alive at exit fills the log with leaked-RID errors, and
 	# that noise is how a real error gets lost.
@@ -197,6 +213,32 @@ func _run_case(path: String) -> void:
 	# Same discipline for the save store, which was the sixth content root and the only one
 	# nothing repointed until T5.22.
 	SaveFixture.deactivate()
+
+
+## THE SAVE CHECK. It listens for `game_saved` and `game_loaded` instead of diffing a directory:
+## T6.9 found that a diff cannot see a write followed by a delete in an empty directory, and empty
+## is the normal state on CI. Both signals already exist for a game's own listeners, so no seam
+## was added to `src/`. A LOAD counts because a case that plants a file by hand and deletes it
+## never saves, and on the old default its load read whatever the developer had in that slot.
+## Only a load with a FILE behind it counts: `item_count_test` emits `game_loaded` by hand to stand
+## in for one, and that touches no disk. A file planted and left behind is announced by neither
+## signal, so leftovers are counted too.
+func _on_store_used(slot: int, verb: String) -> void:
+	if not SaveFixture.is_unclaimed(SaveSystem.save_dir) or not SaveSystem.has_slot(slot):
+		return
+	var use: String = "%s slot %d in %s" % [verb, slot, SaveSystem.save_dir]
+	if not _unclaimed_uses.has(use):
+		_unclaimed_uses.append(use)
+
+
+func _saves_were_claimed(case_name: String) -> void:
+	for file_name: String in SaveFixture.unclaimed_files():
+		_unclaimed_uses.append("%s left in %s" % [file_name, SaveFixture.UNCLAIMED])
+	if _unclaimed_uses.is_empty():
+		return
+	_record_failure("%s used the save store without SaveFixture.activate(): %s" % [
+		case_name, ", ".join(_unclaimed_uses),
+	])
 
 
 func _tally(test_case: TestCase) -> void:

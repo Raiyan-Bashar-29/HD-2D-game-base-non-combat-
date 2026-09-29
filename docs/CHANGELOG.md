@@ -19,7 +19,7 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
-## 5.12.0
+## 5.14.0
 
 *2026-09-29 — dialogue can be skipped to its end, and can move on by itself.*
 
@@ -45,6 +45,101 @@ divided by `gameplay/text_speed`, and then moves on. It never answers a choice. 
 **Strings.** `ui.dialogue.skip`, `ui.dialogue.hint` and `ui.dialogue.hint_auto` join the continue
 hint, and `ui.settings.gameplay.dialogue_auto_advance` labels the row. A game with its own locale
 column adds four rows.
+
+---
+## 5.13.1
+
+*2026-09-29 — a test case that saves without `SaveFixture.activate()` now fails the suite, and
+cannot reach the developer's saves while it does.*
+
+**A consuming game does: nothing, unless one of YOUR cases saves or loads without
+`SaveFixture.activate()`.** That case now fails rung 4 by name, `<case> used the save store without
+SaveFixture.activate(): saved slot N in user://test_saves_unclaimed`. Add the call at the top of
+its set-up. **PATCH, on the precedents `5.6.1` cites:** the case was already writing into, and
+deleting from, your real `user://saves` while passing, so the gate names an existing defect rather
+than imposing a new rule. `src/` and `tools/` are byte-identical. **If your game has its own
+runner**, copy the `SaveFixture.park()` call and `_saves_were_claimed` from `tests/test_runner.gd`.
+
+**What changed.** Before every case the runner parks the store in `user://test_saves_unclaimed`,
+so no case starts on the shipped default. It then fails any case that saved, or loaded a real
+file, while the store was parked or on the default. It hears this through `Events.game_saved` and
+`game_loaded`, not by diffing a directory, which cannot see a write followed by a delete.
+`save_dir_test.gd` now asserts the store starts parked. Three cases with `activate()` removed
+each went red, and seven sentinel saves in the real directory survived every run.
+
+
+---
+## 5.13.0
+
+*2026-09-29 — neither a debug launch nor the suite writes the developer's real settings any more.*
+
+**A consuming game does: nothing to merge.** Your captures and your suite stop touching your
+`user://settings.cfg` the moment this lands. **But know the new seam:** `Settings.file_path` is
+where `save()` writes. It defaults to `Settings.PATH`, which keeps its name and value, and it is
+still the file READ at boot, so a game that reads `Settings.PATH` changes nothing. In a debug
+build, `DevSaves` points it at `user://dev_settings.cfg` under the same rule as the saves: any
+user argument after `--`, with `--real-saves` opting out of both. The test runner points it at
+`user://test_settings.cfg` before the first case, so a case YOUR game added needs nothing. If
+your game writes settings from its own code, it goes through `Settings.save()` and is covered.
+**MINOR**: a public var and two constants a game may ignore, the 5.10.0 precedent. A shipped
+build is unaffected: `file_path` is only moved by a debug node and by the suite.
+
+**What changed.** `Settings.PATH` was a `const` and the only path, so `--locale=`, which goes
+through `Settings.set_value` on purpose, wrote the real file: a planted sentinel `locale="en"`
+came back `"en_XA"` after one capture. Worse, a green suite run left the sentinel at ZERO BYTES,
+because five cases call `Settings.reset_to_defaults()`. Now the redirect is **writes only**:
+settings are loaded before any debug node exists, which is what a capture should show, and the
+scratch file is never read back, so no launch inherits the last one's language. Measured: the
+same sentinel survives the capture and the full suite byte-identical, where both overwrote it
+on the unchanged tree. **Not changed:** on a machine with no settings file yet, boot still
+writes the defaults to the real path, before anything can redirect it. That creates a file; it
+overwrites nothing.
+
+---
+## 5.12.0
+
+*2026-09-29 — a capture or debug launch no longer writes over the developer's real saves.*
+
+**A consuming game does: nothing to merge.** Your debug launches stop touching your saves the
+moment this lands. **But know the new rule:** in a debug build, a launch with ANY user argument
+after `--` saves to `user://dev_saves`, never `user://saves`. A plain run from the editor passes
+none and is unchanged. If you rely on a staged launch writing the real store, add `--real-saves`.
+If your game adds its own debug node that saves during `_ready`, put it after `DevSaves` in
+`game_root.tscn`. **MINOR**: it adds a class, `DevSaves`, and a flag a game may ignore, the T6.2
+and T6.3 precedent. A shipped build is unaffected, because the node returns at once outside a
+debug build, like every file in `src/systems/debug/`.
+
+**What changed.** The ladder's capture rung runs `--new-game`, which starts a real run, so T5.10's
+autosave wrote the real `autosave.json` on arrival and on quit. `--save-state`/`--load-state` and
+`--cross-area-save` deleted the slot they used. Every writer goes through `SaveSystem.save_dir`,
+so the new `src/systems/debug/dev_saves.gd` sets it once, before anything saves. It redirects
+rather than suppressing the autosave, so a capture photographs the game a player gets, toast
+included. Measured: a planted sentinel `autosave.json` was overwritten by one capture on the
+unchanged tree, and survives it byte-identical now. `--autosave-continue` also stopped finding
+the Continue row after the menu began naming the autosave, and is fixed. **Not changed:**
+`--locale=` still writes the real `user://settings.cfg`.
+
+---
+## 5.11.1
+
+*2026-09-29 — running the suite no longer destroys the developer's real saves.*
+
+**A consuming game does: nothing to merge.** Your inherited cases stop touching your saves the
+moment this lands. **But check any case YOUR game added:** if it calls `SaveSystem.save_to_slot`,
+`delete_slot`, or drives anything that saves, give it `SaveFixture.activate()` at the start of its
+set-up, or it will keep writing to, and deleting from, the real `user://saves` while passing.
+**PATCH**: only `tests/unit/` and the documents changed. `src/`, `tools/` and every data shape are
+byte-identical, so nothing a game wrote is affected. There is no "no version" option to take
+instead: every entry here is a version, and `version_test.gd` ties the top one to `project.godot`.
+`5.6.2`, documentation only, is the precedent for a PATCH where no game code moves.
+
+**What changed.** T5.22 made the store redirectable and pointed two cases at the scratch store.
+Fourteen more wrote or deleted real slots against the default `user://saves`, among them
+`menus_test.gd` and `confirm_test.gd`, which clear every slot at set-up. Measured: seven sentinel
+files planted in the real directory, one per slot plus the autosave, and a full green run deleted
+all seven. Each of the fourteen now calls `SaveFixture.activate()` first, and all seven survive
+unchanged. Fixing only the three cases first suspected still lost five of the seven.
+`TESTING.md` states the rule.
 
 ---
 ## 5.11.0
@@ -74,7 +169,7 @@ the subset.** A game shipping Korean adds a font to the chain.
 
 **Found, and recorded as its own row rather than built:** `RestPoint` passes `{hours}` into a
 single string, so a rest of 60 to 119 minutes reads "1 hours". That is the one count in the base
-that needs a plural form (T6.10).
+that needs a plural form (T6.13; numbered T6.10 when this shipped, renumbered because T6.10 was taken).
 
 ---
 ## 5.10.0

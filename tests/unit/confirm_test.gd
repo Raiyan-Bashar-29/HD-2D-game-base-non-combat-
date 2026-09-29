@@ -10,7 +10,8 @@ extends TestCase
 ## ROWS ARE PRESSED BY EMITTING `pressed`, which runs the connected Callable synchronously. That
 ## is the Button's own path, so a row wired to the wrong handler fails here.
 ##
-## THIS CASE OWNS user://saves FOR THE RUN, as `menus_test.gd` does: every slot is emptied at
+## THIS CASE OWNS THE SCRATCH SAVE STORE FOR THE RUN, never `user://saves`, as `menus_test.gd`
+## does: set-up points `SaveSystem` at `SaveFixture.ROOT`, and every slot there is emptied at
 ## set-up and again after, because "an empty slot saves without asking" needs one to be empty.
 ##
 ## OWNS: assertions about the confirm screen and the overwrite question.
@@ -41,6 +42,9 @@ func run() -> void:
 
 
 func _set_up() -> void:
+	# This case writes or deletes slots; redirected so they are not the developer's own. The
+	# runner deactivates after every case.
+	SaveFixture.activate()
 	_stack = UiRoot.new()
 	attach(_stack)
 	_keys = ScreenKeys.new()

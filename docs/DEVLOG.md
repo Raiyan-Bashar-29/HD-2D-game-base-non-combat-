@@ -11427,3 +11427,9 @@ this stack had given it. It had been re-resolved on its own branch against T6.5 
 and the board's T6.9 commit line now names `8436c69`. Everything T6.10 and T6.12 added was kept.
 `main` still called the plural-form row T6.10, and this branch keeps it at T6.13. Suite
 `=== 2549 passed, 0 failed, 0 skipped ===`, all seven checkers exit 0, boot `0 warnings, 0 errors`.
+The ladder's windowed capture at `--shot-frame=70` photographed `Loading 48%` three times running
+after this merge. Frames were slow because other sessions' Godot processes (`base 5.10.2`) were
+running: a 260-frame run took 113 s. Outside the documents the tree is byte-identical to
+`2e40f4a`, whose frame-70 capture had shown the courtyard, and a capture at frame 240 shows the
+courtyard at dusk, the HUD and the `[E]` prompt. That run logged one `Keeper cannot reach 'dais'`,
+from simulating at about 2 fps, and no other error.

@@ -35,6 +35,10 @@ extends Node
 ## write cannot reach a real save, and `_saves_were_claimed()` fails the case that made it. Why it
 ## takes both halves is in `tests/framework/save_fixture.gd`'s header.
 ##
+## AND ONE WAY TWO SUITES HARM EACH OTHER (T6.13): every worktree shares `user://`. All scratch
+## lives under `TestScratch.ROOT`, named for this process, removed when the run ends; the first
+## act of a run sweeps any root a crashed run left. `tests/framework/test_scratch.gd` says why.
+##
 ## OWNS: discovering cases, tallying them, enforcing the plans and the exit code.
 ## MUST NOT: contain assertions of its own, or any game logic.
 
@@ -93,6 +97,7 @@ const CASES: Array[String] = [
 	"res://tests/unit/input_device_test.gd",
 	"res://tests/unit/confirm_test.gd",
 	"res://tests/unit/slot_header_test.gd",
+	"res://tests/unit/scratch_test.gd",
 ]
 
 var _passed: int = 0
@@ -114,11 +119,13 @@ var _unclaimed_uses: Array[String] = []
 ## clean sweep it never finished.
 func _ready() -> void:
 	get_tree().quit(1)
+	var swept: int = TestScratch.sweep_stale()
 	_watch = ErrorWatch.new()
 	OS.add_logger(_watch)
 	Events.game_saved.connect(_on_store_used.bind("saved"))
 	Events.game_loaded.connect(_on_store_used.bind("loaded"))
-	Log.info("test", "=== test run starting ===")
+	Log.info("test", "=== test run starting in %s, %d stale run(s) swept ===" % [
+		TestScratch.ROOT, swept])
 	# Determinism: a clock that advances mid-assertion makes time assertions flaky.
 	Clock.paused = true
 	# AND SO IS THE LANGUAGE, for the same reason one step further out. Several cases compare
@@ -138,6 +145,7 @@ func _ready() -> void:
 
 	_no_unattributed_errors()
 	_report()
+	TestScratch.remove_own()
 	get_tree().quit(1 if _failed > 0 else 0)
 
 

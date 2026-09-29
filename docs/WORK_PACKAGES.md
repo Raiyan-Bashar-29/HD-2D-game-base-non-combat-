@@ -128,6 +128,7 @@ original board rather than continuing it.
 | T6.9 | **Running the suite destroyed the developer's real saves** | **DONE** — `5.9.1`, a PATCH, test-only: `src/` and `tools/` byte-identical. **OUT OF NUMBER ORDER ON PURPOSE**: an owner-reported defect, taken ahead of T6.5 under the playtest rule, and numbered after T6.8 so that no planned row's id moves. Fourteen cases wrote or deleted slots against the default `user://saves`, because only T5.22's two had ever called `SaveFixture.activate()`. Seven sentinel saves planted there: the unchanged suite passed 2,437 of 2,437 and **deleted all seven**; fixing only the three suspected cases still lost five; all fourteen redirected, all seven survive byte-identical. `TESTING.md` now states the rule. See below |
 | T6.10 | **A capture or debug launch wrote over the developer's real saves** | **DONE** — `5.10.0`, a MINOR: a class and a flag a game may ignore. **OUT OF NUMBER ORDER ON PURPOSE**, like T6.9, which found it. The ladder's capture rung runs `--new-game`, a real run, so the autosave wrote the real `autosave.json`, and `--save-state`/`--load-state`/`--cross-area-save` deleted real slots. The new `dev_saves.gd`, first of the debug nodes, sets `SaveSystem.save_dir` to `user://dev_saves` for any launch with user arguments; `--real-saves` opts out. **A redirect, not a suppression**, so the capture still photographs the toast. A planted sentinel was overwritten by one capture before and survives it byte-identical after. Also fixed `--autosave-continue`, which could not find the Continue row. `save_system.gd` untouched at 179 of 180. See below |
 | T6.12 | **Nothing failed a case that saved without activating the scratch store** | **DONE** — `5.10.1`, a PATCH on `5.6.1`'s precedents, test-only: `src/` and `tools/` byte-identical. **OUT OF NUMBER ORDER ON PURPOSE**, the gap T6.9 recorded; T6.11 is another open branch's id. Both halves T6.9 offered, because each alone leaves a hole: the runner PARKS the store in `user://test_saves_unclaimed` before every case, so a forgotten `activate()` cannot reach a real save, and FAILS a case that saves, or loads a real file, anywhere but the store it claimed. Heard on `game_saved`/`game_loaded`, not by a directory diff. **Three plants red**, each naming its case: `confirm_test` and `menus_test` (saves) and `save_recovery_test` (a hand-planted file, loaded then deleted). Seven sentinel saves survived every run. See below |
+| T6.13 | **Two suite runs at once deleted each other's scratch files** | **DONE** — `5.10.2`, a PATCH, test-only: `src/` and `tools/` byte-identical. **OUT OF NUMBER ORDER ON PURPOSE**, found while proving T6.12. `user://` is shared by every worktree, and six fixed scratch names under it were shared by concurrent runs, so each `SaveFixture.activate()` emptied the other run's slots. `TestScratch.ROOT` is `user://test_run_<pid>`; every fixture and case builds under it, the runner removes it at the end and sweeps dead runs' roots first. **Proved both ways:** two runs launched at once failed 16 and 17 assertions on T6.12's tip, and both pass here. See below |
 | T6.5 | **Losing window focus leaves nothing latched** | **TODO — next.** Forgotten #3. Measure first. Manifest below |
 | T6.6 | **Text in any script renders, not as tofu** | **TODO.** Bengali and CJK. Manifest below |
 | T6.7 | **Dialogue for fast and slow readers** | **TODO.** Forgotten #5. After T6.2. Manifest below |
@@ -6477,10 +6478,69 @@ that tripped the first version of the load check.
 **Not done: two suite runs at once still share `user://test_saves`.** Found while proving this: a
 clean run failed eleven assertions in `menus_test` and `smoke_test` because another session's
 suite overlapped it, and each `activate()` empties the directory. The re-run was green. Flagged as
-its own task: per-process scratch directories.
+its own task: per-process scratch directories. **Closed by T6.13.**
 
 **Scope.** `5.10.1`, a PATCH. Test-only: `tests/test_runner.gd`,
 `tests/framework/save_fixture.gd`, `tests/unit/save_dir_test.gd`, and the documents. Suite 2,483 → **2,487**, +4: 2 in `save_dir_test` and 2 in `record_shape_test` for this row's package id; every other case unmoved.
 
-**Commit:** on `claude/t6-12-save-guard`, stacked on `claude/t6-10-capture-saves` (PR #72), PR
-targeting `main`. No SHA, per item 6.
+**Commit:** `3e62559`, stripped count `ebcca9c`, on `claude/t6-12-save-guard` (PR #73), stacked on `claude/t6-10-capture-saves` (PR #72), PR
+targeting `main`. Filled in by T6.13.
+
+## T6.13 · Two suite runs at once deleted each other's scratch files — **DONE**
+
+**Found while proving T6.12.** A clean run failed eleven assertions in `menus_test` and
+`smoke_test` ("the session loads — expected 0, got 16") because another session's suite
+overlapped it, and the re-run passed. T6.9's gaps had recorded the same thing. `user://` is named
+for the project, not the checkout, so every worktree on a machine shares one, and the suite's
+scratch directories were fixed names under it. `SaveFixture.activate()` empties its directory, so
+one run deleted the other's slot files mid-case.
+
+**Six fixed names, not the two the task named.** `SaveFixture.ROOT` and `UNCLAIMED`, and
+`Fixtures.ROOT`, which races more quietly: every `activate()` rewrites the `.tres` files, so a
+registry could scan one the other run was half way through writing. Then three in cases:
+`content_scan_test` (clears and removes its directories), `export_test`'s empty root, and
+`save_dir_test`'s `STAND_IN`, which it erases.
+
+**Decided: one root per process, named for its pid, and no seam in `src/`.** The pid and not a
+random suffix, because a pid lets a later run tell a crashed run's leftovers from a live run's
+directory. `tests/framework/test_scratch.gd` owns `TestScratch.ROOT`, `user://test_run_<pid>`, and
+`path(name)`. The six paths became `static var`s built on it, because a pid is not a constant
+expression. `SaveSystem.save_dir` and each registry's `content_dir` were already the seams.
+
+- **Removed on the way out.** The runner calls `TestScratch.remove_own()` after the report.
+- **Swept on the way in.** A run that crashed never reaches that line, so the runner's first act is
+  `sweep_stale()`: it removes every other `test_run_<n>` whose process `OS.is_process_running`
+  says has exited. A live run's root is never touched. A reused pid can only make a dead run's
+  directory survive one more run, never delete a live one.
+- **The old fixed directories are not swept**, because a branch still on the old names may be
+  using them right now. They are unused on this branch, and can be deleted by hand.
+
+**`scratch_test` raced with itself on its first version.** It planted its "dead run" in `user://`
+itself, and two suites at once each swept the other's plant before asserting it. `sweep_stale`
+now takes the parent to sweep, the runner passes `user://`, and the case sweeps a sandbox inside
+its own root: a dead run, a live one (this process) and a folder that names no pid, exactly one
+removed. The runner's real sweep of `user://` is proved by the concurrent run, which logged
+`1 stale run(s) swept` for a planted `test_run_2147479996`.
+
+**Assertions: `scratch_test.gd`, 12.** The root names this process; each fixture root is under it;
+the sweep removes exactly the dead run, files and all, and leaves the live one and the non-run.
+**Plant:** `SaveFixture.ROOT` back to `"user://test_saves"` exits 1, and `scratch_test` fails
+by name: `the save scratch is this run's`.
+
+**The concurrency, both ways.** Two suites launched from one shell at the same second, with a
+crashed run's root planted:
+- on T6.12's tip, `ebcca9c`: exit 1 and 1, `2471 passed, 16 failed` and `2470 passed, 17 failed`.
+- on this branch: exit 0 and 0, both `2499 passed, 0 failed`, overlapping for all 46 seconds, and
+  no `test_run_*` left afterwards.
+
+**Not done: T6.11's `user://test_settings.cfg`.** PR #74 adds a fixed-name scratch settings file
+to `save_fixture.gd`, not on this branch. Whichever of the two lands second builds it with
+`TestScratch.path("settings.cfg")`.
+
+**Scope.** `5.10.2`, a PATCH. Test-only: `tests/framework/test_scratch.gd` (new),
+`tests/unit/scratch_test.gd` (new), `tests/test_runner.gd`, `tests/framework/save_fixture.gd`,
+`tests/framework/fixtures.gd`, `tests/unit/content_scan_test.gd`, `tests/unit/export_test.gd`,
+`tests/unit/save_dir_test.gd`, and the documents. Suite 2,487 → **2,501**, +14: 12 in the new `scratch_test` and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against T6.12's tip, after the documentation landed.
+
+**Commit:** on `claude/t6-13-scratch-per-process`, stacked on `claude/t6-12-save-guard` (PR #73),
+PR targeting `main`. No SHA, per item 6.

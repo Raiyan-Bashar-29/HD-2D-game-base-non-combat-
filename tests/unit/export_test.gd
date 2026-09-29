@@ -28,7 +28,8 @@ const PRESET_FILE: String = "res://export_presets.cfg"
 ## The one value that makes an unreferenced resource ship. Not a preference: measured.
 const REQUIRED_FILTER: String = "all_resources"
 ## An existing but empty directory, so the empty-root case produces no engine error of its own.
-const EMPTY_ROOT: String = "user://test_export_empty"
+## Under this run's own scratch root (T6.13), so a concurrent run cannot empty it mid-case.
+static var EMPTY_ROOT: String = TestScratch.path("export_empty")
 
 var _saved_item_dir: String = ""
 

@@ -11281,3 +11281,60 @@ T6.9's and T6.10's do, since T6.5 landed. Merge in order T6.9, T6.10, T6.12, tak
 after whatever `main` holds.
 
 **Commit:** on `claude/t6-12-save-guard`, stacked on T6.10's PR #72. No SHA, per board item 6.
+
+## 2026-09-29 — T6.13 · Two suite runs at once deleted each other's scratch files
+
+**Did.** Gave every suite run a scratch root of its own. The new `tests/framework/test_scratch.gd`
+owns `TestScratch.ROOT`, `user://test_run_<pid>`. `SaveFixture.ROOT` and `UNCLAIMED`,
+`Fixtures.ROOT` and its five registry directories, and the three case-local directories in
+`content_scan_test`, `export_test` and `save_dir_test` are now `static var`s built on it. The
+runner sweeps dead runs' roots as its first act and removes its own after the report. New case
+`scratch_test.gd`, 12 assertions. `5.10.2`, a PATCH, test-only.
+
+**Why.** `user://` is named for the project, not the checkout, so every worktree on a machine
+shares it. T6.12's clean run failed eleven assertions while another worktree's suite ran, because
+each `SaveFixture.activate()` empties `user://test_saves`, and T6.9 had recorded the same thing.
+`Fixtures` had the same race more quietly, rewriting `.tres` files another run could be scanning.
+A pid rather than a random suffix, because a pid lets the next run tell a crashed run's
+leftovers from a live one's directory.
+
+**Connects.** `SaveSystem.save_dir` and each registry's `content_dir`, the seams T5.22 and T1.3
+built. `src/` is byte-identical. `tests/test_runner.gd`'s header names the new failure mode, and
+`TESTING.md` states the rule for a case of a game's own: build a scratch path with
+`TestScratch.path()`.
+
+**Verified.**
+- **Two runs at once, on the unfixed T6.12 tip `ebcca9c`**, in a throwaway worktree, launched
+  from one shell: exit 1 and 1, `2471 passed, 16 failed` and `2470 passed, 17 failed`, among them
+  `delete returns OK — expected 0, got 1` and `a save into the stand-in succeeds`.
+- **Two runs at once on this branch**, with a crashed run's root `test_run_2147479996/saves/`
+  planted: exit 0 and 0, both `=== 2499 passed, 0 failed, 0 skipped ===`, both running 20:25:50
+  to 20:26:36. One logged `1 stale run(s) swept`, the other `0`, and no `test_run_*` directory was
+  left after either.
+- **`scratch_test`'s first version failed exactly that proof.** It planted its dead run in
+  `user://`, and each concurrent run swept the other's plant: `the dead run's root is gone —
+  expected false, got true` in one, `a folder that names no pid is not a run` in the other. It now
+  sweeps a sandbox inside its own root, with `sweep_stale(parent)`.
+- **Plant**: `SaveFixture.ROOT` back to `"user://test_saves"`: exit 1, `2487 passed, 10 failed`,
+  `scratch_test` naming `the save scratch is this run's`. The other nine were stale slots the
+  control runs had left in that shared directory, the same hazard again.
+- Import clean, boot `0 warnings, 0 errors`, all seven checkers exit 0. `test_runner.gd` 186 of
+  250, `test_scratch.gd` 31, `scratch_test.gd` 46. Suite `=== 2501 passed, 0 failed, 0 skipped ===`
+  after the documents, twice.
+- Windowed 960x540 capture at 18:40, frozen, looked at: the courtyard at dusk, the HUD's
+  `18:40 | Dusk`, the `[E]` prompt. Session `0 warnings, 0 errors`.
+
+**Unblocks.** Parallel sessions can run the ladder at the same time. Any later package's
+concurrent red run is a real failure, not an overlap to re-run.
+
+**Gaps.** **T6.11 (PR #74) adds `user://test_settings.cfg`**, another fixed scratch name, on a
+branch this one does not contain. Whichever lands second moves it under `TestScratch.path()`.
+**The old fixed directories stay on disk**, unswept on purpose, because a branch still on the old
+names may be using them. Delete them by hand once every open branch has this. **The ladder's
+capture rung** writes `user://dev_saves` and `user://shots`, which T6.10 owns, and two captures
+at once could still collide there. Nobody runs two captures at once, so it stays recorded.
+**This branch conflicts with `main`**, as T6.9, T6.10 and T6.12 do. Merge in order T6.9, T6.10,
+T6.12, T6.13.
+
+**Commit:** on `claude/t6-13-scratch-per-process`, stacked on T6.12's PR #73. No SHA, per board
+item 6.

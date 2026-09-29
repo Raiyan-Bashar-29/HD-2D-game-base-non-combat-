@@ -32,12 +32,14 @@ extends RefCounted
 ## a case whether demo content exists at all.
 ## MUST NOT: build content (that is `FixtureContent`), or assert anything.
 
-const ROOT: String = "user://test_fixtures"
-const ITEM_DIR: String = "user://test_fixtures/items"
-const DIALOGUE_DIR: String = "user://test_fixtures/dialogue"
-const SCHEDULE_DIR: String = "user://test_fixtures/schedules"
-const QUEST_DIR: String = "user://test_fixtures/quests"
-const AREA_DEF_DIR: String = "user://test_fixtures/areas"
+## Under `TestScratch.ROOT`, which is this process's alone (T6.13): a fixed name was shared by
+## every worktree's concurrent run. Not `const`, because the root carries the pid.
+static var ROOT: String = TestScratch.path("fixtures")
+static var ITEM_DIR: String = TestScratch.path("fixtures/items")
+static var DIALOGUE_DIR: String = TestScratch.path("fixtures/dialogue")
+static var SCHEDULE_DIR: String = TestScratch.path("fixtures/schedules")
+static var QUEST_DIR: String = TestScratch.path("fixtures/quests")
+static var AREA_DEF_DIR: String = TestScratch.path("fixtures/areas")
 
 const AREA_ROOT: String = "res://scenes/areas"
 

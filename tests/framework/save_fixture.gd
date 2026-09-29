@@ -33,10 +33,12 @@ extends RefCounted
 ## MUST NOT: write save FILES (a case builds the file it wants to assert about), or assert
 ## anything.
 
-const ROOT: String = "user://test_saves"
+## Under `TestScratch.ROOT`, which is this process's alone (T6.13): a fixed name was shared by
+## every worktree's concurrent run. Not `const`, because the root carries the pid.
+static var ROOT: String = TestScratch.path("saves")
 ## Where the store waits between `park()` and a case's `activate()`. Never `ROOT`, so a write the
 ## runner sees landing here is one no case claimed.
-const UNCLAIMED: String = "user://test_saves_unclaimed"
+static var UNCLAIMED: String = TestScratch.path("saves_unclaimed")
 
 static var _active: bool = false
 

@@ -15,11 +15,12 @@ extends TestCase
 ## MUST NOT: assert what a catalogue's entries MEAN — that is items_test, dialogue_test,
 ## npc_test, quests_test and world_map_test, each of which owns its own content type.
 
-const ROOT: String = "user://content_scan_test"
-const EMPTY_DIR: String = "user://content_scan_test/empty"
-const MISSING_DIR: String = "user://content_scan_test/never_created"
-const WORK_DIR: String = "user://content_scan_test/work"
-const BARE_DIR: String = "user://content_scan_test/bare"
+## Under this run's own scratch root (T6.13), so a concurrent run cannot empty it mid-case.
+static var ROOT: String = TestScratch.path("content_scan_test")
+static var EMPTY_DIR: String = TestScratch.path("content_scan_test/empty")
+static var MISSING_DIR: String = TestScratch.path("content_scan_test/never_created")
+static var WORK_DIR: String = TestScratch.path("content_scan_test/work")
+static var BARE_DIR: String = TestScratch.path("content_scan_test/bare")
 
 const ITEM_LABEL: String = "an ItemDefinition"
 const SOUND_ID: StringName = &"item/scan_sound"

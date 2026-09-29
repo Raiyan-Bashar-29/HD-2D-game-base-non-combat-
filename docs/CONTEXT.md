@@ -3,29 +3,34 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-29 · **T6.12 (a test case that saves without activating the scratch store fails the suite) complete, at 5.10.1, a PATCH.**
-**Phases T1 to T5 are complete and stay complete; Phase T6 is OPEN. T6.5 merged to `main` (PR #71) while T6.9, T6.10 and T6.12 were open, so the next planned package is T6.6.**
+**Last updated:** 2026-09-29 · **T6.13 (two suite runs at once no longer delete each other's scratch files) complete, at 5.10.2, a PATCH.**
+**Phases T1 to T5 are complete and stay complete; Phase T6 is OPEN. T6.5 and T6.6 merged to `main` (PRs #71, #75) while T6.9, T6.10, T6.12 and T6.13 were open, so the next planned package is T6.7.**
 
-**BRANCH MAP.** This branch, `claude/t6-12-save-guard`, is stacked on T6.10 (PR #72), which is
-stacked on T6.9 (PR #70). Neither is merged, and both conflict with `main` since T6.5 landed.
-T6.11 is another open branch's id. Merge in order T6.9, T6.10, T6.12; each takes the next
-version after whatever `main` holds then.
+**BRANCH MAP.** This branch, `claude/t6-13-scratch-per-process`, is stacked on T6.12 (PR #73),
+on T6.10 (PR #72), on T6.9 (PR #70). None is merged, and all conflict with `main`. T6.11 (PR #74)
+is another open branch, and it adds `user://test_settings.cfg`, a fixed scratch name this row did
+not see: whichever lands second moves it under `TestScratch.ROOT`. Merge in order T6.9, T6.10,
+T6.12, T6.13; each takes the next version after whatever `main` holds then.
 
-**A CASE THAT SAVES WITHOUT `SaveFixture.activate()` NOW FAILS THE SUITE, AND CANNOT REACH REAL
-SAVES WHILE IT DOES.** Before every case the runner calls `SaveFixture.park()`, which points the
-store at `user://test_saves_unclaimed`. It listens on `Events.game_saved` and `game_loaded`, and
-fails a case that saves, or loads a real file, while the store is parked or on the shipped
-default. A file left in the parked directory fails it too. Both halves, because a check alone
-goes red only after real slots are gone, and parking alone is silent. Three plants went red by
-name, and seven sentinel saves survived every run. `save_dir_test` now asserts a case starts
-parked, not on the default.
+**EVERY SCRATCH PATH THE SUITE WRITES IS NOW THIS PROCESS'S ALONE.** `user://` is named for the
+project, not the checkout, so every worktree shares it, and six fixed scratch names under it were
+shared by concurrent runs: each `SaveFixture.activate()` emptied the other run's slots mid-case.
+`tests/framework/test_scratch.gd` owns `TestScratch.ROOT`, `user://test_run_<pid>`, and every
+fixture and case builds under it. The runner removes it at the end and first sweeps any root whose
+process has exited. **Proved both ways:** two suites launched at once on the unfixed T6.12 tip
+failed 16 and 17 assertions; on this branch both exit 0 at 2,499. `src/` is byte-identical.
 
-**NOT FIXED: two suite runs at once share `user://test_saves`.** Every worktree shares one
-`user://`, and each `activate()` empties it, so a concurrent run fails assertions in
-`menus_test` and `smoke_test`. It happened once while proving this row. Re-run when nobody else
-is running the suite. Flagged as its own task.
+**LEFTOVERS ON A DEVELOPER'S DISK.** The old fixed directories, `user://test_saves`,
+`test_saves_unclaimed`, `test_saves_stand_in`, `test_fixtures`, `test_export_empty` and
+`content_scan_test`, are no longer written or read. They are not swept, because a branch still on
+the old names may be using them. Delete them by hand once every open branch has this.
 
-**Budgets.** Test-only. `test_runner.gd` 162 → 182 of 250, `save_fixture.gd` 22 → 31 of 250.
+**Budgets.** Test-only. `test_runner.gd` 182 → 186 of 250, `test_scratch.gd` new at 31.
+
+*(Previously: T6.12 made a case that saves without `SaveFixture.activate()` fail the suite, at
+`5.10.1`, a PATCH. The runner parks the store in a scratch directory before every case and fails a
+case that saves, or loads a real file, while parked. Both halves, because a check alone goes red
+only after real slots are gone, and parking alone is silent. Three plants went red by name.)*
 
 *(Previously: T6.10 made a debug launch save to `user://dev_saves`, at `5.10.0`, a MINOR. The
 capture rung's `--new-game` is a real run, so the autosave wrote the developer's real
@@ -44,16 +49,17 @@ real `user://settings.cfg`, because `Settings.PATH` is a `const`.)*
 | ~~T6.9~~ | ~~the suite destroyed real saves; every case that saves redirects first~~ **DONE**, out of number order | owner-reported |
 | ~~T6.10~~ | ~~a capture or debug launch saves to scratch, never over the developer's saves~~ **DONE**, out of number order | found by T6.9 |
 | ~~T6.12~~ | ~~a case that saves without activating the scratch store fails the suite~~ **DONE**, out of number order | found by T6.9 |
+| ~~T6.13~~ | ~~two suite runs at once no longer share a scratch directory~~ **DONE**, out of number order | found by T6.12 |
 | ~~T6.5~~ | ~~losing window focus leaves nothing latched; pausing on it is a setting~~ **DONE on `main`**, PR #71 | forgotten #3 |
-| **T6.6** | Bengali and CJK both render through a font fallback chain | structural |
-| T6.7 | dialogue can skip to its end and auto-advance | forgotten #5 |
+| ~~T6.6~~ | ~~Bengali and CJK both render through a font fallback chain~~ **DONE on `main`**, PR #75 | structural |
+| **T6.7** | dialogue can skip to its end and auto-advance | forgotten #5 |
 | T6.8 | every forgotten item marked DONE or CLOSED, gated by a text scan | the exit criterion |
 
 **THE OWNER'S PLAYTEST OUTRANKS THIS QUEUE.** A defect found by playing becomes the next row ahead of
 anything above — found, not invented, the standard every T6 row had to meet. T6.9 is the first,
-numbered after T6.8 so that no planned id moves. T6.10 and T6.12 were both found while proving T6.9.
+numbered after T6.8 so that no planned id moves. T6.10 and T6.12 were both found while proving T6.9, and T6.13 while proving T6.12.
 
-Suite 2,483 → **2,487**, +4: 2 in `save_dir_test` (a case starts parked, and the `is_unclaimed` rule both ways) and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against T6.10's tip, after the documentation landed.
+Suite 2,487 → **2,501**, +14: 12 in the new `scratch_test` and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against T6.12's tip, after the documentation landed.
 
 *(Previously: T6.9 stopped the suite touching `user://saves`, at `5.9.1`, a PATCH, test-only.
 Fourteen cases wrote or deleted slots there, and a green run of the unchanged suite deleted all
@@ -319,10 +325,10 @@ another sheet, and every facing draws a different figure.
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version is** **5.10.1**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+**The version is** **5.10.2**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
 the owner's to close or to leave.
 
-**THE NEXT PACKAGE IS T6.5, AND IT IS A QUEUE AGAIN — FOR ONE PHASE.** From T5.32 until T6.0 this
+**THE NEXT PACKAGE IS T6.7, AND IT IS A QUEUE AGAIN — FOR ONE PHASE.** From T5.32 until T6.0 this
 paragraph said there was no next package and the base was complete; T1 to T5 still are. The owner
 then opened Phase T6 (see the headline and `ROADMAP.md` § Phase T6), so the board holds eight
 planned rows with file manifests, and a new session takes **the lowest unfinished T6 row** rather
@@ -391,7 +397,7 @@ three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite shee
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 4 on the default one, the
 fourth being a second IDLE rather than a gait**,
 1 shared area material, **21 settings and 21 consumers**.
-Template version **5.10.1**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+Template version **5.10.2**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
 recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 
@@ -948,7 +954,7 @@ three compiled cleanly and passed every static gate:**
   `tests/framework/fixtures.gd` is the seam, and its rule is one line: **in memory when a system
   is HANDED content, on disk when a system LOOKS IT UP BY ID.** The three registries scan a
   directory (ADR-0006) and cache statically, so an in-memory `ItemDefinition` is invisible to
-  `Inventory.add(id)`; the fixtures write `.tres` files to `user://test_fixtures/` and point
+  `Inventory.add(id)`; the fixtures write `.tres` files under `TestScratch.ROOT` and point
   `content_dir` there. A test-only injection method on each registry was rejected: a backdoor in
   engine code that exists for the suite and nothing else is worse than a temp folder, and going
   out through `ResourceSaver` and back through the real scan proves the authoring round trip as a

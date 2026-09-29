@@ -18,7 +18,8 @@ extends TestCase
 ## OWNS: assertions about `SaveSystem.save_dir`, `slot_path`'s use of it, and `SaveFixture`.
 ## MUST NOT: assert what a save file CONTAINS, or that a load succeeds — that is the other two.
 
-const STAND_IN: String = "user://test_saves_stand_in"
+## Under this run's own scratch root (T6.13), so a concurrent run cannot empty it mid-case.
+static var STAND_IN: String = TestScratch.path("saves_stand_in")
 const SLOT: int = 0
 const PROBE: StringName = &"save_dir_probe"
 

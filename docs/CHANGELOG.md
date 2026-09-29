@@ -19,6 +19,28 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.10.2
+
+*2026-09-29 — two suite runs at once no longer delete each other's scratch files.*
+
+**A consuming game does: nothing, unless a case of YOURS writes to a fixed path under `user://`.**
+Build that path with `TestScratch.path("<name>")` instead, or two runs of your suite at once can
+empty it under each other. **PATCH:** `src/` and `tools/` are byte-identical, and every seam
+the suite uses was already there. `SaveFixture.ROOT`, `UNCLAIMED` and the `Fixtures.*_DIR` paths
+are now `static var`, not `const`, because they carry the process id. Code that only READS them
+is unaffected; a `const` of your own built from one will no longer parse, so make it a
+`static var` too. **If your game has its own runner**, copy the `TestScratch.sweep_stale()` and
+`remove_own()` calls from `tests/test_runner.gd`.
+
+**What changed.** `user://` is named for the project, not the checkout, so every worktree on a
+machine shares it, and the suite's six scratch directories had fixed names under it. Each
+`SaveFixture.activate()` empties its directory, so one run deleted another's slot files mid-case.
+`tests/framework/test_scratch.gd` gives each run `user://test_run_<pid>`, removed when the run ends,
+and the runner's first act sweeps any other run's root whose process has exited. Two suites
+launched at once on `5.10.1` failed 16 and 17 assertions; on `5.10.2` both pass. The old fixed
+directories are no longer used, and can be deleted by hand.
+
+---
 ## 5.10.1
 
 *2026-09-29 — a test case that saves without `SaveFixture.activate()` now fails the suite, and

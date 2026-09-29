@@ -1539,6 +1539,11 @@ was classified, including the ones refused.
   directory before every case and fails a case that saves, or loads a real file, while parked.
   Three cases with `activate()` removed went red, and seven sentinel saves survived every run.
   Test-only. No exit criterion covers a defect fix, so none is ticked.
+- **T6.13 Two suite runs at once deleted each other's scratch files — DONE, 2026-09-29,
+  `5.10.2`.** Found while proving T6.12. Every scratch path is now under `user://test_run_<pid>`,
+  removed at the end of the run, and a crashed run's root is swept by the next. Two concurrent
+  runs failed 16 and 17 assertions before and pass after. Test-only. No exit criterion covers a
+  defect fix, so none is ticked.
 - **T6.5 Losing window focus leaves nothing latched** — planned. Forgotten #3.
 - **T6.6 Text in any script renders, not as tofu** — planned. Bengali and CJK, owner's choice.
 - **T6.7 Dialogue for fast and slow readers** — planned. Forgotten #5.

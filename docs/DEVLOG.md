@@ -11112,6 +11112,9 @@ not the sites someone happened to fix.
   of 7, lost 0`, each file still holding its own name.
 - **Plant: only the three reported cases redirected.** `=== 2437 passed ...`, exit 0, and `survived
   2 of 7, lost 5`: slots 2 to 5 and the autosave. That is why all fourteen changed.
+- CI on `6e7f5df`, both jobs green: full `=== 2473 passed, 0 failed, 0 skipped ===` (job 109371292649),
+  stripped `=== 2399 passed, 0 failed, 25 skipped ===` (job 109371293082). `TESTING.md` still said
+  T6.3's stripped `2363` and now says `2399`.
 - After the documentation landed and `main` (T6.4) was merged in: `=== 2473 passed, 0 failed, 0
   skipped ===`, exit 0, measured per
   case against `main` at 2,471: +2, both in `record_shape_test` for this row's package id,

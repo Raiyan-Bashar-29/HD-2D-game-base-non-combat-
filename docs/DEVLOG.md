@@ -11321,6 +11321,8 @@ built. `src/` is byte-identical. `tests/test_runner.gd`'s header names the new f
 - Import clean, boot `0 warnings, 0 errors`, all seven checkers exit 0. `test_runner.gd` 186 of
   250, `test_scratch.gd` 31, `scratch_test.gd` 46. Suite `=== 2501 passed, 0 failed, 0 skipped ===`
   after the documents, twice.
+- CI on `a9286c4`, both jobs green: full `=== 2501 passed, 0 failed, 0 skipped ===` (job 109472116462),
+  stripped `=== 2427 passed, 0 failed, 25 skipped ===` (job 109472117073). `TESTING.md` now says `2427`.
 - Windowed 960x540 capture at 18:40, frozen, looked at: the courtyard at dusk, the HUD's
   `18:40 | Dusk`, the `[E]` prompt. Session `0 warnings, 0 errors`.
 

@@ -11585,4 +11585,4 @@ drew the new row with no edit, because it is generated from `Settings.DEFAULTS`.
 now skips; that is the conventional mapping, but no player has tried it. A slow capture logged
 `Keeper cannot reach 'dais'` (gotcha 21's guard) and was not investigated.
 
-**Commit:** on `claude/t6-7-dialogue-speed`, PR targeting `main`. No SHA, per board item 6.
+**Commit:** on `claude/t6-7-dialogue-speed`, PR #78 targeting `main`. No SHA, per board item 6. CI on `e6db60b`, PR #78: `Ladder (stripped template)`, job 109480897827: `=== 2517 passed, 0 failed, 25 skipped ===`; `Ladder (full checkout)`, job 109480898120: `=== 2591 passed, 0 failed, 0 skipped ===`. `TESTING.md` now states the stripped `2517`.

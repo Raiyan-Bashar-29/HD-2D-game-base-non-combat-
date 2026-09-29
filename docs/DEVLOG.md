@@ -11078,18 +11078,137 @@ loud. `menus_test.gd` and `confirm_test.gd` still write into the real `user://sa
 `SaveFixture.ROOT`, and empty it at set-up. That was not introduced here and is flagged as a
 separate task.
 
-**Commit:** on `claude/t6-4-slot-header`, PR targeting `main`. No SHA, per board item 6.
+**Commit:** `a90b57a` on `claude/t6-4-slot-header`, PR #69, targeting `main`, merged as `9b6a7e7`; no separate CI-record commit was made. Filled in by T6.5, which also took the stripped count from the CI job log (`Ladder (stripped template)`, job 109354905555: `=== 2397 passed, 0 failed, 25 skipped ===`; full job 109354905350: `=== 2471 passed, 0 failed, 0 skipped ===`). `TESTING.md` had kept T6.3's stripped `2363` through T6.4; T6.5 replaces it.
+
+## 2026-09-29 — T6.5 · Losing window focus leaves nothing latched; pausing on it is a setting
+
+**Did.** Forgotten #3. First merged PR #69 (T6.4) with plain `gh pr merge 69 --merge`, since it was
+CLEAN with four green checks, then branched `claude/t6-5-focus-loss` from `9b6a7e7`. Measured the
+engine first, windowed (below). `UiRoot` now announces `Events.focus_lost`, deferred, on
+`NOTIFICATION_APPLICATION_FOCUS_OUT`. `PlayerController` drops a toggled run, `InteractionSensor`
+drops a hold in progress, and `RebindScreen` stops listening. `gameplay/pause_on_focus_loss` is a
+new setting, off by default, and `ScreenKeys.pause_for_focus_loss` opens the pause menu when it is
+on. `UiRoot.open` now rolls back a screen the engine refused to add. New case
+`focus_loss_test.gd`, 30 assertions. Gotcha 80. `5.10.0`, a MINOR.
+
+**The measurement, with the command.** A temporary `extends SceneTree` probe,
+`src/systems/debug/focus_probe.gd`, bound `probe_hold` to physical D and printed focus, key and
+action state every 0.25s. It was run as `Godot_v4.7.2-stable_win64_console.exe --path .
+--resolution 640x360 --script res://src/systems/debug/focus_probe.gd`, started from PowerShell. The
+driver called `user32!keybd_event(0x44, 0x20, KEYEVENTF_SCANCODE)` to hold D, alt-tabbed away
+after 2s, and released D 2s later while unfocused. Output: `t=2.03 EVENT D`, then
+`focused=true key=true action=true` through t=4.02, then `focused=false key=false action=false`
+from t=4.26 to the end. No release event was logged. **Godot 4.7.2 clears held keys and actions on
+focus loss**, so a held walk stops without the base doing anything. A pad was not measured. An
+earlier run with F13 (VK 0x7C, no scancode) registered no press at all, and proved nothing.
+
+**Why.** Only the base's own state can stay latched: a run toggled on, a hold part-way to firing,
+a rebind row waiting for a key. The engine knows nothing about those. Pausing is a setting and not
+a default, because this project verifies visuals with windows launched from a terminal. A click
+back to that terminal would pause every capture, and a player glancing at a second monitor would
+hit the same thing.
+
+**Connects.** `UiRoot` announces the event, the way it already announces `ui_mode_changed`.
+`ScreenKeys` does the pausing, because that is where a bus request becomes a screen. `UiRoot` must
+not know what a screen contains. The setting's consumer is `ScreenKeys.PAUSE_ON_FOCUS_LOSS`, which
+`settings_consumers_test` finds by name. The settings screen draws the row from `DEFAULTS` with no
+edit, as its header promises.
+
+**Verified.**
+- `--headless --import` first in the fresh worktree, then after every edit: exit 0, no
+  `SCRIPT ERROR`. Boot `--quit-after 30`: `0 warnings, 0 errors`.
+- Suite before the documentation: `=== 2502 passed, 0 failed, 0 skipped ===` with
+  `focus_loss_test: 27/27`, then 30/30 after the rollback case. After the documentation:
+  `=== 2504 passed, 0 failed, 0 skipped ===`, +33: 30 in the new `focus_loss_test`, 3 in `options_test` and 1 in `settings_consumers_test` for the new setting's row and consumer, 2 in `record_shape_test` for this row's own package id, and −3 in `doc_counts_test`, because the three historical `seventy-nine` lines in `WORK_PACKAGES.md` became digits; every other case unmoved. Measured per case against a `main` worktree.
+- All seven checkers exit 0 with `PASS` and no `SCRIPT ERROR` in their logs.
+- Plants, each exit 1, each restored. Run toggle not cleared: `focus loss drops it — expected
+  false, got true`. `WM_WINDOW_FOCUS_OUT` in `is_focus_loss`: `2500 passed, 2 failed`. Rollback
+  disabled: `2498 passed, 4 failed`. Synchronous emit restored: the engine's own `add_child()
+  failed`, and `the engine's propagation is not answered inside itself — expected 0, got 1`.
+- Windowed, 960×540: `--resolution 960x540 --quit-after 120 -- --new-game --shot=<png>
+  --shot-frame=90 --time=18:40 --freeze-time`, with a temporary two-line probe in
+  `dev_capture.gd` propagating `NOTIFICATION_APPLICATION_FOCUS_OUT` from the root at frame 40.
+  Windows refused `SetForegroundWindow`, even with `AttachThreadInput`, so the OS focus change
+  could not be driven. **The first capture showed a stopped world and no menu**, while the log
+  said `Opened 'pause' at depth 1`. That is gotcha 80, fixed as described. After the fix, the
+  menu is drawn over the dimmed courtyard with Resume focused. The control, with the setting off,
+  shows the courtyard with the prompt up and no menu. Both were looked at. The probes were
+  removed (`git status src/systems` clean), and `settings.cfg` was restored from a copy.
+
+**Unblocks.** T6.6, the font fallback: Bengali and CJK through the theme. `settings.gd` is at 142
+of 150, so T6.7's `gameplay/dialogue_auto_advance` still fits.
+
+**Gaps.** A pad's held buttons were not measured. Getting focus back does nothing, on purpose.
+`InteractionSensor` still reads `Input` directly and would see a held key the same frame focus
+returns. That is the engine's state, and it was measured clear. The capture could not drive the
+OS focus change, so the photographed path starts at the engine's notification. The OS-to-engine
+half is the probe's measurement.
+
+**Commit:** `f0805ce` on `claude/t6-5-focus-loss`, PR #71, targeting `main`, merged as `26f48c1`; no separate CI-record commit was made. Filled in by T6.6, which also took the stripped count from the CI job log (`Ladder (stripped template)`, job 109373463415: `=== 2430 passed, 0 failed, 25 skipped ===`; full job 109373463289: `=== 2504 passed, 0 failed, 0 skipped ===`). `TESTING.md` had kept T6.4's stripped `2397` through T6.5; T6.6 replaces it.
+
+## 2026-09-29 — T6.6 · Text in any script renders, not as tofu
+
+**Did.** First merged PR #71 (T6.5) with plain `gh pr merge 71 --merge`, CLEAN with both CI jobs
+green, as `26f48c1`, and branched `claude/t6-6-font-fallback` from it. Imported first. Captured the
+before state, which showed no tofu, because Windows fonts drew it. Captured again with system
+fallback off: boxes. With permission, downloaded Noto Sans Bengali, Noto Sans SC and their
+licences, and fontTools, and cut a 2.8 MB CJK subset at weight 600. Put the chain in the theme,
+found the fresh-clone `Parse Error`, and moved the chain into `assets/fonts/font_chain.tres`, which
+`UiRoot.install_font_chain` installs at boot. Wrote `font_chain_test.gd`. Checked every count in
+the CSV for `tr_n`, and found `RestPoint`'s `{hours}`, which is now T6.10.
+
+**Why.** Before this, a Bengali or CJK string rendered only if the player's OS had a font for it.
+The machine the base is written on does, so nothing looked broken.
+
+**Connects.** `UiRoot` is the first UI node, and it already sits where the UI's facts are stated.
+`UiAccessibility` and `UiRowStyles` already change the project theme at runtime. `ART_CONTRACT.md`
+§ Fonts is the consumer's rule. `NEW_GAME.md` § 2 lists `assets/fonts/**` as keep.
+
+**Verified.**
+- Fresh worktree: `--headless --import` first. Then a copy of the tree with no `.godot/`:
+  `--import` with the chain in the theme printed `Parse Error: [ext_resource] referenced
+  non-existent resource` ×2. With the chain in its own file, it printed 0, and the fresh boot logged
+  `Font chain installed: 2 fallback(s)`.
+- Boot `--quit-after 30`: `Font chain installed: 2 fallback(s)`, then `0 warnings, 0 errors`.
+- Suite: after the documentation, `=== 2533 passed, 0 failed, 0 skipped ===` with `font_chain_test: 25/25`. Against a `main` worktree, +29: 25 in the new `font_chain_test`, 2 in `record_shape_test` for this row's own package id, and 2 in `docs_test` for the two font paths the board's plant record names; every other case unmoved.
+- All seven checkers exit 0 with `PASS` and no `SCRIPT ERROR`.
+- Plants: Each exited 1, and each was restored byte-identical. With the chain's two fallbacks swapped: `2523 passed, 8 failed`, starting with `fallback 0 is the Bengali font — expected res://assets/fonts/NotoSansBengali-Variable.ttf, got res://assets/fonts/NotoSansSC-SemiBold-subset.ttf`. With `install_font_chain`'s check for an existing `default_font` removed: `2530 passed, 1 failed`, `a theme with its own font keeps it — expected true, got false`.
+- Windowed, 960×540: `--resolution 960x540 --script res://src/systems/debug/font_probe.gd --
+  <png> before|late`, a temporary probe drawing Latin, Bengali, Chinese and Japanese at 64 px with
+  system fallback off. For the after capture it added a real `UiRoot`. Before: boxes. After: all
+  drawn, conjuncts shaped, weights matched. Both were looked at. The probe was removed.
+- The ladder's own capture, `--resolution 960x540 --quit-after 90 -- --new-game --shot=<png>
+  --shot-frame=70 --time=18:40 --freeze-time`, taken on this branch and on a `main` worktree. The
+  courtyard, the HUD clock, the toast and the prompt match, all in the engine's Latin. One branch
+  capture caught `Loading 50%` at frame 70, so boot time was compared: three alternating runs
+  each, with no other Godot process alive. Branch 4.9, 5.5 and 8.5 s; `main` 6.0, 9.5 and 5.2 s.
+  That is noise, and there is no systematic cost.
+- **A concurrency hazard, recorded because it will recur.** The first suite run failed 8
+  `slot_header_test` assertions, because another session's suite started while mine was in that
+  case, and both write the shared `user://` fixture folders. It is not a defect in this row. The
+  measured runs were started only with no other Godot process alive. The user data directory was
+  copied aside first, and was compared afterwards: `saves/` was empty before and after, and
+  `settings.cfg` was byte-identical.
+
+**Unblocks.** T6.7, dialogue skip and auto-advance. `settings.gd` is still at 142 of 150.
+
+**Gaps.** No Bengali or CJK locale column exists, so no real translated screen was photographed,
+only the chain drawing the strings. Hangul is not in the subset. A game that sets its own
+`default_font` gets no fallbacks unless it adds them, and `ART_CONTRACT.md` says so. RestPoint's
+plural is T6.10.
+
+**Commit:** on `claude/t6-6-font-fallback`, PR targeting `main`. No SHA, per board item 6.
 
 ## 2026-09-29 — T6.9 · Running the suite destroyed the developer's real saves
 
-**Did.** Owner-reported, taken ahead of T6.5. `menus_test.gd` and `confirm_test.gd` said they owned
+**Did.** Owner-reported, taken ahead of T6.7. `menus_test.gd` and `confirm_test.gd` said they owned
 `user://saves` for the run and cleared every slot there, and neither had called
 `SaveFixture.activate()`. The report also asked about `settings_effects_test.gd`. Grepping for
 every call that touches the store found **fourteen** unredirected cases, not three. Each now calls
 `SaveFixture.activate()` first: at the top of `_set_up` where a case has one, directly after
 `plan()` otherwise. The two headers now say the scratch store. `TESTING.md` states the rule,
-gotcha 79 records the instance, and the version is `5.9.1`, a PATCH. Numbered T6.9 rather than
-T6.5 so that no planned row's id moves. A suffix was not possible, because `record_shape_test.gd`
+gotcha 79 records the instance, and the version is `5.11.1`, a PATCH. Numbered T6.9 rather than
+T6.7 so that no planned row's id moves. A suffix was not possible, because `record_shape_test.gd`
 reads `T6.3a` as T6.3.
 
 **Why.** Since T5.22, `SaveFixture` has existed so that the suite never touches a developer's
@@ -11119,6 +11238,10 @@ not the sites someone happened to fix.
   skipped ===`, exit 0, measured per
   case against `main` at 2,471: +2, both in `record_shape_test` for this row's package id,
   every other case unmoved. Sentinels planted for that run survived it too, 7 of 7.
+- After `main` brought T6.5 and T6.6 in: `=== 2535 passed, 0 failed, 0 skipped ===`, exit 0, against
+  `main` at 2,533, +2, both in `record_shape_test`. A real `autosave.json` that was not this row's
+  was in `user://saves` by then, so only the six slot sentinels were planted, all six survived,
+  and that file's md5 was unchanged by the run.
 - `--check-only` on the fourteen changed cases: only the documented autoload identifiers.
 - Boot `--quit-after 30`: `0 warnings, 0 errors`.
 - All seven checkers exit 0: budgets, content, boundary, strings, layers, signals, methods.
@@ -11132,8 +11255,8 @@ not the sites someone happened to fix.
   demo content no test may name. Every worktree shares one `user://`, so that file was left for
   its owner.
 
-**Unblocks.** T6.5, next, unchanged. T6.4 merged to `main` while this row was open, and it was merged
-into the branch before the final ladder. Its new `slot_header_test.gd` already activates the scratch
+**Unblocks.** T6.7, next, unchanged. T6.4, T6.5 and T6.6 merged to `main` while this row was open, and each was merged
+into the branch before the final ladder. T6.4's `slot_header_test.gd` already activates the scratch
 store, and any later case that saves belongs in the scratch store from
 the first line, and `TESTING.md` says so.
 

@@ -11201,14 +11201,14 @@ plural is T6.10.
 
 ## 2026-09-29 — T6.9 · Running the suite destroyed the developer's real saves
 
-**Did.** Owner-reported, taken ahead of T6.5. `menus_test.gd` and `confirm_test.gd` said they owned
+**Did.** Owner-reported, taken ahead of T6.7. `menus_test.gd` and `confirm_test.gd` said they owned
 `user://saves` for the run and cleared every slot there, and neither had called
 `SaveFixture.activate()`. The report also asked about `settings_effects_test.gd`. Grepping for
 every call that touches the store found **fourteen** unredirected cases, not three. Each now calls
 `SaveFixture.activate()` first: at the top of `_set_up` where a case has one, directly after
 `plan()` otherwise. The two headers now say the scratch store. `TESTING.md` states the rule,
-gotcha 79 records the instance, and the version is `5.9.1`, a PATCH. Numbered T6.9 rather than
-T6.5 so that no planned row's id moves. A suffix was not possible, because `record_shape_test.gd`
+gotcha 79 records the instance, and the version is `5.11.1`, a PATCH. Numbered T6.9 rather than
+T6.7 so that no planned row's id moves. A suffix was not possible, because `record_shape_test.gd`
 reads `T6.3a` as T6.3.
 
 **Why.** Since T5.22, `SaveFixture` has existed so that the suite never touches a developer's
@@ -11238,6 +11238,10 @@ not the sites someone happened to fix.
   skipped ===`, exit 0, measured per
   case against `main` at 2,471: +2, both in `record_shape_test` for this row's package id,
   every other case unmoved. Sentinels planted for that run survived it too, 7 of 7.
+- After `main` brought T6.5 and T6.6 in: `=== 2535 passed, 0 failed, 0 skipped ===`, exit 0, against
+  `main` at 2,533, +2, both in `record_shape_test`. A real `autosave.json` that was not this row's
+  was in `user://saves` by then, so only the six slot sentinels were planted, all six survived,
+  and that file's md5 was unchanged by the run.
 - `--check-only` on the fourteen changed cases: only the documented autoload identifiers.
 - Boot `--quit-after 30`: `0 warnings, 0 errors`.
 - All seven checkers exit 0: budgets, content, boundary, strings, layers, signals, methods.
@@ -11251,8 +11255,8 @@ not the sites someone happened to fix.
   demo content no test may name. Every worktree shares one `user://`, so that file was left for
   its owner.
 
-**Unblocks.** T6.5, next, unchanged. T6.4 merged to `main` while this row was open, and it was merged
-into the branch before the final ladder. Its new `slot_header_test.gd` already activates the scratch
+**Unblocks.** T6.7, next, unchanged. T6.4, T6.5 and T6.6 merged to `main` while this row was open, and each was merged
+into the branch before the final ladder. T6.4's `slot_header_test.gd` already activates the scratch
 store, and any later case that saves belongs in the scratch store from
 the first line, and `TESTING.md` says so.
 
@@ -11266,7 +11270,6 @@ is recorded, not taken.
 It plays a real session, and the autosave policy does what it does for a player. Out of scope for
 a test-only row, and flagged as its own task. The same shared `user://` means two sessions running
 the suite at once share `user://test_saves` too, and each `activate()` empties it.
-
 ## 2026-09-29 — T6.10 · A capture or debug launch wrote over the developer's real saves
 
 **Did.** Added `src/systems/debug/dev_saves.gd` (`DevSaves`), the first debug node in
@@ -11417,3 +11420,10 @@ that say "T6.10" for the plural are left as written, because they record what wa
 skipped ===`, exit 0, which is `main`'s 2,533 plus the stack's 16. The first run failed three
 assertions in `slot_header_test` while another process's log (`20-24-52`) was writing
 `test_saves`. That is the shared-directory race again, and the re-run was clean.
+
+**Then T6.9 itself landed** on `main`, squash-merged from PR #70 as `8436c69`, at the same `5.11.1`
+this stack had given it. It had been re-resolved on its own branch against T6.5 and T6.6, so
+`main`'s wording of the T6.9 DEVLOG entry, board section and row replaced this branch's copies,
+and the board's T6.9 commit line now names `8436c69`. Everything T6.10 and T6.12 added was kept.
+`main` still called the plural-form row T6.10, and this branch keeps it at T6.13. Suite
+`=== 2549 passed, 0 failed, 0 skipped ===`, all seven checkers exit 0, boot `0 warnings, 0 errors`.

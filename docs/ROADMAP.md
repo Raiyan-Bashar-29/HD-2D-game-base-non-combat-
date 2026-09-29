@@ -1538,7 +1538,7 @@ was classified, including the ones refused.
   the ক্ষ conjunct and the hanzi and kana shaped, and the suite asserts ক্ষ is ONE glyph. The `tr_n`
   check found one count needing a plural form, RestPoint's hours, which is T6.13.
 - **T6.9 Running the suite destroyed the developer's real saves — DONE, 2026-09-29, `5.11.1`.**
-  An owner-reported defect, taken ahead of T6.5 and numbered after T6.8 so no planned id moves.
+  An owner-reported defect, taken ahead of T6.7 and numbered after T6.8 so no planned id moves.
   Fourteen cases wrote or deleted slots in the real `user://saves`, and a green run deleted all
   seven planted sentinel saves. Each case now calls `SaveFixture.activate()` first, and all seven
   survive. Test-only. No exit criterion covers a defect fix, so none is ticked.

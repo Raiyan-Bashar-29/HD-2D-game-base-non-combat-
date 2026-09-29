@@ -3,25 +3,18 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-29 · **T6.3 (a reusable confirm screen; overwriting a save asks first) complete, at 5.8.0, a MINOR.**
+**Last updated:** 2026-09-29 · **T6.9 (running the suite destroyed the developer's real saves) complete, at 5.8.1, a PATCH, test-only.**
 **Phases T1 to T5 are complete and stay complete; Phase T6 is OPEN, and the next package is T6.4.**
 
-**OVERWRITING A SAVE NOW ASKS FIRST.** Pressing an occupied slot on the save screen opens
-`ConfirmScreen` over it: `Overwrite this save?`, the header about to be lost, then Yes and No, with
-**focus on No**. Photographed. An empty slot still saves at once. `ConfirmScreen.asking(question_key,
-detail, on_yes)` is a `MenuScreen` a game reuses for any irreversible action, and adding one needs
-no new screen. It sets `closes_on_cancel = false`, so **escape and pause cannot answer it**. The
-suite proves that against a control: the same event closes a screen that allows it. Nothing in
-`src/ui/root/` changed, because `UiRoot` already honoured the flag.
+**A SUITE RUN NO LONGER TOUCHES `user://saves`.** Fourteen cases wrote or deleted slots there,
+because T5.22's `SaveFixture` had been wired into only the two cases it was written for. Measured
+with seven planted sentinel saves: a green run of the unchanged suite **deleted all seven**. Each
+of the fourteen now calls `SaveFixture.activate()` first, and all seven survive. `TESTING.md`
+states the rule, and gotcha 79 carries it. **Nothing yet fails a new case that forgets.** That is
+recorded in `WORK_PACKAGES.md` § T6.9, not built.
 
-**THE QUIT HALF WAS RECORDED, NOT BUILT, AND IT IS NOT QUITE "SAFE".** T5.10's quit-autosave
-answers it by saving rather than asking. But `Autosave.request()` refuses when autosave is turned
-off and mid-transition, so in those two cases a quit still loses progress without a question.
-`SYSTEMS_INVENTORY.md` item 7 says so. Loading from the pause menu does not ask either; that is
-one `asking` call for a game that wants it.
-
-**Budgets.** `save_screen.gd` 67 → 71 of 250, `confirm_screen.gd` 33. `save_system.gd` stays at
-**176 of 180** for T6.4, and `director.gd` at 187 of 190.
+**Budgets unchanged.** `src/` is byte-identical: `save_system.gd` stays at **176 of 180** for T6.4,
+and `director.gd` at 187 of 190.
 
 **The phase, in order** — manifests in `WORK_PACKAGES.md` § T6.0:
 
@@ -30,6 +23,7 @@ one `asking` call for a game that wants it.
 | ~~T6.1~~ | ~~a save section from a newer build is refused; the first worked migration~~ **DONE** | the defect |
 | ~~T6.2~~ | ~~the base knows the active input device; the prompt shows the right key~~ **DONE** | forgotten #4 |
 | ~~T6.3~~ | ~~a reusable confirm screen; "are you sure" on overwriting a save~~ **DONE** | forgotten #7 |
+| ~~T6.9~~ | ~~the suite destroyed real saves; every case that saves redirects first~~ **DONE**, out of number order | owner-reported |
 | **T6.4** | a slot shows where it was saved, and a damaged slot is shown as damaged | forgotten #15 |
 | T6.5 | losing window focus leaves nothing latched; pausing on it is a setting | forgotten #3 |
 | T6.6 | Bengali and CJK both render through a font fallback chain | structural |
@@ -37,10 +31,15 @@ one `asking` call for a game that wants it.
 | T6.8 | every forgotten item marked DONE or CLOSED, gated by a text scan | the exit criterion |
 
 **THE OWNER'S PLAYTEST OUTRANKS THIS QUEUE.** A defect found by playing becomes the next row ahead of
-anything above — found, not invented, the standard every T6 row had to meet.
+anything above — found, not invented, the standard every T6 row had to meet. T6.9 is the first,
+numbered after T6.8 so that no planned id moves.
 
-Suite 2,408 → **2,437**, +29: 27 in the new `confirm_test` and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `main`, after the documentation
-landed.
+Suite 2,437 → **2,439**, +2, both in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `main`, after the documentation landed.
+
+*(Previously: T6.3 built a reusable confirm screen at `5.8.0`, a MINOR. Pressing an occupied slot
+opens `ConfirmScreen.asking(question_key, detail, on_yes)` with focus on No, and escape and pause
+cannot answer it; an empty slot saves at once. The quit half was recorded, not built: T5.10's
+quit-autosave answers it, except when autosave is off or a transition is in flight.)*
 
 *(Previously: T6.2 taught the base which input device is active at `5.7.0`, a MINOR. The pure
 `InputDevice.device_for(event, previous)` decides, and mouse motion and sub-deadzone stick drift are
@@ -289,7 +288,7 @@ another sheet, and every facing draws a different figure.
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version is** **5.8.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+**The version is** **5.8.1**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
 the owner's to close or to leave.
 
 **THE NEXT PACKAGE IS T6.4, AND IT IS A QUEUE AGAIN — FOR ONE PHASE.** From T5.32 until T6.0 this
@@ -361,7 +360,7 @@ three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite shee
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 4 on the default one, the
 fourth being a second IDLE rather than a gait**,
 1 shared area material, **21 settings and 21 consumers**.
-Template version **5.8.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+Template version **5.8.1**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
 recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 
@@ -2259,6 +2258,14 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     pointer-ordered sorting, which a **two-element probe disproved by luck** before an
     eight-element one confirmed it: `alpha, delta, echo, foxtrot, charlie, bravo, hotel, golf`. A
     probe with two possible orders has even odds of lying to you.
+    **T6.9 is the same lesson, and it cost real saves.** T5.22 built `SaveFixture` and redirected
+    the two cases it had in front of it. Fourteen more kept calling `save_to_slot` and
+    `delete_slot` against the real `user://saves`, and two of them said they owned it. **A green
+    run deleted every real slot and the autosave**, and nothing failed, because a test that
+    deletes what it wrote passes whether or not it was writing somewhere that mattered. Rule:
+    **a case that saves through ANY path calls `SaveFixture.activate()` first** (`TESTING.md`).
+    To check a claim like this, plant a sentinel file where the harm would land and see whether
+    it survives the run. A green suite cannot tell you.
 
 
 ## How work is sliced

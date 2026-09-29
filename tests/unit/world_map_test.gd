@@ -45,6 +45,9 @@ func run() -> void:
 	_areas = Fixtures.area_ids()
 	_demo_defs = AreaDb.ids()
 	plan(FIXED_ASSERTIONS + 1 + PER_AREA * _areas.size() + PER_DEF * _demo_defs.size())
+	# This case writes or deletes slots; redirected so they are not the developer's own. The
+	# runner deactivates after every case.
+	SaveFixture.activate()
 	Fixtures.activate()
 	Flags.clear_all()
 	SaveSystem.unregister(&"world")

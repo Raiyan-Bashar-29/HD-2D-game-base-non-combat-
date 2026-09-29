@@ -1518,6 +1518,11 @@ was classified, including the ones refused.
   pause cannot answer, with focus on No. Pressing an occupied slot on the save screen asks first
   and names the header about to be lost; an empty slot saves at once. The quit half of forgotten
   #7 was already answered by T5.10's quit-autosave and is recorded, not built. Photographed.
+- **T6.9 Running the suite destroyed the developer's real saves — DONE, 2026-09-29, `5.8.1`.**
+  An owner-reported defect, taken ahead of T6.4 and numbered after T6.8 so no planned id moves.
+  Fourteen cases wrote or deleted slots in the real `user://saves`, and a green run deleted all
+  seven planted sentinel saves. Each case now calls `SaveFixture.activate()` first, and all seven
+  survive. Test-only. No exit criterion covers a defect fix, so none is ticked.
 - **T6.4 A save slot says where it was saved, and says so when it is damaged** — planned. Forgotten #15.
 - **T6.5 Losing window focus leaves nothing latched** — planned. Forgotten #3.
 - **T6.6 Text in any script renders, not as tofu** — planned. Bengali and CJK, owner's choice.

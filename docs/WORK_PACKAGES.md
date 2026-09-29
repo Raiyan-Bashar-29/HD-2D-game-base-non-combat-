@@ -124,6 +124,7 @@ original board rather than continuing it.
 | T6.1 | **A save from a newer build must be refused, not applied** | **DONE** — `5.6.3`, a PATCH on `1.0.2`'s "the bug being fixed, not a new restriction". **PROVED RED BEFORE IT WAS FIXED**: on `5.6.2`, a section stored at `"v": 3` for a probe registered at v2 reached its applier — `but its applier was never called — expected 0, got 1` and `so the probe keeps its defaults — expected unset, got from the future`, exactly the two failures T6.0 predicted from reading. `load_from_slot` now refuses a section whose stored version exceeds the registered one — `Log.error`, defaults, continue — the section-level twin of `_migrate`'s envelope refusal; one bad section still does not cost the file. The plant (guard disabled) fails the same two assertions again. **And the suite's first worked, exercised migration**: `_probe_apply` in `save_recovery_test.gd` renames `old_key` → `new_key` from v1 and asserts the value survives, with a v2 boundary block so the refusal cannot pass by refusing everything; `UPGRADING.md` § 4 now tells a game to copy it. `save_system.gd` 172 → 176 of 180, no budget touched. See below |
 | T6.2 | **The base knows which input device is active** | **DONE** — `5.7.0`, a MINOR: a signal, an enum, two methods and a class a game may ignore. The pure `InputDevice.device_for(event, previous)` decides and `Actions` holds the answer, emitting `input_device_changed` only on a change — **no autoload added**, `Actions`' MUST NOT narrowed rather than dropped. Mouse motion and sub-deadzone stick drift are not a switch; unplugging the last pad falls back to the keyboard. The interact prompt now names the button — `[E]  Barter  The Keeper's Basket`, photographed — and **the dialogue hint had said "Space to continue" while Space advanced nothing**, bound to the `jump` T5.5 removed; it now reads `E to continue` and follows the device mid-conversation. Three plants, three different failures. Hotplug cannot be driven headless and is proved by calling the handler. Suite 2,375 → 2,408; see below |
 | T6.3 | **A reusable confirm screen, and "are you sure" on overwriting a save** | **DONE** — `5.8.0`, a MINOR: a class and three strings a game may ignore. `ConfirmScreen.asking(question_key, detail, on_yes)` is a `MenuScreen` with `closes_on_cancel = false`, so **escape and pause cannot answer it**, and focus lands on **No**, so mashing accept loses nothing. Pressing an occupied slot on the save screen asks `Overwrite this save?` under the header about to be lost; an empty slot saves at once. The quit half of forgotten #7 is T5.10's quit-autosave, recorded with its two refusals rather than built. Two plants, two different failures, and a control assertion proving the cancel event really reaches `UiRoot`. Photographed over the pause menu. Suite 2,408 → 2,437; see below |
+| T6.9 | **Running the suite destroyed the developer's real saves** | **DONE** — `5.8.1`, a PATCH, test-only: `src/` and `tools/` byte-identical. **OUT OF NUMBER ORDER ON PURPOSE**: an owner-reported defect, taken ahead of T6.4 under the playtest rule, and numbered after T6.8 so that no planned row's id moves. Fourteen cases wrote or deleted slots against the default `user://saves`, because only T5.22's two had ever called `SaveFixture.activate()`. Seven sentinel saves planted there: the unchanged suite passed 2,437 of 2,437 and **deleted all seven**; fixing only the three suspected cases still lost five; all fourteen redirected, all seven survive byte-identical. `TESTING.md` now states the rule. See below |
 | T6.4 | **A save slot says where it was saved, and says so when it is damaged** | **TODO — next.** Forgotten #15. Manifest below |
 | T6.5 | **Losing window focus leaves nothing latched** | **TODO.** Forgotten #3. Measure first. Manifest below |
 | T6.6 | **Text in any script renders, not as tofu** | **TODO.** Bengali and CJK. Manifest below |
@@ -6247,4 +6248,59 @@ and it is one `ConfirmScreen.asking` call; the manifest did not ask for it.
 
 **Scope.** `5.8.0`, a MINOR. Suite 2,408 → 2,437: +29: 27 in the new `confirm_test` and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
 
-**Commit:** on `claude/t6-3-confirm-screen`, PR targeting `main`. No SHA, per item 6.
+**Commit:** `2195b8a` on `claude/t6-3-confirm-screen`, PR #68, targeting `main`, merged as `2b409de`; no separate CI-record commit was made. Filled in by T6.9, which also took the stripped count from the CI job log (`Ladder (stripped template)`, job 109341273520: `=== 2363 passed, 0 failed, 25 skipped ===`; full job 109341273896: `=== 2437 passed, 0 failed, 0 skipped ===`). `TESTING.md` still stated `2301` from T6.1; T6.9 replaces it.
+
+## T6.9 · Running the suite destroyed the developer's real saves — **DONE**
+
+**Reported by the owner, taken ahead of T6.4.** `menus_test.gd` and `confirm_test.gd` each said
+`THIS CASE OWNS user://saves FOR THE RUN`, deleted every slot at set-up, then wrote slots, all
+against `SaveSystem.save_dir`. Neither called `SaveFixture.activate()`, so that was still
+`DEFAULT_SAVE_DIR`. **Numbered T6.9, not inserted as T6.4**, so that no planned row's id, manifest
+or chip prompt moves. A suffix was not available either: `record_shape_test.gd` reads a package id
+as `T<n>.<n>`, so `T6.3a` would have been read as T6.3.
+
+**Measured red before anything was changed.** Seven sentinel files were planted in the real
+`user://saves`: `slot_00.json` to `slot_05.json` plus `autosave.json`, each naming itself. The
+unchanged suite printed `=== 2437 passed, 0 failed, 0 skipped ===` and exited 0, and **all seven
+were gone**.
+
+**It was fourteen cases, not three.** Every case touching the store was found by grepping for
+`save_to_slot`, `delete_slot`, `has_slot` and `request()`. T5.22 had redirected `core_test`,
+`save_dir_test` and `save_recovery_test`; the rest never had been. `settings_effects_test.gd`,
+which the report asked about, is one of them: it writes the autosave and all six manual slots,
+then clears every slot. **Plant: only `menus`, `confirm` and `settings_effects` redirected.** The
+suite was still green and **five of seven were lost**: slots 2 to 5, from `pickups`, `smoke`,
+`traversal`, `dialogue`, `equipment`, `world_map` and `character_depth`, and the autosave, from
+`settings_consumers_test.gd`'s `_clear_autosave`.
+
+**The fix is one call in each of the fourteen**, commented where it stands:
+`SaveFixture.activate()` at the top of `_set_up` in `confirm`, `menus`, `dialogue` and `npc`, and
+directly after `plan()` in `run()` for `character_depth`, `equipment`, `items`, `path_actions`,
+`pickups`, `settings_consumers`, `settings_effects`, `smoke`, `traversal` and `world_map`. Nothing
+in `src/`, `tools/` or `tests/framework/` changed. The runner already called
+`SaveFixture.deactivate()` after every case. The `menus` and `confirm` headers now say they own
+the SCRATCH store and never `user://saves`.
+
+**Fourteen files is over the board's "about 8".** Splitting was rejected: the rule exists so that a
+package fits in one chat, and this is 42 inserted lines. Half the cases redirected would still
+fail the only proof that matters, a real save surviving a run.
+
+**Green.** All seven sentinels survive, each still naming itself, and the suite is unchanged at
+2,437 before the documentation. The sentinels were then removed and the directory is empty again,
+as it was before this row. `TESTING.md` § fixtures now carries the rule: any case that saves,
+through any path, activates first, because nothing fails when it does not.
+
+**No new gotcha, and that was a choice.** This is gotcha 79's lesson again: T5.22 fixed the sites
+it had in front of it, not every site matching the pattern. The instance is appended to 79 rather
+than numbered 80. Renumbering would have meant rewriting three historical lines on this board,
+which `doc_counts_test.gd` reads as claims about the count.
+
+**What still is not gated.** Nothing makes a NEW case that saves without activating fail. The
+runner cannot see a write-then-delete in an empty directory, the ordinary state on CI. The
+structural answer is a runner that activates the scratch store before every case, and
+`save_dir_test.gd` would have to stop asserting the default at entry. That design question was
+recorded, not built.
+
+**Scope.** `5.8.1`, a PATCH, test-only. Suite 2,437 → **2,439**, +2, both in `record_shape_test` for this row's own package id; every other case unmoved, the fourteen changed cases included.
+
+**Commit:** on `claude/heuristic-mclean-b574fd`, PR targeting `main`. No SHA, per item 6.

@@ -22,6 +22,9 @@ var _changes: int = 0
 
 func run() -> void:
 	plan(50)
+	# This case writes or deletes slots; redirected so they are not the developer's own. The
+	# runner deactivates after every case.
+	SaveFixture.activate()
 	_the_authored_catalogue_is_sound()
 	_authored_names_are_translated()
 	Fixtures.activate()

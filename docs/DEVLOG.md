@@ -11025,3 +11025,66 @@ need a label override, which nobody needs yet. T6.2's stripped count `2334` had 
 `TESTING.md`, and this row replaces it.
 
 **Commit:** on `claude/t6-3-confirm-screen`, PR targeting `main`. No SHA, per board item 6.
+
+## 2026-09-29 — T6.9 · Running the suite destroyed the developer's real saves
+
+**Did.** Owner-reported, taken ahead of T6.4. `menus_test.gd` and `confirm_test.gd` said they owned
+`user://saves` for the run and cleared every slot there, and neither had called
+`SaveFixture.activate()`. The report also asked about `settings_effects_test.gd`. Grepping for
+every call that touches the store found **fourteen** unredirected cases, not three. Each now calls
+`SaveFixture.activate()` first: at the top of `_set_up` where a case has one, directly after
+`plan()` otherwise. The two headers now say the scratch store. `TESTING.md` states the rule,
+gotcha 79 records the instance, and the version is `5.8.1`, a PATCH. Numbered T6.9 rather than
+T6.4 so that no planned row's id moves. A suffix was not possible, because `record_shape_test.gd`
+reads `T6.3a` as T6.3.
+
+**Why.** Since T5.22, `SaveFixture` has existed so that the suite never touches a developer's
+saves, and the runner resets it after every case. But it only helps a case that calls it, and
+T5.22 wired the two it was written for. Every other case that saves passed green while writing to,
+and deleting from, the real directory. "Deletes what it wrote" is no defence: the suite's slot
+numbers are a player's slot numbers.
+
+**Connects.** `tests/framework/save_fixture.gd` and `test_runner.gd`'s unconditional
+`SaveFixture.deactivate()`, both unchanged. Gotcha 79, whose lesson this is: grep for the pattern,
+not the sites someone happened to fix.
+
+**Verified.**
+- Fresh worktree: `--headless --import` first, exit 0.
+- **Red first, on the unchanged tree.** The real directory was empty before this row. Seven sentinel
+  files were planted in it, `slot_00.json` to `slot_05.json` plus `autosave.json`, each holding its
+  own name. Suite: `=== 2437 passed, 0 failed, 0 skipped ===`, exit 0, and then `survived 0 of 7,
+  lost 7`.
+- **Fixed**, sentinels re-planted: `=== 2437 passed, 0 failed, 0 skipped ===`, exit 0, `survived 7
+  of 7, lost 0`, each file still holding its own name.
+- **Plant: only the three reported cases redirected.** `=== 2437 passed ...`, exit 0, and `survived
+  2 of 7, lost 5`: slots 2 to 5 and the autosave. That is why all fourteen changed.
+- After the documentation landed: `=== 2439 passed, 0 failed, 0 skipped ===`, exit 0, measured per
+  case against the unchanged tree: +2, both in `record_shape_test` for this row's package id,
+  every other case unmoved. Sentinels planted for that run survived it too, 7 of 7.
+- `--check-only` on the fourteen changed cases: only the documented autoload identifiers.
+- Boot `--quit-after 30`: `0 warnings, 0 errors`.
+- All seven checkers exit 0: budgets, content, boundary, strings, layers, signals, methods.
+- Windowed 960x540 capture at 18:40, frozen, looked at: the courtyard at dusk, HUD, the `[E]` prompt,
+  and an `Autosaved.` toast. Session `0 warnings, 0 errors`. **It overwrote the sentinel
+  `autosave.json`.** That is the GAME, not the suite: `--new-game` starts a real run, and T5.10's
+  arrival and quit autosaves write the real slot as designed. See Gaps.
+- The sentinels were removed afterwards. An `autosave.json` then appeared mid-suite, and it was not
+  the suite's: `project_gulistan_2026-09-29T16-40-05.log` is a separate `--new-game 'courtyard'`
+  process from another session on this machine, logging `Slot 6 written (6 sections)`. It names
+  demo content no test may name. Every worktree shares one `user://`, so that file was left for
+  its owner.
+
+**Unblocks.** T6.4, next, unchanged. Its own save assertions now belong in the scratch store from
+the first line, and `TESTING.md` says so.
+
+**Gaps.** **Nothing fails a new case that saves without activating.** A runner-side check cannot
+see a write followed by a delete in an empty directory, and an empty directory is the ordinary
+state on CI. The structural fix is for the runner to activate the scratch store before every
+case, which means `save_dir_test.gd` must stop asserting the default at entry. That design choice
+is recorded, not taken. `TESTING.md`'s stripped count had stayed at T6.1's `2301` through T6.2 and
+T6.3, although T6.3's log said it had been replaced. This row sets it from CI.
+
+**The ladder's capture rung writes the developer's real autosave**, found while proving this row.
+It plays a real session, and the autosave policy does what it does for a player. Out of scope for
+a test-only row, and flagged as its own task. The same shared `user://` means two sessions running
+the suite at once share `user://test_saves` too, and each `activate()` empties it.

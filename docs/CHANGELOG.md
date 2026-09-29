@@ -19,6 +19,28 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.8.1
+
+*2026-09-29 — running the suite no longer destroys the developer's real saves.*
+
+**A consuming game does: nothing to merge.** Your inherited cases stop touching your saves the
+moment this lands. **But check any case YOUR game added:** if it calls `SaveSystem.save_to_slot`,
+`delete_slot`, or drives anything that saves, give it `SaveFixture.activate()` at the start of its
+set-up, or it will keep writing to, and deleting from, the real `user://saves` while passing.
+**PATCH**: only `tests/unit/` and the documents changed. `src/`, `tools/` and every data shape are
+byte-identical, so nothing a game wrote is affected. There is no "no version" option to take
+instead: every entry here is a version, and `version_test.gd` ties the top one to `project.godot`.
+`5.6.2`, documentation only, is the precedent for a PATCH where no game code moves.
+
+**What changed.** T5.22 made the store redirectable and pointed two cases at the scratch store.
+Fourteen more wrote or deleted real slots against the default `user://saves`, among them
+`menus_test.gd` and `confirm_test.gd`, which clear every slot at set-up. Measured: seven sentinel
+files planted in the real directory, one per slot plus the autosave, and a full green run deleted
+all seven. Each of the fourteen now calls `SaveFixture.activate()` first, and all seven survive
+unchanged. Fixing only the three cases first suspected still lost five of the seven.
+`TESTING.md` states the rule.
+
+---
 ## 5.8.0
 
 *2026-09-29 — a reusable confirm screen, and overwriting a save asks first.*

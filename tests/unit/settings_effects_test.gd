@@ -65,6 +65,9 @@ const FIXTURE_AREA: StringName = &"fixture_area"
 
 func run() -> void:
 	plan(63)
+	# This case writes or deletes slots; redirected so they are not the developer's own. The
+	# runner deactivates after every case.
+	SaveFixture.activate()
 	_the_fade_cuts_instead_of_dissolving()
 	_the_camera_stops_smoothing_and_the_author_still_decides()
 	_shadows_come_back_at_the_size_the_project_authored()

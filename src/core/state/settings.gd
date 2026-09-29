@@ -65,6 +65,7 @@ const DEFAULTS: Dictionary = {
 	"gameplay/show_interact_hints": true,
 	"gameplay/camera_shake": 1.0,    # 0..1 scale on whatever amplitude a rig authored
 	"gameplay/autosave": true,       # a veto on the policy's occasions, never a new one
+	"gameplay/pause_on_focus_loss": false, # opt-in: a capture or a second monitor must not pause
 	"accessibility/text_scale": 1.0,
 	"accessibility/reduce_motion": false,
 	"accessibility/high_contrast_prompts": false,

@@ -326,8 +326,10 @@ makes it resolve from **any** `Control` in the tree, including the HUD, which is
 `UiRoot` and would be missed by handing the theme to the screen stack. No screen is ever handed a
 theme.
 
-A consuming game replaces this file, or points `gui/theme/custom` at its own. Adding a `fonts/`
-entry here is how real type arrives when art stops being deferred. Nothing in `src/` changes.
+A consuming game replaces this file, or points `gui/theme/custom` at its own. Setting
+`default_font` here is how real type arrives when art stops being deferred. Nothing in `src/`
+changes. A theme that sets one opts out of the template's fallback chain, and must give its font
+its own fallbacks. The next section explains.
 
 ### The three-way split, and why it is not the obvious design
 
@@ -393,6 +395,78 @@ Deleting the `UiRowStyles` node from `game_root.tscn` is the third.
 **What has NOT changed is that the base has no look.** `surface` is a placeholder like every
 other colour in that palette. What 4.2.0 removed is not the need to choose one — it is the
 possibility of choosing one and finding the rows ignored it.
+
+### Fonts, and the fallback chain — T6.6
+
+**Text in any script the base ships a font for renders, and does not depend on the player's OS.**
+The engine's default font covers Latin, Greek and Cyrillic and nothing else. Before 5.11.0 a
+Bengali or Chinese string reached the screen only if the player's OS supplied a font for it. That
+worked on the machine it was written on: Windows carries Nirmala UI and YaHei, and the first
+capture of this row showed no tofu at all. On a machine without those fonts every glyph was a box.
+The capture with system fallback switched off showed exactly that.
+
+| File | What it is |
+|---|---|
+| `assets/fonts/font_chain.tres` | a `FontVariation` with **no base font**, and `fallbacks = [Bengali, CJK]`, in that order |
+| `assets/fonts/NotoSansBengali-Variable.ttf` | Noto Sans Bengali 3.011, unmodified, variable (`wght`, `wdth`), asked for weight 600 by the chain. 464 KB |
+| `assets/fonts/NotoSansSC-SemiBold-subset.ttf` | Noto Sans SC 2.004, **subset and pinned at weight 600** by the recipe below. 2.8 MB, from 17.8 MB |
+| `assets/fonts/*-OFL.txt` | each font's SIL Open Font License, beside it |
+
+**No base font is deliberate.** Latin is still drawn by the engine's own font, so nothing that
+rendered before moved. A glyph that font lacks is looked up in the fallbacks in order. The Bengali
+font also carries Latin, and the order keeps it from winning that. **Weight 600 is also
+deliberate:** the engine's default is Open Sans SemiBold, and the first capture at Regular drew
+every Bengali line visibly lighter than the Latin beside it.
+
+**Why the chain is its own file, and not a line in the theme.** This was measured, not chosen. The
+project theme loads at engine start, before the first filesystem scan. On a fresh clone the fonts
+are not imported yet, so a theme naming them printed `Parse Error: [ext_resource] referenced
+non-existent resource` on the first `--import`. That is CI's rung 2, and it is also a consumer's
+first open. So the theme names no font, and `UiRoot.install_font_chain()` puts the chain into the
+project theme at boot. A `Label` already on screen picks it up.
+
+**The rule a game meets:**
+
+- **Keep the chain:** leave `default_font` unset in your theme. To add a script (Arabic, Hangul,
+  Devanagari), append its font to `fallbacks` in `font_chain.tres`. Put it first if it shares code
+  points with a link and must win them.
+- **Bring your own type:** set `default_font` in your theme. `install_font_chain` then leaves it
+  alone, and **your font needs its own `fallbacks`**, or Bengali and CJK return to depending on the
+  player's OS.
+- **Drop a script:** delete its font and its entry in the chain. `tests/unit/font_chain_test.gd`
+  will name what went, because it asserts both links. Replacing that assertion is then a game's
+  edit to a template test, the same way a stripped template deletes the demo.
+
+**The CJK subset, and how to re-cut it.** Chinese from GB2312 (all 6,763 hanzi), Japanese from JIS
+X 0208 level 1 (2,965 kanji) plus the first row of level 2 (94 more, because Shift-JIS lead
+byte `0x98` holds both; 1,117 of the 3,059 are not in GB2312), all kana, CJK symbols and punctuation, and full/half-width forms:
+8,392 code points and 9,227 glyphs, with every OpenType layout feature kept. **Hangul is not in
+it.** Noto Sans SC is a Chinese-first design, so a game shipping Korean or Japanese as a primary
+language should swap in Noto Sans KR or JP, cut the same way. The recipe, using fontTools 4.66:
+
+```python
+from fontTools.ttLib import TTFont
+from fontTools.varLib import instancer
+from fontTools import subset
+# cps = the code points above: decode every GB2312 pair in 0xB0-0xF7 x 0xA1-0xFE, every
+# Shift-JIS pair in 0x88-0x98 x 0x40-0xFC, then add U+3000-30FF, U+31F0-31FF and U+FF00-FFEF.
+font = instancer.instantiateVariableFont(TTFont("NotoSansSC[wght].ttf"), {"wght": 600}, updateFontNames=True)
+options = subset.Options(); options.layout_features = ["*"]; options.name_IDs = ["*"]; options.notdef_outline = True
+subsetter = subset.Subsetter(options); subsetter.populate(unicodes=cps); subsetter.subset(font)
+font.save("NotoSansSC-SemiBold-subset.ttf")
+```
+
+The sources are `github.com/google/fonts`, `ofl/notosansbengali/` and `ofl/notosanssc/`. **The
+licence allows the subset.** The OFL permits modified versions provided they do not use a Reserved
+Font Name. The only one in Noto Sans SC's licence is `Source`, and the subset keeps the name Noto
+Sans SC. **An export carries the licence without an `include_filter`,** because both fonts hold it
+in their `name` table (IDs 13 and 14), which the OFL accepts as machine-readable metadata. A
+credits screen naming them is a game's choice.
+
+**What this does not do, stated so nobody looks for it.** It does not provide right-to-left
+layout, which T6.0 deferred until a real game needs one. It does not provide a Bengali or CJK
+LOCALE: `strings.csv` still has `en` and `en_XA`, and a game adds the column. It does not provide
+plural forms, whose one real need T6.6 found and recorded as its own row.
 ---
 
 ---
@@ -529,5 +603,6 @@ reason art is deferred.
 ## Read next
 
 [`AUTHORING.md`](AUTHORING.md) · [`TESTING.md`](TESTING.md) · [`TEMPLATE.md`](TEMPLATE.md) ·
-`src/content/art/sprite_sheet_layout.gd` and `assets/theme/ui_theme.tres` — both headers are
+`src/content/art/sprite_sheet_layout.gd`, `assets/theme/ui_theme.tres` and
+`assets/fonts/font_chain.tres` — all three headers are
 written to be read by a consuming game, and go further than this document does.

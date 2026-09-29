@@ -47,6 +47,7 @@ rm -rf scenes/areas/courtyard scenes/areas/lantern_hall
 | `scenes/objects/`, `scenes/characters/`, `scenes/boot/` | reusable prefabs — a sign, a gate, a chest, a lever, a door, the player, an NPC, the boot tree |
 | `tools/**`, `tests/framework/**` | the ladder |
 | `assets/placeholder/**` | procedural art. Regenerate with `tools/gen_placeholders.gd`. |
+| `assets/fonts/**` | the font fallback chain: Noto Sans Bengali and a Noto Sans SC subset, each with its OFL. Latin draws in the engine's own font; these catch what it lacks. **3.3 MB.** To add a script, append to `font_chain.tres`. To bring your own type, set `default_font` in your theme and give it fallbacks. To ship without a script, see [`ART_CONTRACT.md`](ART_CONTRACT.md) § Fonts |
 | `localization/strings.csv` | **partly** — see below |
 | `tests/unit/**` | the ladder — since T1.3 it builds its own content and passes without yours |
 | **your own code root** | `game/`, or scripts beside your areas. **The base ships none and names none** — pick one. Your Tier 2 subclasses live here, and T5.30 measured that **no checker scans it** |

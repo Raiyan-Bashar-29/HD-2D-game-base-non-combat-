@@ -19,7 +19,7 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
-## 5.11.0
+## 5.13.0
 
 *2026-09-29 — neither a debug launch nor the suite writes the developer's real settings any more.*
 
@@ -46,7 +46,7 @@ writes the defaults to the real path, before anything can redirect it. That crea
 overwrites nothing.
 
 ---
-## 5.10.0
+## 5.12.0
 
 *2026-09-29 — a capture or debug launch no longer writes over the developer's real saves.*
 
@@ -70,7 +70,7 @@ the Continue row after the menu began naming the autosave, and is fixed. **Not c
 `--locale=` still writes the real `user://settings.cfg`.
 
 ---
-## 5.9.1
+## 5.11.1
 
 *2026-09-29 — running the suite no longer destroys the developer's real saves.*
 
@@ -90,6 +90,68 @@ files planted in the real directory, one per slot plus the autosave, and a full 
 all seven. Each of the fourteen now calls `SaveFixture.activate()` first, and all seven survive
 unchanged. Fixing only the three cases first suspected still lost five of the seven.
 `TESTING.md` states the rule.
+
+---
+## 5.11.0
+
+*2026-09-29 — Bengali and CJK text renders from fonts the game ships, not from the player's OS.*
+
+**A consuming game does: nothing, unless its own theme sets `default_font`.** In that case the
+chain is not installed. Your font keeps working exactly as before, and it still needs its own
+`fallbacks` for Bengali or CJK. **MINOR**: the base gained a resource, two fonts, a constant and a
+public static method a game may ignore, and nothing that rendered before moved. Latin still draws
+in the engine's own font, because the chain has no base font. It is not a PATCH, because a game
+that changes nothing now ships **3.3 MB more** and draws Bengali and CJK where it drew boxes.
+That is a new capability, not a fix to a promise the base had made.
+
+**What changed.** `assets/fonts/font_chain.tres` is a `FontVariation` with no base font and
+`fallbacks = [Noto Sans Bengali at weight 600, a Noto Sans SC subset at weight 600]`.
+`UiRoot.install_font_chain(theme, path)` puts it into the project theme at boot, unless the theme
+already has a `default_font` or the file is gone. **The theme itself names no font**, and that
+was measured, not chosen: the project theme loads before the first import, so a font named there
+is a `Parse Error` on every fresh clone (gotcha 81).
+
+**Why it mattered when nothing looked broken.** On Windows, system font fallback drew Bengali and
+Chinese from Nirmala UI and YaHei, so the developer's machine showed no tofu. With system fallback
+off, which is a player's machine without those fonts, every glyph was a box. `ART_CONTRACT.md`
+§ Fonts has the captures, the licences, and the recipe that cut the subset. **Hangul is not in
+the subset.** A game shipping Korean adds a font to the chain.
+
+**Found, and recorded as its own row rather than built:** `RestPoint` passes `{hours}` into a
+single string, so a rest of 60 to 119 minutes reads "1 hours". That is the one count in the base
+that needs a plural form (T6.12; numbered T6.10 when this shipped, renumbered because T6.10 was taken).
+
+---
+## 5.10.0
+
+*2026-09-29 — losing window focus leaves nothing latched, and pausing on it is a setting.*
+
+**A consuming game does: nothing, unless it added its own language column to
+`localization/strings.csv`.** In that case, translate one new row,
+`ui.settings.gameplay.pause_on_focus_loss`. The settings screen draws a row for every key in
+`Settings.DEFAULTS`, so without a translation that row shows its key. **MINOR**: the base gained
+a signal, a setting, and three public methods a game may ignore. No signal and no method changed
+shape. The new setting is **off by default**, so a game that changes nothing does not start pausing.
+
+**Three changes in behaviour, and each one is a fix.** On focus loss, a TOGGLED run stops,
+while the toggle-run setting stays as the player set it. A hold-to-confirm part-way to firing
+drops to zero. A rebind row waiting for a key stops waiting. The engine already releases held
+keys on focus loss (measured windowed, see DEVLOG T6.5), so a held run or a held interact key
+needed nothing from the base.
+
+**One more, found by the first windowed run.** `UiRoot.open` now returns false, and leaves the
+stack unchanged, when the engine refuses to add the screen. Before, the screen was recorded
+anyway, so the world paused under a menu that was never drawn. It happens when a screen is opened
+from inside an engine notification that is being propagated. A game that opens screens from its
+own `_notification` handler should defer the call (gotcha 80).
+
+**What changed.** `Events.focus_lost()` is emitted by `UiRoot` alone, deferred to the idle frame
+after `NOTIFICATION_APPLICATION_FOCUS_OUT`. It is not emitted when one of the game's own windows
+takes focus. `UiRoot.is_focus_loss(what)` and `UiRoot.announce_focus_lost()` are public so the
+rule can be asserted without a window. `gameplay/pause_on_focus_loss` is read by `ScreenKeys`, and
+`ScreenKeys.pause_for_focus_loss(stack)` opens the pause menu only where the pause key would work.
+It never toggles, so losing focus twice does not close the menu. **A game with its own latch** — a
+toggled crouch, a charged action — connects to `Events.focus_lost` and drops it.
 
 ---
 ## 5.9.0

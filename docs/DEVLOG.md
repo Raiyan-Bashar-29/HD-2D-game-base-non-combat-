@@ -10966,4 +10966,62 @@ emission of `joy_connection_changed` is untested. The pad variant of either prom
 photographed — there is no pad here. No button icons. `KeyBindings`' header still claims `Actions`
 never mentions it, which stopped being true when `Actions` began calling `load_all()`.
 
-**Commit:** on `claude/t6-2-input-device`, PR targeting `main`. No SHA, per board item 6.
+**Commit:** `8bed5af` on `claude/t6-2-input-device`, PR #67, targeting `main`, merged as `f19cbd6`; no separate CI-record commit was made. Filled in by T6.3, which also took the stripped count from the CI job log (`Ladder (stripped template)`, job 109013767306: `=== 2334 passed, 0 failed, 25 skipped ===`; full job 109013767855: `=== 2408 passed, 0 failed, 0 skipped ===`). `TESTING.md` had kept T6.1's stripped `2301` through T6.2; T6.3 replaces it.
+
+## 2026-09-29 — T6.3 · A reusable confirm screen, and "are you sure" on overwriting a save
+
+**Did.** Forgotten #7. First merged PR #67 (T6.2) with plain `gh pr merge --merge` once it was
+CLEAN. The session had opened on an unmerged `main` and stopped there; the owner said "do what's
+best". Then:
+
+- New `src/ui/screens/confirm_screen.gd`, `ConfirmScreen extends MenuScreen`. Its constructor is
+  `asking(question_key, detail, on_yes)`. It sets `closes_on_cancel = false` in `_init`, overrides
+  `focus_first()` so focus lands on No, and on Yes runs `on_yes` and then `request_close()`.
+- `save_screen.gd`: an occupied slot pushes the question, with its own header as the detail; an
+  empty slot writes at once.
+- Three strings: `ui.save.overwrite`, `ui.confirm.yes`, `ui.confirm.no`.
+- New `tests/unit/confirm_test.gd`, 27 assertions.
+
+**Why.** Overwriting a save was the one irreversible action in the base's menus, and it happened
+on a single press.
+
+**Connects.** `UiRoot._unhandled_input` already honoured `closes_on_cancel`, and `_derive_mode`'s
+comment already anticipated "a confirmation overlay". Nothing in `src/ui/root/` changed. The quit
+half of #7 is T5.10's `Autosave` on `Events.game_ending`. Reading `Autosave.request()` found two
+refusals it has, autosave OFF and mid-transition. In those cases a quit still loses progress
+without a question, and that is now written into `SYSTEMS_INVENTORY.md` item 7 instead of the
+claim that quitting is safe.
+
+**Verified.**
+- `--import`: zero `SCRIPT ERROR` / `Parse Error` lines.
+- Boot: `0 warnings, 0 errors`.
+- Suite: `=== 2435 passed, 0 failed, 0 skipped ===` before the docs landed, exit 0. After them:
+  `=== 2437 passed, 0 failed, 0 skipped ===`, measured per case against a `main` worktree (2,408),
+  +29: 27 in `confirm_test` and 2 in `record_shape_test` for this row's package id. The first
+  post-docs run failed twice on `CONTEXT.md states the declared version — expected 5.8.0, got
+  5.7.0`, which is `version_test` doing its job on two stale version lines. Both are fixed.
+- All seven checkers exit 0.
+- The first run failed once, on the test's own bookkeeping: `and nothing ran — expected 0, got 1`.
+  The counter carried over from the block before, and was fixed by resetting it.
+- A CONTROL assertion was added after that: the same cancel event closes a screen that allows
+  cancel. Without it, the cancel assertions pass on an event that never matches.
+- Plant 1, the save screen skipping the question: `2431 passed, 2 failed`, `an occupied slot asks
+  first — expected true, got false`, plus the plan shortfall.
+- Plant 2, `closes_on_cancel = true`: `2431 passed, 4 failed`, including `cancel does not answer
+  it — expected 1, got 0`.
+- Windowed 960×540 capture through a temporary `--probe-confirm`, looked at: `Overwrite this
+  save?`, `Slot 6 · 2026-09-29 09:11:19 · 00:00 played`, `Yes`, and `No` focused. The covered save
+  list is not drawn through it. The probe and the slot file it wrote are both gone.
+
+**Unblocks.** T6.4, next. It edits `save_screen.gd` again (71 of 250) and `save_system.gd` (176 of
+180). A damaged slot T6.4 draws is still a slot the writing half can press, and that press now
+asks first.
+
+**Gaps.** Loading from the pause menu does not ask, though it discards unsaved progress in the
+session as quitting does. It is a single `ConfirmScreen.asking` call for a game that wants it,
+and the manifest did not ask for it. The question's two rows are Yes and No rather than verbs
+("Overwrite" / "Keep it"). That keeps one generic pair of strings; a caller wanting verbs would
+need a label override, which nobody needs yet. T6.2's stripped count `2334` had not reached
+`TESTING.md`, and this row replaces it.
+
+**Commit:** on `claude/t6-3-confirm-screen`, PR targeting `main`. No SHA, per board item 6.

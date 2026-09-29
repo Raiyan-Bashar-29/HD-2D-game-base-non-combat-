@@ -19,6 +19,32 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.8.0
+
+*2026-09-29 — a reusable confirm screen, and overwriting a save asks first.*
+
+**A consuming game does: nothing, unless it added its own language column to
+`localization/strings.csv`.** In that case, translate three new rows: `ui.save.overwrite` (the
+question), `ui.confirm.yes` and `ui.confirm.no`. Without them, those three render as their keys.
+**MINOR**: the base gained a class and three strings a game may ignore. Nothing a game wrote is
+touched: no signal, no method and no data shape changed, and `SaveScreen` keeps every public name
+it had. The one change in behaviour, the extra question before an overwrite, is the point of the
+row. A game that asserted an occupied slot is written the moment it is pressed will now find a
+`ConfirmScreen` on top instead, and must press its Yes row.
+
+**What changed.** `ConfirmScreen.asking(question_key, detail, on_yes)` builds a yes-or-no
+`MenuScreen`. `question_key` is the title, `detail` an already-translated line under it, and
+`on_yes` a Callable run only on Yes. It sets `closes_on_cancel = false`, so **escape and the pause
+key cannot answer it**, and focus lands on **No**, so a player mashing accept through a menu
+loses nothing. Open one with `UiRoot.find(node).open(screen)`, or `push(screen)` from a
+`MenuScreen`. The save screen is its first caller: pressing an occupied slot asks
+`Overwrite this save?` under the header about to be lost, and an empty slot still saves at once.
+
+**The quit half of "are you sure" was not built.** T5.10's quit-autosave already writes the autosave
+slot on both quit paths, except when the player has turned autosave off or a transition is in
+flight. A game that wants a "really quit?" reuses `ConfirmScreen.asking` from its own quit row.
+
+---
 ## 5.7.0
 
 *2026-09-28 — the base knows which input device is active, and the two prompts that name a button

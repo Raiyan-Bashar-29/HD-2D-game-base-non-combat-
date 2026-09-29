@@ -53,7 +53,7 @@ file, `tests/unit/dialogue_speed_test.gd`, with a `CASES` line. `settings.gd` 14
 anything above — found, not invented, the standard every T6 row had to meet. T6.9 is the first,
 numbered after T6.8 so that no planned id moves. T6.10 is the second, found while proving T6.9, T6.11 the third, found by T6.10, and T6.12 the fourth, the gap T6.9 recorded.
 
-Suite 2,533 → **2,564**, +31: 25 in the new `dialogue_speed_test`, 3 in `options_test` and 1 in `settings_consumers_test` for the new setting's row and consumer, and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `main`, after the documentation landed.
+Suite 2,560 on `main` at `76cd32d` → **2,591**, +31: 25 in the new `dialogue_speed_test`, 3 in `options_test` and 1 in `settings_consumers_test` for the new setting's row and consumer, and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `main`, after the documentation landed.
 
 *(Previously: T6.12 made a case that saves without `SaveFixture.activate()` fail the suite, at
 `5.13.1`, a PATCH, test-only. Before every case the runner parks the store at

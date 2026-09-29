@@ -6786,6 +6786,6 @@ dialogue path touches it. The 90-frame capture and the ladder's own rung were cl
 **Not in scope.** A backlog of past lines (its own row), closing the list (T6.8), plural forms
 (T6.13).
 
-**Scope.** `5.14.0` (claimed `5.12.0`, renumbered at the merge of `main`, where T6.10 to T6.12 had taken `5.12.0` to `5.13.1`), a MINOR. Suite 2,533 → 2,564, +31: 25 in the new `dialogue_speed_test`, 3 in `options_test` and 1 in `settings_consumers_test` for the new setting's row and consumer, and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
+**Scope.** `5.14.0` (claimed `5.12.0`, renumbered at the merge of `main`, where T6.10 to T6.12 had taken `5.12.0` to `5.13.1`), a MINOR. Suite 2,560 on `main` at `76cd32d` → 2,591, +31: 25 in the new `dialogue_speed_test`, 3 in `options_test` and 1 in `settings_consumers_test` for the new setting's row and consumer, and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
 
 **Commit:** on `claude/t6-7-dialogue-speed`, PR targeting `main`. No SHA, per item 6.

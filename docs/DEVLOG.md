@@ -11568,7 +11568,7 @@ drew the new row with no edit, because it is generated from `Settings.DEFAULTS`.
 **Verified.**
 - Rung 2 import exit 0; rung 3 `--quit-after 30`: `0 warnings, 0 errors`.
 - All seven checkers exit 0 (see the board's T6.7 section for the budget split).
-- Suite: `=== 2564 passed, 0 failed, 0 skipped ===`, against `2533` on a `main` worktree at `db0d6ec`, +31: 25 in the new `dialogue_speed_test`, 3 in `options_test` and 1 in `settings_consumers_test` for the new setting's row and consumer, and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
+- Suite: `=== 2591 passed, 0 failed, 0 skipped ===`, against `2560` on a `main` worktree at `76cd32d` (before the merge: `2564` against `2533` at `db0d6ec`), +31: 25 in the new `dialogue_speed_test`, 3 in `options_test` and 1 in `settings_consumers_test` for the new setting's row and consumer, and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
 - Plants. `runner.stop()` as the skip: `2549 passed, 13 failed`, first `a skip stops at the
   choice — expected menu, got`. Deleting the loop's `not _waiting_on_choice()` stayed green,
   because the runner refuses at a choice; recorded, not hidden.

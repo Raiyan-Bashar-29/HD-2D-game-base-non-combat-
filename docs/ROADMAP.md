@@ -1534,6 +1534,11 @@ was classified, including the ones refused.
   the real slot, and three probes deleted real slots. `DevSaves` points any debug launch with user
   arguments at `user://dev_saves` (`--real-saves` opts out), and a planted sentinel survives the
   capture. No exit criterion covers a defect fix, so none is ticked.
+- **T6.11 A debug launch, and every suite run, wrote the developer's real settings — DONE,
+  2026-09-29, `5.11.0`.** Found by T6.10. A `--locale=` capture rewrote the real
+  `settings.cfg`, and a green suite left it at zero bytes. `Settings.file_path` is where `save()`
+  writes; `DevSaves` and the test runner point it at scratch, writes only, and a planted sentinel
+  survives both. No exit criterion covers a defect fix, so none is ticked.
 - **T6.5 Losing window focus leaves nothing latched** — planned. Forgotten #3.
 - **T6.6 Text in any script renders, not as tofu** — planned. Bengali and CJK, owner's choice.
 - **T6.7 Dialogue for fast and slow readers** — planned. Forgotten #5.

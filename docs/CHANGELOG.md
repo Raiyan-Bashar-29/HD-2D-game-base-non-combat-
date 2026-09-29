@@ -19,6 +19,33 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.11.0
+
+*2026-09-29 — neither a debug launch nor the suite writes the developer's real settings any more.*
+
+**A consuming game does: nothing to merge.** Your captures and your suite stop touching your
+`user://settings.cfg` the moment this lands. **But know the new seam:** `Settings.file_path` is
+where `save()` writes. It defaults to `Settings.PATH`, which keeps its name and value, and it is
+still the file READ at boot, so a game that reads `Settings.PATH` changes nothing. In a debug
+build, `DevSaves` points it at `user://dev_settings.cfg` under the same rule as the saves: any
+user argument after `--`, with `--real-saves` opting out of both. The test runner points it at
+`user://test_settings.cfg` before the first case, so a case YOUR game added needs nothing. If
+your game writes settings from its own code, it goes through `Settings.save()` and is covered.
+**MINOR**: a public var and two constants a game may ignore, the 5.10.0 precedent. A shipped
+build is unaffected: `file_path` is only moved by a debug node and by the suite.
+
+**What changed.** `Settings.PATH` was a `const` and the only path, so `--locale=`, which goes
+through `Settings.set_value` on purpose, wrote the real file: a planted sentinel `locale="en"`
+came back `"en_XA"` after one capture. Worse, a green suite run left the sentinel at ZERO BYTES,
+because five cases call `Settings.reset_to_defaults()`. Now the redirect is **writes only**:
+settings are loaded before any debug node exists, which is what a capture should show, and the
+scratch file is never read back, so no launch inherits the last one's language. Measured: the
+same sentinel survives the capture and the full suite byte-identical, where both overwrote it
+on the unchanged tree. **Not changed:** on a machine with no settings file yet, boot still
+writes the defaults to the real path, before anything can redirect it. That creates a file; it
+overwrites nothing.
+
+---
 ## 5.10.0
 
 *2026-09-29 — a capture or debug launch no longer writes over the developer's real saves.*

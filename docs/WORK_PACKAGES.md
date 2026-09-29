@@ -127,6 +127,7 @@ original board rather than continuing it.
 | T6.4 | **A save slot says where it was saved, and says so when it is damaged** | **DONE** — `5.9.0`, a MINOR: a hook, a constant and a static method a game may ignore. `SaveSystem.header_provider` is an optional Callable stored as the file's `"header"`, so `core` never asks `Director`; **`WorldMap` sets it, not `director.gd`**, which is at its budget, and `WorldMap.place_key` reads the area id back as a name key. The row reads `Slot 1 · Rose Courtyard · …`, photographed; an unmapped area or a pre-5.9.0 save reads `Unknown place`. **`slot_info` now answers `{}` for any file the loader would refuse**, so a file from a newer build is DAMAGED too, and Continue can no longer point at one. A damaged slot is a note when loading and, counted as occupied, asks before it is overwritten. Three plants, three different failures. `save_system.gd` 176 → 179 of 180. Suite 2,437 → 2,471; see below |
 | T6.9 | **Running the suite destroyed the developer's real saves** | **DONE** — `5.9.1`, a PATCH, test-only: `src/` and `tools/` byte-identical. **OUT OF NUMBER ORDER ON PURPOSE**: an owner-reported defect, taken ahead of T6.5 under the playtest rule, and numbered after T6.8 so that no planned row's id moves. Fourteen cases wrote or deleted slots against the default `user://saves`, because only T5.22's two had ever called `SaveFixture.activate()`. Seven sentinel saves planted there: the unchanged suite passed 2,437 of 2,437 and **deleted all seven**; fixing only the three suspected cases still lost five; all fourteen redirected, all seven survive byte-identical. `TESTING.md` now states the rule. See below |
 | T6.10 | **A capture or debug launch wrote over the developer's real saves** | **DONE** — `5.10.0`, a MINOR: a class and a flag a game may ignore. **OUT OF NUMBER ORDER ON PURPOSE**, like T6.9, which found it. The ladder's capture rung runs `--new-game`, a real run, so the autosave wrote the real `autosave.json`, and `--save-state`/`--load-state`/`--cross-area-save` deleted real slots. The new `dev_saves.gd`, first of the debug nodes, sets `SaveSystem.save_dir` to `user://dev_saves` for any launch with user arguments; `--real-saves` opts out. **A redirect, not a suppression**, so the capture still photographs the toast. A planted sentinel was overwritten by one capture before and survives it byte-identical after. Also fixed `--autosave-continue`, which could not find the Continue row. `save_system.gd` untouched at 179 of 180. See below |
+| T6.11 | **A debug launch, and every suite run, wrote the developer's real settings** | **DONE** — `5.11.0`, a MINOR: a var and two constants a game may ignore. **OUT OF NUMBER ORDER ON PURPOSE**, like T6.9 and T6.10; T6.10 found it and recorded it undone. `Settings.PATH` was the only path, so a `--locale=en_XA` capture rewrote a sentinel's `locale="en"`, and **a green suite left it at zero bytes**, which T6.10 had not suspected. `Settings.file_path` is where `save()` writes; `DevSaves` points it at `user://dev_settings.cfg` under its existing rule, and the runner at `user://test_settings.cfg` before the first case. **Writes only, never re-read**, so no launch inherits the last one's language. The sentinel now survives both byte-identical. `settings.gd` 141 → 142 of 150. See below |
 | T6.5 | **Losing window focus leaves nothing latched** | **TODO — next.** Forgotten #3. Measure first. Manifest below |
 | T6.6 | **Text in any script renders, not as tofu** | **TODO.** Bengali and CJK. Manifest below |
 | T6.7 | **Dialogue for fast and slow readers** | **TODO.** Forgotten #5. After T6.2. Manifest below |
@@ -6432,5 +6433,62 @@ harm, but its fix is a `src/core` seam in a file at a tight budget, so it is its
 **Scope.** `5.10.0`, a MINOR. Suite 2,473 → **2,483**, +10: 8 in `dev_tools_test` (seven new, and one more file in the wired-node count) and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
 
 **Commit:** on `claude/t6-10-capture-saves`, stacked on `claude/t6-9-suite-saves` (PR #70), PR
-targeting `main`. No SHA, per item 6. **Version collision to resolve at merge:** T6.5's PR #71 also
+targeting `main`, PR #72. Commit `a4ba31a`, filled in by T6.11. **Version collision to resolve at merge:** T6.5's PR #71 also
 claims `5.10.0`; whichever of the two merges second takes `5.11.0`.
+
+## T6.11 · A debug launch, and every suite run, wrote the developer's real settings — **DONE**
+
+**Found by T6.10, which recorded it undone.** `dev_capture.gd`'s `--locale=` goes through
+`Settings.set_value` on purpose, so the capture photographs the path a player takes, and
+`set_value` calls `save()`, which wrote `Settings.PATH`, a `const`. **Numbered T6.11**, out of
+number order for T6.9's reason: no planned row's id moves.
+
+**Measured red first, and it was worse than reported.** A sentinel `settings.cfg` holding
+`locale="en"` and a `[sentinel]` section, on T6.10's tip `a4ba31a`: the ladder's capture with
+`--locale=en_XA` rewrote it to `locale="en_XA"`, and **a green suite run, `2483 passed, 0 failed`,
+left it at zero bytes**, because five cases call `Settings.reset_to_defaults()`, which clears the
+config and saves. The developer's real file was in fact a 0-byte file last written in the same
+minute as `user://test_saves`. T6.10 had not suspected the suite at all.
+
+**Decided: redirect, not "don't persist".** A switch that skipped `save()` would stop the write,
+and also stop the save path running at all in every capture and every case, so a broken `save()`
+would pass the whole ladder. A redirect runs it exactly as for a player, into scratch, which is
+T6.10's reasoning about the autosave unchanged. `Settings.file_path` is a var on T5.22's
+`SaveSystem.save_dir` pattern, defaulting to `PATH`. **`PATH` keeps its name**, so no game that
+reads it changes, which is what keeps this a MINOR.
+
+**Decided: writes only, no reload.** `Settings` loads in its own `_ready`, before `GameRoot`'s
+first child, so `DevSaves` cannot move the READ without re-loading and re-applying display and
+locale mid-launch. It does not need to. Reading the real file is harmless, and it is what a
+capture should show: the developer's game. Re-reading scratch would be actively wrong, because
+one capture's `--locale=en_XA` would then persist into the next capture that did not ask for it.
+So the scratch file is written and never read.
+
+**Decided: `DevSaves`, not a sibling.** The rule is the same (any user argument, `--real-saves`
+opts out), and two nodes holding one rule is a place for it to drift. `DevSaves` now OWNS where a
+debug launch's saves and settings are written. `_parse_arguments` became the static
+`apply(arguments) -> bool`, so the suite drives the real assignments. **The suite is redirected
+by the runner, once, before the first case**, not per case like `SaveFixture.activate()`: a
+settings write is not something a case opts into, and a per-case switch is the one T6.9 recorded
+that a new case can forget. The path is `SaveFixture.SETTINGS_PATH`.
+
+**Assertions.** Nine in `dev_tools_test.gd`: the suite writes to its scratch; no arguments
+redirect nothing and leave the path; the capture's arguments move settings and saves; a setting
+then written lands in the scratch file; `--real-saves` redirects nothing; scratch is neither the
+player's file nor the suite's. **Three plants**, each exit 1 on exactly its assertions: deleting
+the settings line from `apply` (2 failed), `save()` back to the fixed path (1), and deleting the
+runner's line (1).
+
+**Proof isolated from other sessions.** The first green run was contaminated: another session
+was running its own sentinel experiment on the same shared `user://` at the same minute. Every
+proof after that ran with `APPDATA` pointed at a scratch directory, so `user://` was private.
+
+**Not done.** On a machine with no settings file yet, boot writes defaults to the real path,
+before anything can redirect it. That creates a file and overwrites nothing. The suite's own
+process still READS the developer's real settings, which is why the runner's locale pin stays.
+
+**Scope.** `5.11.0`, a MINOR. `settings.gd` 141 → 142 of 150; `dev_saves.gd` 20 → 23.
+
+**Commit:** on `claude/t6-11-dev-settings`, stacked on `claude/t6-10-capture-saves` (PR #72), PR
+targeting `main`. No SHA, per item 6. **Version renumbering at merge:** T6.5 merged to `main` as
+`5.10.0`, so T6.10 takes `5.11.0` when it merges, and this row then takes `5.12.0`.

@@ -34,13 +34,23 @@ extends Node
 ## today, and the main menu reads the slots only when `GameRoot._ready` asks for it, after every
 ## child; first in the tree keeps that true when somebody adds a node that does.
 ##
-## OWNS: which directory a debug launch's saves go to.
-## MUST NOT: write, read or delete a save file itself, change when an autosave happens, or be
-## depended upon by gameplay. Deleting this file must not break the game.
+## AND SETTINGS, T6.11, which T6.10 left out and said so. `--locale=` goes through
+## `Settings.set_value`, which saves, so a capture wrote the developer's real
+## `user://settings.cfg` — a sentinel `locale="en"` came back `"en_XA"`. The same rule, the same
+## opt-out, the same one-assignment shape: `Settings.file_path` is that file's `save_dir`. WRITES
+## ONLY. `Settings` already READ the real file in its own `_ready`, before this node existed, and
+## that is the behaviour wanted: a capture looks like the developer's game, and whatever it
+## changes lands in scratch and is never read back, so no launch inherits the last one's locale.
+##
+## OWNS: where a debug launch's saves and settings are written.
+## MUST NOT: write, read or delete a save or settings file itself, change when an autosave
+## happens, or be depended upon by gameplay. Deleting this file must not break the game.
 
 ## The scratch store. Under `user://` for `SaveFixture.ROOT`'s reason: outside the repository.
 const SCRATCH_DIR: String = "user://dev_saves"
-## The opt-out, for a staged launch that SHOULD write the real store.
+## The scratch settings file. Beside the store rather than in it, so a slot scan never meets it.
+const SCRATCH_SETTINGS: String = "user://dev_settings.cfg"
+## The opt-out, for a staged launch that SHOULD write the real store and the real settings.
 const REAL_SAVES_FLAG: String = "--real-saves"
 
 
@@ -49,17 +59,22 @@ func _ready() -> void:
 	# build passed a stray argument keeps the player's store.
 	if not OS.is_debug_build():
 		return
-	_parse_arguments()
+	apply(OS.get_cmdline_user_args())
 
 
-func _parse_arguments() -> void:
-	var directory: String = save_dir_for(OS.get_cmdline_user_args())
+## Point every store a launch with these arguments would write at scratch, or leave both alone,
+## and say which. Static and public so the suite drives the REAL assignments with arguments of
+## its own, since its process has none; the caller puts the two paths back.
+static func apply(arguments: PackedStringArray) -> bool:
+	var directory: String = save_dir_for(arguments)
 	if directory == "":
-		return
+		return false
 	SaveSystem.save_dir = directory
-	Log.info("save", "Debug launch: saves go to %s, not %s (%s keeps the real ones)" % [
-		directory, SaveSystem.DEFAULT_SAVE_DIR, REAL_SAVES_FLAG,
+	Settings.file_path = SCRATCH_SETTINGS
+	Log.info("save", "Debug launch: saves go to %s and settings to %s (%s keeps the real ones)" % [
+		directory, SCRATCH_SETTINGS, REAL_SAVES_FLAG,
 	])
+	return true
 
 
 ## The directory a launch with these arguments must save to, or "" to leave the store alone. PURE

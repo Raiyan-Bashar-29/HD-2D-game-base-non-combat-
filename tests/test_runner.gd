@@ -112,11 +112,15 @@ func _ready() -> void:
 	Log.info("test", "=== test run starting ===")
 	# Determinism: a clock that advances mid-assertion makes time assertions flaky.
 	Clock.paused = true
+	# NO CASE WRITES THE DEVELOPER'S SETTINGS FILE, T6.11. Before the first case, not per case:
+	# SaveFixture.gd says why. The real file was already READ, so the pin below is still needed.
+	Settings.file_path = SaveFixture.SETTINGS_PATH
 	# AND SO IS THE LANGUAGE, for the same reason one step further out. Several cases compare
 	# `tr()` output, so a developer who left the pseudolocale selected - or any consuming
 	# game whose default is not English - would fail assertions that have nothing to do with
-	# their change. T5.1 hit exactly that: a `--locale=en_XA` capture PERSISTS the setting,
-	# because a language choice should, and the next suite run failed in four unrelated cases.
+	# their change. T5.1 hit exactly that: a `--locale=en_XA` capture PERSISTED the setting, and
+	# the next suite run failed in four unrelated cases. A capture writes scratch since T6.11,
+	# but a PLAYER'S language choice still persists, as it should, and the suite reads that file.
 	# The fallback is read rather than hard-coded, so this pins the project's own language.
 	var declared: Dictionary = {"locale": ProjectSettings.get_setting(FALLBACK_LOCALE, "en")}
 	TranslationServer.set_locale(DictRead.get_string(declared, "locale", "en"))

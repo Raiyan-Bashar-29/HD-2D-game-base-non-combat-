@@ -15,7 +15,16 @@ extends Node
 ## Events.setting_changed and the owning system reacts. That keeps this file from growing a
 ## branch for every feature that ever gains an option.
 
+## The player's file. Always the one READ: see `file_path` for the one written.
 const PATH: String = "user://settings.cfg"
+## Where `save()` WRITES. A var on `SaveSystem.save_dir`'s pattern (T5.22), because while the
+## `const` was the only path, a debug launch's `--locale=` and every suite run wrote the
+## developer's real file, and the suite's `reset_to_defaults()` wrote it as zero bytes. `PATH`
+## keeps its name so no game that reads it has to change. `DevSaves` and the test runner point it
+## at scratch (T6.11). WRITES ONLY, NEVER RE-READ: the real file was loaded in `_ready`, before
+## either could move this, and a scratch file read back would carry one debug launch's changes
+## into the next one that never asked for them.
+var file_path: String = PATH
 
 ## Every setting the game has, with its default. This is also the validation list: a key
 ## that is not here is rejected, so a typo cannot silently create a dead setting.
@@ -144,9 +153,9 @@ func set_value(path: String, value: Variant) -> void:
 
 
 func save() -> void:
-	var err: Error = _config.save(PATH)
+	var err: Error = _config.save(file_path)
 	if err != OK:
-		Log.error("settings", "Could not write %s: %s" % [PATH, error_string(err)])
+		Log.error("settings", "Could not write %s: %s" % [file_path, error_string(err)])
 
 
 ## Restore every default and re-apply. Used by the settings screen's reset button.

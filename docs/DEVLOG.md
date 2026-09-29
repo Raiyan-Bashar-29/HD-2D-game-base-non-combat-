@@ -11147,3 +11147,62 @@ is recorded, not taken.
 It plays a real session, and the autosave policy does what it does for a player. Out of scope for
 a test-only row, and flagged as its own task. The same shared `user://` means two sessions running
 the suite at once share `user://test_saves` too, and each `activate()` empties it.
+
+## 2026-09-29 — T6.10 · A capture or debug launch wrote over the developer's real saves
+
+**Did.** Added `src/systems/debug/dev_saves.gd` (`DevSaves`), the first debug node in
+`game_root.tscn`. In a debug build, a launch with any user argument sets `SaveSystem.save_dir` to
+`user://dev_saves`, and `--real-saves` opts out. Fixed `--autosave-continue`, which looked for a
+`Slot 7` Continue row the menu no longer draws. Seven assertions in `dev_tools_test.gd`, and its
+wired-file count went from 6 to 7. `5.10.0`, a MINOR.
+
+**Why.** T6.9's Gaps: the capture rung's `--new-game` is a real run, so the autosave wrote the
+developer's real `autosave.json` on arrival and on quit, in every worktree, because they share
+one `user://`. Reading the debug directory found worse: `--save-state`/`--load-state` and
+`--cross-area-save` delete the slot they used. Redirect was chosen over suppressing the
+autosave. Suppression covers one writer of three, changes what the capture photographs, and
+would make the autosave probe pair prove nothing. `save_dir` is the seam T5.22 made public, so
+`save_system.gd`, at 179 of 180, did not change.
+
+**Connects.** `SaveSystem.save_dir` (T5.22), `Autosave` (T5.10), `dev_probes.gd`'s and
+`dev_scenario_shots.gd`'s two-process pairs, which now meet in scratch. `SaveFixture.ROOT` is
+deliberately a different directory, because `activate()` empties it.
+
+**Verified.**
+- Fresh worktree, branched from T6.9's tip `2391b55`: `--headless --import` exit 0, zero `SCRIPT
+  ERROR` / `Parse Error` lines.
+- **Red first, on the unchanged tree.** The real `user://saves` was empty. A sentinel
+  `autosave.json` was planted, and the ladder's capture command logged `Slot 6 written (6
+  sections)`. The file then held the capture's autosave, header area and all.
+- **Fixed.** The sentinel was re-planted, SHA-1 `45f765b9…`. The same capture logged `Debug launch:
+  saves go to user://dev_saves, not user://saves (--real-saves keeps the real ones)`, then `Slot 6
+  written`, and exit 0 with `0 warnings, 0 errors`. The sentinel still had SHA-1 `45f765b9…`, and
+  `user://dev_saves/autosave.json` existed.
+- **Opt-out.** `--new-game --real-saves` wrote the real slot, and the SHA changed, as intended.
+- **The pair.** `--new-game --autosave-write`, then `--autosave-continue=<dir>` in a fresh process,
+  both redirected. Before the fix, the second half logged `found no Continue row on the main
+  menu`, and it failed identically with `--real-saves` on both, so the redirect was not the cause.
+  After: `pressed the 'Continue — Autosave' row`, and state restored from `day=4 time=22:15
+  weather=4 carrying=1` to `area='lantern_hall' day=4 time=22:16 weather=4 carrying=1`. Both
+  sessions `0 warnings, 0 errors`, and the sentinel was unchanged. The menu photograph shows
+  `Continue — Autosave`.
+- Windowed 960x540 capture at 18:40, frozen, looked at: the courtyard at dusk, `Day 1 | 18:40 |
+  Dusk`, the `[E] Use Iron Lever` prompt, and the `Autosaved.` toast. The toast is the game
+  behaving as for a player, into scratch.
+- **Plant:** `save_dir_for` returning `""` always. `=== 2479 passed, 2 failed ===`, exit 1, on
+  exactly `the ladder's capture saves to scratch` and `so does a probe with no shutter`. Restored.
+- Suite before documentation `=== 2481 passed, 0 failed, 0 skipped ===`: +8 over 2,473, all in
+  `dev_tools_test`. After the documentation: `=== 2483 passed, 0 failed, 0 skipped ===`, +10 over 2,473: 8 in `dev_tools_test` and 2 in `record_shape_test` for this row's package id, every other case unmoved, measured per case. Boot `0 warnings, 0 errors`. All seven checkers exit 0.
+- `--check-only` on both changed scripts: only the documented autoload identifiers.
+- The sentinel was removed afterwards, and the real `user://saves` is empty again, as it was.
+
+**Unblocks.** T6.5, next, unchanged. Every later session's capture now leaves the developer's
+saves alone.
+
+**Gaps.** **`--locale=` still writes the real `user://settings.cfg`**, through
+`Settings.set_value`, and `Settings.PATH` is a `const`. Same harm, different store, and flagged
+as its own task. **The redirect itself is not asserted by the suite**, whose process has no user
+arguments. The rule is asserted, and the sentinel run is the proof. **T6.5's PR #71 also claims
+`5.10.0`**, so whichever merges second takes `5.11.0`.
+
+**Commit:** on `claude/t6-10-capture-saves`, stacked on T6.9's PR #70. No SHA, per board item 6.

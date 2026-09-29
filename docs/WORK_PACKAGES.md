@@ -126,6 +126,7 @@ original board rather than continuing it.
 | T6.3 | **A reusable confirm screen, and "are you sure" on overwriting a save** | **DONE** — `5.8.0`, a MINOR: a class and three strings a game may ignore. `ConfirmScreen.asking(question_key, detail, on_yes)` is a `MenuScreen` with `closes_on_cancel = false`, so **escape and pause cannot answer it**, and focus lands on **No**, so mashing accept loses nothing. Pressing an occupied slot on the save screen asks `Overwrite this save?` under the header about to be lost; an empty slot saves at once. The quit half of forgotten #7 is T5.10's quit-autosave, recorded with its two refusals rather than built. Two plants, two different failures, and a control assertion proving the cancel event really reaches `UiRoot`. Photographed over the pause menu. Suite 2,408 → 2,437; see below |
 | T6.4 | **A save slot says where it was saved, and says so when it is damaged** | **DONE** — `5.9.0`, a MINOR: a hook, a constant and a static method a game may ignore. `SaveSystem.header_provider` is an optional Callable stored as the file's `"header"`, so `core` never asks `Director`; **`WorldMap` sets it, not `director.gd`**, which is at its budget, and `WorldMap.place_key` reads the area id back as a name key. The row reads `Slot 1 · Rose Courtyard · …`, photographed; an unmapped area or a pre-5.9.0 save reads `Unknown place`. **`slot_info` now answers `{}` for any file the loader would refuse**, so a file from a newer build is DAMAGED too, and Continue can no longer point at one. A damaged slot is a note when loading and, counted as occupied, asks before it is overwritten. Three plants, three different failures. `save_system.gd` 176 → 179 of 180. Suite 2,437 → 2,471; see below |
 | T6.9 | **Running the suite destroyed the developer's real saves** | **DONE** — `5.9.1`, a PATCH, test-only: `src/` and `tools/` byte-identical. **OUT OF NUMBER ORDER ON PURPOSE**: an owner-reported defect, taken ahead of T6.5 under the playtest rule, and numbered after T6.8 so that no planned row's id moves. Fourteen cases wrote or deleted slots against the default `user://saves`, because only T5.22's two had ever called `SaveFixture.activate()`. Seven sentinel saves planted there: the unchanged suite passed 2,437 of 2,437 and **deleted all seven**; fixing only the three suspected cases still lost five; all fourteen redirected, all seven survive byte-identical. `TESTING.md` now states the rule. See below |
+| T6.10 | **A capture or debug launch wrote over the developer's real saves** | **DONE** — `5.10.0`, a MINOR: a class and a flag a game may ignore. **OUT OF NUMBER ORDER ON PURPOSE**, like T6.9, which found it. The ladder's capture rung runs `--new-game`, a real run, so the autosave wrote the real `autosave.json`, and `--save-state`/`--load-state`/`--cross-area-save` deleted real slots. The new `dev_saves.gd`, first of the debug nodes, sets `SaveSystem.save_dir` to `user://dev_saves` for any launch with user arguments; `--real-saves` opts out. **A redirect, not a suppression**, so the capture still photographs the toast. A planted sentinel was overwritten by one capture before and survives it byte-identical after. Also fixed `--autosave-continue`, which could not find the Continue row. `save_system.gd` untouched at 179 of 180. See below |
 | T6.5 | **Losing window focus leaves nothing latched** | **TODO — next.** Forgotten #3. Measure first. Manifest below |
 | T6.6 | **Text in any script renders, not as tofu** | **TODO.** Bengali and CJK. Manifest below |
 | T6.7 | **Dialogue for fast and slow readers** | **TODO.** Forgotten #5. After T6.2. Manifest below |
@@ -6373,4 +6374,63 @@ recorded, not built.
 
 **Scope.** `5.9.1`, a PATCH, test-only. T6.4 merged to `main` while this row was open, and the branch merged it in; its own `slot_header_test.gd` already activates the scratch store. Suite 2,471 → **2,473**, +2, both in `record_shape_test` for this row's own package id; every other case unmoved, the fourteen changed cases included.
 
-**Commit:** on `claude/t6-9-suite-saves`, PR #70, targeting `main`. No SHA, per item 6.
+**Commit:** `c6571cf`, then `2391b55` recording the stripped count, on `claude/t6-9-suite-saves`, PR #70, targeting `main`; unmerged when T6.10 branched from its tip. Filled in by T6.10.
+
+## T6.10 · A capture or debug launch wrote over the developer's real saves — **DONE**
+
+**Found by T6.9, while proving it.** The ladder's last rung is
+`--resolution 960x540 --quit-after 90 -- --new-game --shot=<path> ...`. `--new-game` starts a real
+run, so T5.10's `Autosave` writes `SaveSystem.AUTOSAVE_SLOT` a frame after the area arrives and
+again on quit. Every worktree on the machine shares one `user://`, because `config/name` is the
+same, so a capture in any session overwrote the developer's own autosave. Reading the debug
+directory for every other writer found three probes that are worse: `--save-state`/`--load-state`
+(`dev_probes.gd`) and `--cross-area-save` delete the slot they used. **Numbered T6.10**, after
+T6.9, for T6.9's reason: no planned row's id moves.
+
+**Measured red first.** A sentinel `autosave.json` was planted in the real, empty
+`user://saves`. One capture on T6.9's tip logged `Slot 6 written (6 sections)`, and the file was
+the capture's autosave.
+
+**Decided: redirect, not suppress.** Turning the autosave off for a capture would stop one writer
+of three. It would also photograph a game that behaves differently from a player's, without the
+`Autosaved.` toast, and it would make the `--autosave-write`/`--autosave-continue` pair, which
+exists to prove the autosave works, prove nothing. Every writer goes through
+`SaveSystem.save_dir`, the public seam T5.22 made, so one assignment covers the autosave, every
+probe and every console `save`. `save_system.gd` did not change and stays at 179 of 180.
+
+**Decided: any user argument is a debug launch, not only `--shot`.** `--save-state` shoots
+nothing and deletes a slot. A plain editor run passes no arguments and keeps the real store, so
+playing and saving still mean what they say. `--real-saves` is the way back, for a staged launch
+that should write the real store.
+
+**Built.** `src/systems/debug/dev_saves.gd`, `class_name DevSaves`, the first debug node in
+`game_root.tscn`. It is a new file rather than a branch in `dev_capture.gd` or `dev_stage.gd`,
+because neither owns where saves go: one owns the shutter, the other the world's state. The pure
+static `save_dir_for(arguments)` decides and `_parse_arguments` applies it, logging the redirect.
+The scratch directory is **never emptied**, because the probe pairs span two processes. It is
+**not** `SaveFixture.ROOT`, which `activate()` empties, so a suite in another session cannot eat
+a pair's autosave. Released builds return at once, like every debug file.
+
+**Found on the way: `--autosave-continue` had been broken since the menu began naming the
+autosave.** It looked for `Continue — Slot 7`, and the row reads `Continue — Autosave`. It failed
+the same way against the real store with `--real-saves`, so this was not the redirect. Fixed in
+`_press_continue`, and the pair round-trips through scratch: posed `day=4 time=22:15 weather=4
+carrying=1`, restored `area='lantern_hall' day=4 time=22:16 weather=4 carrying=1`.
+
+**Assertions.** Seven in `dev_tools_test.gd`: no arguments leave the store alone; the capture's
+arguments, and a probe's with no `--shot`, go to scratch; `--real-saves` keeps the real store;
+scratch is neither the real store nor the suite's; `DevSaves` is the first debug node in the
+scene. `_every_debug_flag_has_a_node_to_parse_it` now counts seven files. **Plant:**
+`save_dir_for` returning `""` always, the unfixed rule, failed exactly the two scratch
+assertions, exit 1. The redirect itself cannot be driven by the suite, whose process has no user
+arguments, so the sentinel run is its proof.
+
+**Not done: `--locale=` writes the real `user://settings.cfg`.** `dev_capture.gd` sets the locale
+through `Settings.set_value`, which persists, and `Settings.PATH` is a `const`. Same class of
+harm, but its fix is a `src/core` seam in a file at a tight budget, so it is its own task.
+
+**Scope.** `5.10.0`, a MINOR. Suite 2,473 → **2,483**, +10: 8 in `dev_tools_test` (seven new, and one more file in the wired-node count) and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
+
+**Commit:** on `claude/t6-10-capture-saves`, stacked on `claude/t6-9-suite-saves` (PR #70), PR
+targeting `main`. No SHA, per item 6. **Version collision to resolve at merge:** T6.5's PR #71 also
+claims `5.10.0`; whichever of the two merges second takes `5.11.0`.

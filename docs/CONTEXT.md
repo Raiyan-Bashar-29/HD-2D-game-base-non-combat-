@@ -3,18 +3,30 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-29 · **T6.9 (running the suite destroyed the developer's real saves) complete, at 5.9.1, a PATCH, test-only.**
+**Last updated:** 2026-09-29 · **T6.10 (a capture or debug launch no longer writes the developer's real saves) complete, at 5.10.0, a MINOR.**
 **Phases T1 to T5 are complete and stay complete; Phase T6 is OPEN, and the next package is T6.5.**
 
-**A SUITE RUN NO LONGER TOUCHES `user://saves`.** Fourteen cases wrote or deleted slots there,
-because T5.22's `SaveFixture` had been wired into only the two cases it was written for. Measured
-with seven planted sentinel saves: a green run of the unchanged suite **deleted all seven**. Each
-of the fourteen now calls `SaveFixture.activate()` first, and all seven survive. `TESTING.md`
-states the rule, and gotcha 79 carries it. **Nothing yet fails a new case that forgets.** That is
-recorded in `WORK_PACKAGES.md` § T6.9, not built.
+**A DEBUG LAUNCH SAVES TO `user://dev_saves`, NEVER `user://saves`.** The ladder's capture rung
+runs `--new-game`, which starts a real run, so T5.10's autosave wrote the developer's real
+`autosave.json` on arrival and on quit, in every worktree, since all share one `user://`. The
+probes were worse: `--save-state`/`--load-state` and `--cross-area-save` DELETE the slot they used.
+The new `src/systems/debug/dev_saves.gd`, the first debug node in `game_root.tscn`, sets
+`SaveSystem.save_dir` to scratch whenever the launch has ANY user argument. That is a redirect,
+not a suppression: the game runs exactly as for a player, and the capture still shows
+`Autosaved.`. `--real-saves` opts out. A plain editor run passes no arguments and keeps the real
+store. Proved by a planted sentinel `autosave.json` surviving the capture byte-identical, where
+on the unchanged tree one capture overwrote it.
 
-**Budgets unchanged by T6.9**, because `src/` is byte-identical. T6.4 left `save_system.gd` at
-**179 of 180**, and `director.gd` stays at 187 of 190.
+**THE AUTOSAVE PROBE PAIR HAD BEEN BROKEN SINCE THE MENU STOPPED SAYING "SLOT 7".**
+`--autosave-continue` looked for `Continue — Slot 7`, while the menu names the autosave, and
+failed the same way against the real store. Fixed in `dev_scenario_shots.gd`, and the pair now
+round-trips through scratch.
+
+**NOT FIXED: `--locale=` still writes the developer's real `user://settings.cfg`.** `Settings.PATH`
+is a `const`, so nothing can redirect it without a `src/core` change. That is a separate task.
+
+**Budgets.** `dev_saves.gd` is new and small. `save_system.gd` stays at **179 of 180** because
+nothing in it changed, and `director.gd` stays at 187 of 190.
 
 **The phase, in order** — manifests in `WORK_PACKAGES.md` § T6.0:
 
@@ -25,6 +37,7 @@ recorded in `WORK_PACKAGES.md` § T6.9, not built.
 | ~~T6.3~~ | ~~a reusable confirm screen; "are you sure" on overwriting a save~~ **DONE** | forgotten #7 |
 | ~~T6.4~~ | ~~a slot shows where it was saved, and a damaged slot is shown as damaged~~ **DONE** | forgotten #15 |
 | ~~T6.9~~ | ~~the suite destroyed real saves; every case that saves redirects first~~ **DONE**, out of number order | owner-reported |
+| ~~T6.10~~ | ~~a capture or debug launch saves to scratch, never over the developer's saves~~ **DONE**, out of number order | found by T6.9 |
 | **T6.5** | losing window focus leaves nothing latched; pausing on it is a setting | forgotten #3 |
 | T6.6 | Bengali and CJK both render through a font fallback chain | structural |
 | T6.7 | dialogue can skip to its end and auto-advance | forgotten #5 |
@@ -32,9 +45,14 @@ recorded in `WORK_PACKAGES.md` § T6.9, not built.
 
 **THE OWNER'S PLAYTEST OUTRANKS THIS QUEUE.** A defect found by playing becomes the next row ahead of
 anything above — found, not invented, the standard every T6 row had to meet. T6.9 is the first,
-numbered after T6.8 so that no planned id moves.
+numbered after T6.8 so that no planned id moves. T6.10 is the second, found while proving T6.9.
 
-Suite 2,471 → **2,473**, +2, both in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `main`, after the documentation landed.
+Suite 2,473 → **2,483**, +10: 8 in `dev_tools_test` (seven new, and one more file in the wired-node count) and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against T6.9's tip, after the documentation landed.
+
+*(Previously: T6.9 stopped the suite touching `user://saves`, at `5.9.1`, a PATCH, test-only.
+Fourteen cases wrote or deleted slots there, and a green run of the unchanged suite deleted all
+seven planted sentinel saves. Each case now calls `SaveFixture.activate()` first, and all seven
+survive. Nothing yet fails a new case that forgets; that is recorded in `WORK_PACKAGES.md` § T6.9.)*
 
 *(Previously: T6.4 made a save slot name its place and a damaged slot say so, at `5.9.0`, a MINOR.
 `SaveSystem.header_provider` is an optional hook `WorldMap` sets, because `core` may not ask
@@ -295,7 +313,7 @@ another sheet, and every facing draws a different figure.
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version is** **5.9.1**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+**The version is** **5.10.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
 the owner's to close or to leave.
 
 **THE NEXT PACKAGE IS T6.5, AND IT IS A QUEUE AGAIN — FOR ONE PHASE.** From T5.32 until T6.0 this
@@ -367,7 +385,7 @@ three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite shee
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 4 on the default one, the
 fourth being a second IDLE rather than a gait**,
 1 shared area material, **21 settings and 21 consumers**.
-Template version **5.9.1**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+Template version **5.10.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
 recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 
@@ -2273,6 +2291,9 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     **a case that saves through ANY path calls `SaveFixture.activate()` first** (`TESTING.md`).
     To check a claim like this, plant a sentinel file where the harm would land and see whether
     it survives the run. A green suite cannot tell you.
+    **T6.10 found the same harm outside the suite.** A `--new-game` capture is a real run, so the
+    autosave wrote the real slot, and the probes deleted real slots. `DevSaves` now points every
+    debug launch at `user://dev_saves`. The same test applied: a planted sentinel survived.
 
 
 ## How work is sliced

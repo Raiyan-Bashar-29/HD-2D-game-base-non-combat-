@@ -1529,6 +1529,11 @@ was classified, including the ones refused.
   Fourteen cases wrote or deleted slots in the real `user://saves`, and a green run deleted all
   seven planted sentinel saves. Each case now calls `SaveFixture.activate()` first, and all seven
   survive. Test-only. No exit criterion covers a defect fix, so none is ticked.
+- **T6.10 A capture or debug launch wrote over the developer's real saves — DONE, 2026-09-29,
+  `5.10.0`.** Found while proving T6.9. A `--new-game` capture is a real run, so the autosave wrote
+  the real slot, and three probes deleted real slots. `DevSaves` points any debug launch with user
+  arguments at `user://dev_saves` (`--real-saves` opts out), and a planted sentinel survives the
+  capture. No exit criterion covers a defect fix, so none is ticked.
 - **T6.5 Losing window focus leaves nothing latched** — planned. Forgotten #3.
 - **T6.6 Text in any script renders, not as tofu** — planned. Bengali and CJK, owner's choice.
 - **T6.7 Dialogue for fast and slow readers** — planned. Forgotten #5.

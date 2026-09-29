@@ -19,6 +19,30 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.10.0
+
+*2026-09-29 — a capture or debug launch no longer writes over the developer's real saves.*
+
+**A consuming game does: nothing to merge.** Your debug launches stop touching your saves the
+moment this lands. **But know the new rule:** in a debug build, a launch with ANY user argument
+after `--` saves to `user://dev_saves`, never `user://saves`. A plain run from the editor passes
+none and is unchanged. If you rely on a staged launch writing the real store, add `--real-saves`.
+If your game adds its own debug node that saves during `_ready`, put it after `DevSaves` in
+`game_root.tscn`. **MINOR**: it adds a class, `DevSaves`, and a flag a game may ignore, the T6.2
+and T6.3 precedent. A shipped build is unaffected, because the node returns at once outside a
+debug build, like every file in `src/systems/debug/`.
+
+**What changed.** The ladder's capture rung runs `--new-game`, which starts a real run, so T5.10's
+autosave wrote the real `autosave.json` on arrival and on quit. `--save-state`/`--load-state` and
+`--cross-area-save` deleted the slot they used. Every writer goes through `SaveSystem.save_dir`,
+so the new `src/systems/debug/dev_saves.gd` sets it once, before anything saves. It redirects
+rather than suppressing the autosave, so a capture photographs the game a player gets, toast
+included. Measured: a planted sentinel `autosave.json` was overwritten by one capture on the
+unchanged tree, and survives it byte-identical now. `--autosave-continue` also stopped finding
+the Continue row after the menu began naming the autosave, and is fixed. **Not changed:**
+`--locale=` still writes the real `user://settings.cfg`.
+
+---
 ## 5.9.1
 
 *2026-09-29 — running the suite no longer destroys the developer's real saves.*

@@ -11197,4 +11197,48 @@ only the chain drawing the strings. Hangul is not in the subset. A game that set
 `default_font` gets no fallbacks unless it adds them, and `ART_CONTRACT.md` says so. RestPoint's
 plural is T6.10.
 
-**Commit:** on `claude/t6-6-font-fallback`, PR targeting `main`. No SHA, per board item 6.
+**Commit:** `487d4fd` on `claude/t6-6-font-fallback`, PR #75, targeting `main`, merged as `db0d6ec`; no separate CI-record commit was made. Filled in by T6.7, which also took the stripped count from the CI job log (`Ladder (stripped template)`, job 109434179199: `=== 2459 passed, 0 failed, 25 skipped ===`; full job 109434179375: `=== 2533 passed, 0 failed, 0 skipped ===`). `TESTING.md` still stated T6.4's stripped `2397` through T6.5 and T6.6, although T6.6's own record said it replaced it; T6.7 replaces it from its own CI job log.
+
+## 2026-09-29 — T6.7 · Dialogue for fast and slow readers
+
+**Did.** First merged PR #75 (T6.6) with plain `gh pr merge 75 --merge`: it was CLEAN, with all
+four checks green. Then branched `claude/t6-7-dialogue-speed` from `origin/main` at `db0d6ec`.
+Cancel during a conversation now calls `DialogueScreen.skip()`, which walks the runner through
+`advance()` until a choice is offered or the conversation ends. Added
+`gameplay/dialogue_auto_advance`, off by default, which moves a whole line on after
+`hold_seconds()` and never answers a choice. The hint names the skip key and reads "Auto" while
+auto-advance is on. Four CSV rows. The new assertions are a new file, `dialogue_speed_test.gd`,
+because `dialogue_test.gd` would have gone to 305 of 250.
+
+**Why.** Forgotten #5: a player who reads fast will hate the game without a skip, and one who
+reads slowly may want the conversation to keep going without them. The one hard rule was the
+manifest's: a skip must not skip past a choice or skip an effect. Walking the runner satisfies
+both, because effects fire on arrival and the runner already refuses to advance at a choice.
+
+**Connects.** `DialogueRunner` is untouched; the screen only calls `advance()` more often. Cancel
+was free in a conversation, because `UiRoot` ignores it on a screen with `closes_on_cancel =
+false` and the pause key refuses while a screen is open. `KeyBindings.text_for(Actions.CANCEL,
+pad)` names the key, so the T6.2 device switch and a rebind both rename it. The settings screen
+drew the new row with no edit, because it is generated from `Settings.DEFAULTS`.
+
+**Verified.**
+- Rung 2 import exit 0; rung 3 `--quit-after 30`: `0 warnings, 0 errors`.
+- All seven checkers exit 0 (see the board's T6.7 section for the budget split).
+- Suite: `=== 2564 passed, 0 failed, 0 skipped ===`, against `2533` on a `main` worktree at `db0d6ec`, +31: 25 in the new `dialogue_speed_test`, 3 in `options_test` and 1 in `settings_consumers_test` for the new setting's row and consumer, and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
+- Plants. `runner.stop()` as the skip: `2549 passed, 13 failed`, first `a skip stops at the
+  choice — expected menu, got`. Deleting the loop's `not _waiting_on_choice()` stayed green,
+  because the runner refuses at a choice; recorded, not hidden.
+- Windowed capture through a temporary probe: the "Auto" hint mid-reveal at frame 90, and the
+  menu waiting with three choices at frame 1,400. Both PNGs looked at; probe removed.
+- The shared `user://` hazard: every suite run waited until `tasklist` showed no Godot, and the
+  user data dir was copied aside first. `settings.cfg` ended identical. `saves/autosave.json` and
+  `test_saves/slot_04.json` had been written at 20:29 by another session's run, seconds before
+  the copy, and were gone afterwards; the autosave was put back.
+
+**Unblocks.** T6.8, closing the forgotten list behind a text scan; item 5 is now DONE.
+
+**Gaps.** No backlog screen. The pad's B also means "back" in most menus, and in a conversation it
+now skips; that is the conventional mapping, but no player has tried it. A slow capture logged
+`Keeper cannot reach 'dais'` (gotcha 21's guard) and was not investigated.
+
+**Commit:** on `claude/t6-7-dialogue-speed`, PR targeting `main`. No SHA, per board item 6.

@@ -128,8 +128,8 @@ original board rather than continuing it.
 | T6.5 | **Losing window focus leaves nothing latched** | **DONE** — `5.10.0`, a MINOR: a signal, a setting and three public methods a game may ignore. **Measured first, windowed**: Godot 4.7.2 clears a held key and its action on focus loss by itself, and sends no release event. So the base drops only its own latches on `Events.focus_lost` from `UiRoot`: a toggled run, a hold in progress, a rebind capture. `gameplay/pause_on_focus_loss`, **off by default**, makes `ScreenKeys` open the pause menu. **The first windowed run found the player stranded under an invisible menu**: the engine PROPAGATES the notification, `add_child` failed inside the walk, and the stack had recorded the screen anyway. The suite had used `notification()` and passed. Now the announcement is deferred, `UiRoot.open` rolls back a failed add, and the test propagates. Gotcha 80. Photographed. Suite 2,471 → 2,504; see below |
 | T6.6 | **Text in any script renders, not as tofu** | **DONE** — `5.11.0`, a MINOR: a resource, two fonts, a constant and a static method a game may ignore. **WINDOWS HID THE DEFECT**: with system fallback on, Nirmala UI and YaHei drew Bengali and Chinese with no bundled font, so the before capture switched `allow_system_fallback` off to show the boxes a player without those fonts sees. `assets/fonts/font_chain.tres` has no base font, so the engine's Latin is unchanged, and falls back to Noto Sans Bengali then a 2.8 MB Noto Sans SC subset, both at weight 600 to match. **THE THEME NAMES NO FONT, MEASURED**: it loads before the first import, and a copy of the tree with no `.godot/` printed `Parse Error` twice on rung 2's `--import`. So `UiRoot.install_font_chain` installs the chain at boot (gotcha 81). The suite shapes real strings headless: ক্ষ is one glyph from the Bengali font. The `tr_n` check found RestPoint's `{hours}`, which became T6.10 |
 | T6.10 | **A count that reaches a string picks its plural form** | **TODO.** Found by T6.6's `tr_n` check. `RestPoint` sends `{hours}` = `floori(minutes / 60)` into one key, so a rest under two hours reads "1 hours" or "0 hours slip past". It is the only count in the base with a noun beside it: `x{count}`, `{have} / {need}` and `{percent}%` carry none. Write: `src/gameplay/interactables/rest_point.gd`, the CSV (plural support in Godot's CSV importer must be checked in the 4.7 docs first, and `.po` is the fallback), a test. After T6.7 |
-| T6.7 | **Dialogue for fast and slow readers** | **TODO — next.** Forgotten #5. After T6.2. Manifest below |
-| T6.8 | **Close the list, and gate it** | **TODO — last.** The phase's exit criterion. Manifest below |
+| T6.7 | **Dialogue for fast and slow readers** | **DONE** — `5.12.0`, a MINOR: a setting, two public methods a game may ignore, and cancel now doing something in a conversation where it did nothing. **A SKIP WALKS, IT DOES NOT JUMP**: cancel calls `DialogueScreen.skip()`, which drives the runner through `advance()`, so every node passed is arrived at and fires its effect; it stops at the first choice, shown whole, and a second skip there does nothing; with no choice ahead it runs to the end. A cycle stops after 512 lines. `gameplay/dialogue_auto_advance`, off by default, holds a whole line 1.5 s plus 15 characters a second over the text speed, and never answers a choice. **THE PLANT THAT STAYED GREEN**: deleting the screen's stop-at-a-choice check changes nothing, because the runner already refuses there; the red plant is `runner.stop()` as the skip, `2549 passed, 13 failed`. `dialogue_test.gd` would have been 305 of 250, so the cases are `dialogue_speed_test.gd`. Photographed |
+| T6.8 | **Close the list, and gate it** | **TODO — next, and last.** The phase's exit criterion. Manifest below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -6482,4 +6482,79 @@ the column. Right-to-left text stays deferred. Hangul is not in the subset.
 
 **Scope.** `5.11.0`, a MINOR. Suite 2,504 → 2,533: +29: 25 in the new `font_chain_test`, 2 in `record_shape_test` for this row's own package id, and 2 in `docs_test` for the two font paths the board's plant record names; every other case unmoved.
 
-**Commit:** on `claude/t6-6-font-fallback`, PR targeting `main`. No SHA, per item 6.
+**Commit:** `487d4fd` on `claude/t6-6-font-fallback`, PR #75, targeting `main`, merged as `db0d6ec`; no separate CI-record commit was made. Filled in by T6.7, which also took the stripped count from the CI job log (`Ladder (stripped template)`, job 109434179199: `=== 2459 passed, 0 failed, 25 skipped ===`; full job 109434179375: `=== 2533 passed, 0 failed, 0 skipped ===`). `TESTING.md` still stated T6.4's stripped `2397` through T6.5 and T6.6, although T6.6's own record said it replaced it; T6.7 replaces it from its own CI job log.
+
+## T6.7 · Dialogue for fast and slow readers — **DONE**
+
+Forgotten #5 asked for text speed and an instant skip. Text speed was already there:
+`gameplay/text_speed` scales the reveal. What was missing was the skip, and for the reader at the
+other end, a way for the conversation to move on without a key press.
+
+**A skip walks the conversation, it does not jump it.** The screen's header already said why
+escape must not dismiss a conversation: a conversation has effects, and a player who escapes out
+of the middle skips the effect of the node they were about to reach. So cancel (Escape, or the
+pad's B) now calls `DialogueScreen.skip()`, which drives the runner through `advance()` node by
+node. Every node on the way is ARRIVED at, and its effect fires exactly as if it had been read.
+That is the same rule, not an exception to it: nothing is jumped over, only not read.
+
+**At a choice, the skip stops.** A branch is the player's to take. The skip stops at the first
+node offering a choice, shows the choice whole (the reveal is finished and the buttons appear),
+and a second skip there does nothing until the player answers. With no choice ahead, it runs to
+the end of the conversation and the box asks to close. A cycle of plain lines is authorable, so
+the loop stops after 512 lines with a warning rather than hanging the game on one key press.
+
+**Auto-advance is opt-in.** `gameplay/dialogue_auto_advance`, off by default, on the reasoning of
+`gameplay/pause_on_focus_loss`: a default that hurries a slow reader is the wrong default. On, a
+line that has finished revealing is held for 1.5 s plus its length at 15 characters a second, all
+divided by the text speed, because a player who slowed the text is a slower reader. The hold is
+counted from the frame the line became whole, so a line that arrived whole under reduce-motion
+is held just as long. It never answers a choice. The hint reads "Auto" while it is on, and
+redraws the moment the setting changes.
+
+**Cancel was free in a conversation.** `closes_on_cancel` is false for a conversation, so `UiRoot`
+already ignored cancel there, and the pause key refuses while a screen is open. No binding was
+added and none moved. The hint names the key through `KeyBindings.text_for(Actions.CANCEL, pad)`,
+so a rebind renames it.
+
+**Assertions.** `tests/unit/dialogue_speed_test.gd`, 25, split from `dialogue_test.gd` because
+that file would have gone to 305 of 250 lines. Fifteen on the skip: it stops at the menu with the
+conversation still running, the choice shown and the line whole; both nodes were announced; an
+effect planted on the menu fired once, and a second skip fires nothing; after the player answers,
+a skip through a plain line lands on the menu again and the effect fires again, as reading would
+have; after the closing line is picked, a skip ends the conversation and the box asks to close
+exactly once. One on a cycle. Nine on auto-advance: off by default, and off it waits however
+long; on, the hint changes and still names the skip key; half the hold is not enough and the
+whole hold is; at the menu it waits. The frame clock is stepped by calling `_process` with a
+chosen delta, because the suite is synchronous.
+
+**Plants.** Each exited 1, and each was restored. **The first stayed green, and that is the
+finding.** Deleting `not _waiting_on_choice()` from the skip loop changes nothing: the runner's
+`advance()` already refuses at a choice, so the loop spins to its limit and stops at the menu
+anyway. The screen's check stays as a second guard. The plant that counts is the tempting wrong
+skip, one that calls `runner.stop()`: `2549 passed, 13 failed`, starting with `a skip stops at
+the choice — expected menu, got` (nothing, because the conversation had ended). The first run
+of that plant failed on script errors instead, `Invalid access to property or key 'node_id'`,
+so the case now reads the node through a null-safe helper and fails on named assertions.
+
+**Photographed windowed**, 960×540, through a temporary `--probe-auto-advance` flag in
+`src/systems/debug/dev_screens.gd` that turned the setting on in memory without saving it. At
+frame 90: the greeting mid-reveal, and the hint `Auto  E to continue  Escape to skip`. At frame
+1,400 of the same scenario: the menu, `Well? Ask, or do not.`, with its three choices and focus on
+the first. Nothing had been pressed, so auto-advance moved the line and then waited at the
+choice. Both PNGs were looked at. The probe was removed, and `git status src/systems` is clean.
+
+**Found while photographing, and not this row's.** The second capture ran at about 2.3 frames a
+second, 1,500 frames in 638 s, while other sessions' suites were loading the machine. It logged
+`Keeper cannot reach 'dais'` twice, which is the message gotcha 21's persistence guard in
+`npc_brain.gd` prints. Why it fired at that frame rate was not investigated; nothing on the
+dialogue path touches it. The 90-frame capture and the ladder's own rung were clean.
+
+**Budgets.** `settings.gd` 142 → 143 of 150, which leaves seven lines. `dialogue_screen.gd` 143 →
+186 of 250. The new test is its own file.
+
+**Not in scope.** A backlog of past lines (its own row), closing the list (T6.8), plural forms
+(T6.10).
+
+**Scope.** `5.12.0`, a MINOR. Suite 2,533 → 2,564, +31: 25 in the new `dialogue_speed_test`, 3 in `options_test` and 1 in `settings_consumers_test` for the new setting's row and consumer, and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
+
+**Commit:** on `claude/t6-7-dialogue-speed`, PR targeting `main`. No SHA, per item 6.

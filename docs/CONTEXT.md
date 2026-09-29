@@ -3,28 +3,33 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-29 · **T6.6 (text in any script renders, not as tofu) complete, at 5.11.0, a MINOR.**
-**Phases T1 to T5 are complete and stay complete; Phase T6 is OPEN, and the next package is T6.7.**
+**Last updated:** 2026-09-29 · **T6.7 (dialogue for fast and slow readers) complete, at 5.12.0, a MINOR.**
+**Phases T1 to T5 are complete and stay complete; Phase T6 is OPEN, and the next package is T6.8.**
 
-**BENGALI AND CJK NOW RENDER FROM FONTS THE GAME SHIPS, AND WINDOWS HAD HIDDEN THAT THEY DID NOT.**
-The first before capture showed no tofu at all, because Nirmala UI and YaHei drew the text through
-system font fallback. With `allow_system_fallback` off, which is a player's machine without those
-fonts, every glyph was a box. `assets/fonts/font_chain.tres` has no base font, so the engine's
-Latin is unchanged, and falls back to Noto Sans Bengali, then a 2.8 MB Noto Sans SC subset (GB2312
-hanzi, JIS level-1 kanji, kana). Both are at weight 600, to match the engine's SemiBold. The
-after capture, with system fallback still off, shows the ক্ষ, স্ত্রী and শ্র conjuncts shaped, and
-the hanzi and kana drawn. Headless shaping works, so the suite asserts ক্ষ is ONE glyph from the
-Bengali font.
+**A SKIP WALKS THE CONVERSATION; IT DOES NOT JUMP IT.** Cancel (Escape, or the pad's B) during a
+conversation calls `DialogueScreen.skip()`, which drives the runner through `advance()` node by
+node. So every node passed is ARRIVED at and its effect fires, as if it had been read. It stops at
+the first node offering a choice and shows that choice whole, and a second skip there does
+nothing: a branch is the player's to take. With no choice ahead it runs to the end and the box
+closes. A cycle of plain lines stops after 512 lines rather than hanging. Before T6.7, cancel did
+nothing in a conversation at all, because `closes_on_cancel` is false there, so this is the one
+behaviour change a game can notice.
 
-**THE THEME NAMES NO FONT, AND THAT WAS MEASURED.** The chain first went in `ui_theme.tres`. The
-project theme loads before the first import, so a copy of the tree with no `.godot/` printed
-`Parse Error` twice on the `--import` that CI's rung 2 greps. So `UiRoot.install_font_chain`
-installs the chain at boot, and a theme that already has a `default_font` is left alone. Gotcha 81.
-The `tr_n` check found one count that needs a plural form: `RestPoint`'s `{hours}` reads
-"1 hours". That became T6.10 and was not built here.
+**AUTO-ADVANCE IS OPT-IN, AND IT NEVER ANSWERS A CHOICE.** `gameplay/dialogue_auto_advance`, off by
+default so a slow reader is never hurried. On, a whole line is held for 1.5 s plus its length at 15
+characters a second, divided by the text speed, then moves on. The hint reads
+`Auto  E to continue  Escape to skip`. Photographed windowed through a temporary probe: the
+greeting revealing with that hint, then, later in the same run, the menu with its three choices
+and nothing chosen.
 
-**Budgets.** `ui_root.gd` 116 → 127 of 250. Nothing tight was touched: `settings.gd` stays at 142
-of 150, `save_system.gd` 179 of 180, `director.gd` 187 of 190.
+**THE PLANT THAT STAYED GREEN.** Deleting the screen's "stop at a choice" check changes nothing,
+because `DialogueRunner.advance()` already refuses at a choice. The check stays as a second guard.
+The plant that counts is the tempting wrong skip, `runner.stop()`, which ends the conversation
+and fires no effect: `2549 passed, 13 failed`.
+
+**Budgets.** `dialogue_test.gd` would have gone to 305 of 250, so the new cases are their own
+file, `tests/unit/dialogue_speed_test.gd`, with a `CASES` line. `settings.gd` 142 → **143 of 150**.
+`dialogue_screen.gd` 143 → 186 of 250.
 
 **The phase, in order** — manifests in `WORK_PACKAGES.md` § T6.0:
 
@@ -36,15 +41,21 @@ of 150, `save_system.gd` 179 of 180, `director.gd` 187 of 190.
 | ~~T6.4~~ | ~~a slot shows where it was saved, and a damaged slot is shown as damaged~~ **DONE** | forgotten #15 |
 | ~~T6.5~~ | ~~losing window focus leaves nothing latched; pausing on it is a setting~~ **DONE** | forgotten #3 |
 | ~~T6.6~~ | ~~Bengali and CJK both render through a font fallback chain~~ **DONE** | structural |
-| **T6.7** | dialogue can skip to its end and auto-advance | forgotten #5 |
-| T6.8 | every forgotten item marked DONE or CLOSED, gated by a text scan | the exit criterion |
+| ~~T6.7~~ | ~~dialogue can skip to its end and auto-advance~~ **DONE** | forgotten #5 |
+| **T6.8** | every forgotten item marked DONE or CLOSED, gated by a text scan | the exit criterion |
 | T6.10 | a count that reaches a string picks its plural form (found by T6.6) | a defect |
 
 **THE OWNER'S PLAYTEST OUTRANKS THIS QUEUE.** A defect found by playing becomes the next row ahead of
 anything above — found, not invented, the standard every T6 row had to meet.
 
-Suite 2,504 → **2,533**, +29: 25 in the new `font_chain_test`, 2 in `record_shape_test` for this row's own package id, and 2 in `docs_test` for the two font paths the board's plant record names; every other case unmoved. Measured per case against `main`, after the documentation
-landed.
+Suite 2,533 → **2,564**, +31: 25 in the new `dialogue_speed_test`, 3 in `options_test` and 1 in `settings_consumers_test` for the new setting's row and consumer, and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `main`, after the documentation landed.
+
+*(Previously: T6.6 made text in any script render at `5.11.0`, a MINOR. Windows system fonts had
+hidden the tofu, so the before capture turned system fallback off. `assets/fonts/font_chain.tres`
+has no base font and falls back to Noto Sans Bengali, then a Noto Sans SC subset, both at weight
+600. The theme names no font, because it loads before the first import and a fresh clone printed
+`Parse Error`, so `UiRoot.install_font_chain` installs the chain at boot: gotcha 81. The `tr_n`
+check found RestPoint's `{hours}`, which became T6.10.)*
 
 *(Previously: T6.5 made losing window focus leave nothing latched at `5.10.0`, a MINOR. Measured
 first, windowed: the engine already clears a held key on focus loss, so the base releases only its
@@ -313,7 +324,7 @@ another sheet, and every facing draws a different figure.
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version is** **5.11.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+**The version is** **5.12.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
 the owner's to close or to leave.
 
 **THE NEXT PACKAGE IS T6.7, AND IT IS A QUEUE AGAIN — FOR ONE PHASE.** From T5.32 until T6.0 this
@@ -384,8 +395,8 @@ mechanical move. `tools/gen_placeholders.gd` stays on the list at 234 of 250; T5
 three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 4 on the default one, the
 fourth being a second IDLE rather than a gait**,
-1 shared area material, **22 settings and 22 consumers**.
-Template version **5.11.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+1 shared area material, **24 settings and 24 consumers**.
+Template version **5.12.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
 recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 

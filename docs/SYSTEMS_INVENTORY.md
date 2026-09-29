@@ -119,7 +119,7 @@ previous project started as a system that was allowed to know one thing too many
 | System | Purpose | Depends on | Boundary | Status |
 |---|---|---|---|---|
 | Dialogue runner | Walks a conversation: conditions, branching, effects. A component, not an autoload | Events, Flags, DialogueDb | how it is displayed, pausing, locking input | DONE |
-| Dialogue UI | Box, choices, typewriter reveal. The first non-pausing overlay | Runner, Settings | conversation logic, pausing, locking input | PART — no portraits (art is deferred), no history log, no skip-all |
+| Dialogue UI | Box, choices, typewriter reveal. The first non-pausing overlay | Runner, Settings | conversation logic, pausing, locking input | PART — no portraits (art is deferred), no history log. Skip to the end or the next choice, and opt-in auto-advance, since T6.7 |
 | Speakers | An interactable that names a conversation id and emits | Interactable, DialogueDb | opening a screen, or what is said | DONE — **scene-level as of T5.21**, the same way `Readable` is: the shipped `speaker.tscn` is reached by cycling to it and asks for its own conversation id on the bus. `turn_test.gd` owns the turn it asks for; this owns that it is selectable at all |
 | Dialogue content format | Conversation/DialogueNode/DialogueChoice as .tres, found by directory scan like items | — | running itself, or reading a flag | PART — one condition and one effect per node |
 | Barks | Short unprompted lines with cooldowns | Dialogue UI | — | LATER |
@@ -222,6 +222,13 @@ rather than oversights.
    nothing. Icons are an art question: `ART_CONTRACT.md` § Button prompts. Hotplug itself cannot
    be driven headless, so the handler is called directly and the engine's emission is untested.
 5. **Text speed and instant skip.** A player who reads fast will hate the game without it.
+   **DONE — T6.7, and text speed was already there** (`gameplay/text_speed` drives the reveal). Cancel
+   during a conversation skips: `DialogueScreen.skip()` walks the runner node by node, so every
+   node passed is arrived at and its effect fires, and it stops at the first choice, shown whole,
+   because a branch is the player's. With no choice ahead it runs to the end. For the slow reader,
+   `gameplay/dialogue_auto_advance`, off by default, moves a whole line on after a hold that grows
+   with its length and never answers a choice. `dialogue_speed_test.gd` asserts both;
+   photographed. A backlog of past lines is not built: it is its own row.
 6. **Autosave indicator,** and never autosaving during a transition. **BOTH DONE — T5.10, and
    the transition half turned out to be the sharp one.** The indicator is `notify.autosaved` on
    the toast that already existed, photographed on arrival in the first area; on the quit path it

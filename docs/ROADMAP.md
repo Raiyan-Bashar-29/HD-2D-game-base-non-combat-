@@ -1537,7 +1537,10 @@ was classified, including the ones refused.
   system fonts had hidden the tofu, so the before capture turned system fallback off. Photographed:
   the ক্ষ conjunct and the hanzi and kana shaped, and the suite asserts ক্ষ is ONE glyph. The `tr_n`
   check found one count needing a plural form, RestPoint's hours, which is T6.10.
-- **T6.7 Dialogue for fast and slow readers** — planned. Forgotten #5.
+- **T6.7 Dialogue for fast and slow readers — DONE, 2026-09-29, `5.12.0`.** Cancel during a
+  conversation skips: the screen walks the runner through `advance()`, so every node passed fires
+  its effect, and it stops at the first choice. `gameplay/dialogue_auto_advance`, off by default,
+  moves a whole line on after a hold and never answers a choice. Photographed. Closes forgotten #5.
 - **T6.8 Close the list, and gate it** — planned. The phase's exit criterion.
 - **T6.10 A count that reaches a string picks its plural form** — planned, found by T6.6.
   `RestPoint` sends `{hours}` into one key, so a short rest reads "1 hours" or "0 hours".
@@ -1553,7 +1556,7 @@ was classified, including the ones refused.
 - [x] Losing window focus leaves no base-owned input latched, and pausing on it is a setting. — T6.5
 - [x] A Bengali string and a CJK string both render through the theme's fallback chain,
   photographed. — T6.6
-- [ ] Dialogue can be skipped to its end and can auto-advance. — T6.7
+- [x] Dialogue can be skipped to its end and can auto-advance. — T6.7
 - [ ] **Every "Commonly forgotten" item is marked DONE or CLOSED (game's) with a package id, and a
   text-scan assertion fails if one is not.** — T6.8
 

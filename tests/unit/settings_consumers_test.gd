@@ -60,7 +60,7 @@ const FIXTURE_AREA: StringName = &"fixture_area"
 
 
 func run() -> void:
-	plan(79)
+	plan(80)
 	_every_setting_has_a_consumer()
 	_the_autosave_policy_is_in_the_running_game_and_subscribed_to_both_occasions()
 	_reset_puts_the_language_back()

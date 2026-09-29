@@ -1530,9 +1530,17 @@ was classified, including the ones refused.
   `UiRoot`. `gameplay/pause_on_focus_loss`, off by default, opens the pause menu. The first
   windowed run found the menu recorded and never drawn, because the engine propagates the
   notification. Gotcha 80. Closes forgotten #3. Photographed.
-- **T6.6 Text in any script renders, not as tofu** — planned. Bengali and CJK, owner's choice.
+- **T6.6 Text in any script renders, not as tofu — DONE, 2026-09-29, `5.11.0`.** Noto Sans
+  Bengali and a Noto Sans SC subset, both at weight 600 to match the engine's Latin, in a
+  fallback chain `UiRoot` installs into the project theme. The theme names no font, because it
+  loads before the first import and a fresh clone printed `Parse Error` (gotcha 81). Windows
+  system fonts had hidden the tofu, so the before capture turned system fallback off. Photographed:
+  the ক্ষ conjunct and the hanzi and kana shaped, and the suite asserts ক্ষ is ONE glyph. The `tr_n`
+  check found one count needing a plural form, RestPoint's hours, which is T6.10.
 - **T6.7 Dialogue for fast and slow readers** — planned. Forgotten #5.
 - **T6.8 Close the list, and gate it** — planned. The phase's exit criterion.
+- **T6.10 A count that reaches a string picks its plural form** — planned, found by T6.6.
+  `RestPoint` sends `{hours}` into one key, so a short rest reads "1 hours" or "0 hours".
 
 **Exit criteria for the phase:**
 
@@ -1543,7 +1551,7 @@ was classified, including the ones refused.
 - [x] Overwriting an occupied save slot asks first, through a confirm screen a game can reuse. — T6.3
 - [x] A save slot shows where it was saved, and a damaged slot is shown as damaged. — T6.4
 - [x] Losing window focus leaves no base-owned input latched, and pausing on it is a setting. — T6.5
-- [ ] A Bengali string and a CJK string both render through the theme's fallback chain,
+- [x] A Bengali string and a CJK string both render through the theme's fallback chain,
   photographed. — T6.6
 - [ ] Dialogue can be skipped to its end and can auto-advance. — T6.7
 - [ ] **Every "Commonly forgotten" item is marked DONE or CLOSED (game's) with a package id, and a

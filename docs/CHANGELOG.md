@@ -19,6 +19,36 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.11.0
+
+*2026-09-29 — Bengali and CJK text renders from fonts the game ships, not from the player's OS.*
+
+**A consuming game does: nothing, unless its own theme sets `default_font`.** In that case the
+chain is not installed. Your font keeps working exactly as before, and it still needs its own
+`fallbacks` for Bengali or CJK. **MINOR**: the base gained a resource, two fonts, a constant and a
+public static method a game may ignore, and nothing that rendered before moved. Latin still draws
+in the engine's own font, because the chain has no base font. It is not a PATCH, because a game
+that changes nothing now ships **3.3 MB more** and draws Bengali and CJK where it drew boxes.
+That is a new capability, not a fix to a promise the base had made.
+
+**What changed.** `assets/fonts/font_chain.tres` is a `FontVariation` with no base font and
+`fallbacks = [Noto Sans Bengali at weight 600, a Noto Sans SC subset at weight 600]`.
+`UiRoot.install_font_chain(theme, path)` puts it into the project theme at boot, unless the theme
+already has a `default_font` or the file is gone. **The theme itself names no font**, and that
+was measured, not chosen: the project theme loads before the first import, so a font named there
+is a `Parse Error` on every fresh clone (gotcha 81).
+
+**Why it mattered when nothing looked broken.** On Windows, system font fallback drew Bengali and
+Chinese from Nirmala UI and YaHei, so the developer's machine showed no tofu. With system fallback
+off, which is a player's machine without those fonts, every glyph was a box. `ART_CONTRACT.md`
+§ Fonts has the captures, the licences, and the recipe that cut the subset. **Hangul is not in
+the subset.** A game shipping Korean adds a font to the chain.
+
+**Found, and recorded as its own row rather than built:** `RestPoint` passes `{hours}` into a
+single string, so a rest of 60 to 119 minutes reads "1 hours". That is the one count in the base
+that needs a plural form (T6.10).
+
+---
 ## 5.10.0
 
 *2026-09-29 — losing window focus leaves nothing latched, and pausing on it is a setting.*

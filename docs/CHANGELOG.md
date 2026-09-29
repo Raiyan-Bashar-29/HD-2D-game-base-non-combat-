@@ -19,6 +19,27 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.10.1
+
+*2026-09-29 — a test case that saves without `SaveFixture.activate()` now fails the suite, and
+cannot reach the developer's saves while it does.*
+
+**A consuming game does: nothing, unless one of YOUR cases saves or loads without
+`SaveFixture.activate()`.** That case now fails rung 4 by name, `<case> used the save store without
+SaveFixture.activate(): saved slot N in user://test_saves_unclaimed`. Add the call at the top of
+its set-up. **PATCH, on the precedents `5.6.1` cites:** the case was already writing into, and
+deleting from, your real `user://saves` while passing, so the gate names an existing defect rather
+than imposing a new rule. `src/` and `tools/` are byte-identical. **If your game has its own
+runner**, copy the `SaveFixture.park()` call and `_saves_were_claimed` from `tests/test_runner.gd`.
+
+**What changed.** Before every case the runner parks the store in `user://test_saves_unclaimed`,
+so no case starts on the shipped default. It then fails any case that saved, or loaded a real
+file, while the store was parked or on the default. It hears this through `Events.game_saved` and
+`game_loaded`, not by diffing a directory, which cannot see a write followed by a delete.
+`save_dir_test.gd` now asserts the store starts parked. Three cases with `activate()` removed
+each went red, and seven sentinel saves in the real directory survived every run.
+
+---
 ## 5.10.0
 
 *2026-09-29 — a capture or debug launch no longer writes over the developer's real saves.*

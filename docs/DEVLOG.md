@@ -11206,3 +11206,75 @@ arguments. The rule is asserted, and the sentinel run is the proof. **T6.5's PR 
 `5.10.0`**, so whichever merges second takes `5.11.0`.
 
 **Commit:** on `claude/t6-10-capture-saves`, stacked on T6.9's PR #70. No SHA, per board item 6.
+
+## 2026-09-29 — T6.12 · Nothing failed a case that saved without activating the scratch store
+
+**Did.** Closed the gap T6.9 recorded. Before every case, `tests/test_runner.gd` calls the new
+`SaveFixture.park()`, which points the store at `user://test_saves_unclaimed`, emptied. The runner
+listens on `Events.game_saved` and `game_loaded`, and fails a case that saved, or loaded a file
+that exists, while `save_dir` was that directory or `DEFAULT_SAVE_DIR`. A file left in the parked
+directory fails it too. `save_dir_test.gd` now asserts a case starts parked, and asserts the
+`is_unclaimed` rule both ways, 18 → 20. The owner confirmed taking this ahead of T6.5. T6.5 had
+already merged to `main` by then, and T6.11 is another open branch, so this is T6.12, stacked on
+T6.10. `5.10.1`, a PATCH.
+
+**Why.** T6.9 offered two options, a runner that activates for every case, or a check that fails
+a write to the default. Each alone leaves a hole. The check alone goes red only after a bad case
+has already written or deleted the developer's slots. Activating for every case alone makes the
+omission harmless and silent, and silence is how fourteen piled up. Parking is not activating: a
+case still has to claim the store, and the runner says so by name if it does not. The signals
+already exist for a game's own listeners, so `src/` gained no test-only seam, the line
+`fixtures.gd`'s header draws.
+
+**Connects.** `tests/framework/save_fixture.gd`, whose header now explains the two halves.
+`TESTING.md`'s rule, which said "nothing fails if you forget", now says what fails and what the
+check does not hear. `SaveSystem.save_to_slot` and `load_from_slot`, unchanged, and their signals.
+
+**Verified.**
+- `--headless --import` first in the worktree, exit 0.
+- **Plants**, each run with seven sentinel files in the real, otherwise empty `user://saves`,
+  `slot_00.json` to `slot_05.json` and `autosave.json`, each holding its own name:
+  - `confirm_test` with `activate()` commented out: `=== 2485 passed, 1 failed ===`, exit 1,
+    `confirm_test used the save store without SaveFixture.activate(): saved slot 3 in
+    user://test_saves_unclaimed`. Sentinels intact 7 of 7.
+  - `menus_test` without it: exit 1, `saved slot 2 …, saved slot 6 …`. 7 of 7.
+  - `save_recovery_test` without it: **green on the first version of the check**, which heard only
+    saves. It plants files by hand, loads them, and deletes them. Loads were added, and it went
+    red: exit 1, `loaded slot 4 in user://test_saves_unclaimed`. 7 of 7.
+- **The load check's first version had a false positive**: `item_count_test` emits
+  `game_loaded(1)` by hand to stand in for a load, with no file behind it. Only a load of a slot
+  that exists counts now.
+- **A clean run failed eleven assertions once**, in `menus_test` and `smoke_test`, while the plant
+  runs of the same code passed. Another session's headless suite, log
+  `project_gulistan_2026-09-29T18-51-32.log`, ran from 18:51:32 to 18:51:43 against the same
+  `user://test_saves`, overlapping this run's 18:51:34 to 18:51:46. The re-run: `=== 2485 passed,
+  0 failed, 0 skipped ===`, exit 0, sentinels intact 7 of 7.
+- **Broken assertion**: `save_dir_test`'s `is_unclaimed(ROOT)` expected `true`: `=== 2486 passed,
+  1 failed ===`, exit 1. (Reverting it with `git checkout` also reverted this row's uncommitted
+  edits to that file, which the next run caught at once. Re-applied.)
+- Sentinels removed afterwards. The real `user://saves` is empty, and still empty after the final
+  suite and the capture.
+- Final, after the documentation landed: `=== 2487 passed, 0 failed, 0 skipped ===`, exit 0.
+  Measured per case against T6.10's tip, run in a temporary worktree at 2,483: +4, 2 in
+  `save_dir_test` and 2 in `record_shape_test` for this row's package id, every other case
+  unmoved.
+- `--check-only` on the three changed files: only the documented autoload identifier, `Events`.
+- `--import`: zero `SCRIPT ERROR` / `Parse Error` lines. Boot `--quit-after 30`: `0 warnings,
+  0 errors`. (Run while the sentinels were planted, boot logged 7 errors, the main menu reading
+  files that are not save JSON. That was the sentinels. It was clean once they were removed.)
+- All seven checkers exit 0. `test_runner.gd` 182 of 250, `save_fixture.gd` 31 of 250.
+- Windowed 960x540 capture at 18:40, frozen, looked at: the courtyard at dusk, the HUD's
+  `18:40 | Dusk`, the `[E]` prompt. Session `0 warnings, 0 errors`.
+
+**Unblocks.** T6.6, the next planned row. T6.5 is on `main`. Any later case that saves is caught
+by the runner if it forgets, so the rule in `TESTING.md` is now enforced.
+
+**Gaps.** **Two suite runs at once still share `user://test_saves`** and `user://test_fixtures`,
+and each `activate()` empties it. That caused the one red clean run above. Flagged as its own task:
+per-process scratch directories. **The check does not hear** a file written by hand and deleted
+without ever being loaded, or a bare `has_slot`/`slot_info` read. Parking keeps both away from
+real saves, so they are harmless, just unannounced. **This branch conflicts with `main`**, as
+T6.9's and T6.10's do, since T6.5 landed. Merge in order T6.9, T6.10, T6.12, taking each version
+after whatever `main` holds.
+
+**Commit:** on `claude/t6-12-save-guard`, stacked on T6.10's PR #72. No SHA, per board item 6.

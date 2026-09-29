@@ -3,30 +3,35 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-29 · **T6.10 (a capture or debug launch no longer writes the developer's real saves) complete, at 5.10.0, a MINOR.**
-**Phases T1 to T5 are complete and stay complete; Phase T6 is OPEN, and the next package is T6.5.**
+**Last updated:** 2026-09-29 · **T6.12 (a test case that saves without activating the scratch store fails the suite) complete, at 5.10.1, a PATCH.**
+**Phases T1 to T5 are complete and stay complete; Phase T6 is OPEN. T6.5 merged to `main` (PR #71) while T6.9, T6.10 and T6.12 were open, so the next planned package is T6.6.**
 
-**A DEBUG LAUNCH SAVES TO `user://dev_saves`, NEVER `user://saves`.** The ladder's capture rung
-runs `--new-game`, which starts a real run, so T5.10's autosave wrote the developer's real
-`autosave.json` on arrival and on quit, in every worktree, since all share one `user://`. The
-probes were worse: `--save-state`/`--load-state` and `--cross-area-save` DELETE the slot they used.
-The new `src/systems/debug/dev_saves.gd`, the first debug node in `game_root.tscn`, sets
-`SaveSystem.save_dir` to scratch whenever the launch has ANY user argument. That is a redirect,
-not a suppression: the game runs exactly as for a player, and the capture still shows
-`Autosaved.`. `--real-saves` opts out. A plain editor run passes no arguments and keeps the real
-store. Proved by a planted sentinel `autosave.json` surviving the capture byte-identical, where
-on the unchanged tree one capture overwrote it.
+**BRANCH MAP.** This branch, `claude/t6-12-save-guard`, is stacked on T6.10 (PR #72), which is
+stacked on T6.9 (PR #70). Neither is merged, and both conflict with `main` since T6.5 landed.
+T6.11 is another open branch's id. Merge in order T6.9, T6.10, T6.12; each takes the next
+version after whatever `main` holds then.
 
-**THE AUTOSAVE PROBE PAIR HAD BEEN BROKEN SINCE THE MENU STOPPED SAYING "SLOT 7".**
-`--autosave-continue` looked for `Continue — Slot 7`, while the menu names the autosave, and
-failed the same way against the real store. Fixed in `dev_scenario_shots.gd`, and the pair now
-round-trips through scratch.
+**A CASE THAT SAVES WITHOUT `SaveFixture.activate()` NOW FAILS THE SUITE, AND CANNOT REACH REAL
+SAVES WHILE IT DOES.** Before every case the runner calls `SaveFixture.park()`, which points the
+store at `user://test_saves_unclaimed`. It listens on `Events.game_saved` and `game_loaded`, and
+fails a case that saves, or loads a real file, while the store is parked or on the shipped
+default. A file left in the parked directory fails it too. Both halves, because a check alone
+goes red only after real slots are gone, and parking alone is silent. Three plants went red by
+name, and seven sentinel saves survived every run. `save_dir_test` now asserts a case starts
+parked, not on the default.
 
-**NOT FIXED: `--locale=` still writes the developer's real `user://settings.cfg`.** `Settings.PATH`
-is a `const`, so nothing can redirect it without a `src/core` change. That is a separate task.
+**NOT FIXED: two suite runs at once share `user://test_saves`.** Every worktree shares one
+`user://`, and each `activate()` empties it, so a concurrent run fails assertions in
+`menus_test` and `smoke_test`. It happened once while proving this row. Re-run when nobody else
+is running the suite. Flagged as its own task.
 
-**Budgets.** `dev_saves.gd` is new and small. `save_system.gd` stays at **179 of 180** because
-nothing in it changed, and `director.gd` stays at 187 of 190.
+**Budgets.** Test-only. `test_runner.gd` 162 → 182 of 250, `save_fixture.gd` 22 → 31 of 250.
+
+*(Previously: T6.10 made a debug launch save to `user://dev_saves`, at `5.10.0`, a MINOR. The
+capture rung's `--new-game` is a real run, so the autosave wrote the developer's real
+`autosave.json`, and three probes deleted real slots. `dev_saves.gd`, the first debug node,
+redirects any launch with user arguments; `--real-saves` opts out. `--locale=` still writes the
+real `user://settings.cfg`, because `Settings.PATH` is a `const`.)*
 
 **The phase, in order** — manifests in `WORK_PACKAGES.md` § T6.0:
 
@@ -38,16 +43,17 @@ nothing in it changed, and `director.gd` stays at 187 of 190.
 | ~~T6.4~~ | ~~a slot shows where it was saved, and a damaged slot is shown as damaged~~ **DONE** | forgotten #15 |
 | ~~T6.9~~ | ~~the suite destroyed real saves; every case that saves redirects first~~ **DONE**, out of number order | owner-reported |
 | ~~T6.10~~ | ~~a capture or debug launch saves to scratch, never over the developer's saves~~ **DONE**, out of number order | found by T6.9 |
-| **T6.5** | losing window focus leaves nothing latched; pausing on it is a setting | forgotten #3 |
-| T6.6 | Bengali and CJK both render through a font fallback chain | structural |
+| ~~T6.12~~ | ~~a case that saves without activating the scratch store fails the suite~~ **DONE**, out of number order | found by T6.9 |
+| ~~T6.5~~ | ~~losing window focus leaves nothing latched; pausing on it is a setting~~ **DONE on `main`**, PR #71 | forgotten #3 |
+| **T6.6** | Bengali and CJK both render through a font fallback chain | structural |
 | T6.7 | dialogue can skip to its end and auto-advance | forgotten #5 |
 | T6.8 | every forgotten item marked DONE or CLOSED, gated by a text scan | the exit criterion |
 
 **THE OWNER'S PLAYTEST OUTRANKS THIS QUEUE.** A defect found by playing becomes the next row ahead of
 anything above — found, not invented, the standard every T6 row had to meet. T6.9 is the first,
-numbered after T6.8 so that no planned id moves. T6.10 is the second, found while proving T6.9.
+numbered after T6.8 so that no planned id moves. T6.10 and T6.12 were both found while proving T6.9.
 
-Suite 2,473 → **2,483**, +10: 8 in `dev_tools_test` (seven new, and one more file in the wired-node count) and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against T6.9's tip, after the documentation landed.
+Suite 2,483 → **2,487**, +4: 2 in `save_dir_test` (a case starts parked, and the `is_unclaimed` rule both ways) and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against T6.10's tip, after the documentation landed.
 
 *(Previously: T6.9 stopped the suite touching `user://saves`, at `5.9.1`, a PATCH, test-only.
 Fourteen cases wrote or deleted slots there, and a green run of the unchanged suite deleted all
@@ -313,7 +319,7 @@ another sheet, and every facing draws a different figure.
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version is** **5.10.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+**The version is** **5.10.1**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
 the owner's to close or to leave.
 
 **THE NEXT PACKAGE IS T6.5, AND IT IS A QUEUE AGAIN — FOR ONE PHASE.** From T5.32 until T6.0 this
@@ -385,7 +391,7 @@ three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite shee
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 4 on the default one, the
 fourth being a second IDLE rather than a gait**,
 1 shared area material, **21 settings and 21 consumers**.
-Template version **5.10.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+Template version **5.10.1**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
 recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 

@@ -127,6 +127,7 @@ original board rather than continuing it.
 | T6.4 | **A save slot says where it was saved, and says so when it is damaged** | **DONE** — `5.9.0`, a MINOR: a hook, a constant and a static method a game may ignore. `SaveSystem.header_provider` is an optional Callable stored as the file's `"header"`, so `core` never asks `Director`; **`WorldMap` sets it, not `director.gd`**, which is at its budget, and `WorldMap.place_key` reads the area id back as a name key. The row reads `Slot 1 · Rose Courtyard · …`, photographed; an unmapped area or a pre-5.9.0 save reads `Unknown place`. **`slot_info` now answers `{}` for any file the loader would refuse**, so a file from a newer build is DAMAGED too, and Continue can no longer point at one. A damaged slot is a note when loading and, counted as occupied, asks before it is overwritten. Three plants, three different failures. `save_system.gd` 176 → 179 of 180. Suite 2,437 → 2,471; see below |
 | T6.9 | **Running the suite destroyed the developer's real saves** | **DONE** — `5.9.1`, a PATCH, test-only: `src/` and `tools/` byte-identical. **OUT OF NUMBER ORDER ON PURPOSE**: an owner-reported defect, taken ahead of T6.5 under the playtest rule, and numbered after T6.8 so that no planned row's id moves. Fourteen cases wrote or deleted slots against the default `user://saves`, because only T5.22's two had ever called `SaveFixture.activate()`. Seven sentinel saves planted there: the unchanged suite passed 2,437 of 2,437 and **deleted all seven**; fixing only the three suspected cases still lost five; all fourteen redirected, all seven survive byte-identical. `TESTING.md` now states the rule. See below |
 | T6.10 | **A capture or debug launch wrote over the developer's real saves** | **DONE** — `5.10.0`, a MINOR: a class and a flag a game may ignore. **OUT OF NUMBER ORDER ON PURPOSE**, like T6.9, which found it. The ladder's capture rung runs `--new-game`, a real run, so the autosave wrote the real `autosave.json`, and `--save-state`/`--load-state`/`--cross-area-save` deleted real slots. The new `dev_saves.gd`, first of the debug nodes, sets `SaveSystem.save_dir` to `user://dev_saves` for any launch with user arguments; `--real-saves` opts out. **A redirect, not a suppression**, so the capture still photographs the toast. A planted sentinel was overwritten by one capture before and survives it byte-identical after. Also fixed `--autosave-continue`, which could not find the Continue row. `save_system.gd` untouched at 179 of 180. See below |
+| T6.12 | **Nothing failed a case that saved without activating the scratch store** | **DONE** — `5.10.1`, a PATCH on `5.6.1`'s precedents, test-only: `src/` and `tools/` byte-identical. **OUT OF NUMBER ORDER ON PURPOSE**, the gap T6.9 recorded; T6.11 is another open branch's id. Both halves T6.9 offered, because each alone leaves a hole: the runner PARKS the store in `user://test_saves_unclaimed` before every case, so a forgotten `activate()` cannot reach a real save, and FAILS a case that saves, or loads a real file, anywhere but the store it claimed. Heard on `game_saved`/`game_loaded`, not by a directory diff. **Three plants red**, each naming its case: `confirm_test` and `menus_test` (saves) and `save_recovery_test` (a hand-planted file, loaded then deleted). Seven sentinel saves survived every run. See below |
 | T6.5 | **Losing window focus leaves nothing latched** | **TODO — next.** Forgotten #3. Measure first. Manifest below |
 | T6.6 | **Text in any script renders, not as tofu** | **TODO.** Bengali and CJK. Manifest below |
 | T6.7 | **Dialogue for fast and slow readers** | **TODO.** Forgotten #5. After T6.2. Manifest below |
@@ -6431,6 +6432,55 @@ harm, but its fix is a `src/core` seam in a file at a tight budget, so it is its
 
 **Scope.** `5.10.0`, a MINOR. Suite 2,473 → **2,483**, +10: 8 in `dev_tools_test` (seven new, and one more file in the wired-node count) and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
 
-**Commit:** on `claude/t6-10-capture-saves`, stacked on `claude/t6-9-suite-saves` (PR #70), PR
-targeting `main`. No SHA, per item 6. **Version collision to resolve at merge:** T6.5's PR #71 also
+**Commit:** `a4ba31a` on `claude/t6-10-capture-saves` (PR #72), stacked on `claude/t6-9-suite-saves` (PR #70), PR
+targeting `main`. Filled in by T6.12. **Version collision to resolve at merge:** T6.5's PR #71 also
 claims `5.10.0`; whichever of the two merges second takes `5.11.0`.
+
+## T6.12 · Nothing failed a case that saved without activating the scratch store — **DONE**
+
+**The gap T6.9 recorded.** T6.9 redirected fourteen cases that wrote the developer's real
+`user://saves`, and `TESTING.md` stated the rule. Nothing enforced it. A diff of the directory
+around each case cannot see a write followed by a delete in an empty directory, and empty is the
+ordinary state on CI. **Numbered T6.12**, after T6.10: T6.11 is another open branch's id. The
+owner confirmed taking it before T6.5, which then merged to `main` while this row was open.
+
+**Decided: both of T6.9's options, not one.** (b) alone, a check, goes red only AFTER the case has
+written or deleted a real slot: the first run of a bad case still costs the developer their
+saves. (a) alone, activating for every case, makes the omission harmless and silent, and silence
+is how fourteen piled up. So:
+
+- **Parked.** `SaveFixture.park()` points the store at `UNCLAIMED`, `user://test_saves_unclaimed`,
+  emptied, and the runner calls it before every case. No case starts on the shipped default, so
+  a forgotten `activate()` cannot reach a real save, crash or no crash.
+- **Checked.** The runner listens on `Events.game_saved` and `game_loaded`, signals `save_to_slot`
+  and `load_from_slot` already emit for a game's own listeners, so no seam was added to `src/`.
+  A save, or a load with a file behind it, while `save_dir` is `UNCLAIMED` or `DEFAULT_SAVE_DIR`
+  fails the case by name. A file left in `UNCLAIMED` fails it too, for a plant nothing announces.
+  A case that points the store at a scratch directory of its own, as `save_dir_test` does, has
+  made a choice and is not flagged.
+
+**Why loads count.** `save_recovery_test` plants files by hand and deletes them, and never saves,
+so the first version of the check passed it with `activate()` removed. Its loads are the tell: on
+the old default they read whatever the developer kept in that slot. Only a load with a FILE
+behind it counts, because `item_count_test` emits `game_loaded` by hand to stand in for one, and
+that tripped the first version of the load check.
+
+**`save_dir_test` changed its entry claim**, from "the store starts on the shipped default" to
+"the store starts parked", plus two assertions for `is_unclaimed`. 18 → 20.
+
+**Plants, each with seven sentinel saves in the real `user://saves`:**
+- `confirm_test` without `activate()`: exit 1, `saved slot 3 in user://test_saves_unclaimed`.
+- `menus_test` without it: exit 1, `saved slot 2 …, saved slot 6 …`, the autosave among them.
+- `save_recovery_test` without it: exit 1, `loaded slot 4 …`.
+- Every run, and the clean run: sentinels intact 7 of 7.
+
+**Not done: two suite runs at once still share `user://test_saves`.** Found while proving this: a
+clean run failed eleven assertions in `menus_test` and `smoke_test` because another session's
+suite overlapped it, and each `activate()` empties the directory. The re-run was green. Flagged as
+its own task: per-process scratch directories.
+
+**Scope.** `5.10.1`, a PATCH. Test-only: `tests/test_runner.gd`,
+`tests/framework/save_fixture.gd`, `tests/unit/save_dir_test.gd`, and the documents. Suite 2,483 → **2,487**, +4: 2 in `save_dir_test` and 2 in `record_shape_test` for this row's package id; every other case unmoved.
+
+**Commit:** on `claude/t6-12-save-guard`, stacked on `claude/t6-10-capture-saves` (PR #72), PR
+targeting `main`. No SHA, per item 6.

@@ -1534,6 +1534,11 @@ was classified, including the ones refused.
   the real slot, and three probes deleted real slots. `DevSaves` points any debug launch with user
   arguments at `user://dev_saves` (`--real-saves` opts out), and a planted sentinel survives the
   capture. No exit criterion covers a defect fix, so none is ticked.
+- **T6.12 Nothing failed a case that saved without activating the scratch store — DONE,
+  2026-09-29, `5.10.1`.** The gap T6.9 recorded. The runner parks the store in a scratch
+  directory before every case and fails a case that saves, or loads a real file, while parked.
+  Three cases with `activate()` removed went red, and seven sentinel saves survived every run.
+  Test-only. No exit criterion covers a defect fix, so none is ticked.
 - **T6.5 Losing window focus leaves nothing latched** — planned. Forgotten #3.
 - **T6.6 Text in any script renders, not as tofu** — planned. Bengali and CJK, owner's choice.
 - **T6.7 Dialogue for fast and slow readers** — planned. Forgotten #5.

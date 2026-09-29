@@ -126,10 +126,11 @@ original board rather than continuing it.
 | T6.3 | **A reusable confirm screen, and "are you sure" on overwriting a save** | **DONE** — `5.8.0`, a MINOR: a class and three strings a game may ignore. `ConfirmScreen.asking(question_key, detail, on_yes)` is a `MenuScreen` with `closes_on_cancel = false`, so **escape and pause cannot answer it**, and focus lands on **No**, so mashing accept loses nothing. Pressing an occupied slot on the save screen asks `Overwrite this save?` under the header about to be lost; an empty slot saves at once. The quit half of forgotten #7 is T5.10's quit-autosave, recorded with its two refusals rather than built. Two plants, two different failures, and a control assertion proving the cancel event really reaches `UiRoot`. Photographed over the pause menu. Suite 2,408 → 2,437; see below |
 | T6.4 | **A save slot says where it was saved, and says so when it is damaged** | **DONE** — `5.9.0`, a MINOR: a hook, a constant and a static method a game may ignore. `SaveSystem.header_provider` is an optional Callable stored as the file's `"header"`, so `core` never asks `Director`; **`WorldMap` sets it, not `director.gd`**, which is at its budget, and `WorldMap.place_key` reads the area id back as a name key. The row reads `Slot 1 · Rose Courtyard · …`, photographed; an unmapped area or a pre-5.9.0 save reads `Unknown place`. **`slot_info` now answers `{}` for any file the loader would refuse**, so a file from a newer build is DAMAGED too, and Continue can no longer point at one. A damaged slot is a note when loading and, counted as occupied, asks before it is overwritten. Three plants, three different failures. `save_system.gd` 176 → 179 of 180. Suite 2,437 → 2,471; see below |
 | T6.5 | **Losing window focus leaves nothing latched** | **DONE** — `5.10.0`, a MINOR: a signal, a setting and three public methods a game may ignore. **Measured first, windowed**: Godot 4.7.2 clears a held key and its action on focus loss by itself, and sends no release event. So the base drops only its own latches on `Events.focus_lost` from `UiRoot`: a toggled run, a hold in progress, a rebind capture. `gameplay/pause_on_focus_loss`, **off by default**, makes `ScreenKeys` open the pause menu. **The first windowed run found the player stranded under an invisible menu**: the engine PROPAGATES the notification, `add_child` failed inside the walk, and the stack had recorded the screen anyway. The suite had used `notification()` and passed. Now the announcement is deferred, `UiRoot.open` rolls back a failed add, and the test propagates. Gotcha 80. Photographed. Suite 2,471 → 2,504; see below |
-| T6.9 | **Running the suite destroyed the developer's real saves** | **DONE** — `5.10.1` (`5.9.1` on its own branch; T6.5 landed first), a PATCH, test-only: `src/` and `tools/` byte-identical. **OUT OF NUMBER ORDER ON PURPOSE**: an owner-reported defect, taken ahead of T6.5 under the playtest rule, and numbered after T6.8 so that no planned row's id moves. Fourteen cases wrote or deleted slots against the default `user://saves`, because only T5.22's two had ever called `SaveFixture.activate()`. Seven sentinel saves planted there: the unchanged suite passed 2,437 of 2,437 and **deleted all seven**; fixing only the three suspected cases still lost five; all fourteen redirected, all seven survive byte-identical. `TESTING.md` now states the rule. See below |
-| T6.10 | **A capture or debug launch wrote over the developer's real saves** | **DONE** — `5.11.0`, a MINOR: a class and a flag a game may ignore. **OUT OF NUMBER ORDER ON PURPOSE**, like T6.9, which found it. The ladder's capture rung runs `--new-game`, a real run, so the autosave wrote the real `autosave.json`, and `--save-state`/`--load-state`/`--cross-area-save` deleted real slots. The new `dev_saves.gd`, first of the debug nodes, sets `SaveSystem.save_dir` to `user://dev_saves` for any launch with user arguments; `--real-saves` opts out. **A redirect, not a suppression**, so the capture still photographs the toast. A planted sentinel was overwritten by one capture before and survives it byte-identical after. Also fixed `--autosave-continue`, which could not find the Continue row. `save_system.gd` untouched at 179 of 180. See below |
-| T6.6 | **Text in any script renders, not as tofu** | **TODO — next.** Bengali and CJK. Manifest below |
-| T6.7 | **Dialogue for fast and slow readers** | **TODO.** Forgotten #5. After T6.2. Manifest below |
+| T6.6 | **Text in any script renders, not as tofu** | **DONE** — `5.11.0`, a MINOR: a resource, two fonts, a constant and a static method a game may ignore. **WINDOWS HID THE DEFECT**: with system fallback on, Nirmala UI and YaHei drew Bengali and Chinese with no bundled font, so the before capture switched `allow_system_fallback` off to show the boxes a player without those fonts sees. `assets/fonts/font_chain.tres` has no base font, so the engine's Latin is unchanged, and falls back to Noto Sans Bengali then a 2.8 MB Noto Sans SC subset, both at weight 600 to match. **THE THEME NAMES NO FONT, MEASURED**: it loads before the first import, and a copy of the tree with no `.godot/` printed `Parse Error` twice on rung 2's `--import`. So `UiRoot.install_font_chain` installs the chain at boot (gotcha 81). The suite shapes real strings headless: ক্ষ is one glyph from the Bengali font. The `tr_n` check found RestPoint's `{hours}`, which became T6.13 |
+| T6.9 | **Running the suite destroyed the developer's real saves** | **DONE** — `5.11.1`, a PATCH, test-only: `src/` and `tools/` byte-identical. **OUT OF NUMBER ORDER ON PURPOSE**: an owner-reported defect, taken ahead of T6.7 under the playtest rule, and numbered after T6.8 so that no planned row's id moves. Fourteen cases wrote or deleted slots against the default `user://saves`, because only T5.22's two had ever called `SaveFixture.activate()`. Seven sentinel saves planted there: the unchanged suite passed 2,437 of 2,437 and **deleted all seven**; fixing only the three suspected cases still lost five; all fourteen redirected, all seven survive byte-identical. `TESTING.md` now states the rule. See below |
+| T6.10 | **A capture or debug launch wrote over the developer's real saves** | **DONE** — `5.12.0`, a MINOR: a class and a flag a game may ignore. **OUT OF NUMBER ORDER ON PURPOSE**, like T6.9, which found it. The ladder's capture rung runs `--new-game`, a real run, so the autosave wrote the real `autosave.json`, and `--save-state`/`--load-state`/`--cross-area-save` deleted real slots. The new `dev_saves.gd`, first of the debug nodes, sets `SaveSystem.save_dir` to `user://dev_saves` for any launch with user arguments; `--real-saves` opts out. **A redirect, not a suppression**, so the capture still photographs the toast. A planted sentinel was overwritten by one capture before and survives it byte-identical after. Also fixed `--autosave-continue`, which could not find the Continue row. `save_system.gd` untouched at 179 of 180. See below |
+| T6.13 | **A count that reaches a string picks its plural form** | **TODO.** Found by T6.6's `tr_n` check. `RestPoint` sends `{hours}` = `floori(minutes / 60)` into one key, so a rest under two hours reads "1 hours" or "0 hours slip past". It is the only count in the base with a noun beside it: `x{count}`, `{have} / {need}` and `{percent}%` carry none. Write: `src/gameplay/interactables/rest_point.gd`, the CSV (plural support in Godot's CSV importer must be checked in the 4.7 docs first, and `.po` is the fallback), a test. After T6.7 |
+| T6.7 | **Dialogue for fast and slow readers** | **TODO — next.** Forgotten #5. After T6.2. Manifest below |
 | T6.8 | **Close the list, and gate it** | **TODO — last.** The phase's exit criterion. Manifest below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
@@ -6408,15 +6409,89 @@ refocus would be the surprise this setting exists to prevent.
 
 **Scope.** `5.10.0`, a MINOR. Suite 2,471 → 2,504: +33: 30 in the new `focus_loss_test`, 3 in `options_test` and 1 in `settings_consumers_test` for the new setting's row and consumer, 2 in `record_shape_test` for this row's own package id, and −3 in `doc_counts_test`, because the three historical `seventy-nine` lines in `WORK_PACKAGES.md` became digits; every other case unmoved.
 
-**Commit:** `f0805ce` on `claude/t6-5-focus-loss`, PR #71, targeting `main`, merged as `26f48c1`. Filled in by T6.10.
+**Commit:** `f0805ce` on `claude/t6-5-focus-loss`, PR #71, targeting `main`, merged as `26f48c1`; no separate CI-record commit was made. Filled in by T6.6, which also took the stripped count from the CI job log (`Ladder (stripped template)`, job 109373463415: `=== 2430 passed, 0 failed, 25 skipped ===`; full job 109373463289: `=== 2504 passed, 0 failed, 0 skipped ===`). `TESTING.md` had kept T6.4's stripped `2397` through T6.5; T6.6 replaces it.
 
+## T6.6 · Text in any script renders, not as tofu — **DONE**
+
+The owner chose both scripts: Bengali, whose conjuncts need real shaping, and CJK, which needs
+thousands of glyphs. The manifest asked for a capture against tofu before the change, and that is
+where the row's first finding came from.
+
+**Windows hid the defect.** The before capture, with the engine's defaults, drew Bengali, Chinese
+and Japanese correctly and no box at all. `ThemeDB.fallback_font` is a `FontFile` with
+`allow_system_fallback = true`, and Windows carries Nirmala UI and YaHei. So the defect is
+invisible on the machine the base is written on, and real on a Steam Deck or a bare Linux box. The
+capture that counts switched system fallback off on every font. Before the change, every non-Latin
+glyph was a hex box. After it, every one was drawn, with system fallback still off, so only the
+bundled fonts could have drawn them.
+
+**The fonts.** Downloaded with the owner's permission, which named each file, its source and its
+size: `NotoSansBengali[wdth,wght].ttf` (464 KB) and `NotoSansSC[wght].ttf` (17.8 MB), each with its
+`OFL.txt`, from `github.com/google/fonts`, plus fontTools 4.66.0 from PyPI to cut the subset. The
+Bengali font is committed unmodified. The SC font is subset to 8,392 code points (GB2312's 6,763
+hanzi, JIS level 1 and one row of level 2, kana, CJK punctuation, full/half-width forms) and pinned
+at weight 600: 2.8 MB. The licence reserves only the name `Source`, which the subset does not use.
+The recipe is in `ART_CONTRACT.md` § Fonts.
+
+**Weight 600, found by looking.** The first after capture drew every Bengali and CJK line visibly
+lighter than the Latin beside it, because the engine's default is Open Sans SemiBold. The chain
+asks the variable Bengali font for `wght` 600 through a `FontVariation`, and the SC subset was
+re-cut at 600. The second capture matched.
+
+**The theme names no font — the second finding, and the manifest's line it departs from.** The
+manifest said to put the chain in `ui_theme.tres`, and the first version did. It passed on the
+working copy. A copy of the tree with no `.godot/`, which is what CI and every consumer start
+from, printed `Parse Error: [ext_resource] referenced non-existent resource` twice on the first
+`--import`. The project theme is `gui/theme/custom`, which the engine loads at startup, before the
+filesystem scan has imported the fonts. That is exactly what rung 2 greps for. So the chain is its
+own resource, `assets/fonts/font_chain.tres`, and `UiRoot.install_font_chain(theme, path)` puts it
+into the project theme at boot. `UiAccessibility` and `UiRowStyles` already change the project
+theme at runtime, which is the precedent. A theme that already has a `default_font` is left alone,
+because a game that set its own type did it on purpose. After the move, the fresh-tree import
+printed 0 `Parse Error` lines, and the fresh boot logged `Font chain installed: 2 fallback(s)`. A
+Label on screen before the install picks the font up, which the capture showed. Gotcha 81.
+
+**Assertions.** `tests/unit/font_chain_test.gd`, 25. Five on the chain: a FontVariation, no base
+font, two fallbacks, Bengali then CJK. Five on coverage: the engine font has no Bengali and no
+hanzi, the Bengali link has Bengali, and the CJK link has hanzi and kana. Six on SHAPING, which
+runs headless because HarfBuzz is not the rasteriser: ক্ষ is three code points and ONE glyph from
+the Bengali font, the hanzi and kana come from the subset, and Latin still comes from the engine
+font. That last one matters because the Bengali font carries Latin too. Three read the theme from
+disk and find no font in it. Five cover the install rule, and one checks both licences.
+
+**The `tr_n` check, as the manifest asked, before any plural support.** Every `{…}` in
+`strings.csv` was read. `x{count}`, `{have} / {need}`, `{standing} of {needed}` and `{percent}%`
+carry no noun, so they need no plural form. One does: `RestPoint` sends `{hours}` =
+`floori(minutes / 60)` into a single key, so a rest under two hours reads "1 hours" or "0 hours
+slip past". The key is demo content, but the count comes from a template system, so every game
+meets it. That is **T6.13**, and it was not built here.
+
+**Plants.** Each exited 1, and each was restored byte-identical. With the chain's two fallbacks swapped: `2523 passed, 8 failed`, starting with `fallback 0 is the Bengali font — expected res://assets/fonts/NotoSansBengali-Variable.ttf, got res://assets/fonts/NotoSansSC-SemiBold-subset.ttf`. With `install_font_chain`'s check for an existing `default_font` removed: `2530 passed, 1 failed`, `a theme with its own font keeps it — expected true, got false`.
+
+**Photographed windowed**, 960×540, through a temporary `extends SceneTree` probe in
+`src/systems/debug/`. The probe drew four 64 px Labels (Latin with é and ñ, Bengali with ক্ষ স্ত্রী
+শ্রদ্ধা যুক্তাক্ষর, Chinese, Japanese), switched `allow_system_fallback` off, and for the after
+capture added a real `UiRoot`, so the install path under test is the shipped one. Before: the Latin
+line drawn, and every other glyph a hex box. After: all four lines drawn, weights matched, and Latin
+pixel-identical to before. Both PNGs were looked at. The probe was removed, and
+`git status src/systems` is clean.
+
+**Budgets.** `ui_root.gd` 116 → 127 of 250. The test is 105 code lines. Nothing tight was touched.
+
+**Not in scope.** Dialogue skip and auto-advance (T6.7), closing the list (T6.8), plural forms
+(T6.13). There is no Bengali or CJK locale: `strings.csv` keeps `en` and `en_XA`, and a game adds
+the column. Right-to-left text stays deferred. Hangul is not in the subset.
+
+**Scope.** `5.11.0`, a MINOR. Suite 2,504 → 2,533: +29: 25 in the new `font_chain_test`, 2 in `record_shape_test` for this row's own package id, and 2 in `docs_test` for the two font paths the board's plant record names; every other case unmoved.
+
+**Commit:** `487d4fd` on `claude/t6-6-font-fallback`, PR #75, targeting `main`, merged as `db0d6ec`; no separate CI-record commit was made. Filled in by T6.9, which also took the stripped count from the CI job log (`Ladder (stripped template)`, job 109434179199: `=== 2459 passed, 0 failed, 25 skipped ===`; full job 109434179375: `=== 2533 passed, 0 failed, 0 skipped ===`).
 
 ## T6.9 · Running the suite destroyed the developer's real saves — **DONE**
 
-**Reported by the owner, taken ahead of T6.5.** `menus_test.gd` and `confirm_test.gd` each said
+**Reported by the owner, taken ahead of T6.7.** `menus_test.gd` and `confirm_test.gd` each said
 `THIS CASE OWNS user://saves FOR THE RUN`, deleted every slot at set-up, then wrote slots, all
 against `SaveSystem.save_dir`. Neither called `SaveFixture.activate()`, so that was still
-`DEFAULT_SAVE_DIR`. **Numbered T6.9, not inserted as T6.5**, so that no planned row's id, manifest
+`DEFAULT_SAVE_DIR`. **Numbered T6.9, not inserted as T6.7**, so that no planned row's id, manifest
 or chip prompt moves. A suffix was not available either: `record_shape_test.gd` reads a package id
 as `T<n>.<n>`, so `T6.3a` would have been read as T6.3.
 
@@ -6453,7 +6528,7 @@ through any path, activates first, because nothing fails when it does not.
 
 **No new gotcha, and that was a choice.** This is gotcha 79's lesson again: T5.22 fixed the sites
 it had in front of it, not every site matching the pattern. The instance is appended to 79 rather
-than numbered 80. Renumbering would have meant rewriting three historical lines on this board,
+than given a number of its own. A new number would have meant rewriting three historical lines on this board,
 which `doc_counts_test.gd` reads as claims about the count.
 
 **What still is not gated.** Nothing makes a NEW case that saves without activating fail. The
@@ -6462,9 +6537,9 @@ structural answer is a runner that activates the scratch store before every case
 `save_dir_test.gd` would have to stop asserting the default at entry. That design question was
 recorded, not built.
 
-**Scope.** `5.9.1` on its own branch, landing as `5.10.1` because T6.5 reached `main` first; a PATCH, test-only. T6.4 merged to `main` while this row was open, and the branch merged it in; its own `slot_header_test.gd` already activates the scratch store. Suite 2,471 → **2,473**, +2, both in `record_shape_test` for this row's own package id; every other case unmoved, the fourteen changed cases included.
+**Scope.** `5.11.1`, a PATCH, test-only. T6.4, T6.5 and T6.6 merged to `main` while this row was open, and the branch merged each in. `slot_header_test.gd` activates the scratch store itself, and `focus_loss_test.gd` and `font_chain_test.gd` do not touch it. Suite 2,533 → **2,535**, +2, both in `record_shape_test` for this row's own package id; every other case unmoved, the fourteen changed cases included.
 
-**Commit:** `c6571cf`, then `2391b55` recording the stripped count, on `claude/t6-9-suite-saves`, PR #70, targeting `main`; unmerged when T6.10 branched from its tip. Filled in by T6.10.
+**Commit:** `c6571cf` and `2391b55` on `claude/t6-9-suite-saves`, PR #70, targeting `main`, squash-merged as `8436c69`. Filled in by T6.10.
 
 ## T6.10 · A capture or debug launch wrote over the developer's real saves — **DONE**
 
@@ -6519,8 +6594,10 @@ arguments, so the sentinel run is its proof.
 through `Settings.set_value`, which persists, and `Settings.PATH` is a `const`. Same class of
 harm, but its fix is a `src/core` seam in a file at a tight budget, so it is its own task.
 
-**Scope.** `5.11.0`, a MINOR; it was `5.10.0` until T6.5 took that number on `main`. Suite 2,504 → **2,516**, +12: 2 in `record_shape_test` for T6.9's package id, carried here, and for T6.10 8 in `dev_tools_test` (seven new, and one more file in the wired-node count) and 2 in `record_shape_test`.
+**Scope.** `5.12.0`, a MINOR; built as `5.10.0`, it moved when T6.5, T6.6 and T6.9 reached `main` first. Suite 2,535 → **2,545**, +10: 8 in `dev_tools_test` (seven new, and one more file in the wired-node count) and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
 
-**Commit:** on `claude/t6-10-capture-saves`, stacked on `claude/t6-9-suite-saves` (PR #70), PR
-targeting `main`. No SHA, per item 6. T6.5's PR #71 merged first at
-`5.10.0`, so this row took `5.11.0` in the merge that resolved it.
+**Commit:** `a4ba31a` on `claude/t6-10-capture-saves`, PR #72, targeting `main`, then a merge of
+`main` that took every file from `main` and re-applied only that commit. No merge SHA, per item 6.
+**The id is T6.10 on purpose.** T6.6 had planned the plural-form row as T6.10 while this one
+already held it on its branch, and the open T6.11 and T6.12 branches already call this row
+T6.10. The planned row moved to **T6.13**, as T6.12's branch has it.

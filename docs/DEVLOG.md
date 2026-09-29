@@ -11144,19 +11144,71 @@ returns. That is the engine's state, and it was measured clear. The capture coul
 OS focus change, so the photographed path starts at the engine's notification. The OS-to-engine
 half is the probe's measurement.
 
-**Commit:** on `claude/t6-5-focus-loss`, PR targeting `main`. No SHA, per board item 6.
+**Commit:** `f0805ce` on `claude/t6-5-focus-loss`, PR #71, targeting `main`, merged as `26f48c1`; no separate CI-record commit was made. Filled in by T6.6, which also took the stripped count from the CI job log (`Ladder (stripped template)`, job 109373463415: `=== 2430 passed, 0 failed, 25 skipped ===`; full job 109373463289: `=== 2504 passed, 0 failed, 0 skipped ===`). `TESTING.md` had kept T6.4's stripped `2397` through T6.5; T6.6 replaces it.
 
+## 2026-09-29 — T6.6 · Text in any script renders, not as tofu
+
+**Did.** First merged PR #71 (T6.5) with plain `gh pr merge 71 --merge`, CLEAN with both CI jobs
+green, as `26f48c1`, and branched `claude/t6-6-font-fallback` from it. Imported first. Captured the
+before state, which showed no tofu, because Windows fonts drew it. Captured again with system
+fallback off: boxes. With permission, downloaded Noto Sans Bengali, Noto Sans SC and their
+licences, and fontTools, and cut a 2.8 MB CJK subset at weight 600. Put the chain in the theme,
+found the fresh-clone `Parse Error`, and moved the chain into `assets/fonts/font_chain.tres`, which
+`UiRoot.install_font_chain` installs at boot. Wrote `font_chain_test.gd`. Checked every count in
+the CSV for `tr_n`, and found `RestPoint`'s `{hours}`, which is now T6.10.
+
+**Why.** Before this, a Bengali or CJK string rendered only if the player's OS had a font for it.
+The machine the base is written on does, so nothing looked broken.
+
+**Connects.** `UiRoot` is the first UI node, and it already sits where the UI's facts are stated.
+`UiAccessibility` and `UiRowStyles` already change the project theme at runtime. `ART_CONTRACT.md`
+§ Fonts is the consumer's rule. `NEW_GAME.md` § 2 lists `assets/fonts/**` as keep.
+
+**Verified.**
+- Fresh worktree: `--headless --import` first. Then a copy of the tree with no `.godot/`:
+  `--import` with the chain in the theme printed `Parse Error: [ext_resource] referenced
+  non-existent resource` ×2. With the chain in its own file, it printed 0, and the fresh boot logged
+  `Font chain installed: 2 fallback(s)`.
+- Boot `--quit-after 30`: `Font chain installed: 2 fallback(s)`, then `0 warnings, 0 errors`.
+- Suite: after the documentation, `=== 2533 passed, 0 failed, 0 skipped ===` with `font_chain_test: 25/25`. Against a `main` worktree, +29: 25 in the new `font_chain_test`, 2 in `record_shape_test` for this row's own package id, and 2 in `docs_test` for the two font paths the board's plant record names; every other case unmoved.
+- All seven checkers exit 0 with `PASS` and no `SCRIPT ERROR`.
+- Plants: Each exited 1, and each was restored byte-identical. With the chain's two fallbacks swapped: `2523 passed, 8 failed`, starting with `fallback 0 is the Bengali font — expected res://assets/fonts/NotoSansBengali-Variable.ttf, got res://assets/fonts/NotoSansSC-SemiBold-subset.ttf`. With `install_font_chain`'s check for an existing `default_font` removed: `2530 passed, 1 failed`, `a theme with its own font keeps it — expected true, got false`.
+- Windowed, 960×540: `--resolution 960x540 --script res://src/systems/debug/font_probe.gd --
+  <png> before|late`, a temporary probe drawing Latin, Bengali, Chinese and Japanese at 64 px with
+  system fallback off. For the after capture it added a real `UiRoot`. Before: boxes. After: all
+  drawn, conjuncts shaped, weights matched. Both were looked at. The probe was removed.
+- The ladder's own capture, `--resolution 960x540 --quit-after 90 -- --new-game --shot=<png>
+  --shot-frame=70 --time=18:40 --freeze-time`, taken on this branch and on a `main` worktree. The
+  courtyard, the HUD clock, the toast and the prompt match, all in the engine's Latin. One branch
+  capture caught `Loading 50%` at frame 70, so boot time was compared: three alternating runs
+  each, with no other Godot process alive. Branch 4.9, 5.5 and 8.5 s; `main` 6.0, 9.5 and 5.2 s.
+  That is noise, and there is no systematic cost.
+- **A concurrency hazard, recorded because it will recur.** The first suite run failed 8
+  `slot_header_test` assertions, because another session's suite started while mine was in that
+  case, and both write the shared `user://` fixture folders. It is not a defect in this row. The
+  measured runs were started only with no other Godot process alive. The user data directory was
+  copied aside first, and was compared afterwards: `saves/` was empty before and after, and
+  `settings.cfg` was byte-identical.
+
+**Unblocks.** T6.7, dialogue skip and auto-advance. `settings.gd` is still at 142 of 150.
+
+**Gaps.** No Bengali or CJK locale column exists, so no real translated screen was photographed,
+only the chain drawing the strings. Hangul is not in the subset. A game that sets its own
+`default_font` gets no fallbacks unless it adds them, and `ART_CONTRACT.md` says so. RestPoint's
+plural is T6.10.
+
+**Commit:** on `claude/t6-6-font-fallback`, PR targeting `main`. No SHA, per board item 6.
 
 ## 2026-09-29 — T6.9 · Running the suite destroyed the developer's real saves
 
-**Did.** Owner-reported, taken ahead of T6.5. `menus_test.gd` and `confirm_test.gd` said they owned
+**Did.** Owner-reported, taken ahead of T6.7. `menus_test.gd` and `confirm_test.gd` said they owned
 `user://saves` for the run and cleared every slot there, and neither had called
 `SaveFixture.activate()`. The report also asked about `settings_effects_test.gd`. Grepping for
 every call that touches the store found **fourteen** unredirected cases, not three. Each now calls
 `SaveFixture.activate()` first: at the top of `_set_up` where a case has one, directly after
 `plan()` otherwise. The two headers now say the scratch store. `TESTING.md` states the rule,
-gotcha 79 records the instance, and the version is `5.9.1`, a PATCH. Numbered T6.9 rather than
-T6.5 so that no planned row's id moves. A suffix was not possible, because `record_shape_test.gd`
+gotcha 79 records the instance, and the version is `5.11.1`, a PATCH. Numbered T6.9 rather than
+T6.7 so that no planned row's id moves. A suffix was not possible, because `record_shape_test.gd`
 reads `T6.3a` as T6.3.
 
 **Why.** Since T5.22, `SaveFixture` has existed so that the suite never touches a developer's
@@ -11186,6 +11238,10 @@ not the sites someone happened to fix.
   skipped ===`, exit 0, measured per
   case against `main` at 2,471: +2, both in `record_shape_test` for this row's package id,
   every other case unmoved. Sentinels planted for that run survived it too, 7 of 7.
+- After `main` brought T6.5 and T6.6 in: `=== 2535 passed, 0 failed, 0 skipped ===`, exit 0, against
+  `main` at 2,533, +2, both in `record_shape_test`. A real `autosave.json` that was not this row's
+  was in `user://saves` by then, so only the six slot sentinels were planted, all six survived,
+  and that file's md5 was unchanged by the run.
 - `--check-only` on the fourteen changed cases: only the documented autoload identifiers.
 - Boot `--quit-after 30`: `0 warnings, 0 errors`.
 - All seven checkers exit 0: budgets, content, boundary, strings, layers, signals, methods.
@@ -11199,8 +11255,8 @@ not the sites someone happened to fix.
   demo content no test may name. Every worktree shares one `user://`, so that file was left for
   its owner.
 
-**Unblocks.** T6.5, next, unchanged. T6.4 merged to `main` while this row was open, and it was merged
-into the branch before the final ladder. Its new `slot_header_test.gd` already activates the scratch
+**Unblocks.** T6.7, next, unchanged. T6.4, T6.5 and T6.6 merged to `main` while this row was open, and each was merged
+into the branch before the final ladder. T6.4's `slot_header_test.gd` already activates the scratch
 store, and any later case that saves belongs in the scratch store from
 the first line, and `TESTING.md` says so.
 
@@ -11221,7 +11277,7 @@ the suite at once share `user://test_saves` too, and each `activate()` empties i
 `game_root.tscn`. In a debug build, a launch with any user argument sets `SaveSystem.save_dir` to
 `user://dev_saves`, and `--real-saves` opts out. Fixed `--autosave-continue`, which looked for a
 `Slot 7` Continue row the menu no longer draws. Seven assertions in `dev_tools_test.gd`, and its
-wired-file count went from 6 to 7. `5.10.0`, a MINOR.
+wired-file count went from 6 to 7. `5.12.0`, a MINOR (built as `5.10.0`; see the merge note).
 
 **Why.** T6.9's Gaps: the capture rung's `--new-game` is a real run, so the autosave wrote the
 developer's real `autosave.json` on arrival and on quit, in every worktree, because they share
@@ -11269,18 +11325,22 @@ saves alone.
 **Gaps.** **`--locale=` still writes the real `user://settings.cfg`**, through
 `Settings.set_value`, and `Settings.PATH` is a `const`. Same harm, different store, and flagged
 as its own task. **The redirect itself is not asserted by the suite**, whose process has no user
-arguments. The rule is asserted, and the sentinel run is the proof. **T6.5's PR #71 merged first at
-`5.10.0`**, so this row became `5.11.0` and T6.9, carried here, `5.10.1`; see the merge note below.
+arguments. The rule is asserted, and the sentinel run is the proof. **The version moved twice before landing**,
+see the merge note below.
 
-**Commit:** on `claude/t6-10-capture-saves`, stacked on T6.9's PR #70. No SHA, per board item 6.
+**Commit:** `a4ba31a` on `claude/t6-10-capture-saves`, PR #72, targeting `main`. No merge SHA yet, per board item 6.
 
-**Merge note, same day.** T6.5 (PR #71) reached `main` first at `5.10.0`, while this branch and
-T6.9's PR #70 were open. Merging `main` in conflicted in eight documents and
-`settings_consumers_test.gd`, where T6.5's `plan(79)` and T6.9's `SaveFixture.activate()` both
-survive. T6.10 is now **`5.11.0`**, and T6.9, carried on this branch, is **`5.10.1`**. The board,
-CHANGELOG and DEVLOG list T6.5 first, in landing order. After the merge: `=== 2516 passed, 0
-failed, 0 skipped ===`, exit 0. That is 2,504 on `main` plus 2 for T6.9 plus 10 for T6.10. **Two
-other runs failed on different save-screen cases each time, while another session's Godot
-processes were running.** That is T6.9's recorded gap in action: every worktree shares
-`user://test_saves`, and each `activate()` empties it. It was not a defect on this branch. The
-stripped count in `TESTING.md` is still `main`'s until this PR's CI reports.
+**Merge note, same day.** Built on T6.9's unmerged tip at `5.10.0`. By the time it could land,
+`main` held T6.5 at `5.10.0`, T6.6 at `5.11.0`, and T6.9 itself, squash-merged as `8436c69` at
+`5.11.1`. The first attempt merged T6.5 alone and renumbered T6.9 in place, and GitHub still
+reported conflicts because `main` had moved again. The second attempt took `main` for every file
+and re-applied only T6.10's own commit `a4ba31a` on top. So this row is **`5.12.0`**, and T6.9's
+text is `main`'s, unchanged. The code applied without conflicts. Every document conflict was
+T6.10's lines landing beside rows added after it branched. On the merged tree: `=== 2545 passed, 0
+failed, 0 skipped ===`, run with `APPDATA` pointed at a scratch folder so it had its own
+`user://`. Two earlier runs against the shared `user://` failed on different save-screen cases,
+while other sessions' suites were emptying `user://test_saves` (T6.9's recorded gap).
+**And an id collision.** T6.6 had planned `RestPoint`'s plural form as T6.10 while this row already
+held that id on its branch, and the open T6.11 and T6.12 branches both call this row T6.10. The
+planned row moved to **T6.13**, which is the number T6.12's branch uses. The earlier entries that
+say "T6.10" for the plural are left as written, because they record what was true then.

@@ -13,6 +13,9 @@ var _mover: PlayerController = null
 
 func run() -> void:
 	plan(56)
+	# This case writes or deletes slots; redirected so they are not the developer's own. The
+	# runner deactivates after every case.
+	SaveFixture.activate()
 	Flags.clear_all()
 	SaveSystem.unregister(&"world")
 	_trigger_fires_once()

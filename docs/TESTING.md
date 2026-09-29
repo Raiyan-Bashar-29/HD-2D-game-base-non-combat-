@@ -10,7 +10,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 ```
 
 Exit 0 if every assertion passes, 1 otherwise. In a full checkout the last line reads
-`=== 2533 passed, 0 failed, 0 skipped ===`; in a stripped template it reads
+`=== 2535 passed, 0 failed, 0 skipped ===`; in a stripped template it reads
 `=== 2397 passed, 0 failed, 25 skipped ===`, and the difference is entirely skips that say so.
 **Re-measure this rather than quoting it** — the number moves with every package, and
 `docs_test.gd` and `doc_counts_test.gd` compute their plans from the documents, so editing a
@@ -197,6 +197,15 @@ content root `NEW_GAME.md` tells a game to delete, and a crashed run would leave
 The runner calls `Fixtures.deactivate()` after **every** case, including ones that never
 activated — a case that crashed half way through its fixtures would otherwise hand the next one a
 redirected content root and never say so.
+
+**A case that writes, deletes or saves through ANY path calls `SaveFixture.activate()` first.**
+That is `save_to_slot`, `delete_slot`, and anything that reaches them: a save screen row, an
+`Autosave.request()`. It points `SaveSystem.save_dir` at `user://test_saves`, emptied, and the
+runner points it back after every case. **Nothing fails if you forget.** The case passes, and it
+has written into, or deleted from, the real `user://saves` of whoever ran the suite. Until
+T6.9, fourteen cases did exactly that: a full run destroyed every real slot and the
+autosave, and the suite stayed at 0 failed. Deleting "only the slot I wrote" is no defence,
+because a slot number the suite picks is a slot number a player may have filled.
 
 **`Fixtures.activate()` returns `false` if it could not write the fixture root**, so the shape is
 `equal("the fixture content is on disk", Fixtures.activate(), true)` — **assert it, do not skip on

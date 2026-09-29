@@ -15,7 +15,8 @@ extends TestCase
 ## Driven by direct calls, never by simulated input: TestCase.run() is synchronous, so an input
 ## event never reaches the frame that would deliver it.
 ##
-## THIS CASE OWNS user://saves FOR THE RUN. It empties every slot at set-up, because "a first
+## THIS CASE OWNS THE SCRATCH SAVE STORE FOR THE RUN, never `user://saves`: set-up points
+## `SaveSystem` at `SaveFixture.ROOT` first, then empties every slot there, because "a first
 ## run offers no Continue" is not assertable while a slot exists, and empties them again after.
 ##
 ## OWNS: assertions about menu rows, what raises a menu, and slot headers.
@@ -43,6 +44,9 @@ func run() -> void:
 
 
 func _set_up() -> void:
+	# This case writes or deletes slots; redirected so they are not the developer's own. The
+	# runner deactivates after every case.
+	SaveFixture.activate()
 	_stack = UiRoot.new()
 	attach(_stack)
 	_keys = ScreenKeys.new()

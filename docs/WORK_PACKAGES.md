@@ -127,6 +127,7 @@ original board rather than continuing it.
 | T6.4 | **A save slot says where it was saved, and says so when it is damaged** | **DONE** — `5.9.0`, a MINOR: a hook, a constant and a static method a game may ignore. `SaveSystem.header_provider` is an optional Callable stored as the file's `"header"`, so `core` never asks `Director`; **`WorldMap` sets it, not `director.gd`**, which is at its budget, and `WorldMap.place_key` reads the area id back as a name key. The row reads `Slot 1 · Rose Courtyard · …`, photographed; an unmapped area or a pre-5.9.0 save reads `Unknown place`. **`slot_info` now answers `{}` for any file the loader would refuse**, so a file from a newer build is DAMAGED too, and Continue can no longer point at one. A damaged slot is a note when loading and, counted as occupied, asks before it is overwritten. Three plants, three different failures. `save_system.gd` 176 → 179 of 180. Suite 2,437 → 2,471; see below |
 | T6.5 | **Losing window focus leaves nothing latched** | **DONE** — `5.10.0`, a MINOR: a signal, a setting and three public methods a game may ignore. **Measured first, windowed**: Godot 4.7.2 clears a held key and its action on focus loss by itself, and sends no release event. So the base drops only its own latches on `Events.focus_lost` from `UiRoot`: a toggled run, a hold in progress, a rebind capture. `gameplay/pause_on_focus_loss`, **off by default**, makes `ScreenKeys` open the pause menu. **The first windowed run found the player stranded under an invisible menu**: the engine PROPAGATES the notification, `add_child` failed inside the walk, and the stack had recorded the screen anyway. The suite had used `notification()` and passed. Now the announcement is deferred, `UiRoot.open` rolls back a failed add, and the test propagates. Gotcha 80. Photographed. Suite 2,471 → 2,504; see below |
 | T6.6 | **Text in any script renders, not as tofu** | **DONE** — `5.11.0`, a MINOR: a resource, two fonts, a constant and a static method a game may ignore. **WINDOWS HID THE DEFECT**: with system fallback on, Nirmala UI and YaHei drew Bengali and Chinese with no bundled font, so the before capture switched `allow_system_fallback` off to show the boxes a player without those fonts sees. `assets/fonts/font_chain.tres` has no base font, so the engine's Latin is unchanged, and falls back to Noto Sans Bengali then a 2.8 MB Noto Sans SC subset, both at weight 600 to match. **THE THEME NAMES NO FONT, MEASURED**: it loads before the first import, and a copy of the tree with no `.godot/` printed `Parse Error` twice on rung 2's `--import`. So `UiRoot.install_font_chain` installs the chain at boot (gotcha 81). The suite shapes real strings headless: ক্ষ is one glyph from the Bengali font. The `tr_n` check found RestPoint's `{hours}`, which became T6.10 |
+| T6.9 | **Running the suite destroyed the developer's real saves** | **DONE** — `5.11.1`, a PATCH, test-only: `src/` and `tools/` byte-identical. **OUT OF NUMBER ORDER ON PURPOSE**: an owner-reported defect, taken ahead of T6.7 under the playtest rule, and numbered after T6.8 so that no planned row's id moves. Fourteen cases wrote or deleted slots against the default `user://saves`, because only T5.22's two had ever called `SaveFixture.activate()`. Seven sentinel saves planted there: the unchanged suite passed 2,437 of 2,437 and **deleted all seven**; fixing only the three suspected cases still lost five; all fourteen redirected, all seven survive byte-identical. `TESTING.md` now states the rule. See below |
 | T6.10 | **A count that reaches a string picks its plural form** | **TODO.** Found by T6.6's `tr_n` check. `RestPoint` sends `{hours}` = `floori(minutes / 60)` into one key, so a rest under two hours reads "1 hours" or "0 hours slip past". It is the only count in the base with a noun beside it: `x{count}`, `{have} / {need}` and `{percent}%` carry none. Write: `src/gameplay/interactables/rest_point.gd`, the CSV (plural support in Godot's CSV importer must be checked in the 4.7 docs first, and `.po` is the fallback), a test. After T6.7 |
 | T6.7 | **Dialogue for fast and slow readers** | **TODO — next.** Forgotten #5. After T6.2. Manifest below |
 | T6.8 | **Close the list, and gate it** | **TODO — last.** The phase's exit criterion. Manifest below |
@@ -6482,4 +6483,59 @@ the column. Right-to-left text stays deferred. Hangul is not in the subset.
 
 **Scope.** `5.11.0`, a MINOR. Suite 2,504 → 2,533: +29: 25 in the new `font_chain_test`, 2 in `record_shape_test` for this row's own package id, and 2 in `docs_test` for the two font paths the board's plant record names; every other case unmoved.
 
-**Commit:** on `claude/t6-6-font-fallback`, PR targeting `main`. No SHA, per item 6.
+**Commit:** `487d4fd` on `claude/t6-6-font-fallback`, PR #75, targeting `main`, merged as `db0d6ec`; no separate CI-record commit was made. Filled in by T6.9, which also took the stripped count from the CI job log (`Ladder (stripped template)`, job 109434179199: `=== 2459 passed, 0 failed, 25 skipped ===`; full job 109434179375: `=== 2533 passed, 0 failed, 0 skipped ===`).
+
+## T6.9 · Running the suite destroyed the developer's real saves — **DONE**
+
+**Reported by the owner, taken ahead of T6.7.** `menus_test.gd` and `confirm_test.gd` each said
+`THIS CASE OWNS user://saves FOR THE RUN`, deleted every slot at set-up, then wrote slots, all
+against `SaveSystem.save_dir`. Neither called `SaveFixture.activate()`, so that was still
+`DEFAULT_SAVE_DIR`. **Numbered T6.9, not inserted as T6.7**, so that no planned row's id, manifest
+or chip prompt moves. A suffix was not available either: `record_shape_test.gd` reads a package id
+as `T<n>.<n>`, so `T6.3a` would have been read as T6.3.
+
+**Measured red before anything was changed.** Seven sentinel files were planted in the real
+`user://saves`: `slot_00.json` to `slot_05.json` plus `autosave.json`, each naming itself. The
+unchanged suite printed `=== 2437 passed, 0 failed, 0 skipped ===` and exited 0, and **all seven
+were gone**.
+
+**It was fourteen cases, not three.** Every case touching the store was found by grepping for
+`save_to_slot`, `delete_slot`, `has_slot` and `request()`. T5.22 had redirected `core_test`,
+`save_dir_test` and `save_recovery_test`; the rest never had been. `settings_effects_test.gd`,
+which the report asked about, is one of them: it writes the autosave and all six manual slots,
+then clears every slot. **Plant: only `menus`, `confirm` and `settings_effects` redirected.** The
+suite was still green and **five of seven were lost**: slots 2 to 5, from `pickups`, `smoke`,
+`traversal`, `dialogue`, `equipment`, `world_map` and `character_depth`, and the autosave, from
+`settings_consumers_test.gd`'s `_clear_autosave`.
+
+**The fix is one call in each of the fourteen**, commented where it stands:
+`SaveFixture.activate()` at the top of `_set_up` in `confirm`, `menus`, `dialogue` and `npc`, and
+directly after `plan()` in `run()` for `character_depth`, `equipment`, `items`, `path_actions`,
+`pickups`, `settings_consumers`, `settings_effects`, `smoke`, `traversal` and `world_map`. Nothing
+in `src/`, `tools/` or `tests/framework/` changed. The runner already called
+`SaveFixture.deactivate()` after every case. The `menus` and `confirm` headers now say they own
+the SCRATCH store and never `user://saves`.
+
+**Fourteen files is over the board's "about 8".** Splitting was rejected: the rule exists so that a
+package fits in one chat, and this is 42 inserted lines. Half the cases redirected would still
+fail the only proof that matters, a real save surviving a run.
+
+**Green.** All seven sentinels survive, each still naming itself, and the suite is unchanged at
+2,437 before the documentation. The sentinels were then removed and the directory is empty again,
+as it was before this row. `TESTING.md` § fixtures now carries the rule: any case that saves,
+through any path, activates first, because nothing fails when it does not.
+
+**No new gotcha, and that was a choice.** This is gotcha 79's lesson again: T5.22 fixed the sites
+it had in front of it, not every site matching the pattern. The instance is appended to 79 rather
+than given a number of its own. A new number would have meant rewriting three historical lines on this board,
+which `doc_counts_test.gd` reads as claims about the count.
+
+**What still is not gated.** Nothing makes a NEW case that saves without activating fail. The
+runner cannot see a write-then-delete in an empty directory, the ordinary state on CI. The
+structural answer is a runner that activates the scratch store before every case, and
+`save_dir_test.gd` would have to stop asserting the default at entry. That design question was
+recorded, not built.
+
+**Scope.** `5.11.1`, a PATCH, test-only. T6.4, T6.5 and T6.6 merged to `main` while this row was open, and the branch merged each in. `slot_header_test.gd` activates the scratch store itself, and `focus_loss_test.gd` and `font_chain_test.gd` do not touch it. Suite 2,533 → **2,535**, +2, both in `record_shape_test` for this row's own package id; every other case unmoved, the fourteen changed cases included.
+
+**Commit:** on `claude/t6-9-suite-saves`, PR #70, targeting `main`. No SHA, per item 6.

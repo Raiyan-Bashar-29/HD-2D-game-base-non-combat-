@@ -81,6 +81,7 @@ func _ready() -> void:
 	Events.ui_mode_changed.connect(_on_ui_mode_changed)
 	Events.dialogue_started.connect(_on_dialogue_started)
 	Events.dialogue_finished.connect(_on_dialogue_finished)
+	Events.focus_lost.connect(_on_focus_lost)
 	Log.info("interact", "Sensor ready, reach %.1fm" % max_distance)
 
 
@@ -340,6 +341,14 @@ func _on_ui_mode_changed(mode: GameEnums.UiMode) -> void:
 		_lock.release(&"ui")
 	else:
 		_lock.lock(&"ui")
+
+
+## A hold part-way to firing is DROPPED, not paused. The engine releases the key on focus loss
+## (measured for a keyboard, T6.5; a pad was not measured), and the next physics frame would then
+## zero this - but with the tree paused that frame waits until the player returns, so the reset
+## happens here, at the moment, rather than depending on either.
+func _on_focus_lost() -> void:
+	_hold = 0.0
 
 
 func _on_dialogue_started(_speaker: StringName) -> void:

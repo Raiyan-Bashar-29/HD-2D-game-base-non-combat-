@@ -206,7 +206,13 @@ rather than oversights.
    button one statement before `quit()`. Nothing in `game_root.gd` changed to allow it — the note
    that said an autosave would go there is gone, because it did not have to.
 3. **Window focus loss.** Unfocused should not mean the character keeps walking because a
-   key was held when focus went away.
+   key was held when focus went away. **DONE — T6.5.** Godot 4.7.2 already releases every held key
+   and action on focus loss, measured windowed with an injected keystroke and an alt-tab, so a held
+   walk stops by itself. The base released its own latches: a toggled run, a hold part-way to
+   firing, and a rebind waiting for a key, each dropped on `Events.focus_lost`, which `UiRoot`
+   emits. Pausing is the setting `gameplay/pause_on_focus_loss`, off by default, and `ScreenKeys`
+   opens the pause menu when it is on. `focus_loss_test.gd` asserts it; photographed. A pad's held
+   buttons were not measured, since no pad was attached.
 4. **Controller hotplug** mid-session, and switching glyphs when it happens. **DONE — T6.2, in
    words rather than icons.** `Actions.device()` follows the last device used and
    `Events.input_device_changed` announces a switch; the interact prompt and the dialogue hint

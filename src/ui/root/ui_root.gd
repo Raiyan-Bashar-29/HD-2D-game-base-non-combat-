@@ -27,7 +27,12 @@ extends Control
 ## the index, not the implementation - a central pause that reaches into ten nodes is the
 ## god object all over again.
 ##
-## OWNS: the stack, the tree's paused state, and the UiMode announcement.
+## FOCUS LOSS IS ANNOUNCED HERE AND HANDLED NOWHERE HERE. This node already says, once, when
+## the world's relationship to input changes, and losing the window is that kind of fact; but
+## what it MEANS - drop a toggled run, open the pause menu - belongs to each owner, so this only
+## emits `Events.focus_lost`. `ScreenKeys` does the pausing, being where requests become screens.
+##
+## OWNS: the stack, the tree's paused state, and the UiMode and focus-lost announcements.
 ## MUST NOT: know what any screen contains, know the player exists, or read gameplay input.
 ## It announces the mode; the player's own components take their own lock on hearing it.
 
@@ -59,6 +64,32 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	if is_inside_tree():
 		get_tree().paused = false
+
+
+## APPLICATION focus, not WM_WINDOW focus: a popup or a second window of this game taking focus
+## is not the player leaving.
+##
+## DEFERRED, AND THE FIRST WINDOWED RUN IS WHY. The engine delivers this by PROPAGATING it down
+## the tree, so it arrives while this node's children are being walked - and a listener that
+## opened the pause menu got `Parent node is busy setting up children, add_child() failed`. The
+## stack recorded the screen, the world paused, and nothing was drawn: a player stranded under an
+## invisible menu, with the log saying "Opened 'pause'". The suite had called `notification()` on
+## this node alone, which does not mark it busy, and passed.
+func _notification(what: int) -> void:
+	if is_focus_loss(what):
+		announce_focus_lost.call_deferred()
+
+
+## Which notification counts. Static and public so the rule is asserted without a window.
+static func is_focus_loss(what: int) -> bool:
+	return what == NOTIFICATION_APPLICATION_FOCUS_OUT
+
+
+## Public, on `ScreenKeys.unwind`'s reasoning: the suite is synchronous and never reaches the idle
+## frame a deferred call lands on, so it asserts the deferral and then calls this.
+func announce_focus_lost() -> void:
+	Log.info("ui", "Focus lost")
+	Events.focus_lost.emit()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -108,6 +139,13 @@ func open(screen: UiScreen) -> bool:
 		return false
 	_stack.append(screen)
 	add_child(screen)
+	# add_child CAN FAIL - on a node the engine is propagating a notification through - and a
+	# screen recorded but never in the tree pauses the world under nothing. Gotcha 80.
+	if not screen.is_inside_tree():
+		_stack.erase(screen)
+		screen.queue_free()
+		Log.error("ui", "Screen '%s' could not be added; the stack is unchanged" % screen.screen_id)
+		return false
 	# DEFERRED so a screen asking to close cannot free itself from inside its own emission,
 	# which is a crash rather than a bug report.
 	screen.close_requested.connect(_on_close_requested.bind(screen), CONNECT_DEFERRED)

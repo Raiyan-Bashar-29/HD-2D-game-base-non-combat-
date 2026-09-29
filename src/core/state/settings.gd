@@ -61,6 +61,7 @@ const DEFAULTS: Dictionary = {
 	"audio/sfx": 0.9,
 	"audio/ui": 0.8,
 	"gameplay/text_speed": 1.0,      # dialogue characters per tick multiplier
+	"gameplay/dialogue_auto_advance": false, # opt-in: a slow reader must never be hurried
 	"gameplay/run_is_toggle": false, # hold to run by default
 	"gameplay/show_interact_hints": true,
 	"gameplay/camera_shake": 1.0,    # 0..1 scale on whatever amplitude a rig authored

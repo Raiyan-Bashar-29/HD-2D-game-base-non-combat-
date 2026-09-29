@@ -11197,7 +11197,7 @@ only the chain drawing the strings. Hangul is not in the subset. A game that set
 `default_font` gets no fallbacks unless it adds them, and `ART_CONTRACT.md` says so. RestPoint's
 plural is T6.10.
 
-**Commit:** on `claude/t6-6-font-fallback`, PR targeting `main`. No SHA, per board item 6.
+**Commit:** `487d4fd` on `claude/t6-6-font-fallback`, PR #75, targeting `main`, merged as `db0d6ec`; no separate CI-record commit was made. Filled in by T6.9, which also took the stripped count from the CI job log (`Ladder (stripped template)`, job 109434179199: `=== 2459 passed, 0 failed, 25 skipped ===`; full job 109434179375: `=== 2533 passed, 0 failed, 0 skipped ===`). Copied into this log by T6.7.
 
 ## 2026-09-29 — T6.9 · Running the suite destroyed the developer's real saves
 
@@ -11328,7 +11328,7 @@ as its own task. **The redirect itself is not asserted by the suite**, whose pro
 arguments. The rule is asserted, and the sentinel run is the proof. **T6.5's PR #71 also claims
 `5.10.0`**, so whichever merges second takes `5.11.0`.
 
-**Commit:** on `claude/t6-10-capture-saves`, stacked on T6.9's PR #70. No SHA, per board item 6.
+**Commit:** on `claude/t6-10-capture-saves`, stacked on T6.9's PR #70; PR #72, squash-merged to `main` as `2fe62ae` from branch head `243d242`. CI (`Ladder (stripped template)`, job 109473299408: `=== 2482 passed, 0 failed, 25 skipped ===`; full job 109473298931: `=== 2556 passed, 0 failed, 0 skipped ===`). Filled in by T6.7.
 
 ## 2026-09-29 — T6.11 · A debug launch, and every suite run, wrote the developer's real settings
 
@@ -11395,7 +11395,7 @@ setting's default must still reset first. `user://test_saves` is shared by concu
 different worktrees, and one empties it under the other: seen here, not fixed. **Versions
 renumber at merge:** T6.5 took `5.10.0` on `main`, so T6.10 becomes `5.11.0` and this row `5.12.0`.
 
-**Commit:** on `claude/t6-11-dev-settings`, stacked on T6.10's PR #72. No SHA, per board item 6.
+**Commit:** on `claude/t6-11-dev-settings`, stacked on T6.10's PR #72; PR #74, squash-merged to `main` as `9d8c34f` from branch head `5d0d787`. CI (`Ladder (stripped template)`, job 109466989630: `=== 2482 passed, 0 failed, 25 skipped ===`; full job 109466989898: `=== 2556 passed, 0 failed, 0 skipped ===`). Filled in by T6.7.
 
 **Merge of `main` (T6.5 and T6.6) into T6.11, same day.** Auto-fix reported PR #74 conflicting.
 `main` had taken `5.10.0` (T6.5) and `5.11.0` (T6.6) while this stack claimed `5.9.1`, `5.10.0`
@@ -11489,7 +11489,7 @@ real saves, so they are harmless, just unannounced. **This branch conflicts with
 T6.9's and T6.10's do, since T6.5 landed. Merge in order T6.9, T6.10, T6.12, taking each version
 after whatever `main` holds.
 
-**Commit:** on `claude/t6-12-save-guard`, stacked on T6.10's PR #72. No SHA, per board item 6.
+**Commit:** on `claude/t6-12-save-guard`; PR #73, squash-merged to `main` as `76cd32d` from branch head `c81729f`. CI (`Ladder (stripped template)`, job 109474633431: `=== 2486 passed, 0 failed, 25 skipped ===`; full job 109474633769: `=== 2560 passed, 0 failed, 0 skipped ===`). Filled in by T6.7.
 
 ### 2026-09-29 — T6.12, `main` merged in
 
@@ -11532,3 +11532,57 @@ one-time settings redirect beside this row's per-case park and check. `dev_saves
 `dev_tools_test.gd` are `main`'s. Suite `=== 2560 passed, 0 failed, 0 skipped ===`: `main`'s
 2,556 and this row's 4.
 All seven checkers exit 0, boot `0 warnings, 0 errors`, and the frame-70 windowed capture shows the courtyard at dusk again, with the HUD and the `[E]` prompt.
+
+## 2026-09-29 — T6.7 · Dialogue for fast and slow readers
+
+**Did.** First merged PR #75 (T6.6) with plain `gh pr merge 75 --merge`: it was CLEAN, with all
+four checks green. Then branched `claude/t6-7-dialogue-speed` from `origin/main` at `db0d6ec`.
+Cancel during a conversation now calls `DialogueScreen.skip()`, which walks the runner through
+`advance()` until a choice is offered or the conversation ends. Added
+`gameplay/dialogue_auto_advance`, off by default, which moves a whole line on after
+`hold_seconds()` and never answers a choice. The hint names the skip key and reads "Auto" while
+auto-advance is on. Four CSV rows. The new assertions are a new file, `dialogue_speed_test.gd`,
+because `dialogue_test.gd` would have gone to 305 of 250.
+
+**Then `main` moved under the open PR.** T6.9 to T6.12 were merged while this row was in
+review, so PR #78 went CONFLICTING. Merged `origin/main` in, never rebased; ten files conflicted,
+all of them documents except `project.godot` and `settings_consumers_test.gd` (T6.12's
+`SaveFixture.activate()` beside this row's plan of 80). This row was claimed as `5.12.0` and
+lands as **`5.14.0`**, above T6.12's `5.13.1`. The plural-form row it called T6.10 is **T6.13**
+on `main`. `settings.gd` was 143 after T6.11, so it is 144 of 150 here. Main's ROADMAP had lost a
+line from T6.6's entry, which ended mid-sentence at "The `tr_n`"; restored. The DEVLOG Commit
+lines for T6.6, T6.10, T6.11 and T6.12 and the board's for T6.10 and T6.12 are filled in from
+`git log` and each PR's job logs.
+
+**Why.** Forgotten #5: a player who reads fast will hate the game without a skip, and one who
+reads slowly may want the conversation to keep going without them. The one hard rule was the
+manifest's: a skip must not skip past a choice or skip an effect. Walking the runner satisfies
+both, because effects fire on arrival and the runner already refuses to advance at a choice.
+
+**Connects.** `DialogueRunner` is untouched; the screen only calls `advance()` more often. Cancel
+was free in a conversation, because `UiRoot` ignores it on a screen with `closes_on_cancel =
+false` and the pause key refuses while a screen is open. `KeyBindings.text_for(Actions.CANCEL,
+pad)` names the key, so the T6.2 device switch and a rebind both rename it. The settings screen
+drew the new row with no edit, because it is generated from `Settings.DEFAULTS`.
+
+**Verified.**
+- Rung 2 import exit 0; rung 3 `--quit-after 30`: `0 warnings, 0 errors`.
+- All seven checkers exit 0 (see the board's T6.7 section for the budget split).
+- Suite: `=== 2591 passed, 0 failed, 0 skipped ===`, against `2560` on a `main` worktree at `76cd32d` (before the merge: `2564` against `2533` at `db0d6ec`), +31: 25 in the new `dialogue_speed_test`, 3 in `options_test` and 1 in `settings_consumers_test` for the new setting's row and consumer, and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
+- Plants. `runner.stop()` as the skip: `2549 passed, 13 failed`, first `a skip stops at the
+  choice — expected menu, got`. Deleting the loop's `not _waiting_on_choice()` stayed green,
+  because the runner refuses at a choice; recorded, not hidden.
+- Windowed capture through a temporary probe: the "Auto" hint mid-reveal at frame 90, and the
+  menu waiting with three choices at frame 1,400. Both PNGs looked at; probe removed.
+- The shared `user://` hazard: every suite run waited until `tasklist` showed no Godot, and the
+  user data dir was copied aside first. `settings.cfg` ended identical. `saves/autosave.json` and
+  `test_saves/slot_04.json` had been written at 20:29 by another session's run, seconds before
+  the copy, and were gone afterwards; the autosave was put back.
+
+**Unblocks.** T6.8, closing the forgotten list behind a text scan; item 5 is now DONE.
+
+**Gaps.** No backlog screen. The pad's B also means "back" in most menus, and in a conversation it
+now skips; that is the conventional mapping, but no player has tried it. A slow capture logged
+`Keeper cannot reach 'dais'` (gotcha 21's guard) and was not investigated.
+
+**Commit:** on `claude/t6-7-dialogue-speed`, PR #78 targeting `main`. No SHA, per board item 6. CI on `e6db60b`, PR #78: `Ladder (stripped template)`, job 109480897827: `=== 2517 passed, 0 failed, 25 skipped ===`; `Ladder (full checkout)`, job 109480898120: `=== 2591 passed, 0 failed, 0 skipped ===`. `TESTING.md` now states the stripped `2517`.

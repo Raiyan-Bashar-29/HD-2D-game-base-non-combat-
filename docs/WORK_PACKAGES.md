@@ -132,8 +132,8 @@ original board rather than continuing it.
 | T6.11 | **A debug launch, and every suite run, wrote the developer's real settings** | **DONE** — `5.13.0` (claimed `5.11.0`, renumbered to land after T6.6), a MINOR: a var and two constants a game may ignore. **OUT OF NUMBER ORDER ON PURPOSE**, like T6.9 and T6.10; T6.10 found it and recorded it undone. `Settings.PATH` was the only path, so a `--locale=en_XA` capture rewrote a sentinel's `locale="en"`, and **a green suite left it at zero bytes**, which T6.10 had not suspected. `Settings.file_path` is where `save()` writes; `DevSaves` points it at `user://dev_settings.cfg` under its existing rule, and the runner at `user://test_settings.cfg` before the first case. **Writes only, never re-read**, so no launch inherits the last one's language. The sentinel now survives both byte-identical. `settings.gd` 141 → 142 of 150. See below |
 | T6.12 | **Nothing failed a case that saved without activating the scratch store** | **DONE** — `5.13.1`, a PATCH on `5.6.1`'s precedents, test-only: `src/` and `tools/` byte-identical. **OUT OF NUMBER ORDER ON PURPOSE**, the gap T6.9 recorded; Both halves T6.9 offered, because each alone leaves a hole: the runner PARKS the store in `user://test_saves_unclaimed` before every case, so a forgotten `activate()` cannot reach a real save, and FAILS a case that saves, or loads a real file, anywhere but the store it claimed. Heard on `game_saved`/`game_loaded`, not by a directory diff. **Three plants red**, each naming its case: `confirm_test` and `menus_test` (saves) and `save_recovery_test` (a hand-planted file, loaded then deleted). Seven sentinel saves survived every run. See below |
 | T6.13 | **A count that reaches a string picks its plural form** | **TODO.** Numbered T6.10 by T6.6, renumbered T6.12 at T6.11's merge because T6.10 was already taken by an unmerged DONE row, and T6.13 at T6.12's merge for the same reason. Found by T6.6's `tr_n` check. `RestPoint` sends `{hours}` = `floori(minutes / 60)` into one key, so a rest under two hours reads "1 hours" or "0 hours slip past". It is the only count in the base with a noun beside it: `x{count}`, `{have} / {need}` and `{percent}%` carry none. Write: `src/gameplay/interactables/rest_point.gd`, the CSV (plural support in Godot's CSV importer must be checked in the 4.7 docs first, and `.po` is the fallback), a test. After T6.7 |
-| T6.7 | **Dialogue for fast and slow readers** | **TODO — next.** Forgotten #5. After T6.2. Manifest below |
-| T6.8 | **Close the list, and gate it** | **TODO — last.** The phase's exit criterion. Manifest below |
+| T6.7 | **Dialogue for fast and slow readers** | **DONE** — `5.14.0` (claimed `5.12.0`, renumbered to land after T6.12), a MINOR: a setting, two public methods a game may ignore, and cancel now doing something in a conversation where it did nothing. **A SKIP WALKS, IT DOES NOT JUMP**: cancel calls `DialogueScreen.skip()`, which drives the runner through `advance()`, so every node passed is arrived at and fires its effect; it stops at the first choice, shown whole, and a second skip there does nothing; with no choice ahead it runs to the end. A cycle stops after 512 lines. `gameplay/dialogue_auto_advance`, off by default, holds a whole line 1.5 s plus 15 characters a second over the text speed, and never answers a choice. **THE PLANT THAT STAYED GREEN**: deleting the screen's stop-at-a-choice check changes nothing, because the runner already refuses there; the red plant is `runner.stop()` as the skip, `2549 passed, 13 failed`. `dialogue_test.gd` would have been 305 of 250, so the cases are `dialogue_speed_test.gd`. Photographed |
+| T6.8 | **Close the list, and gate it** | **TODO — next, and last.** The phase's exit criterion. Manifest below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -6599,7 +6599,7 @@ harm, but its fix is a `src/core` seam in a file at a tight budget, so it is its
 **Scope.** `5.12.0` (claimed `5.10.0`; renumbered at T6.11's merge of `main`), a MINOR. Suite 2,473 → **2,483**, +10: 8 in `dev_tools_test` (seven new, and one more file in the wired-node count) and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
 
 **Commit:** on `claude/t6-10-capture-saves`, stacked on `claude/t6-9-suite-saves` (PR #70), PR
-targeting `main`, PR #72. Commit `a4ba31a`, filled in by T6.11. **Version collision to resolve at merge:** T6.5's PR #71 also
+targeting `main`, PR #72, squash-merged as `2fe62ae` from branch head `243d242`. Commit `a4ba31a`, filled in by T6.11; the merge SHA by T6.7. **Version collision to resolve at merge:** T6.5's PR #71 also
 claims `5.10.0`; whichever of the two merges second takes `5.11.0`.
 
 ## T6.11 · A debug launch, and every suite run, wrote the developer's real settings — **DONE**
@@ -6713,4 +6713,79 @@ T6.12, colliding with this row, which was DONE with PR #73 and commits under tha
 **Scope.** `5.13.1`, a PATCH. Test-only: `tests/test_runner.gd`,
 `tests/framework/save_fixture.gd`, `tests/unit/save_dir_test.gd`, and the documents. Suite 2,556 on `main` at `9d8c34f` → **2,560**, +4: 2 in `save_dir_test` and 2 in `record_shape_test` for this row's package id; every other case unmoved.
 
-**Commit:** on `claude/t6-12-save-guard`, PR #73, targeting `main`. No SHA, per item 6.
+**Commit:** on `claude/t6-12-save-guard`, PR #73, targeting `main`, squash-merged as `76cd32d` from branch head `c81729f`; no separate CI-record commit. Filled in by T6.7, with the counts from the CI job log (`Ladder (stripped template)`, job 109474633431: `=== 2486 passed, 0 failed, 25 skipped ===`; full job 109474633769: `=== 2560 passed, 0 failed, 0 skipped ===`). `TESTING.md` still stated `2397` stripped when T6.7 branched from it.
+
+## T6.7 · Dialogue for fast and slow readers — **DONE**
+
+Forgotten #5 asked for text speed and an instant skip. Text speed was already there:
+`gameplay/text_speed` scales the reveal. What was missing was the skip, and for the reader at the
+other end, a way for the conversation to move on without a key press.
+
+**A skip walks the conversation, it does not jump it.** The screen's header already said why
+escape must not dismiss a conversation: a conversation has effects, and a player who escapes out
+of the middle skips the effect of the node they were about to reach. So cancel (Escape, or the
+pad's B) now calls `DialogueScreen.skip()`, which drives the runner through `advance()` node by
+node. Every node on the way is ARRIVED at, and its effect fires exactly as if it had been read.
+That is the same rule, not an exception to it: nothing is jumped over, only not read.
+
+**At a choice, the skip stops.** A branch is the player's to take. The skip stops at the first
+node offering a choice, shows the choice whole (the reveal is finished and the buttons appear),
+and a second skip there does nothing until the player answers. With no choice ahead, it runs to
+the end of the conversation and the box asks to close. A cycle of plain lines is authorable, so
+the loop stops after 512 lines with a warning rather than hanging the game on one key press.
+
+**Auto-advance is opt-in.** `gameplay/dialogue_auto_advance`, off by default, on the reasoning of
+`gameplay/pause_on_focus_loss`: a default that hurries a slow reader is the wrong default. On, a
+line that has finished revealing is held for 1.5 s plus its length at 15 characters a second, all
+divided by the text speed, because a player who slowed the text is a slower reader. The hold is
+counted from the frame the line became whole, so a line that arrived whole under reduce-motion
+is held just as long. It never answers a choice. The hint reads "Auto" while it is on, and
+redraws the moment the setting changes.
+
+**Cancel was free in a conversation.** `closes_on_cancel` is false for a conversation, so `UiRoot`
+already ignored cancel there, and the pause key refuses while a screen is open. No binding was
+added and none moved. The hint names the key through `KeyBindings.text_for(Actions.CANCEL, pad)`,
+so a rebind renames it.
+
+**Assertions.** `tests/unit/dialogue_speed_test.gd`, 25, split from `dialogue_test.gd` because
+that file would have gone to 305 of 250 lines. Fifteen on the skip: it stops at the menu with the
+conversation still running, the choice shown and the line whole; both nodes were announced; an
+effect planted on the menu fired once, and a second skip fires nothing; after the player answers,
+a skip through a plain line lands on the menu again and the effect fires again, as reading would
+have; after the closing line is picked, a skip ends the conversation and the box asks to close
+exactly once. One on a cycle. Nine on auto-advance: off by default, and off it waits however
+long; on, the hint changes and still names the skip key; half the hold is not enough and the
+whole hold is; at the menu it waits. The frame clock is stepped by calling `_process` with a
+chosen delta, because the suite is synchronous.
+
+**Plants.** Each exited 1, and each was restored. **The first stayed green, and that is the
+finding.** Deleting `not _waiting_on_choice()` from the skip loop changes nothing: the runner's
+`advance()` already refuses at a choice, so the loop spins to its limit and stops at the menu
+anyway. The screen's check stays as a second guard. The plant that counts is the tempting wrong
+skip, one that calls `runner.stop()`: `2549 passed, 13 failed`, starting with `a skip stops at
+the choice — expected menu, got` (nothing, because the conversation had ended). The first run
+of that plant failed on script errors instead, `Invalid access to property or key 'node_id'`,
+so the case now reads the node through a null-safe helper and fails on named assertions.
+
+**Photographed windowed**, 960×540, through a temporary `--probe-auto-advance` flag in
+`src/systems/debug/dev_screens.gd` that turned the setting on in memory without saving it. At
+frame 90: the greeting mid-reveal, and the hint `Auto  E to continue  Escape to skip`. At frame
+1,400 of the same scenario: the menu, `Well? Ask, or do not.`, with its three choices and focus on
+the first. Nothing had been pressed, so auto-advance moved the line and then waited at the
+choice. Both PNGs were looked at. The probe was removed, and `git status src/systems` is clean.
+
+**Found while photographing, and not this row's.** The second capture ran at about 2.3 frames a
+second, 1,500 frames in 638 s, while other sessions' suites were loading the machine. It logged
+`Keeper cannot reach 'dais'` twice, which is the message gotcha 21's persistence guard in
+`npc_brain.gd` prints. Why it fired at that frame rate was not investigated; nothing on the
+dialogue path touches it. The 90-frame capture and the ladder's own rung were clean.
+
+**Budgets.** `settings.gd` 143 (after T6.11) → 144 of 150, which leaves six lines. `dialogue_screen.gd` 143 →
+186 of 250. The new test is its own file.
+
+**Not in scope.** A backlog of past lines (its own row), closing the list (T6.8), plural forms
+(T6.13).
+
+**Scope.** `5.14.0` (claimed `5.12.0`, renumbered at the merge of `main`, where T6.10 to T6.12 had taken `5.12.0` to `5.13.1`), a MINOR. Suite 2,560 on `main` at `76cd32d` → 2,591, +31: 25 in the new `dialogue_speed_test`, 3 in `options_test` and 1 in `settings_consumers_test` for the new setting's row and consumer, and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
+
+**Commit:** on `claude/t6-7-dialogue-speed`, PR #78 targeting `main`. No SHA, per item 6. CI on `e6db60b`, PR #78: `Ladder (stripped template)`, job 109480897827: `=== 2517 passed, 0 failed, 25 skipped ===`; `Ladder (full checkout)`, job 109480898120: `=== 2591 passed, 0 failed, 0 skipped ===`. `TESTING.md` now states the stripped `2517`.

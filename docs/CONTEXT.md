@@ -2,37 +2,34 @@
 
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
-**Last updated:** 2026-09-29 · **T6.12 (a test case that saves without activating the scratch store fails the suite) complete, at 5.13.1, a PATCH.**
-**Phases T1 to T5 are complete and stay complete; Phase T6 is OPEN, and the next package is T6.7.**
 
-**A CASE THAT SAVES WITHOUT `SaveFixture.activate()` NOW FAILS THE SUITE, AND CANNOT REACH REAL
-SAVES WHILE IT DOES.** Before every case the runner calls `SaveFixture.park()`, which points the
-store at `user://test_saves_unclaimed`. It listens on `Events.game_saved` and `game_loaded`, and
-fails a case that saves, or loads a real file, while the store is parked or on the shipped
-default. A file left in the parked directory fails it too. Both halves, because a check alone
-goes red only after real slots are gone, and parking alone is silent. Three plants went red by
-name, and seven sentinel saves survived every run. `save_dir_test` now asserts a case starts
-parked, not on the default. Settings need none of this: T6.11 points the whole run at a scratch
-settings file once, before the first case.
+**Last updated:** 2026-09-29 · **T6.7 (dialogue for fast and slow readers) complete, at 5.14.0, a MINOR.**
+**Phases T1 to T5 are complete and stay complete; Phase T6 is OPEN, and the next package is T6.8.**
 
-**LANDED LAST OF A STACK, AND THE PLURAL ROW MOVED TWICE.** T6.9, T6.10 and T6.11 reached `main`
-first, so this row is `5.13.1`. T6.6 had numbered its plural-form row T6.10 and T6.11's merge
-renumbered it T6.12, both ids already held by DONE rows with PRs. It is now **T6.13**.
+**A SKIP WALKS THE CONVERSATION; IT DOES NOT JUMP IT.** Cancel (Escape, or the pad's B) during a
+conversation calls `DialogueScreen.skip()`, which drives the runner through `advance()` node by
+node. So every node passed is ARRIVED at and its effect fires, as if it had been read. It stops at
+the first node offering a choice and shows that choice whole, and a second skip there does
+nothing: a branch is the player's to take. With no choice ahead it runs to the end and the box
+closes. A cycle of plain lines stops after 512 lines rather than hanging. Before T6.7, cancel did
+nothing in a conversation at all, because `closes_on_cancel` is false there, so this is the one
+behaviour change a game can notice.
 
-**EVERY WORKTREE SHARES ONE `user://`, AND OTHER SESSIONS USE IT WHILE YOU DO.** Two suite runs at
-once share `user://test_saves`, and each `activate()` empties it: T6.12's clean runs went red
-three times, in `menus_test`, `smoke_test` and `slot_header_test`, while another session's suite
-overlapped, and re-ran green. Per-process scratch directories are flagged as their own task. For
-any sentinel proof, give Godot a private `user://` with `APPDATA="$(cygpath -w <dir>)"`.
+**AUTO-ADVANCE IS OPT-IN, AND IT NEVER ANSWERS A CHOICE.** `gameplay/dialogue_auto_advance`, off by
+default so a slow reader is never hurried. On, a whole line is held for 1.5 s plus its length at 15
+characters a second, divided by the text speed, then moves on. The hint reads
+`Auto  E to continue  Escape to skip`. Photographed windowed through a temporary probe: the
+greeting revealing with that hint, then, later in the same run, the menu with its three choices
+and nothing chosen.
 
-**Budgets.** Test-only. `test_runner.gd` 182 of 250 and `save_fixture.gd` about 35 of 250.
-`settings.gd` stays at 143 of 150, `save_system.gd` 179 of 180.
+**THE PLANT THAT STAYED GREEN.** Deleting the screen's "stop at a choice" check changes nothing,
+because `DialogueRunner.advance()` already refuses at a choice. The check stays as a second guard.
+The plant that counts is the tempting wrong skip, `runner.stop()`, which ends the conversation
+and fires no effect: `2549 passed, 13 failed`.
 
-*(Previously: T6.11 stopped a debug launch and the suite writing the developer's real settings, at
-`5.13.0`, a MINOR. `Settings.file_path` is where `save()` writes. `DevSaves` points it at
-`user://dev_settings.cfg` under T6.10's rule, and the runner points it at
-`user://test_settings.cfg` before the first case. Five cases call `reset_to_defaults()`, so every
-green run had left `settings.cfg` at zero bytes. Writes only: the real file is still read at boot.)*
+**Budgets.** `dialogue_test.gd` would have gone to 305 of 250, so the new cases are their own
+file, `tests/unit/dialogue_speed_test.gd`, with a `CASES` line. `settings.gd` 143 → **144 of 150**.
+`dialogue_screen.gd` 143 → 186 of 250.
 
 **The phase, in order** — manifests in `WORK_PACKAGES.md` § T6.0:
 
@@ -48,15 +45,28 @@ green run had left `settings.cfg` at zero bytes. Writes only: the real file is s
 | ~~T6.10~~ | ~~a capture or debug launch saves to scratch, never over the developer's saves~~ **DONE**, out of number order | found by T6.9 |
 | ~~T6.11~~ | ~~a debug launch or a suite run writes scratch settings, never the developer's file~~ **DONE**, out of number order | found by T6.10 |
 | ~~T6.12~~ | ~~a case that saves without activating the scratch store fails the suite~~ **DONE**, out of number order | found by T6.9 |
-| **T6.7** | dialogue can skip to its end and auto-advance | forgotten #5 |
-| T6.8 | every forgotten item marked DONE or CLOSED, gated by a text scan | the exit criterion |
+| ~~T6.7~~ | ~~dialogue can skip to its end and auto-advance~~ **DONE** | forgotten #5 |
+| **T6.8** | every forgotten item marked DONE or CLOSED, gated by a text scan | the exit criterion |
 | T6.13 | a count that reaches a string picks its plural form (found by T6.6 as T6.10; T6.12 at T6.11's merge) | a defect |
 
 **THE OWNER'S PLAYTEST OUTRANKS THIS QUEUE.** A defect found by playing becomes the next row ahead of
 anything above — found, not invented, the standard every T6 row had to meet. T6.9 is the first,
 numbered after T6.8 so that no planned id moves. T6.10 is the second, found while proving T6.9, T6.11 the third, found by T6.10, and T6.12 the fourth, the gap T6.9 recorded.
 
-Suite 2,556 on `main` at `9d8c34f` → **2,560**, +4: 2 in `save_dir_test` (a case starts parked, and the `is_unclaimed` rule both ways) and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
+Suite 2,560 on `main` at `76cd32d` → **2,591**, +31: 25 in the new `dialogue_speed_test`, 3 in `options_test` and 1 in `settings_consumers_test` for the new setting's row and consumer, and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `main`, after the documentation landed.
+
+*(Previously: T6.12 made a case that saves without `SaveFixture.activate()` fail the suite, at
+`5.13.1`, a PATCH, test-only. Before every case the runner parks the store at
+`user://test_saves_unclaimed` and fails a case that saves, or loads a real file, while parked.
+T6.9 to T6.12 landed out of number order, and the plural row moved from T6.10 to **T6.13**. Every
+worktree shares one `user://`: for any sentinel proof give Godot a private one with
+`APPDATA="$(cygpath -w <dir>)"`.)*
+
+*(Previously: T6.11 stopped a debug launch and the suite writing the developer's real settings, at
+`5.13.0`, a MINOR. `Settings.file_path` is where `save()` writes. `DevSaves` points it at
+`user://dev_settings.cfg` under T6.10's rule, and the runner points it at
+`user://test_settings.cfg` before the first case. Five cases call `reset_to_defaults()`, so every
+green run had left `settings.cfg` at zero bytes. Writes only: the real file is still read at boot.)*
 
 *(Previously: T6.6 made Bengali and CJK render from fonts the game ships, at `5.11.0`, a MINOR.
 Windows had hidden the tofu: Nirmala UI and YaHei drew the text through system fallback, so the
@@ -344,7 +354,7 @@ another sheet, and every facing draws a different figure.
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version is** **5.13.1**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+**The version is** **5.14.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
 the owner's to close or to leave.
 
 **THE NEXT PACKAGE IS T6.7, AND IT IS A QUEUE AGAIN — FOR ONE PHASE.** From T5.32 until T6.0 this
@@ -415,8 +425,8 @@ mechanical move. `tools/gen_placeholders.gd` stays on the list at 234 of 250; T5
 three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite sheet layouts,
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 4 on the default one, the
 fourth being a second IDLE rather than a gait**,
-1 shared area material, **22 settings and 22 consumers**.
-Template version **5.13.1**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+1 shared area material, **24 settings and 24 consumers**.
+Template version **5.14.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
 recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 

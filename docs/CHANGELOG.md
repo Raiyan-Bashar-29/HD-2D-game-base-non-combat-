@@ -19,6 +19,34 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.14.0
+
+*2026-09-29 — dialogue can be skipped to its end, and can move on by itself.*
+
+**A consuming game does: nothing.** Its settings screen gains one row, "Auto-advance dialogue",
+because the screen is generated from `Settings.DEFAULTS`, and the row is off. **MINOR**: the base
+gained a setting, two public methods on `DialogueScreen` (`skip()`, `hold_seconds()`) and four
+strings, and a game may ignore all of them. It is not a PATCH, because a key that did nothing now
+does something: **cancel (Escape, or the pad's B) during a conversation skips.** Before, it did
+nothing there, since a conversation has `closes_on_cancel = false`. A game that bound its own
+meaning to cancel while a conversation is open should read this.
+
+**What a skip does.** It walks the runner through `advance()`, so every node on the way is
+arrived at and its effect fires, exactly as if the player had read it. It stops at the first node
+that offers a choice and shows that choice whole, because a branch is the player's to take, and a
+second skip there does nothing. With no choice ahead, it runs the conversation to its end and the
+box closes. A cycle of plain lines stops the skip after 512 lines rather than hanging the game.
+
+**What auto-advance does.** `gameplay/dialogue_auto_advance`, off by default so a slow reader is
+never hurried. On, a whole line is held for 1.5 s plus its length at 15 characters a second,
+divided by `gameplay/text_speed`, and then moves on. It never answers a choice. The hint reads
+"Auto" while it is on.
+
+**Strings.** `ui.dialogue.skip`, `ui.dialogue.hint` and `ui.dialogue.hint_auto` join the continue
+hint, and `ui.settings.gameplay.dialogue_auto_advance` labels the row. A game with its own locale
+column adds four rows.
+
+---
 ## 5.13.1
 
 *2026-09-29 — a test case that saves without `SaveFixture.activate()` now fails the suite, and

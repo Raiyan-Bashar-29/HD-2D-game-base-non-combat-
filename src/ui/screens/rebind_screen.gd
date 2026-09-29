@@ -43,6 +43,9 @@ func _init() -> void:
 	title_key = TITLE_KEY
 	hint_key = HINT_KEY
 	opaque = false
+	# CAPTURE ENDS WHEN THE WINDOW GOES. The next key a player presses after coming back from an
+	# alt-tab is not a choice they made on this row. Freeing the screen drops the connection.
+	Events.focus_lost.connect(_stop_listening)
 
 
 ## _input, not _unhandled_input: this has to see the escape that cancels listening BEFORE

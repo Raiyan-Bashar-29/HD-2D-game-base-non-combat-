@@ -239,6 +239,12 @@ signal quit_requested()
 ## per screen. Input readers take or release their own `ui` token on it; the prompt hides on
 ## it. Carried on the bus because UiRoot must not know the player's components exist.
 signal ui_mode_changed(mode: GameEnums.UiMode)
+## The application lost focus: an alt-tab, a click on another window, the OS taking it. Emitted
+## by UiRoot and by nothing else. The ENGINE already releases every held key and action when
+## this happens - measured windowed at T6.5, see DEVLOG - but it cannot release state the base
+## latched for itself: a toggled run, a hold part-way to firing, a rebind waiting for a key. Each
+## owner drops its own on hearing this, and `ScreenKeys` opens the pause menu if the player asked.
+signal focus_lost()
 
 # ---------------------------------------------------------------------------------------
 # Settings and debug.

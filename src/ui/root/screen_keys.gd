@@ -18,6 +18,9 @@ extends Node
 ## MUST NOT: hold a reference to any screen, pause anything, or decide what a screen shows.
 
 const CATEGORY: String = "ui"
+## THE CONSUMER OF `gameplay/pause_on_focus_loss`, here because losing focus is a request on the
+## bus that may become a screen, which is this node's whole table.
+const PAUSE_ON_FOCUS_LOSS: String = "gameplay/pause_on_focus_loss"
 
 
 func _ready() -> void:
@@ -31,6 +34,7 @@ func _ready() -> void:
 	# it is standing on. Every travel goes through this one signal - a door, a load, a new game -
 	# so a menu left open across a transition cannot end up over an area that no longer exists.
 	Events.area_change_requested.connect(_on_area_change_requested)
+	Events.focus_lost.connect(_on_focus_lost)
 	# SAID OUT LOUD SO ITS ABSENCE IS EVIDENCE. This line and the overlay's are how "both tools
 	# are absent from a release export" is proved rather than assumed: a debug export prints
 	# both and a release export prints neither, which is a measurement with a control. The
@@ -72,6 +76,21 @@ func toggle_pause_menu(stack: UiRoot) -> bool:
 	if not stack.is_gameplay_input_allowed():
 		return false
 	return stack.open(PauseMenuScreen.new())
+
+
+## OPEN, NEVER TOGGLE: a second focus loss with the pause menu up must not close it. And only
+## where the pause key itself would work - over a screen, under the main menu, during a
+## conversation - because focus loss is the pause key pressed by the window, not a new rule.
+func pause_for_focus_loss(stack: UiRoot) -> bool:
+	if not Settings.get_bool(PAUSE_ON_FOCUS_LOSS) or not stack.is_gameplay_input_allowed():
+		return false
+	return stack.open(PauseMenuScreen.new())
+
+
+func _on_focus_lost() -> void:
+	var stack: UiRoot = UiRoot.find(self)
+	if stack != null:
+		pause_for_focus_loss(stack)
 
 
 ## Every menu this game can be asked for by name, and how one is made. The ONE factory: a dev

@@ -14,7 +14,8 @@ extends MenuScreen
 ## the locked gate, which is shown precisely because it can be opened later.
 ##
 ## OWNS: the slot list, its headers, and which direction this instance is facing.
-## MUST NOT: write, read or migrate a save file itself, or decide what a section contains.
+## MUST NOT: write, read or migrate a save file itself, decide what a section contains, or draw
+## its own "are you sure" — `ConfirmScreen` asks every such question the same way.
 ## `SaveSystem` owns the format; this screen names a slot number and nothing else.
 
 const SCREEN_ID: StringName = &"saves"
@@ -30,6 +31,7 @@ const AUTOSAVE_EMPTY_KEY: String = "ui.save.autosave_empty"
 const SAVED_KEY: String = "notify.game_saved"
 const FAILED_KEY: String = "notify.save_failed"
 const HINT_KEY: String = "ui.save.hint"
+const OVERWRITE_KEY: String = "ui.save.overwrite"
 const TOAST_SECONDS: float = 2.5
 
 ## Which way this instance faces. Set through `for_saving()` before the screen is opened, never
@@ -90,7 +92,13 @@ func slot_text(slot: int) -> String:
 	})
 
 
+## AN OCCUPIED SLOT ASKS FIRST, AN EMPTY ONE DOES NOT. Overwriting is the one thing on this
+## screen a player cannot take back, and an empty slot has nothing to lose — asking there too
+## would teach the player to press through the question. The detail is the header about to go.
 func _on_slot(slot: int) -> void:
+	if writing and SaveSystem.has_slot(slot):
+		push(ConfirmScreen.asking(OVERWRITE_KEY, slot_text(slot), _write.bind(slot)))
+		return
 	if writing:
 		_write(slot)
 		return

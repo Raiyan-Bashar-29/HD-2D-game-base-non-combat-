@@ -147,7 +147,8 @@ previous project started as a system that was allowed to know one thing too many
 | Menu contract | MenuScreen: a titled column of focusable rows, written once for all five menus | UiScreen, UiRoot | what a row means, or pausing | DONE |
 | Pause menu | Resume, save, load, settings, controls, main menu, quit, over a stopped world | Actions, UiRoot, Save, Director | unloading an area or writing a save itself | DONE |
 | Main menu | New game, continue, load, settings, controls, quit. The boot path now stops here | Save, Director | loading an area or clearing a flag itself | DONE |
-| Save and load screen | Slot list with headers and playtime, in either direction | Save | the save format, or what a section holds | DONE |
+| Save and load screen | Slot list with headers and playtime, in either direction. **Since T6.3 overwriting an occupied slot asks first**, through `ConfirmScreen`, naming the header about to be lost; an empty slot saves at once | Save, ConfirmScreen | the save format, what a section holds, or drawing its own question | DONE |
+| Confirm screen | `ConfirmScreen.asking(question_key, detail, on_yes)`: a yes-or-no `MenuScreen` a game reuses for any action it cannot take back. `closes_on_cancel` is false, so escape and pause cannot answer it; focus lands on **No**, so mashing accept loses nothing | UiScreen, UiRoot | performing the action, knowing what it confirms, or closing anything but itself | DONE — T6.3, 5.8.0. Photographed over the pause menu |
 | Settings screen | Every entry in the Settings defaults table, generated from it. **Generation is why it needed no edit at all when T5.5 removed three settings** | Settings | applying a setting; it writes and Settings announces | DONE |
 | Key rebinding | Rebind a key or a pad button per action; overrides persist in user://input.cfg. Since T5.5 `rebind()` gates on `Actions.REBINDABLE` rather than `InputMap.has_action`, so an override that `reset_bindings()` could never undo cannot be stored | Actions, KeyBindings | naming an action or deciding a default | PART — the prompts name the right device's button in words since T6.2, but there are no button ICONS yet (`ART_CONTRACT.md` § Button prompts names the seam), and no duplicate-binding warning |
 | World map | `WorldMap` under `GameRoot`, found by group. Discovery is the flag `map/<area id>` and there is NO store, so it is already saved, already announced and writable by anything. `travel_to` emits `area_change_requested` and stops | Director, Flags, Events, AreaDb | loading an area, fading, placing the player, or keeping a copy of what is discovered | DONE — WP-11 |
@@ -221,7 +222,14 @@ rather than oversights.
    rather than special-cased. The guard is `Director.is_transitioning()` — but `area_entered` is
    emitted TWO STATEMENTS BEFORE that flag is cleared, so reading it on the spot would have
    refused every arrival and the feature would never have fired once. See gotcha 65.
-7. **"Are you sure"** on overwriting a save and on quitting with unsaved progress.
+7. **"Are you sure"** on overwriting a save and on quitting with unsaved progress. **DONE — T6.3
+   for the overwrite, T5.10 for the quit.** Pressing an occupied slot on the save screen opens
+   `ConfirmScreen` over it, naming the header about to be lost, with focus on No and escape unable
+   to answer; an empty slot saves without asking. The quit half is not built, because T5.10
+   already answers it by saving rather than asking: item 2's quit-autosave writes the autosave
+   slot on both quit paths before `quit()`. It does not when the player has turned autosave OFF,
+   or mid-transition (`Autosave.request()` refuses both) — a game that wants to ask in those cases
+   calls `ConfirmScreen.asking` from its own quit row and adds no screen.
 8. **First-run defaults** that are actually pleasant, since most players never open settings.
 9. **Reduced motion,** and a depth-of-field toggle. **Both work as of T5.5.** `set_dof_enabled`
    existed on the camera rig from day one and had no caller anywhere for the whole project; the

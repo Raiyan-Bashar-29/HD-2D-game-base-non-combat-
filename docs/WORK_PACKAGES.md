@@ -123,8 +123,8 @@ original board rather than continuing it.
 | T6.0 | **Planning Phase T6 — what every game on this formula would otherwise build first** | **DONE** — `5.6.2`, a PATCH, and `src/`, `tools/`, `tests/` are byte-identical. **THE OWNER ASKED WHAT THE BASE HAD MISSED, AND THE ANSWER WAS FILTERED RATHER THAN BRAINSTORMED.** ADR-0007 decides what a template DEFAULT is, the refused list rules out cutscenes, an economy, a chapter sequencer, a calendar, combat and credits, and the standing rule is that work is found, not invented — so every surviving row is either a confirmed defect or an undecided item on the project's own "Commonly forgotten" list. **Method: three parallel explorations and an adversarial review, then every load-bearing claim re-read in the code**, and the review **overturned three first premises**: shader warm-up was proposed as missing and was built in T2.0 (`Director.WARM_UP_FRAMES`); per-section save versions were proposed as never exercised and are exercised by `core_test.gd:134`; the F2 freecam was called unbound and is bound, merely unconsumed. **IT FOUND ONE REAL DEFECT BY READING**: `SaveSystem.load_from_slot` hands each section's stored version to its applier with no check that it is not newer than the running build, and every applier ignores that version — the envelope has the guard and the section level has no twin. That is T6.1, to be proved red before it is fixed. **The owner decided three things**: T6 only; photo mode, a codex, in-area camera zones and positional ambient emitters are GAME CHOICES, each with its seam named; and font fallback proves both Bengali and CJK. Stale records fixed in passing: `CONTEXT.md` listed time on the flag surface and the day cycle as open candidates though T5.31 and T5.32 built both, and three "Commonly forgotten" items described settled work as missing. See below for every candidate's classification and each row's file manifest |
 | T6.1 | **A save from a newer build must be refused, not applied** | **DONE** — `5.6.3`, a PATCH on `1.0.2`'s "the bug being fixed, not a new restriction". **PROVED RED BEFORE IT WAS FIXED**: on `5.6.2`, a section stored at `"v": 3` for a probe registered at v2 reached its applier — `but its applier was never called — expected 0, got 1` and `so the probe keeps its defaults — expected unset, got from the future`, exactly the two failures T6.0 predicted from reading. `load_from_slot` now refuses a section whose stored version exceeds the registered one — `Log.error`, defaults, continue — the section-level twin of `_migrate`'s envelope refusal; one bad section still does not cost the file. The plant (guard disabled) fails the same two assertions again. **And the suite's first worked, exercised migration**: `_probe_apply` in `save_recovery_test.gd` renames `old_key` → `new_key` from v1 and asserts the value survives, with a v2 boundary block so the refusal cannot pass by refusing everything; `UPGRADING.md` § 4 now tells a game to copy it. `save_system.gd` 172 → 176 of 180, no budget touched. See below |
 | T6.2 | **The base knows which input device is active** | **DONE** — `5.7.0`, a MINOR: a signal, an enum, two methods and a class a game may ignore. The pure `InputDevice.device_for(event, previous)` decides and `Actions` holds the answer, emitting `input_device_changed` only on a change — **no autoload added**, `Actions`' MUST NOT narrowed rather than dropped. Mouse motion and sub-deadzone stick drift are not a switch; unplugging the last pad falls back to the keyboard. The interact prompt now names the button — `[E]  Barter  The Keeper's Basket`, photographed — and **the dialogue hint had said "Space to continue" while Space advanced nothing**, bound to the `jump` T5.5 removed; it now reads `E to continue` and follows the device mid-conversation. Three plants, three different failures. Hotplug cannot be driven headless and is proved by calling the handler. Suite 2,375 → 2,408; see below |
-| T6.3 | **A reusable confirm screen, and "are you sure" on overwriting a save** | **TODO — next.** Forgotten #7. Manifest below |
-| T6.4 | **A save slot says where it was saved, and says so when it is damaged** | **TODO.** Forgotten #15. After T6.3. Manifest below |
+| T6.3 | **A reusable confirm screen, and "are you sure" on overwriting a save** | **DONE** — `5.8.0`, a MINOR: a class and three strings a game may ignore. `ConfirmScreen.asking(question_key, detail, on_yes)` is a `MenuScreen` with `closes_on_cancel = false`, so **escape and pause cannot answer it**, and focus lands on **No**, so mashing accept loses nothing. Pressing an occupied slot on the save screen asks `Overwrite this save?` under the header about to be lost; an empty slot saves at once. The quit half of forgotten #7 is T5.10's quit-autosave, recorded with its two refusals rather than built. Two plants, two different failures, and a control assertion proving the cancel event really reaches `UiRoot`. Photographed over the pause menu. Suite 2,408 → 2,437; see below |
+| T6.4 | **A save slot says where it was saved, and says so when it is damaged** | **TODO — next.** Forgotten #15. Manifest below |
 | T6.5 | **Losing window focus leaves nothing latched** | **TODO.** Forgotten #3. Measure first. Manifest below |
 | T6.6 | **Text in any script renders, not as tofu** | **TODO.** Bengali and CJK. Manifest below |
 | T6.7 | **Dialogue for fast and slow readers** | **TODO.** Forgotten #5. After T6.2. Manifest below |
@@ -6171,4 +6171,80 @@ mentions it, which has been untrue since `Actions` called `load_all()`; recorded
 
 **Scope.** `5.7.0`, a MINOR. Suite 2,375 → 2,408: +33: 31 in the new `input_device_test` and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
 
-**Commit:** on `claude/t6-2-input-device`, PR targeting `main`. No SHA, per item 6.
+**Commit:** `8bed5af` on `claude/t6-2-input-device`, PR #67, targeting `main`, merged as `f19cbd6`; no separate CI-record commit was made. Filled in by T6.3, which also took the stripped count from the CI job log (`Ladder (stripped template)`, job 109013767306: `=== 2334 passed, 0 failed, 25 skipped ===`; full job 109013767855: `=== 2408 passed, 0 failed, 0 skipped ===`). `TESTING.md` had kept T6.1's stripped `2301` through T6.2; T6.3 replaces it.
+
+---
+
+## T6.3 · A reusable confirm screen, and "are you sure" on overwriting a save — **DONE**
+
+**Closes forgotten #7.** Pressing an occupied slot on the save screen used to overwrite it
+immediately, with no way back. That is the one irreversible action this template's menus offer.
+
+**What was built.** `src/ui/screens/confirm_screen.gd`, `ConfirmScreen extends MenuScreen`. It
+extends `MenuScreen` rather than bare `UiScreen` because a question IS a titled column of two
+rows: the panel, the title, the gamepad navigation and the row styling are already written, and a
+second copy of them is a second place for the pad to stop working. It is still a `UiScreen`, as the
+manifest asks. `asking(question_key, detail, on_yes)` is the one constructor, and every field is
+set before `_build` runs on add_child.
+
+- **`closes_on_cancel = false`**, set in `_init`, as `menus_test.gd` requires of every flag. So
+  `UiRoot._unhandled_input` returns early on cancel AND pause, and `ScreenKeys.toggle_pause_menu`
+  refuses too, because the stack is not in gameplay.
+- **Focus lands on No**, though Yes is drawn first. `focus_first()` is overridden rather than
+  `_opened()`, because the base calls `focus_first` from both `refresh()` and `_opened()`, and a
+  redraw must not move focus onto the destructive answer.
+- **Yes runs `on_yes`, then asks to close.** The caller's redraw happens while the question is
+  still on top, so the revealed save list already shows the new header when `UiRoot` hands it
+  focus.
+- **No row names a key**, so `KeyBindings.text_for` is not called. T6.2's pattern applies to a
+  button naming a key, and neither answer does.
+
+**The save screen.** `_on_slot`: writing to an occupied slot pushes
+`ConfirmScreen.asking(OVERWRITE_KEY, slot_text(slot), _write.bind(slot))`. The detail line is the
+header about to be lost. An empty slot writes at once, because asking where nothing can be lost
+would teach the player to press through the question. `SaveScreen`'s MUST NOT now also forbids
+drawing its own question.
+
+**The quit half is recorded, not built**, as the manifest instructed. T5.10's `Autosave` writes the
+autosave slot on `Events.game_ending`, on both quit paths, before `quit()`. Reading
+`Autosave.request()` shows two refusals the plan did not mention: autosave turned off in
+Settings, and a transition in flight. In either case quitting still loses progress without a
+question. That is written into `SYSTEMS_INVENTORY.md` item 7 rather than papered over, and a game
+that wants the question calls `ConfirmScreen.asking` from its own quit row.
+
+**Assertions.** `tests/unit/confirm_test.gd`, 27. Three on the flags, on a fresh instance. Four on
+focus and draw order, including after a `refresh()`. Four on which row runs the action, on an
+UNSTACKED screen, so the stack's deferred close cannot fire mid-case. Six on cancel: cancel,
+pause, the pause key, nothing ran, and the **control**, where the same `InputEventAction` closes
+the screen once `closes_on_cancel` is flipped. Without that control, an event that never matched
+the action would pass the other five. Three on the empty slot, four on the occupied slot, and
+three that the keys exist. Rows are pressed with `pressed.emit()`, which is the Button's own path.
+
+**Two plants, two different failures.** Save screen skipping the question (`if false and …`):
+`2431 passed, 2 failed`, `an occupied slot asks first — expected true, got false`, plus the plan
+shortfall `planned 27 outcomes and produced 24` from the guarded early return. Confirm screen
+closing on cancel: `2431 passed, 4 failed`, `cancel cannot dismiss a question — expected false, got
+true`, `cancel does not answer it — expected 1, got 0`, `pause does not answer it`, and `the pause
+key opens nothing over it — expected false, got true`. Restored: `2435 passed`, before the
+documentation landed.
+
+**Photographed windowed**, 960×540, through a temporary `--probe-confirm` in `dev_screens.gd`. It
+wrote slot 6 (logged `existed before: false`), opened the save list over the pause menu and
+pressed slot 6's real row. The capture shows `Overwrite this save?`, the header `Slot 6 ·
+2026-09-29 09:11:19 · 00:00 played`, then `Yes`, and `No` with the focus outline, over the dimmed
+courtyard. The save list underneath is hidden, not printing through. Session `0 warnings, 0 errors`.
+The probe was removed, `git diff src/systems/debug/` is empty, and the slot file it wrote was
+deleted.
+
+**Budgets**, measured with `check_budgets.gd` before and after: `save_screen.gd` 67 → **71 of 250**,
+`confirm_screen.gd` **33**. Nothing tight was touched: `save_system.gd` stays at 176 of 180 for
+T6.4, and `director.gd` stays at 187 of 190.
+
+**Not in scope.** The slot's location and damaged display (T6.4), focus loss (T6.5), dialogue skip
+(T6.7). The load direction does not ask, because loading from the pause menu discards unsaved
+progress in the current session the same way quitting does. That is a question a game may want,
+and it is one `ConfirmScreen.asking` call; the manifest did not ask for it.
+
+**Scope.** `5.8.0`, a MINOR. Suite 2,408 → 2,437: +29: 27 in the new `confirm_test` and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
+
+**Commit:** on `claude/t6-3-confirm-screen`, PR targeting `main`. No SHA, per item 6.

@@ -19,6 +19,26 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.15.1
+
+*2026-09-29 — every "Commonly forgotten" item carries a verdict, and one without fails the suite.*
+
+**A consuming game does: nothing.** A PATCH, and `src/` and `tools/` are byte-identical: one new
+test case, `tests/unit/forgotten_list_test.gd`, and documents. If your game has edited
+`docs/SYSTEMS_INVENTORY.md` § "Commonly forgotten", every item there now needs the bold marker
+`DONE — <id>` or `CLOSED (game's) — <id>` naming a package on your board, or the case fails; a
+game that deleted the section fails the case's first assertion and should delete the case with it.
+
+**What changed.** Phase T6 was planned as the closure of that list, and its exit criterion was
+that every item says DONE or CLOSED (game's) beside a package id. Eight of fifteen did not in a
+form anything could read: some were settled work described in prose, one (#8, first-run defaults)
+had no verdict at all. Measured before the edits, the new case failed 16 assertions, two for each
+of those eight; after, it passes 32 of 32. Planted: an id with no board row and a gap in the
+numbering fail one assertion each. #8 is CLOSED (game's): the base keeps every default in one
+`Settings.DEFAULTS` line and a game tunes them against its own content. The owner's playtest
+verdict on those defaults was not given in this package, and overrides the closure if it comes.
+
+---
 ## 5.15.0
 
 *2026-09-29 — two suite runs at the same time, in two worktrees, no longer break each other.*

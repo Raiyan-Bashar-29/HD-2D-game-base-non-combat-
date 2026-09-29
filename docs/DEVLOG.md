@@ -11698,3 +11698,39 @@ it asked for was made in the merge itself, not as a row of its own.
 - **Suite size.** Suite 2,591 on `main` at `287e783` → **2,621**, +30: 28 in the new `run_scratch_test` (26 from T6.13, and 2 from the merge for the parking directory) and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `main`, after the documentation landed. The stripped count is CI's.
 - **Unblocks.** T6.8, next, unchanged. T6.14, the plural row, after it.
 - **Gaps.** None new. The stripped count is CI's.
+
+## 2026-09-29 — T6.8 · Close the list, and gate it
+
+**Did.** New `tests/unit/forgotten_list_test.gd` and its `CASES` line: it reads
+`SYSTEMS_INVENTORY.md` § "Commonly forgotten" and fails an item without the bold marker
+`DONE — <id>` or `CLOSED (game's) — <id>`, an id with no row on the board, and a gap in the
+numbering. Rewrote the verdicts of items #1, #6 and #8 to #13 into that marker, and added a
+paragraph at the top of the section saying the rule. Ticked the last Phase T6 exit criterion.
+
+**Why.** The phase's exit criterion. The list was written so that fifteen regrets would be
+decisions, and T6.0 had already found three items describing settled work as missing; without a
+gate a new item is an oversight again the moment it is written.
+
+**Connects.** `record_shape_test.gd` (T5.24), whose package-id shape and whole-id lookup the new
+case reuses; the board, which is the index an id must be findable in.
+
+**Verified.**
+- **Red first, on the list as it stood:** the new case failed 16, two for each of #1, #6, #8, #9,
+  #10, #11, #12, #13; `=== 2637 passed, 16 failed ===`, exit 1.
+- **After the edits:** `forgotten_list_test: 32/32`, `=== 2653 passed, 0 failed ===`, exit 0.
+- **Plants**, restored after: #8's id to `T6.99` fails `forgotten #8 names T6.99, which has a row
+  on the board`; #14 renumbered 16 fails `numbered 1 to N without a gap`. `2651 passed, 2 failed`,
+  exit 1, exactly those two.
+- The first draft did not parse: the heredoc that wrote it turned every doubled backslash into one, so
+  `"\*"` was an invalid escape. The patterns now use bracket classes, `[*]`, `[.]`, `[(]`, and no
+  backslash at all, which also means no reader has to count them.
+- **Ladder, all green:** `--import` 0 `SCRIPT ERROR` / `Parse Error`; boot `0 warnings, 0 errors`; `=== 2655 passed, 0 failed, 0 skipped ===`, exit 0; all seven checkers exit 0. No visual or input surface: nothing under `src/` changed, so there is nothing to photograph, said rather than skipped.
+
+**Unblocks.** T6.14, the plural form, which is the last row of the phase.
+
+**Gaps.** #8's verdict is the default taken without the owner's playtest, which the manifest had
+asked for; it is recorded as such in the list and is overridden by that playtest when it comes.
+The gate checks that a verdict exists and names a real package, never that it is right.
+Suite 2,621 on `claude/t6-13-parallel-suites` at `8021b59` → **2,655**, +34: 32 in the new `forgotten_list_test` (two, plus two for each of fifteen items) and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `8021b59`, after the documentation landed. The stripped count is CI's.
+
+**Commit:** on `claude/t6-8-close-the-list`. No SHA, per board item 6.

@@ -97,6 +97,7 @@ const CASES: Array[String] = [
 	"res://tests/unit/slot_header_test.gd",
 	"res://tests/unit/focus_loss_test.gd",
 	"res://tests/unit/font_chain_test.gd",
+	"res://tests/unit/forgotten_list_test.gd",
 ]
 
 var _passed: int = 0

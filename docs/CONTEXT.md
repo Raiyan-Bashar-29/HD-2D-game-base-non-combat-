@@ -3,38 +3,23 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-29 · **T6.13 (two suite runs at once, in two worktrees, no longer break each other) complete, at 5.15.0, a MINOR.**
-**Phases T1 to T5 are complete and stay complete; Phase T6 is OPEN, and the next package is T6.8.**
+**Last updated:** 2026-09-29 · **T6.8 (every "Commonly forgotten" item carries a verdict, and a text scan fails one that does not) complete, at 5.15.1, a PATCH.**
+**Phases T1 to T5 are complete and stay complete; Phase T6 has every exit criterion ticked and stays OPEN for its last row, T6.14, which is next.**
 
-**EVERY PATH THE SUITE WRITES IS UNDER `user://test_runs/<pid>`, ONE DIRECTORY PER PROCESS.**
-`tests/framework/run_scratch.gd` owns it. The runner calls `RunScratch.begin()` before anything
-else, `beat()` before every case, and `finish()` after the report, which removes the directory.
-`SaveFixture.root()`, `SaveFixture.unclaimed()`, `SaveFixture.settings_path()`, `Fixtures.root()`
-and the five `Fixtures.*_dir()` are functions now, not constants, because the name carries the
-pid. Before, they were fixed names in the `user://` that every worktree shares, and `activate()`
-EMPTIES its directory: two suites started 0.3s apart failed 15 and 8, with a private `APPDATA` so
-nothing else touched it. **A new scratch path goes under `RunScratch.path()`**;
-`run_scratch_test.gd` lists every one and fails on any outside it.
+**EVERY "COMMONLY FORGOTTEN" ITEM NOW SAYS `DONE — <id>` OR `CLOSED (game's) — <id>`, AND THE
+SUITE READS IT.** `tests/unit/forgotten_list_test.gd` finds `SYSTEMS_INVENTORY.md` § "Commonly
+forgotten", and fails an item without that bold marker, an id with no row on the board, and a gap
+in the numbering. **A new item arrives with its verdict or the build goes red.** On the list as it
+stood the case failed 16, two for each of eight items written in prose it could not read; after
+the edits, 32 of 32. The id is found by the whole id, so `T5.1` is not satisfied by `T5.10`.
 
-**T6.12'S PARKING DIRECTORY MOVED IN AT THE MERGE.** T6.12 and T6.13 were siblings, and T6.12
-landed first with `SaveFixture.UNCLAIMED = "user://test_saves_unclaimed"`, which `park()` empties
-before EVERY case: the same race, met on every case instead of only the ones that save. It is now
-`SaveFixture.unclaimed()`, `RunScratch.path("saves_unclaimed")`. Proved as T6.13 was: two suites
-on one private `APPDATA`, at several start offsets, both green.
+**#8, FIRST-RUN DEFAULTS, IS CLOSED (game's) BY DEFAULT, NOT BY THE OWNER.** T6.0's manifest asked
+for the owner's playtest verdict there, and it was not given in T6.8's session. The item says so.
+**A default the owner finds unpleasant by playing overrides it**, as a row ahead of the queue.
 
-**`OS.is_process_running()` IS FALSE, ON WINDOWS, FOR ANY PROCESS YOU DID NOT START.** Measured:
-explorer's pid false, an `OS.create_process` child true. The first version pruned a sibling
-directory when its pid was not running, so every run deleted every other live run's directory,
-and a suite started 6s after another cost it three failures. **Liveness is a heartbeat file**,
-pruned only when older than `RunScratch.STALE_SECONDS` (900); a directory with no heartbeat yet
-is kept. And the first pruning TEST was the defect again, pruning the shared parent with a
-doctored answer: a case testing a cleanup must clean a directory of its own.
-
-**AND THE SUITE WAS DELETING THE DEVELOPER'S KEY BINDINGS.** `options_test` rebinds and resets, and
-the reset removed the real `user://input.cfg` on every run. `KeyBindings.file_path` is a new var,
-and the runner points it at the run's own copy.
-
-**Budgets.** `run_scratch.gd` 48, `test_runner.gd` 191, `key_bindings.gd` 105, all of 250.
+**Regex patterns in a test are written with bracket classes, `[*]`, `[.]`, `[(]`.** The first
+draft was written through a shell heredoc that turned every doubled backslash into one, so `"\*"` was
+an invalid escape and the case never parsed; T4.4's `doc_counts_test.gd` met the same thing. Brackets need no escaping in GDScript or in a shell.
 
 **The phase, in order** — manifests in `WORK_PACKAGES.md` § T6.0:
 
@@ -52,14 +37,23 @@ and the runner points it at the run's own copy.
 | ~~T6.12~~ | ~~a case that saves without activating the scratch store fails the suite~~ **DONE**, out of number order | found by T6.9 |
 | ~~T6.7~~ | ~~dialogue can skip to its end and auto-advance~~ **DONE** | forgotten #5 |
 | ~~T6.13~~ | ~~two suite runs at once, in two worktrees, cannot empty each other's scratch~~ **DONE**, out of number order | found by T6.11 |
-| **T6.8** | every forgotten item marked DONE or CLOSED, gated by a text scan | the exit criterion |
-| T6.14 | a count that reaches a string picks its plural form (found by T6.6 as T6.10; T6.12 at T6.11's merge, T6.13 at T6.12's, T6.14 at T6.13's) | a defect |
+| ~~T6.8~~ | ~~every forgotten item marked DONE or CLOSED, gated by a text scan~~ **DONE** | the exit criterion |
+| **T6.14** | a count that reaches a string picks its plural form (found by T6.6 as T6.10; T6.12 at T6.11's merge, T6.13 at T6.12's, T6.14 at T6.13's) | a defect |
 
 **THE OWNER'S PLAYTEST OUTRANKS THIS QUEUE.** A defect found by playing becomes the next row ahead of
 anything above — found, not invented, the standard every T6 row had to meet. T6.9 is the first,
 numbered after T6.8 so that no planned id moves. T6.10 is the second, found while proving T6.9, T6.11 the third, found by T6.10, T6.12 the fourth, the gap T6.9 recorded, and T6.13 the fifth, found by T6.11.
 
-Suite 2,591 on `main` at `287e783` → **2,621**, +30: 28 in the new `run_scratch_test` (26 from T6.13, and 2 from the merge for the parking directory) and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `main`, after the documentation landed. The stripped count is CI's.
+Suite 2,621 on `claude/t6-13-parallel-suites` at `8021b59` → **2,655**, +34: 32 in the new `forgotten_list_test` (two, plus two for each of fifteen items) and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `8021b59`, after the documentation landed. The stripped count is CI's.
+
+*(Previously: T6.13 stopped two suite runs at once, in two worktrees, breaking each other, at
+`5.15.0`, a MINOR. Every path the suite writes is under `user://test_runs/<pid>`, owned by
+`tests/framework/run_scratch.gd`; `SaveFixture.root()`, `unclaimed()`, `settings_path()`,
+`Fixtures.root()` and the five `Fixtures.*_dir()` are functions now. A new scratch path goes under
+`RunScratch.path()`. **`OS.is_process_running()` is false, on Windows, for any process you did not
+start**, so liveness is a heartbeat file pruned after `RunScratch.STALE_SECONDS`. It also stopped
+the suite deleting the developer's `user://input.cfg`: `KeyBindings.file_path` is a var the runner
+points at the run's own copy.)*
 
 *(Previously: T6.7 let dialogue be skipped to its end and auto-advance, at `5.14.0`, a MINOR.
 Cancel during a conversation calls `DialogueScreen.skip()`, which walks the runner through
@@ -367,7 +361,7 @@ another sheet, and every facing draws a different figure.
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version is** **5.15.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+**The version is** **5.15.1**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
 the owner's to close or to leave.
 
 **THE NEXT PACKAGE IS T6.7, AND IT IS A QUEUE AGAIN — FOR ONE PHASE.** From T5.32 until T6.0 this
@@ -439,7 +433,7 @@ three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite shee
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 4 on the default one, the
 fourth being a second IDLE rather than a gait**,
 1 shared area material, **24 settings and 24 consumers**.
-Template version **5.15.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+Template version **5.15.1**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
 recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 

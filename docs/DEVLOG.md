@@ -11144,4 +11144,57 @@ returns. That is the engine's state, and it was measured clear. The capture coul
 OS focus change, so the photographed path starts at the engine's notification. The OS-to-engine
 half is the probe's measurement.
 
-**Commit:** on `claude/t6-5-focus-loss`, PR targeting `main`. No SHA, per board item 6.
+**Commit:** `f0805ce` on `claude/t6-5-focus-loss`, PR #71, targeting `main`, merged as `26f48c1`; no separate CI-record commit was made. Filled in by T6.6, which also took the stripped count from the CI job log (`Ladder (stripped template)`, job 109373463415: `=== 2430 passed, 0 failed, 25 skipped ===`; full job 109373463289: `=== 2504 passed, 0 failed, 0 skipped ===`). `TESTING.md` had kept T6.4's stripped `2397` through T6.5; T6.6 replaces it.
+
+## 2026-09-29 — T6.6 · Text in any script renders, not as tofu
+
+**Did.** First merged PR #71 (T6.5) with plain `gh pr merge 71 --merge`, CLEAN with both CI jobs
+green, as `26f48c1`, and branched `claude/t6-6-font-fallback` from it. Imported first. Captured the
+before state, which showed no tofu, because Windows fonts drew it. Captured again with system
+fallback off: boxes. With permission, downloaded Noto Sans Bengali, Noto Sans SC and their
+licences, and fontTools, and cut a 2.8 MB CJK subset at weight 600. Put the chain in the theme,
+found the fresh-clone `Parse Error`, and moved the chain into `assets/fonts/font_chain.tres`, which
+`UiRoot.install_font_chain` installs at boot. Wrote `font_chain_test.gd`. Checked every count in
+the CSV for `tr_n`, and found `RestPoint`'s `{hours}`, which is now T6.10.
+
+**Why.** Before this, a Bengali or CJK string rendered only if the player's OS had a font for it.
+The machine the base is written on does, so nothing looked broken.
+
+**Connects.** `UiRoot` is the first UI node, and it already sits where the UI's facts are stated.
+`UiAccessibility` and `UiRowStyles` already change the project theme at runtime. `ART_CONTRACT.md`
+§ Fonts is the consumer's rule. `NEW_GAME.md` § 2 lists `assets/fonts/**` as keep.
+
+**Verified.**
+- Fresh worktree: `--headless --import` first. Then a copy of the tree with no `.godot/`:
+  `--import` with the chain in the theme printed `Parse Error: [ext_resource] referenced
+  non-existent resource` ×2. With the chain in its own file, it printed 0, and the fresh boot logged
+  `Font chain installed: 2 fallback(s)`.
+- Boot `--quit-after 30`: `Font chain installed: 2 fallback(s)`, then `0 warnings, 0 errors`.
+- Suite: after the documentation, `=== 2533 passed, 0 failed, 0 skipped ===` with `font_chain_test: 25/25`. Against a `main` worktree, +29: 25 in the new `font_chain_test`, 2 in `record_shape_test` for this row's own package id, and 2 in `docs_test` for the two font paths the board's plant record names; every other case unmoved.
+- All seven checkers exit 0 with `PASS` and no `SCRIPT ERROR`.
+- Plants: Each exited 1, and each was restored byte-identical. With the chain's two fallbacks swapped: `2523 passed, 8 failed`, starting with `fallback 0 is the Bengali font — expected res://assets/fonts/NotoSansBengali-Variable.ttf, got res://assets/fonts/NotoSansSC-SemiBold-subset.ttf`. With `install_font_chain`'s check for an existing `default_font` removed: `2530 passed, 1 failed`, `a theme with its own font keeps it — expected true, got false`.
+- Windowed, 960×540: `--resolution 960x540 --script res://src/systems/debug/font_probe.gd --
+  <png> before|late`, a temporary probe drawing Latin, Bengali, Chinese and Japanese at 64 px with
+  system fallback off. For the after capture it added a real `UiRoot`. Before: boxes. After: all
+  drawn, conjuncts shaped, weights matched. Both were looked at. The probe was removed.
+- The ladder's own capture, `--resolution 960x540 --quit-after 90 -- --new-game --shot=<png>
+  --shot-frame=70 --time=18:40 --freeze-time`, taken on this branch and on a `main` worktree. The
+  courtyard, the HUD clock, the toast and the prompt match, all in the engine's Latin. One branch
+  capture caught `Loading 50%` at frame 70, so boot time was compared: three alternating runs
+  each, with no other Godot process alive. Branch 4.9, 5.5 and 8.5 s; `main` 6.0, 9.5 and 5.2 s.
+  That is noise, and there is no systematic cost.
+- **A concurrency hazard, recorded because it will recur.** The first suite run failed 8
+  `slot_header_test` assertions, because another session's suite started while mine was in that
+  case, and both write the shared `user://` fixture folders. It is not a defect in this row. The
+  measured runs were started only with no other Godot process alive. The user data directory was
+  copied aside first, and was compared afterwards: `saves/` was empty before and after, and
+  `settings.cfg` was byte-identical.
+
+**Unblocks.** T6.7, dialogue skip and auto-advance. `settings.gd` is still at 142 of 150.
+
+**Gaps.** No Bengali or CJK locale column exists, so no real translated screen was photographed,
+only the chain drawing the strings. Hangul is not in the subset. A game that sets its own
+`default_font` gets no fallbacks unless it adds them, and `ART_CONTRACT.md` says so. RestPoint's
+plural is T6.10.
+
+**Commit:** on `claude/t6-6-font-fallback`, PR targeting `main`. No SHA, per board item 6.

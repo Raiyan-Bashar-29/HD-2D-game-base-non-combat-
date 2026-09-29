@@ -128,6 +128,7 @@ original board rather than continuing it.
 | T6.9 | **Running the suite destroyed the developer's real saves** | **DONE** — `5.9.1`, a PATCH, test-only: `src/` and `tools/` byte-identical. **OUT OF NUMBER ORDER ON PURPOSE**: an owner-reported defect, taken ahead of T6.5 under the playtest rule, and numbered after T6.8 so that no planned row's id moves. Fourteen cases wrote or deleted slots against the default `user://saves`, because only T5.22's two had ever called `SaveFixture.activate()`. Seven sentinel saves planted there: the unchanged suite passed 2,437 of 2,437 and **deleted all seven**; fixing only the three suspected cases still lost five; all fourteen redirected, all seven survive byte-identical. `TESTING.md` now states the rule. See below |
 | T6.10 | **A capture or debug launch wrote over the developer's real saves** | **DONE** — `5.10.0`, a MINOR: a class and a flag a game may ignore. **OUT OF NUMBER ORDER ON PURPOSE**, like T6.9, which found it. The ladder's capture rung runs `--new-game`, a real run, so the autosave wrote the real `autosave.json`, and `--save-state`/`--load-state`/`--cross-area-save` deleted real slots. The new `dev_saves.gd`, first of the debug nodes, sets `SaveSystem.save_dir` to `user://dev_saves` for any launch with user arguments; `--real-saves` opts out. **A redirect, not a suppression**, so the capture still photographs the toast. A planted sentinel was overwritten by one capture before and survives it byte-identical after. Also fixed `--autosave-continue`, which could not find the Continue row. `save_system.gd` untouched at 179 of 180. See below |
 | T6.11 | **A debug launch, and every suite run, wrote the developer's real settings** | **DONE** — `5.11.0`, a MINOR: a var and two constants a game may ignore. **OUT OF NUMBER ORDER ON PURPOSE**, like T6.9 and T6.10; T6.10 found it and recorded it undone. `Settings.PATH` was the only path, so a `--locale=en_XA` capture rewrote a sentinel's `locale="en"`, and **a green suite left it at zero bytes**, which T6.10 had not suspected. `Settings.file_path` is where `save()` writes; `DevSaves` points it at `user://dev_settings.cfg` under its existing rule, and the runner at `user://test_settings.cfg` before the first case. **Writes only, never re-read**, so no launch inherits the last one's language. The sentinel now survives both byte-identical. `settings.gd` 141 → 142 of 150. See below |
+| T6.13 | **Two suite runs at once, in two worktrees, broke each other** | **DONE** — `5.12.0`, a MINOR: a class and a var a game may ignore, and test-framework constants turned into functions. **OUT OF NUMBER ORDER ON PURPOSE**, like T6.9 to T6.11; T6.11 found it, and T6.12 is taken by PR #73. Every worktree shares one `user://`, and `SaveFixture.activate()` EMPTIES a fixed directory under it, so two suites started 0.3s apart failed 15 and 8. Every scratch path is now under `RunScratch.root()`, `user://test_runs/<pid>`, and both pass. **Liveness is a heartbeat, because the pid design failed its own proof**: on Windows `OS.is_process_running` is false for a process the caller did not start, so each run pruned every other. Also stopped `options_test` deleting the real `input.cfg`. See below |
 | T6.5 | **Losing window focus leaves nothing latched** | **TODO — next.** Forgotten #3. Measure first. Manifest below |
 | T6.6 | **Text in any script renders, not as tofu** | **TODO.** Bengali and CJK. Manifest below |
 | T6.7 | **Dialogue for fast and slow readers** | **TODO.** Forgotten #5. After T6.2. Manifest below |
@@ -6492,3 +6493,67 @@ process still READS the developer's real settings, which is why the runner's loc
 **Commit:** on `claude/t6-11-dev-settings`, stacked on `claude/t6-10-capture-saves` (PR #72), PR
 targeting `main`. No SHA, per item 6. **Version renumbering at merge:** T6.5 merged to `main` as
 `5.10.0`, so T6.10 takes `5.11.0` when it merges, and this row then takes `5.12.0`.
+
+## T6.13 · Two suite runs at once, in two worktrees, broke each other — **DONE**
+
+**Found by T6.11, which saw it and recorded it undone.** `user://` is keyed on `config/name`, so
+every worktree on the machine shares it, and every scratch path the suite used was a fixed name
+under it: `user://test_saves`, `test_saves_stand_in`, `test_settings.cfg`, `test_fixtures`,
+`test_export_empty`, `content_scan_test`. `SaveFixture.activate()` and `deactivate()` EMPTY their
+directory and `Fixtures.activate()` rewrites its own, so a second suite deleted the first's slots
+and fixtures mid-case. **Numbered T6.13**, out of number order for T6.9's reason; T6.12 is PR #73.
+T6.11's SHA, per item 6: `15775bd`.
+
+**Measured red first, with nothing else able to touch it.** A scratch worktree at `15775bd`, two
+suites sharing one private `APPDATA`, started at four offsets: 0.3s apart failed **15 and 8**, 6s
+apart 2 and 1, 2s and 12s apart passed. The failures were saves (`the autosave slot accepts a
+write — expected 0, got 12`), fixture content (`QuestDb reports a bad file in its root — expected
+1, got 2`, a planted file from the other run's scan), a dialogue case crashing on a conversation
+the other run had just rewritten, and T6.11's own settings assertion.
+
+**Decided: one directory per process, `user://test_runs/<pid>`, owned by the new
+`tests/framework/run_scratch.gd`.** Every scratch path is under it: `SaveFixture.root()` and
+`settings_path()`, `Fixtures.root()` and its five `*_dir()`, and the per-case directories in
+`content_scan_test`, `export_test` and `save_dir_test`. They became functions because the name
+carries the pid. The runner calls `RunScratch.begin()` before anything else and `finish()` after
+the report. `DevSaves.SCRATCH_DIR` and `SCRATCH_SETTINGS` stay where they were, and
+`dev_tools_test` now asserts neither is under `RunScratch.PARENT` at all, a stronger claim than
+"differs from this run's root". **The old fixed paths are left alone**: a suite on an older base
+may be using them at this moment, and deleting them would be this defect.
+
+**The first design failed its own proof, twice, and both are worth keeping.** *(1)* The case that
+tested pruning passed a fake liveness answer against the SHARED parent, which called every other
+run dead: a concurrent run lost its directory, 12 failures in `save_recovery_test`. A case now
+prunes a parent inside its own root, and `prune(parent, stale_after)` takes both. *(2)* Liveness
+was `OS.is_process_running(pid)`, and two pairs at 6s and 12s still failed 3, all writes to
+settings and bindings finding their directory gone. Measured with a probe: on Windows it answers
+**false for explorer's pid and true only for a child from `OS.create_process`**, so each run's
+`begin()` deleted every other live run. **Liveness is now a heartbeat file** the runner writes
+before every case; a directory is pruned only when its heartbeat is over `STALE_SECONDS` (900)
+old, and one with no heartbeat yet is kept, so deletion needs positive evidence.
+
+**Found on the way: the suite deleted the developer's key bindings.** `options_test` rebinds a key
+and its tear-down calls `Actions.reset_bindings()`, which removed `user://input.cfg`, the real
+file, on every run. `KeyBindings.PATH` was a `const`; `KeyBindings.file_path` is a static var on
+T6.11's pattern, and the runner points it at `RunScratch.path("input.cfg")`.
+
+**Assertions.** 26 in the new `tests/unit/run_scratch_test.gd`: the root is named for this
+process and exists; two pids never share one; ten scratch paths, including the two the runner
+pinned, are inside it; the player's bindings file is not the one written; a fresh heartbeat
+survives the real threshold and a stale one is removed, nested, and reported; a directory with no
+heartbeat yet, this process's own, and a folder not named by a number all survive; this run's
+heartbeat is fresh; `remove_tree` takes a nested tree and answers true when absent. Plus
+`dev_tools_test`'s three changed ones. **Four plants**, each exit 1 on exactly its own: see
+DEVLOG.md.
+
+**Not done.** T6.12's `UNCLAIMED` parking directory, `user://test_saves_unclaimed`, is on a sibling
+branch and is still a fixed name; whichever of the two merges second moves it under
+`RunScratch.path()`. `Log` stays disabled under the suite, so `user://logs` is not shared by it.
+**Over the size rule:** twelve code files, most one-line call-site renames; the two new files are 124 code
+lines.
+
+**Scope.** `5.12.0`, a MINOR. All of 250: `key_bindings.gd` 105, `fixtures.gd`
+81, `test_runner.gd` 168, `run_scratch.gd` 48, `dev_tools_test.gd` 224.
+
+**Commit:** on `claude/t6-13-parallel-suites`, stacked on `claude/t6-11-dev-settings` (PR #74),
+PR targeting `main`. No SHA, per item 6.

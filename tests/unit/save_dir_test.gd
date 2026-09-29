@@ -12,19 +12,20 @@ extends TestCase
 ## it", and asserting that against `user://saves` would be asserting about a developer's own
 ## disk: the case would pass on a machine where the slot happened to be filled already and fail
 ## on one where a real save collided. Two scratch directories make the same claim deterministic —
-## STAND_IN plays the part of the shipped default, and nothing here writes to `user://saves` at
+## `_stand_in` plays the part of the shipped default, and nothing here writes to `user://saves` at
 ## all, which is the entire point of the row.
 ##
 ## OWNS: assertions about `SaveSystem.save_dir`, `slot_path`'s use of it, and `SaveFixture`.
 ## MUST NOT: assert what a save file CONTAINS, or that a load succeeds — that is the other two.
 
-const STAND_IN: String = "user://test_saves_stand_in"
 const SLOT: int = 0
 const PROBE: StringName = &"save_dir_probe"
 
 ## What the probe writes into its section, so the two saves in the load-bearing case are
 ## distinguishable on disk. See that function's header for why byte equality was not enough.
 var _marker: String = ""
+## Beside `SaveFixture.root()` inside this run's own directory, T6.13, for the same reason.
+var _stand_in: String = RunScratch.path("saves_stand_in")
 
 
 func run() -> void:
@@ -45,18 +46,18 @@ func _the_default_is_the_shipped_constant() -> void:
 
 func _activating_points_the_store_at_the_scratch_directory() -> void:
 	SaveFixture.activate()
-	equal("activate redirects the store", SaveSystem.save_dir, SaveFixture.ROOT)
+	equal("activate redirects the store", SaveSystem.save_dir, SaveFixture.root())
 	equal("and says so", SaveFixture.is_active(), true)
 	equal("a slot path now lands in the scratch directory",
-			SaveSystem.slot_path(SLOT).begins_with(SaveFixture.ROOT), true)
+			SaveSystem.slot_path(SLOT).begins_with(SaveFixture.root()), true)
 	# The autosave is a separate branch of slot_path and would keep a hardcoded root of its own.
 	equal("and so does the autosave, which is the other branch",
-			SaveSystem.slot_path(SaveSystem.AUTOSAVE_SLOT).begins_with(SaveFixture.ROOT), true)
+			SaveSystem.slot_path(SaveSystem.AUTOSAVE_SLOT).begins_with(SaveFixture.root()), true)
 	equal("assigning created the directory",
-			DirAccess.dir_exists_absolute(SaveFixture.ROOT), true)
+			DirAccess.dir_exists_absolute(SaveFixture.root()), true)
 
 
-## The load-bearing one. STAND_IN is written first and stands in for whatever directory was in
+## The load-bearing one. `_stand_in` is written first and stands in for whatever directory was in
 ## force before a redirect — the shipped default, on a real run.
 ##
 ## THE TWO SAVES CARRY DIFFERENT MARKERS, and the first version of this case did not: it compared
@@ -66,7 +67,7 @@ func _activating_points_the_store_at_the_scratch_directory() -> void:
 ## the overwrite was byte-identical to what it overwrote. A distinguishable payload is what makes
 ## the claim testable rather than usually-true. Gotcha 70's shape, in a fresh costume.
 func _a_write_while_redirected_leaves_the_previous_directory_untouched() -> void:
-	SaveSystem.save_dir = STAND_IN
+	SaveSystem.save_dir = _stand_in
 	SaveSystem.register(PROBE, _probe_collect, _probe_apply, 1)
 	_marker = "stand_in"
 	equal("a save into the stand-in succeeds", SaveSystem.save_to_slot(SLOT), OK)
@@ -85,7 +86,7 @@ func _a_write_while_redirected_leaves_the_previous_directory_untouched() -> void
 	equal("and was not overwritten by the second",
 			FileAccess.get_file_as_string(before).contains("redirected"), false)
 	SaveSystem.unregister(PROBE)
-	_erase(STAND_IN)
+	_erase(_stand_in)
 
 
 func _deactivating_restores_the_default_and_empties_the_scratch() -> void:
@@ -94,7 +95,7 @@ func _deactivating_restores_the_default_and_empties_the_scratch() -> void:
 			SaveSystem.save_dir, SaveSystem.DEFAULT_SAVE_DIR)
 	equal("and says so", SaveFixture.is_active(), false)
 	equal("and left nothing behind in the scratch directory",
-			DirAccess.get_files_at(SaveFixture.ROOT).size(), 0)
+			DirAccess.get_files_at(SaveFixture.root()).size(), 0)
 
 
 func _erase(path: String) -> void:

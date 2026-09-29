@@ -26,16 +26,27 @@ extends RefCounted
 ## cases do it, most on their first line, and a per-case switch is the one a new case forgets
 ## (T6.9's recorded gap). Never emptied: nothing reads it back, so nothing in it can go stale.
 ##
+## PER RUN, T6.13. Both paths are inside `RunScratch.root()`, which is named for this process, so
+## the emptying above can only ever empty this run's own files. They were fixed names under a
+## `user://` every worktree shares, and a second suite's `activate()` deleted the first's slots
+## mid-case. `RunScratch`'s header has the measurement.
+##
 ## OWNS: the scratch save directory and pointing `SaveSystem` at it and back, and the name of the
 ## scratch settings file.
 ## MUST NOT: write save FILES (a case builds the file it wants to assert about), or assert
 ## anything.
 
-const ROOT: String = "user://test_saves"
-## Where every settings write of a suite run goes. Set by `test_runner.gd`, read by nothing.
-const SETTINGS_PATH: String = "user://test_settings.cfg"
-
 static var _active: bool = false
+
+
+## The scratch save directory, inside this run's own.
+static func root() -> String:
+	return RunScratch.path("saves")
+
+
+## Where every settings write of a suite run goes. Set by `test_runner.gd`, read by nothing.
+static func settings_path() -> String:
+	return RunScratch.path("settings.cfg")
 
 
 static func is_active() -> bool:
@@ -44,8 +55,8 @@ static func is_active() -> bool:
 
 ## Point `SaveSystem` at the scratch directory, emptied first. Idempotent.
 static func activate() -> void:
-	_empty(ROOT)
-	SaveSystem.save_dir = ROOT
+	_empty(root())
+	SaveSystem.save_dir = root()
 	_active = true
 
 
@@ -57,7 +68,7 @@ static func deactivate() -> void:
 	if not _active:
 		return
 	_active = false
-	_empty(ROOT)
+	_empty(root())
 	SaveSystem.save_dir = SaveSystem.DEFAULT_SAVE_DIR
 
 

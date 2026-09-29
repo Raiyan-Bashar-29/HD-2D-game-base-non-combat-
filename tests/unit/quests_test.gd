@@ -78,7 +78,7 @@ func _the_registry_finds_the_fixture() -> void:
 	equal("an id nothing declares answers null", QuestDb.quest(&"quest/nonesuch"), null)
 	equal("the prefix is the one the file name rule uses", QuestDb.ID_PREFIX, "quest/")
 	# The content root is a static var and not a const, which is what makes this redirect legal.
-	equal("the fixture redirect is in force", QuestDb.content_dir, Fixtures.QUEST_DIR)
+	equal("the fixture redirect is in force", QuestDb.content_dir, Fixtures.quest_dir())
 
 
 func _a_quest_starts_only_when_its_condition_passes() -> void:

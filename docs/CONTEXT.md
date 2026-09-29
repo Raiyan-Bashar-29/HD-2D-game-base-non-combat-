@@ -2,13 +2,37 @@
 
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
+**Last updated:** 2026-09-29 · **T6.13 (two suite runs at once, in two worktrees, no longer break each other) complete, at 5.12.0, a MINOR.**
+**Phases T1 to T5 are complete and stay complete; Phase T6 is OPEN. T6.5 and T6.6 have merged to `main` (PRs #71, #75), so the next package on `main` is T6.7.**
 
-**Last updated:** 2026-09-29 · **T6.11 (neither a debug launch nor the suite writes the developer's real settings) complete, at 5.11.0, a MINOR.**
-**Phases T1 to T5 are complete and stay complete; Phase T6 is OPEN. T6.5 has merged to `main` (PR #71), so the next package is T6.6.**
+**BRANCH MAP: T6.9 (PR #70) → T6.10 (PR #72) → T6.11 (PR #74) → T6.13 are stacked and unmerged;
+T6.12 (PR #73) is a sibling of T6.11 on T6.10.** Build from the newest that has merged. **Versions
+renumber at merge:** each row takes the next number after whatever `main` holds then. T6.12 and
+T6.13 both edit `tests/framework/save_fixture.gd`: whichever merges second moves T6.12's
+`UNCLAIMED` parking directory under `RunScratch.path("saves_unclaimed")`, or it stays shared.
 
-**BRANCH MAP: T6.9 (PR #70) → T6.10 (PR #72) → T6.11 are stacked and unmerged.** Build from the
-newest that has merged. **Versions renumber at merge:** T6.5 took `5.10.0` on `main`, so T6.10
-becomes `5.11.0` and T6.11 `5.12.0`.
+**EVERY PATH THE SUITE WRITES IS UNDER `user://test_runs/<pid>`, ONE DIRECTORY PER PROCESS.**
+`tests/framework/run_scratch.gd` owns it. The runner calls `RunScratch.begin()` before anything
+else, `beat()` before every case, and `finish()` after the report, which removes the directory.
+`SaveFixture.root()`, `SaveFixture.settings_path()`, `Fixtures.root()` and the five
+`Fixtures.*_dir()` are functions now, not constants, because the name carries the pid. Before,
+they were fixed names in the `user://` that every worktree shares, and `activate()` EMPTIES its
+directory: two suites started 0.3s apart failed 15 and 8, with a private `APPDATA` so nothing else
+touched it. **A new scratch path goes under `RunScratch.path()`**; `run_scratch_test.gd` lists
+every one and fails on any outside it.
+
+**`OS.is_process_running()` IS FALSE, ON WINDOWS, FOR ANY PROCESS YOU DID NOT START.** Measured:
+explorer's pid false, an `OS.create_process` child true. The first version pruned a sibling
+directory when its pid was not running, so every run deleted every other live run's directory,
+and a suite started 6s after another cost it three failures. **Liveness is a heartbeat file**,
+pruned only when older than `RunScratch.STALE_SECONDS` (900); a directory with no heartbeat yet
+is kept. And the first pruning TEST was the defect again, pruning the shared parent with a
+doctored answer: a case testing a cleanup must clean a directory of its own.
+
+**AND THE SUITE WAS DELETING THE DEVELOPER'S KEY BINDINGS.** `options_test` rebinds and resets, and
+the reset removed the real `user://input.cfg` on every run. `KeyBindings.file_path` is a new var,
+and the runner points it at the run's own copy.
+
 
 **A DEBUG LAUNCH WRITES SCRATCH, NEVER THE DEVELOPER'S FILES, AND SO DOES THE SUITE.** Saves
 since T6.10: any launch with a user argument sets `SaveSystem.save_dir` to `user://dev_saves`,
@@ -29,7 +53,8 @@ and the suite emptied it.
 sentinel run was contaminated by another session planting its own sentinels in the same minute.
 For any sentinel proof, give Godot a private `user://` with `APPDATA="$(cygpath -w <dir>)"`.
 
-**Budgets.** `settings.gd` **142 of 150**. `save_system.gd` stays at 179 of 180.
+**Budgets.** `settings.gd` **142 of 150**. `save_system.gd` stays at 179 of 180. T6.13: `run_scratch.gd`
+48, `test_runner.gd` 168, `key_bindings.gd` 105, all of 250.
 
 **The phase, in order** — manifests in `WORK_PACKAGES.md` § T6.0:
 
@@ -42,6 +67,7 @@ For any sentinel proof, give Godot a private `user://` with `APPDATA="$(cygpath 
 | ~~T6.9~~ | ~~the suite destroyed real saves; every case that saves redirects first~~ **DONE**, out of number order | owner-reported |
 | ~~T6.10~~ | ~~a capture or debug launch saves to scratch, never over the developer's saves~~ **DONE**, out of number order | found by T6.9 |
 | ~~T6.11~~ | ~~a debug launch or a suite run writes scratch settings, never the developer's file~~ **DONE**, out of number order | found by T6.10 |
+| ~~T6.13~~ | ~~two suite runs at once, in two worktrees, cannot empty each other's scratch~~ **DONE**, out of number order | found by T6.11 |
 | ~~T6.5~~ | ~~losing window focus leaves nothing latched; pausing on it is a setting~~ **DONE** on `main`, PR #71 | forgotten #3 |
 | **T6.6** | Bengali and CJK both render through a font fallback chain | structural |
 | T6.7 | dialogue can skip to its end and auto-advance | forgotten #5 |
@@ -49,9 +75,9 @@ For any sentinel proof, give Godot a private `user://` with `APPDATA="$(cygpath 
 
 **THE OWNER'S PLAYTEST OUTRANKS THIS QUEUE.** A defect found by playing becomes the next row ahead of
 anything above — found, not invented, the standard every T6 row had to meet. T6.9 is the first,
-numbered after T6.8 so that no planned id moves. T6.10 is the second, found while proving T6.9, and T6.11 the third, found by T6.10.
+numbered after T6.8 so that no planned id moves. T6.10 is the second, found while proving T6.9, T6.11 the third, found by T6.10, and T6.13 the fourth, found by T6.11 (T6.12 is PR #73).
 
-Suite 2,483 → **2,494**, +11: 9 in `dev_tools_test` and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against T6.10's tip, after the documentation landed.
+Suite 2,494 → **2,522**, +28: 26 in the new `run_scratch_test` and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against T6.11's tip, after the documentation landed. The stripped count is CI's.
 
 *(Previously: T6.10 made a capture or debug launch save to `user://dev_saves`, at `5.10.0`, a MINOR.
 The capture rung's `--new-game` is a real run, so the autosave wrote the real slot, and three probes
@@ -322,7 +348,7 @@ another sheet, and every facing draws a different figure.
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version is** **5.11.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+**The version is** **5.12.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
 the owner's to close or to leave.
 
 **THE NEXT PACKAGE IS T6.5, AND IT IS A QUEUE AGAIN — FOR ONE PHASE.** From T5.32 until T6.0 this
@@ -394,7 +420,7 @@ three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite shee
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 4 on the default one, the
 fourth being a second IDLE rather than a gait**,
 1 shared area material, **21 settings and 21 consumers**.
-Template version **5.11.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+Template version **5.12.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
 recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 

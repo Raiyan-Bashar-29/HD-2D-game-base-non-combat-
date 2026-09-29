@@ -1539,6 +1539,12 @@ was classified, including the ones refused.
   `settings.cfg`, and a green suite left it at zero bytes. `Settings.file_path` is where `save()`
   writes; `DevSaves` and the test runner point it at scratch, writes only, and a planted sentinel
   survives both. No exit criterion covers a defect fix, so none is ticked.
+- **T6.13 Two suite runs at once, in two worktrees, broke each other — DONE, 2026-09-29,
+  `5.12.0`.** Found by T6.11. Every worktree shares one `user://`, and the suite's scratch paths
+  were fixed names under it that `SaveFixture` empties. Every path now lives under
+  `user://test_runs/<pid>`, pruned by heartbeat; two suites 0.3s apart failed 15 and 8 before and
+  pass now. It also stopped the suite deleting the real `input.cfg`. No exit criterion covers a
+  defect fix, so none is ticked.
 - **T6.5 Losing window focus leaves nothing latched** — planned. Forgotten #3.
 - **T6.6 Text in any script renders, not as tofu** — planned. Bengali and CJK, owner's choice.
 - **T6.7 Dialogue for fast and slow readers** — planned. Forgotten #5.

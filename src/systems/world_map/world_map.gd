@@ -34,7 +34,13 @@ extends Node
 ## beside `QuestTracker`, so it outlives every area, and it is found by GROUP the way `UiRoot`
 ## and `QuestTracker` are, so a tool or a test can run without one.
 ##
-## OWNS: the discovery key shape, turning arrival into discovery, and the fast-travel ask.
+## THE SAVE HEADER'S "WHERE" IS SET HERE, through `SaveSystem.header_provider`. `core` cannot ask
+## `Director` where the player is, and `director.gd` is at its line budget; this node already
+## reads `Director.current_area_id` and is the one that knows an area's NAME, so both halves of
+## the header's shape — the id written, the name key read back — live in one file.
+##
+## OWNS: the discovery key shape, turning arrival into discovery, the fast-travel ask, and the
+## save header's area field.
 ## MUST NOT: keep a copy of what is discovered, load an area, fade anything, move the player, or
 ## decide what an area contains.
 
@@ -47,10 +53,14 @@ const PREFIX: String = "map/"
 ## Engine-owned, so it lives here rather than in any area's .tres: a game that wants different
 ## wording edits the CSV row, not every area it has authored.
 const DISCOVERED_KEY: String = "notify.map.discovered"
+## The save header's field. The area ID, not its name: the name is localized when it is DRAWN, so
+## a save written in one language reads in another.
+const HEADER_AREA: String = "area"
 
 
 func _ready() -> void:
 	add_to_group(GROUP)
+	SaveSystem.header_provider = _save_header
 	# ARRIVING IS THE ORDINARY WAY TO FIND SOMEWHERE, and it belongs here rather than in
 	# `AreaRoot`: an area root is instanced per area and must stay generic, while this is one
 	# node that outlives all of them. `area_entered` rather than `area_change_requested`,
@@ -65,6 +75,21 @@ func _exit_tree() -> void:
 		Events.area_entered.disconnect(_on_area_entered)
 	if Events.game_started.is_connected(_on_game_started):
 		Events.game_started.disconnect(_on_game_started)
+	# Only if it is still ours: a later map replaced it, and clearing that one would blank it.
+	if SaveSystem.header_provider == Callable(_save_header):
+		SaveSystem.header_provider = Callable()
+
+
+## The localization key naming where a slot was saved, read out of `SaveSystem.slot_info`'s
+## `"header"`, or "" when it cannot be named: a save from before the header had a place, or one
+## made in an area with no `AreaDef`. Static, so a screen asks it with no map in the tree.
+static func place_key(header: Dictionary) -> String:
+	var def: AreaDef = AreaDb.area(StringName(DictRead.get_string(header, HEADER_AREA, "")))
+	return "" if def == null else def.name_key
+
+
+func _save_header() -> Dictionary:
+	return {HEADER_AREA: String(Director.current_area_id)}
 
 
 ## The map, found by group rather than by path. Returns null before the tree is built, which

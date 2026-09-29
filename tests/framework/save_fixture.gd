@@ -28,8 +28,15 @@ extends RefCounted
 ## BOTH HALVES, because each alone leaves a hole. The check alone goes red only AFTER the real
 ## slots are gone. Parking alone makes the omission silent, and silence is how fourteen piled up.
 ##
+## AND THE SETTINGS FILE, T6.11, the seventh root. `Settings.PATH` was a `const` too, and the
+## suite's `reset_to_defaults()` saved it: a green run left the developer's `settings.cfg` at ZERO
+## BYTES. Unlike the store it is not per case. The runner points `Settings.file_path` here once,
+## before the first case, because a settings write is not something a case opts into: five
+## cases do it, most on their first line, and a per-case switch is the one a new case forgets
+## (T6.9's recorded gap). Never emptied: nothing reads it back, so nothing in it can go stale.
+##
 ## OWNS: the scratch save directory, the parking directory, and pointing `SaveSystem` at them
-## and back.
+## and back, and the name of the scratch settings file.
 ## MUST NOT: write save FILES (a case builds the file it wants to assert about), or assert
 ## anything.
 
@@ -37,6 +44,8 @@ const ROOT: String = "user://test_saves"
 ## Where the store waits between `park()` and a case's `activate()`. Never `ROOT`, so a write the
 ## runner sees landing here is one no case claimed.
 const UNCLAIMED: String = "user://test_saves_unclaimed"
+## Where every settings write of a suite run goes. Set by `test_runner.gd`, read by nothing.
+const SETTINGS_PATH: String = "user://test_settings.cfg"
 
 static var _active: bool = false
 

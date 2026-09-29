@@ -126,11 +126,12 @@ original board rather than continuing it.
 | T6.3 | **A reusable confirm screen, and "are you sure" on overwriting a save** | **DONE** — `5.8.0`, a MINOR: a class and three strings a game may ignore. `ConfirmScreen.asking(question_key, detail, on_yes)` is a `MenuScreen` with `closes_on_cancel = false`, so **escape and pause cannot answer it**, and focus lands on **No**, so mashing accept loses nothing. Pressing an occupied slot on the save screen asks `Overwrite this save?` under the header about to be lost; an empty slot saves at once. The quit half of forgotten #7 is T5.10's quit-autosave, recorded with its two refusals rather than built. Two plants, two different failures, and a control assertion proving the cancel event really reaches `UiRoot`. Photographed over the pause menu. Suite 2,408 → 2,437; see below |
 | T6.4 | **A save slot says where it was saved, and says so when it is damaged** | **DONE** — `5.9.0`, a MINOR: a hook, a constant and a static method a game may ignore. `SaveSystem.header_provider` is an optional Callable stored as the file's `"header"`, so `core` never asks `Director`; **`WorldMap` sets it, not `director.gd`**, which is at its budget, and `WorldMap.place_key` reads the area id back as a name key. The row reads `Slot 1 · Rose Courtyard · …`, photographed; an unmapped area or a pre-5.9.0 save reads `Unknown place`. **`slot_info` now answers `{}` for any file the loader would refuse**, so a file from a newer build is DAMAGED too, and Continue can no longer point at one. A damaged slot is a note when loading and, counted as occupied, asks before it is overwritten. Three plants, three different failures. `save_system.gd` 176 → 179 of 180. Suite 2,437 → 2,471; see below |
 | T6.5 | **Losing window focus leaves nothing latched** | **DONE** — `5.10.0`, a MINOR: a signal, a setting and three public methods a game may ignore. **Measured first, windowed**: Godot 4.7.2 clears a held key and its action on focus loss by itself, and sends no release event. So the base drops only its own latches on `Events.focus_lost` from `UiRoot`: a toggled run, a hold in progress, a rebind capture. `gameplay/pause_on_focus_loss`, **off by default**, makes `ScreenKeys` open the pause menu. **The first windowed run found the player stranded under an invisible menu**: the engine PROPAGATES the notification, `add_child` failed inside the walk, and the stack had recorded the screen anyway. The suite had used `notification()` and passed. Now the announcement is deferred, `UiRoot.open` rolls back a failed add, and the test propagates. Gotcha 80. Photographed. Suite 2,471 → 2,504; see below |
-| T6.6 | **Text in any script renders, not as tofu** | **DONE** — `5.11.0`, a MINOR: a resource, two fonts, a constant and a static method a game may ignore. **WINDOWS HID THE DEFECT**: with system fallback on, Nirmala UI and YaHei drew Bengali and Chinese with no bundled font, so the before capture switched `allow_system_fallback` off to show the boxes a player without those fonts sees. `assets/fonts/font_chain.tres` has no base font, so the engine's Latin is unchanged, and falls back to Noto Sans Bengali then a 2.8 MB Noto Sans SC subset, both at weight 600 to match. **THE THEME NAMES NO FONT, MEASURED**: it loads before the first import, and a copy of the tree with no `.godot/` printed `Parse Error` twice on rung 2's `--import`. So `UiRoot.install_font_chain` installs the chain at boot (gotcha 81). The suite shapes real strings headless: ক্ষ is one glyph from the Bengali font. The `tr_n` check found RestPoint's `{hours}`, which became T6.13 |
+| T6.6 | **Text in any script renders, not as tofu** | **DONE** — `5.11.0`, a MINOR: a resource, two fonts, a constant and a static method a game may ignore. **WINDOWS HID THE DEFECT**: with system fallback on, Nirmala UI and YaHei drew Bengali and Chinese with no bundled font, so the before capture switched `allow_system_fallback` off to show the boxes a player without those fonts sees. `assets/fonts/font_chain.tres` has no base font, so the engine's Latin is unchanged, and falls back to Noto Sans Bengali then a 2.8 MB Noto Sans SC subset, both at weight 600 to match. **THE THEME NAMES NO FONT, MEASURED**: it loads before the first import, and a copy of the tree with no `.godot/` printed `Parse Error` twice on rung 2's `--import`. So `UiRoot.install_font_chain` installs the chain at boot (gotcha 81). The suite shapes real strings headless: ক্ষ is one glyph from the Bengali font. The `tr_n` check found RestPoint's `{hours}`, which became T6.10 |
 | T6.9 | **Running the suite destroyed the developer's real saves** | **DONE** — `5.11.1`, a PATCH, test-only: `src/` and `tools/` byte-identical. **OUT OF NUMBER ORDER ON PURPOSE**: an owner-reported defect, taken ahead of T6.7 under the playtest rule, and numbered after T6.8 so that no planned row's id moves. Fourteen cases wrote or deleted slots against the default `user://saves`, because only T5.22's two had ever called `SaveFixture.activate()`. Seven sentinel saves planted there: the unchanged suite passed 2,437 of 2,437 and **deleted all seven**; fixing only the three suspected cases still lost five; all fourteen redirected, all seven survive byte-identical. `TESTING.md` now states the rule. See below |
-| T6.10 | **A capture or debug launch wrote over the developer's real saves** | **DONE** — `5.12.0`, a MINOR: a class and a flag a game may ignore. **OUT OF NUMBER ORDER ON PURPOSE**, like T6.9, which found it. The ladder's capture rung runs `--new-game`, a real run, so the autosave wrote the real `autosave.json`, and `--save-state`/`--load-state`/`--cross-area-save` deleted real slots. The new `dev_saves.gd`, first of the debug nodes, sets `SaveSystem.save_dir` to `user://dev_saves` for any launch with user arguments; `--real-saves` opts out. **A redirect, not a suppression**, so the capture still photographs the toast. A planted sentinel was overwritten by one capture before and survives it byte-identical after. Also fixed `--autosave-continue`, which could not find the Continue row. `save_system.gd` untouched at 179 of 180. See below |
-| T6.12 | **Nothing failed a case that saved without activating the scratch store** | **DONE** — `5.12.1`, a PATCH on `5.6.1`'s precedents, test-only: `src/` and `tools/` byte-identical. **OUT OF NUMBER ORDER ON PURPOSE**, the gap T6.9 recorded; T6.11 is another open branch's id. Both halves T6.9 offered, because each alone leaves a hole: the runner PARKS the store in `user://test_saves_unclaimed` before every case, so a forgotten `activate()` cannot reach a real save, and FAILS a case that saves, or loads a real file, anywhere but the store it claimed. Heard on `game_saved`/`game_loaded`, not by a directory diff. **Three plants red**, each naming its case: `confirm_test` and `menus_test` (saves) and `save_recovery_test` (a hand-planted file, loaded then deleted). Seven sentinel saves survived every run. See below |
-| T6.13 | **A count that reaches a string picks its plural form** | **TODO.** Found by T6.6's `tr_n` check. `RestPoint` sends `{hours}` = `floori(minutes / 60)` into one key, so a rest under two hours reads "1 hours" or "0 hours slip past". It is the only count in the base with a noun beside it: `x{count}`, `{have} / {need}` and `{percent}%` carry none. Write: `src/gameplay/interactables/rest_point.gd`, the CSV (plural support in Godot's CSV importer must be checked in the 4.7 docs first, and `.po` is the fallback), a test. After T6.7 |
+| T6.10 | **A capture or debug launch wrote over the developer's real saves** | **DONE** — `5.12.0` (claimed `5.10.0`, renumbered to land after T6.6), a MINOR: a class and a flag a game may ignore. **OUT OF NUMBER ORDER ON PURPOSE**, like T6.9, which found it. The ladder's capture rung runs `--new-game`, a real run, so the autosave wrote the real `autosave.json`, and `--save-state`/`--load-state`/`--cross-area-save` deleted real slots. The new `dev_saves.gd`, first of the debug nodes, sets `SaveSystem.save_dir` to `user://dev_saves` for any launch with user arguments; `--real-saves` opts out. **A redirect, not a suppression**, so the capture still photographs the toast. A planted sentinel was overwritten by one capture before and survives it byte-identical after. Also fixed `--autosave-continue`, which could not find the Continue row. `save_system.gd` untouched at 179 of 180. See below |
+| T6.11 | **A debug launch, and every suite run, wrote the developer's real settings** | **DONE** — `5.13.0` (claimed `5.11.0`, renumbered to land after T6.6), a MINOR: a var and two constants a game may ignore. **OUT OF NUMBER ORDER ON PURPOSE**, like T6.9 and T6.10; T6.10 found it and recorded it undone. `Settings.PATH` was the only path, so a `--locale=en_XA` capture rewrote a sentinel's `locale="en"`, and **a green suite left it at zero bytes**, which T6.10 had not suspected. `Settings.file_path` is where `save()` writes; `DevSaves` points it at `user://dev_settings.cfg` under its existing rule, and the runner at `user://test_settings.cfg` before the first case. **Writes only, never re-read**, so no launch inherits the last one's language. The sentinel now survives both byte-identical. `settings.gd` 141 → 142 of 150. See below |
+| T6.12 | **Nothing failed a case that saved without activating the scratch store** | **DONE** — `5.13.1`, a PATCH on `5.6.1`'s precedents, test-only: `src/` and `tools/` byte-identical. **OUT OF NUMBER ORDER ON PURPOSE**, the gap T6.9 recorded; Both halves T6.9 offered, because each alone leaves a hole: the runner PARKS the store in `user://test_saves_unclaimed` before every case, so a forgotten `activate()` cannot reach a real save, and FAILS a case that saves, or loads a real file, anywhere but the store it claimed. Heard on `game_saved`/`game_loaded`, not by a directory diff. **Three plants red**, each naming its case: `confirm_test` and `menus_test` (saves) and `save_recovery_test` (a hand-planted file, loaded then deleted). Seven sentinel saves survived every run. See below |
+| T6.13 | **A count that reaches a string picks its plural form** | **TODO.** Numbered T6.10 by T6.6, renumbered T6.12 at T6.11's merge because T6.10 was already taken by an unmerged DONE row, and T6.13 at T6.12's merge for the same reason. Found by T6.6's `tr_n` check. `RestPoint` sends `{hours}` = `floori(minutes / 60)` into one key, so a rest under two hours reads "1 hours" or "0 hours slip past". It is the only count in the base with a noun beside it: `x{count}`, `{have} / {need}` and `{percent}%` carry none. Write: `src/gameplay/interactables/rest_point.gd`, the CSV (plural support in Godot's CSV importer must be checked in the 4.7 docs first, and `.po` is the fallback), a test. After T6.7 |
 | T6.7 | **Dialogue for fast and slow readers** | **TODO — next.** Forgotten #5. After T6.2. Manifest below |
 | T6.8 | **Close the list, and gate it** | **TODO — last.** The phase's exit criterion. Manifest below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
@@ -6540,7 +6541,7 @@ recorded, not built.
 
 **Scope.** `5.11.1`, a PATCH, test-only. T6.4, T6.5 and T6.6 merged to `main` while this row was open, and the branch merged each in. `slot_header_test.gd` activates the scratch store itself, and `focus_loss_test.gd` and `font_chain_test.gd` do not touch it. Suite 2,533 → **2,535**, +2, both in `record_shape_test` for this row's own package id; every other case unmoved, the fourteen changed cases included.
 
-**Commit:** on `claude/t6-9-suite-saves`, PR #70, targeting `main`, squash-merged as `8436c69`. Filled in by T6.12.
+**Commit:** squash-merged to `main` as `8436c69`, PR #70, from `claude/t6-9-suite-saves`. Filled in by T6.11 at its second merge of `main`.
 
 ## T6.10 · A capture or debug launch wrote over the developer's real saves — **DONE**
 
@@ -6595,19 +6596,77 @@ arguments, so the sentinel run is its proof.
 through `Settings.set_value`, which persists, and `Settings.PATH` is a `const`. Same class of
 harm, but its fix is a `src/core` seam in a file at a tight budget, so it is its own task.
 
-**Scope.** `5.12.0` (landed as `5.10.0` on its branch; renumbered when T6.12 merged `main` in), a MINOR. Suite 2,473 → **2,483**, +10: 8 in `dev_tools_test` (seven new, and one more file in the wired-node count) and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
+**Scope.** `5.12.0` (claimed `5.10.0`; renumbered at T6.11's merge of `main`), a MINOR. Suite 2,473 → **2,483**, +10: 8 in `dev_tools_test` (seven new, and one more file in the wired-node count) and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
 
-**Commit:** `a4ba31a` on `claude/t6-10-capture-saves` (PR #72), stacked on `claude/t6-9-suite-saves` (PR #70), PR
-targeting `main`. Filled in by T6.12. **Version collision to resolve at merge:** T6.5's PR #71 also
-claims `5.10.0`; whichever of the two merges second takes `5.11.0`. **Resolved by T6.12**, which merged `main` (T6.5 at `5.10.0`, T6.6 at `5.11.0`) into the stack: T6.9 became `5.11.1`, this row `5.12.0`, T6.12 `5.12.1`.
+**Commit:** on `claude/t6-10-capture-saves`, stacked on `claude/t6-9-suite-saves` (PR #70), PR
+targeting `main`, PR #72. Commit `a4ba31a`, filled in by T6.11. **Version collision to resolve at merge:** T6.5's PR #71 also
+claims `5.10.0`; whichever of the two merges second takes `5.11.0`.
+
+## T6.11 · A debug launch, and every suite run, wrote the developer's real settings — **DONE**
+
+**Found by T6.10, which recorded it undone.** `dev_capture.gd`'s `--locale=` goes through
+`Settings.set_value` on purpose, so the capture photographs the path a player takes, and
+`set_value` calls `save()`, which wrote `Settings.PATH`, a `const`. **Numbered T6.11**, out of
+number order for T6.9's reason: no planned row's id moves.
+
+**Measured red first, and it was worse than reported.** A sentinel `settings.cfg` holding
+`locale="en"` and a `[sentinel]` section, on T6.10's tip `a4ba31a`: the ladder's capture with
+`--locale=en_XA` rewrote it to `locale="en_XA"`, and **a green suite run, `2483 passed, 0 failed`,
+left it at zero bytes**, because five cases call `Settings.reset_to_defaults()`, which clears the
+config and saves. The developer's real file was in fact a 0-byte file last written in the same
+minute as `user://test_saves`. T6.10 had not suspected the suite at all.
+
+**Decided: redirect, not "don't persist".** A switch that skipped `save()` would stop the write,
+and also stop the save path running at all in every capture and every case, so a broken `save()`
+would pass the whole ladder. A redirect runs it exactly as for a player, into scratch, which is
+T6.10's reasoning about the autosave unchanged. `Settings.file_path` is a var on T5.22's
+`SaveSystem.save_dir` pattern, defaulting to `PATH`. **`PATH` keeps its name**, so no game that
+reads it changes, which is what keeps this a MINOR.
+
+**Decided: writes only, no reload.** `Settings` loads in its own `_ready`, before `GameRoot`'s
+first child, so `DevSaves` cannot move the READ without re-loading and re-applying display and
+locale mid-launch. It does not need to. Reading the real file is harmless, and it is what a
+capture should show: the developer's game. Re-reading scratch would be actively wrong, because
+one capture's `--locale=en_XA` would then persist into the next capture that did not ask for it.
+So the scratch file is written and never read.
+
+**Decided: `DevSaves`, not a sibling.** The rule is the same (any user argument, `--real-saves`
+opts out), and two nodes holding one rule is a place for it to drift. `DevSaves` now OWNS where a
+debug launch's saves and settings are written. `_parse_arguments` became the static
+`apply(arguments) -> bool`, so the suite drives the real assignments. **The suite is redirected
+by the runner, once, before the first case**, not per case like `SaveFixture.activate()`: a
+settings write is not something a case opts into, and a per-case switch is the one T6.9 recorded
+that a new case can forget. The path is `SaveFixture.SETTINGS_PATH`.
+
+**Assertions.** Nine in `dev_tools_test.gd`: the suite writes to its scratch; no arguments
+redirect nothing and leave the path; the capture's arguments move settings and saves; a setting
+then written lands in the scratch file; `--real-saves` redirects nothing; scratch is neither the
+player's file nor the suite's. **Three plants**, each exit 1 on exactly its assertions: deleting
+the settings line from `apply` (2 failed), `save()` back to the fixed path (1), and deleting the
+runner's line (1).
+
+**Proof isolated from other sessions.** The first green run was contaminated: another session
+was running its own sentinel experiment on the same shared `user://` at the same minute. Every
+proof after that ran with `APPDATA` pointed at a scratch directory, so `user://` was private.
+
+**Not done.** On a machine with no settings file yet, boot writes defaults to the real path,
+before anything can redirect it. That creates a file and overwrites nothing. The suite's own
+process still READS the developer's real settings, which is why the runner's locale pin stays.
+
+**Scope.** `5.13.0` (claimed as `5.11.0` before the merge of `main`), a MINOR. `settings.gd` 141 → 142 of 150; `dev_saves.gd` 20 → 23.
+
+**Commit:** on `claude/t6-11-dev-settings`, stacked on `claude/t6-10-capture-saves` (PR #72), PR
+#74 targeting `main`, squash-merged as `9d8c34f`; filled in by T6.12. **Renumbered at the merge of `main`:** T6.5 took
+`5.10.0` and T6.6 `5.11.0` there first, so the stack lands after them as T6.9 `5.11.1`, T6.10
+`5.12.0` and this row `5.13.0`. T6.6's new plural row, which it numbered T6.10, became **T6.12**, and then **T6.13** at T6.12's merge, whose DONE row already held T6.12.
 
 ## T6.12 · Nothing failed a case that saved without activating the scratch store — **DONE**
 
 **The gap T6.9 recorded.** T6.9 redirected fourteen cases that wrote the developer's real
 `user://saves`, and `TESTING.md` stated the rule. Nothing enforced it. A diff of the directory
 around each case cannot see a write followed by a delete in an empty directory, and empty is the
-ordinary state on CI. **Numbered T6.12**, after T6.10: T6.11 is another open branch's id. The
-owner confirmed taking it before T6.5, which then merged to `main` while this row was open.
+ordinary state on CI. **Numbered T6.12**, after T6.10, with T6.11 then in progress on another
+branch. The owner confirmed taking it before T6.5, which merged to `main` while this row was open.
 
 **Decided: both of T6.9's options, not one.** (b) alone, a check, goes red only AFTER the case has
 written or deleted a real slot: the first run of a bad case still costs the developer their
@@ -6644,15 +6703,14 @@ clean run failed eleven assertions in `menus_test` and `smoke_test` because anot
 suite overlapped it, and each `activate()` empties the directory. The re-run was green. Flagged as
 its own task: per-process scratch directories.
 
-**`main` merged in, and an id collision resolved.** T6.5 (`5.10.0`) and T6.6 (`5.11.0`) merged to
-`main` while this stack was open, and PR #73 carries T6.9 and T6.10 too, so the stack renumbered
-in order: T6.9 `5.11.1`, T6.10 `5.12.0`, T6.12 `5.12.1`. T6.6 had also planned a row as **T6.10**,
-the plural form `RestPoint` needs, not knowing the open T6.10 was taken. The capture-saves T6.10
-was DONE with a PR and commits under that name; the planned row had only documents. So the
-planned row moved, to **T6.13**, the next id free after T6.11 (another open branch) and T6.12.
+**Landed after the whole stack.** T6.5 and T6.6 merged to `main` while this row was open, then
+T6.9 (`5.11.1`, `8436c69`), then T6.11 (`5.13.0`, `9d8c34f`), which carried T6.10 (`5.12.0`)
+with it. So this row is `5.13.1`, a PATCH on top. **The planned plural-form row moved twice.**
+T6.6 numbered it T6.10, colliding with the capture-saves T6.10. T6.11's merge renumbered it
+T6.12, colliding with this row, which was DONE with PR #73 and commits under that name. It is now
+**T6.13**: a planned row has only documents to update, so it moves, not the DONE row.
 
-**Scope.** `5.12.1`, a PATCH. Test-only: `tests/test_runner.gd`,
-`tests/framework/save_fixture.gd`, `tests/unit/save_dir_test.gd`, and the documents. Suite 2,483 → **2,487**, +4: 2 in `save_dir_test` and 2 in `record_shape_test` for this row's package id; every other case unmoved.
+**Scope.** `5.13.1`, a PATCH. Test-only: `tests/test_runner.gd`,
+`tests/framework/save_fixture.gd`, `tests/unit/save_dir_test.gd`, and the documents. Suite 2,556 on `main` at `9d8c34f` → **2,560**, +4: 2 in `save_dir_test` and 2 in `record_shape_test` for this row's package id; every other case unmoved.
 
-**Commit:** on `claude/t6-12-save-guard`, stacked on `claude/t6-10-capture-saves` (PR #72), PR
-targeting `main`. No SHA, per item 6.
+**Commit:** on `claude/t6-12-save-guard`, PR #73, targeting `main`. No SHA, per item 6.

@@ -11270,6 +11270,7 @@ is recorded, not taken.
 It plays a real session, and the autosave policy does what it does for a player. Out of scope for
 a test-only row, and flagged as its own task. The same shared `user://` means two sessions running
 the suite at once share `user://test_saves` too, and each `activate()` empties it.
+
 ## 2026-09-29 — T6.10 · A capture or debug launch wrote over the developer's real saves
 
 **Did.** Added `src/systems/debug/dev_saves.gd` (`DevSaves`), the first debug node in
@@ -11328,6 +11329,92 @@ arguments. The rule is asserted, and the sentinel run is the proof. **T6.5's PR 
 `5.10.0`**, so whichever merges second takes `5.11.0`.
 
 **Commit:** on `claude/t6-10-capture-saves`, stacked on T6.9's PR #70. No SHA, per board item 6.
+
+## 2026-09-29 — T6.11 · A debug launch, and every suite run, wrote the developer's real settings
+
+**Did.** `Settings.file_path` is a new var, where `save()` writes, defaulting to `Settings.PATH`,
+which keeps its name and is still the file read at boot. `DevSaves._parse_arguments` became the
+static `DevSaves.apply(arguments) -> bool`, which now also sets `Settings.file_path` to
+`user://dev_settings.cfg`. The test runner sets it to `SaveFixture.SETTINGS_PATH`,
+`user://test_settings.cfg`, before the first case. Nine assertions in `dev_tools_test.gd`.
+`5.11.0`, a MINOR.
+
+**Why.** T6.10's Gaps: `--locale=` goes through `Settings.set_value`, which saves, and the path was
+a `const`. Measuring it found the suite was worse: five cases call `reset_to_defaults()`, so every
+green run saved the developer's settings as an empty file. Redirect was chosen over a "don't
+persist" switch, because a switch stops `save()` running in every capture and case, so a broken
+`save()` would pass the ladder. **Writes only, no reload:** `Settings` loads before any
+`GameRoot` child exists, reading the real file is harmless and is what a capture should show, and
+reading scratch back would carry one capture's language into the next. `PATH` kept its name so no
+game that reads it changes, which keeps this a MINOR rather than a MAJOR.
+
+**Connects.** `SaveSystem.save_dir` (T5.22), whose pattern `file_path` copies; `DevSaves` (T6.10),
+whose rule and `--real-saves` opt-out now cover settings; `SaveFixture` (T6.9), which names the
+suite's scratch; the runner's locale pin (T5.1), which stays because the real file is still read.
+
+**Verified.**
+- Built on T6.10's tip `a4ba31a` (neither PR #70 nor #72 had merged). `--headless --import`: zero
+  `SCRIPT ERROR` / `Parse Error` lines.
+- **Red first, on the real `user://`.** The developer's `settings.cfg` was a 0-byte file written
+  at 18:31, the same minute as `user://test_saves`: a suite had already emptied it. Backed up.
+  Planted a sentinel (`locale="en"` plus a `[sentinel]` section, SHA-256 `7eb7a3b2…`). The capture
+  `--new-game --locale=en_XA --shot=… --shot-frame=70 --time=18:40 --freeze-time` logged `Locale
+  forced to en_XA`, and the file became `locale="en_XA"`, SHA-256 `44967d65…`. A re-planted
+  sentinel, then the unchanged suite at `2483 passed, 0 failed`: the file was 0 bytes.
+- **Another session was using the same `user://` at the same time.** Sentinel `slot_0N.json` files
+  appeared in `user://saves` at 18:49:31, not mine, and the real `settings.cfg` was rewritten at
+  18:52:01, after my suite ended. My first green run was therefore meaningless and showed 11
+  failures from two suites emptying `user://test_saves` under each other. Every proof after it
+  ran with `APPDATA` pointed at a private scratch directory; Godot honours it, and `user://`
+  resolved there.
+- **Isolated, unchanged tree** (a scratch worktree at `a4ba31a`): capture rewrote the sentinel
+  (`7eb7a3b2…` → `44967d65…`, `locale="en_XA"`), and the suite, `2483 passed, 0 failed, 0
+  skipped`, left it 0 bytes (`e3b0c442…`).
+- **Isolated, this tree:** capture logged `Debug launch: saves go to user://dev_saves and settings
+  to user://dev_settings.cfg (--real-saves keeps the real ones)` then `Locale forced to en_XA`, exit
+  0, `0 warnings, 0 errors`; sentinel still `7eb7a3b2…`. The suite, `2492 passed, 0 failed, 0
+  skipped` before documentation: sentinel still `7eb7a3b2…`, and `test_settings.cfg` held the
+  suite's writes.
+- **Plants**, each exit 1 on exactly its assertions: the settings line deleted from `apply`,
+  `2490 passed, 2 failed` (`a capture's settings go to scratch`, `and a setting it changes is
+  written there`); `save()` back to the fixed path, `2491 passed, 1 failed` (the write); the
+  runner's line deleted, `2491 passed, 1 failed` (`the suite itself writes its settings to
+  scratch — expected user://test_settings.cfg, got user://settings.cfg`). Restored each.
+- All seven checkers exit 0; `settings.gd` 142 of 150, `dev_saves.gd` 23, `dev_tools_test.gd` 222.
+- Suite after the documentation, isolated: `=== 2494 passed, 0 failed, 0 skipped ===`, exit 0, +11 over 2,483: 9 in `dev_tools_test` and 2 in `record_shape_test` for this row's package id, every other case unmoved, diffed per case against the unchanged tree. Boot `0 warnings, 0 errors`. (A first post-doc run failed `CONTEXT.md states the declared version`, on two bold `**5.10.0**` lines further down CONTEXT.md; fixed.)
+- Windowed 960x540 capture at 18:40 frozen, with `--locale=en_XA`, looked at. Before the documentation, at frame 70: the courtyard at dusk, `[~~Day 1 | 18:40 | [~~Dusk~~]~~]`, `[~~E~~] [~~Use~~] [~~Iron Lever~~]` and the `[~~Autosaved.~~]` toast, pseudolocalized throughout. After it, frame 70 showed only `[~~Loading 50%~~]` on this tree AND on the unchanged tree, identically: the machine had slowed (400 frames took 140s). Re-shuttered at frame 300: the same courtyard and prompt, `Slot 6 written` into scratch, sentinel byte-identical.
+- **The developer's real `settings.cfg`**: another session's unfixed suite rewrote it again at 19:21, to 0 bytes, byte-identical to my 18:46 backup, so nothing needed writing. The two scratch files my one un-isolated run created there were removed.
+
+**Unblocks.** T6.6, next on `main`. Every later capture and suite run leaves the developer's
+settings alone, and sentinel proofs have a recipe that other sessions cannot disturb.
+
+**Gaps.** On a machine with no settings file, boot still writes the defaults to the real path
+before anything can redirect it; that creates a file and overwrites nothing. The suite still READS
+the developer's real settings, which is why the locale pin stays; a case that depends on another
+setting's default must still reset first. `user://test_saves` is shared by concurrent suite runs in
+different worktrees, and one empties it under the other: seen here, not fixed. **Versions
+renumber at merge:** T6.5 took `5.10.0` on `main`, so T6.10 becomes `5.11.0` and this row `5.12.0`.
+
+**Commit:** on `claude/t6-11-dev-settings`, stacked on T6.10's PR #72. No SHA, per board item 6.
+
+**Merge of `main` (T6.5 and T6.6) into T6.11, same day.** Auto-fix reported PR #74 conflicting.
+`main` had taken `5.10.0` (T6.5) and `5.11.0` (T6.6) while this stack claimed `5.9.1`, `5.10.0`
+and `5.11.0`, so the stack now lands after them: **T6.9 `5.11.1`, T6.10 `5.12.0`, T6.11
+`5.13.0`**, in `project.godot`, the CHANGELOG headings, the board, ROADMAP and CONTEXT. This
+DEVLOG's older entries keep the numbers they claimed, as a record. **T6.6 had also numbered a
+new TODO row T6.10** (`RestPoint`'s plural), which collided with this stack's DONE T6.10, and it
+is now **T6.12**. `settings_consumers_test.gd` took `main`'s `plan(79)` and kept T6.9's
+`SaveFixture.activate()`. `settings.gd` is 143 of 150 with T6.5's key. Verified isolated:
+`--import` zero script errors, boot `0 warnings, 0 errors`, `=== 2556 passed, 0 failed, 0
+skipped ===`, which is +23 over `main`'s measured 2,533: 17 in `dev_tools_test` and 6 in
+`record_shape_test`, every other case unmoved. All seven checkers exit 0, and the isolated sentinel run on the merged tree left `settings.cfg` byte-identical through the capture and the suite.
+
+**A second merge of `main`, minutes later**, because PR #70 (T6.9) squash-merged as `8436c69` at
+`5.11.1`, the number this branch had already given it. Its test code was identical to this
+branch's. Its documents had reworded T6.9 after T6.5 and T6.6 ("taken ahead of T6.7") and recorded
+a CI stripped count, so T6.9's own text was taken from `main`. T6.10, T6.11 and T6.12 were kept from
+here. T6.9's board commit line now carries `8436c69`.
+`8436c69` is 2,535; this merged tree is `=== 2556 passed, 0 failed, 0 skipped ===`, +21, with `--import`, boot and all seven checkers green again.
 
 ## 2026-09-29 — T6.12 · Nothing failed a case that saved without activating the scratch store
 
@@ -11433,3 +11520,15 @@ running: a 260-frame run took 113 s. Outside the documents the tree is byte-iden
 `2e40f4a`, whose frame-70 capture had shown the courtyard, and a capture at frame 240 shows the
 courtyard at dusk, the HUD and the `[E]` prompt. That run logged one `Keeper cannot reach 'dais'`,
 from simulating at about 2 fps, and no other error.
+
+**Then T6.11 landed** on `main`, squash-merged from PR #74 as `9d8c34f` at `5.13.0`, carrying T6.10
+(`5.12.0`) with it. This row is now `5.13.1`. T6.11's merge had renumbered the plural-form row
+from T6.10 to **T6.12**, which collided with this row: DONE, with PR #73 and commits under the
+name. So the planned row moved again, to **T6.13**, and the board and CONTEXT record both moves.
+The documents were rebuilt on `main`'s versions, with T6.12's own content re-applied, rather than
+merging this branch's older copies of T6.9 to T6.11. `save_fixture.gd` keeps both headers and
+both constants, T6.11's `SETTINGS_PATH` and this row's `UNCLAIMED`. The runner keeps T6.11's
+one-time settings redirect beside this row's per-case park and check. `dev_saves.gd` and
+`dev_tools_test.gd` are `main`'s. Suite `=== 2560 passed, 0 failed, 0 skipped ===`: `main`'s
+2,556 and this row's 4.
+All seven checkers exit 0, boot `0 warnings, 0 errors`, and the frame-70 windowed capture shows the courtyard at dusk again, with the HUD and the `[E]` prompt.

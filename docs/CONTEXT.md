@@ -3,15 +3,17 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-29 · **T6.8 (every "Commonly forgotten" item carries a verdict, and a text scan fails one that does not) complete, at 5.15.1, a PATCH.**
-**Phases T1 to T5 are complete and stay complete; Phase T6 has every exit criterion ticked and stays OPEN for its last row, T6.14, which is next.**
+**Last updated:** 2026-09-30 · **T6.14 (a count that reaches a string picks its plural form) complete, at 5.16.0, a MINOR.**
+**Phases T1 to T6 are complete and stay complete. No row is open and no phase is planned; the next input is the owner's playtest, or a phase the owner opens.**
 
-**EVERY "COMMONLY FORGOTTEN" ITEM NOW SAYS `DONE — <id>` OR `CLOSED (game's) — <id>`, AND THE
-SUITE READS IT.** `tests/unit/forgotten_list_test.gd` finds `SYSTEMS_INVENTORY.md` § "Commonly
-forgotten", and fails an item without that bold marker, an id with no row on the board, and a gap
-in the numbering. **A new item arrives with its verdict or the build goes red.** On the list as it
-stood the case failed 16, two for each of eight items written in prose it could not read; after
-the edits, 32 of 32. The id is found by the whole id, so `T5.1` is not satisfied by `T5.10`.
+**A COUNT BESIDE A NOUN GOES THROUGH `translate_plural`, NEVER `tr()`.** `tr()` on a plural row
+answers its first form for any count, which is why T6.14's red run read "13 hour slips past"
+(gotcha 82). **4.7.2's CSV importer reads plural forms, undocumented**: the `?plural` column after
+`keys` names the plural key, and the next form is a following row with an EMPTY key. `.po` was
+not needed. `RestPoint` picks the form and reports the nearest hour, never zero, and
+`plural_count_test.gd` fails a `{hours}` row without both forms. The toast did not learn a `count`
+argument: with one counted sender that would widen a contract for one caller, and
+`rest_point.gd`'s header says to move it there when a second arrives.
 
 **#8, FIRST-RUN DEFAULTS, IS CLOSED (game's).** T6.0's manifest asked for the owner's playtest
 verdict there; asked in T6.8 on 2026-09-30, the owner has not playtested yet and plans to, so the
@@ -41,13 +43,18 @@ an invalid escape and the case never parsed; T4.4's `doc_counts_test.gd` met the
 | ~~T6.7~~ | ~~dialogue can skip to its end and auto-advance~~ **DONE** | forgotten #5 |
 | ~~T6.13~~ | ~~two suite runs at once, in two worktrees, cannot empty each other's scratch~~ **DONE**, out of number order | found by T6.11 |
 | ~~T6.8~~ | ~~every forgotten item marked DONE or CLOSED, gated by a text scan~~ **DONE** | the exit criterion |
-| **T6.14** | a count that reaches a string picks its plural form (found by T6.6 as T6.10; T6.12 at T6.11's merge, T6.13 at T6.12's, T6.14 at T6.13's) | a defect |
+| ~~T6.14~~ | ~~a count that reaches a string picks its plural form~~ **DONE**, the last row; **Phase T6 is COMPLETE** | a defect |
 
 **THE OWNER'S PLAYTEST OUTRANKS THIS QUEUE.** A defect found by playing becomes the next row ahead of
 anything above — found, not invented, the standard every T6 row had to meet. T6.9 is the first,
 numbered after T6.8 so that no planned id moves. T6.10 is the second, found while proving T6.9, T6.11 the third, found by T6.10, T6.12 the fourth, the gap T6.9 recorded, and T6.13 the fifth, found by T6.11.
 
-Suite 2,621 on `claude/t6-13-parallel-suites` at `8021b59` → **2,655**, +34: 32 in the new `forgotten_list_test` (two, plus two for each of fifteen items) and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `8021b59`, after the documentation landed. Stripped, in CI: `2581 passed, 0 failed, 25 skipped`.
+Suite 2,655 on `main` at `0d3585d` → **2,669**, +14: 12 in the new `plural_count_test` (nine, plus three for the one `{hours}` row) and 2 in `record_shape_test` for this row's own package id; every other case unmoved. The stripped count is CI's.
+
+*(Previously: T6.8 marked every "Commonly forgotten" item `DONE — <id>` or `CLOSED (game's) —
+<id>`, at `5.15.1`, a PATCH, and `forgotten_list_test.gd` fails an item without that marker, an
+id with no board row, or a gap in the numbering. Before the edits it failed 16; after, 32 of 32.
+Suite 2,655, stripped 2,581.)*
 
 *(Previously: T6.13 stopped two suite runs at once, in two worktrees, breaking each other, at
 `5.15.0`, a MINOR. Every path the suite writes is under `user://test_runs/<pid>`, owned by
@@ -364,16 +371,17 @@ another sheet, and every facing draws a different figure.
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version is** **5.15.1**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+**The version is** **5.16.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
 the owner's to close or to leave.
 
-**THE NEXT PACKAGE IS T6.7, AND IT IS A QUEUE AGAIN — FOR ONE PHASE.** From T5.32 until T6.0 this
-paragraph said there was no next package and the base was complete; T1 to T5 still are. The owner
-then opened Phase T6 (see the headline and `ROADMAP.md` § Phase T6), so the board holds eight
-planned rows with file manifests, and a new session takes **the lowest unfinished T6 row** rather
-than choosing. When T6.8 lands the phase closes and the older discipline returns unchanged: the
-next thing is a game started on this base through [`NEW_GAME.md`](NEW_GAME.md), and a genuine
-defect found while building one is the next row — found, not invented.
+**THERE IS NO NEXT PACKAGE, AGAIN: PHASE T6 IS COMPLETE.** T6.14 was its last row, on 2026-09-30.
+The discipline from before T6.0 returns unchanged: the next thing is a game started on this base
+through [`NEW_GAME.md`](NEW_GAME.md), a defect found by the owner's playtest (#8's closure waits on
+it), or a phase the owner opens. A genuine defect found while doing any of those is the next row —
+found, not invented.
+
+*(Historical, true from T6.0 to T6.14: the board held Phase T6's planned rows, and a new session
+took the lowest unfinished one rather than choosing.)*
 
 *(Historical, and it was true through T5.31: the next package was a choice, not a queue.)* Nothing
 is blocking, **Phase T5 has no unticked exit criterion** — T5.23 took the last one. **T5.24 gated roadmap completeness, T5.25 made that
@@ -436,7 +444,7 @@ three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite shee
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 4 on the default one, the
 fourth being a second IDLE rather than a gait**,
 1 shared area material, **24 settings and 24 consumers**.
-Template version **5.15.1**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+Template version **5.16.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
 recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 
@@ -1341,7 +1349,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 "$G" --resolution 960x540 --quit-after 90 -- --new-game --shot=<path> --shot-frame=70 --time=18:40 --freeze-time
 ```
 
-## Eighty-one gotchas that each cost an hour
+## Eighty-two gotchas that each cost an hour
 
 1. Autoload identifiers (`Log`, `Events`, …) **do not resolve** under `--check-only`. That
    error is expected. Rungs 2 and 3 are the real compile check.
@@ -2377,6 +2385,14 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
     Windows, system font fallback hides tofu.** Nirmala UI and YaHei drew Bengali and Chinese with
     no bundled font at all, so the "before" capture had to switch `allow_system_fallback` off to
     show what a player without those fonts sees.
+82. **`tr()` ON A PLURAL ROW ANSWERS ITS FIRST FORM, FOR ANY COUNT, AND SAYS NOTHING.** T6.14's
+    red run read "13 hour slips past": the row had both forms, and the toast's `tr(key)` took the
+    singular. A count beside a noun goes through `TranslationServer.translate_plural(key, key, n)`
+    (or `tr_n`), never `tr()`. **The CSV importer reads plural forms and its documentation does not
+    say so**: the 4.7 reference lists four importer options and no description. A `?plural` column
+    names the plural key, and each further form is a following row with an EMPTY key. A missing
+    form comes back as the key itself, so a check that the forms merely differ passes on a row with
+    one form; T6.14's lint also refuses the key.
 
 ## How work is sliced
 

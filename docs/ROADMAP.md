@@ -1475,7 +1475,7 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   having read 2,360; the plan guard caught an off-by-one on the way, reporting `planned 85 outcomes
   and produced 84` with every assertion passing.
 
-## Phase T6 — Player-facing robustness · **OPEN, planned 2026-09-26; every exit criterion met 2026-09-29, T6.14 remaining**
+## Phase T6 — Player-facing robustness · **COMPLETE, 2026-09-30** (planned 2026-09-26; every exit criterion met 2026-09-29; closed by T6.14)
 
 *Goal: close every item on `SYSTEMS_INVENTORY.md`'s "Commonly forgotten" list as DONE or CLOSED
 (game's), fix the one save defect a multi-version formula cannot ship with, and put in place the two
@@ -1575,8 +1575,12 @@ was classified, including the ones refused.
   after, 32 of 32. #8, first-run defaults, is CLOSED (game's); the owner, asked for a playtest
   verdict on 2026-09-30, has not playtested yet, and the closure stands until they do. **Every exit criterion is now ticked; the phase
   stays OPEN for T6.14, a defect found inside it.**
-- **T6.14 A count that reaches a string picks its plural form** — planned, found by T6.6, which numbered it T6.10; T6.12 at T6.11's merge, T6.13 at T6.12's, T6.14 at T6.13's.
-  `RestPoint` sends `{hours}` into one key, so a short rest reads "1 hours" or "0 hours".
+- **T6.14 A count that reaches a string picks its plural form — DONE, 2026-09-30, `5.16.0`.**
+  Found by T6.6, which numbered it T6.10. `RestPoint` sent `{hours}` into one key, so a short rest
+  read "1 hours" or "0 hours". 4.7.2's CSV importer reads plural forms (a `?plural` column, the next
+  form on a row with an empty key), so `.po` was not needed; `RestPoint` asks `translate_plural`
+  and reports the nearest hour, never zero. Red first with 8 failed, photographed after. No exit
+  criterion covers a defect fix, so none is ticked. **The last row: Phase T6 is COMPLETE.**
 
 **Exit criteria for the phase:**
 

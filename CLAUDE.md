@@ -138,8 +138,14 @@ packages files.
 
 **Closing a chat:** the package is not done until the full ladder is green, new behaviour has
 assertions, `SYSTEMS_INVENTORY.md` / `ROADMAP.md` / `DEVLOG.md` / `CONTEXT.md` are updated, the
-board marks it done, it is committed and pushed, AND the chip for the next package is created
-so the handoff is automatic. The full checklist is in the board.
+board marks it done, it is committed, pushed AND MERGED, and only then is the chip for the next
+package created, so the handoff is automatic. The full checklist is in the board.
+
+**One package at a time.** Never two chats, two worktrees or two open package PRs at once: the
+next chat starts from `origin/main` after this one's PR is merged, and a defect found on the way
+becomes a board row, not a chip. Phase T6 ran five in parallel and paid for it in renumbered
+rows, repeated merges of `main`, and one package (T6.13) that existed only to stop two worktrees
+wiping each other's saves. The rule and its reasons are at the top of the board.
 
 No package exceeds about 8 files or 500 new code lines. Over that, split it and add a row -
 same reasoning as the file budgets: a package that outgrows one chat gets half-finished.

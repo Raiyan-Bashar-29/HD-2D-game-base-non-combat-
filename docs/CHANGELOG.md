@@ -19,6 +19,26 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.16.1
+
+*2026-09-30 — packages run one at a time: the next starts only after the last one's PR merges.*
+
+**A consuming game does: nothing.** `src/`, `tools/` and `tests/` are byte-identical; only the
+process documents changed. A game that keeps the board's working method may want the same rule.
+
+**What changed.** `WORK_PACKAGES.md` § The rules gains **Serial, not parallel**: before starting,
+check `gh pr list --state open` and `git worktree list` and stop if another package is in flight;
+build from a freshly fetched `origin/main` and decide the row id and version then; a defect found
+mid-package becomes a `TODO` row, not a chip. Closing item 7 now requires the PR **merged**, item 8
+raises the next chip only after that, and a new item 9 removes the merged worktree. `CLAUDE.md`
+says the same in one paragraph; `CONTEXT.md` states the rule and that `user://dev_saves` is still
+shared by every worktree. `TESTING.md` states T6.14's stripped count from CI, `2592`.
+
+**Why.** Phase T6 ran T6.9 to T6.13 at once, in five worktrees, and paid for it in renumbered rows,
+claimed versions, repeated merges of `main` and duplicate chats, and one package, T6.13, that
+existed only because two parallel suites emptied each other's saves.
+
+---
 ## 5.16.0
 
 *2026-09-30 — a rest's toast agrees with its count: "1 hour slips past", never "1 hours" or "0 hours".*

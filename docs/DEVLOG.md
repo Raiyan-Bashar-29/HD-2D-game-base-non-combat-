@@ -11788,3 +11788,41 @@ Suite 2,655 on `main` at `0d3585d` → **2,669**, +14: 12 in the new `plural_cou
 `record_shape_test` for this row's own package id. The stripped count is CI's.
 
 **Commit:** on `claude/t6-14-plural-forms`, built on `main` at `0d3585d`. No SHA, per board item 6.
+
+## 2026-09-30 — Process · Packages run one at a time
+
+**Did.** Audited every chat, worktree and branch of the project at the owner's request ("multiple
+chats showed starting multi worktrees instead of one at once"). Found 20 worktrees, 19 of them
+finished work with merged PRs, one live (T6.14, PR #80), and **nothing lost**: every branch ahead
+of `main` held only merge commits or patches already on `main` — T6.12's head `c81729f` is
+byte-identical to its squash `76cd32d`, T6.9's `123b6aa` is a count since superseded, and PR #76
+is an earlier T6.13 closed in favour of #77. Merged PR #80 on green CI and recorded its stripped
+count. Wrote the rule down: `WORK_PACKAGES.md` § The rules gains **Serial, not parallel**, closing
+item 7 requires the merge, item 8 raises the next chip only after it, item 9 removes the worktree.
+`CLAUDE.md` and `CONTEXT.md` carry it. `5.16.1`, a docs-only PATCH.
+
+**Why.** Four causes, all visible in the history. (1) Item 8 raised the next chip at push, not at
+merge, so each package began from a `main` that lacked the one before it and had to merge `main`
+back in — `claude/t6-10-capture-saves` did so three times. (2) Defects found mid-package were
+raised as chips, so T6.9 to T6.13 ran at once. (3) Ids and versions were claimed at start and
+reassigned at merge: T6.14 was numbered four times, and `5.10.0` to `5.12.0` were each claimed by
+one row and shipped by another. (4) Chips raised early were started more than once: T6.6 had two
+chats, T6.7, T6.8 and T6.13 three each. And the collision was not theoretical — T6.13 exists
+because two suites in two worktrees emptied each other's saves.
+
+**Connects.** The board's closing checklist; `CLAUDE.md` § One package per chat; T6.13's
+`RunScratch`, which isolates the suite but not `DevSaves`' `user://dev_saves` or
+`user://dev_settings.cfg`, both still one path for every worktree on the machine.
+
+**Verified.** `--import` 0 `SCRIPT ERROR` / `Parse Error`; boot `0 warnings, 0 errors`; suite
+`=== 2669 passed, 0 failed, 0 skipped ===`, exit 0, unmoved; all seven checkers exit 0. **The
+first suite run failed four `font_chain_test` assertions** straight after fast-forwarding the main
+checkout over T6.6 to T6.14; a second `--import` cleared them with no file changed — gotcha 53, a
+cache question before a code question. PR #80's CI on `f6f0344`: stripped `2592`, full `2669`.
+
+**Unblocks.** Whatever the owner opens next starts from one clean `main` and one worktree.
+
+**Gaps.** The 19 finished worktrees, their local branches and the merged remote branches are
+**not** removed: the tooling refused the bulk removal as irreversible, so it is the owner's to
+run. The rule is prose, and nothing gates it; a chat can still ignore it. `user://dev_saves` is
+still shared across worktrees.

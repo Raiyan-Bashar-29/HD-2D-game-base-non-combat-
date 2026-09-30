@@ -134,7 +134,7 @@ original board rather than continuing it.
 | T6.14 | **A count that reaches a string picks its plural form** | **TODO.** Numbered T6.10 by T6.6, renumbered T6.12 at T6.11's merge because T6.10 was already taken by an unmerged DONE row, T6.13 at T6.12's merge for the same reason, and T6.14 at T6.13's, whose DONE row already held T6.13. Found by T6.6's `tr_n` check. `RestPoint` sends `{hours}` = `floori(minutes / 60)` into one key, so a rest under two hours reads "1 hours" or "0 hours slip past". It is the only count in the base with a noun beside it: `x{count}`, `{have} / {need}` and `{percent}%` carry none. Write: `src/gameplay/interactables/rest_point.gd`, the CSV (plural support in Godot's CSV importer must be checked in the 4.7 docs first, and `.po` is the fallback), a test. After T6.7 |
 | T6.7 | **Dialogue for fast and slow readers** | **DONE** — `5.14.0` (claimed `5.12.0`, renumbered to land after T6.12), a MINOR: a setting, two public methods a game may ignore, and cancel now doing something in a conversation where it did nothing. **A SKIP WALKS, IT DOES NOT JUMP**: cancel calls `DialogueScreen.skip()`, which drives the runner through `advance()`, so every node passed is arrived at and fires its effect; it stops at the first choice, shown whole, and a second skip there does nothing; with no choice ahead it runs to the end. A cycle stops after 512 lines. `gameplay/dialogue_auto_advance`, off by default, holds a whole line 1.5 s plus 15 characters a second over the text speed, and never answers a choice. **THE PLANT THAT STAYED GREEN**: deleting the screen's stop-at-a-choice check changes nothing, because the runner already refuses there; the red plant is `runner.stop()` as the skip, `2549 passed, 13 failed`. `dialogue_test.gd` would have been 305 of 250, so the cases are `dialogue_speed_test.gd`. Photographed |
 | T6.13 | **Two suite runs at once, in two worktrees, broke each other** | **DONE** — `5.15.0` (claimed `5.12.0`, renumbered to land after T6.7), a MINOR: a class and a var a game may ignore, and test-framework constants turned into functions. **OUT OF NUMBER ORDER ON PURPOSE**, like T6.9 to T6.11; T6.11 found it, and T6.12 was taken by PR #73. Every worktree shares one `user://`, and `SaveFixture.activate()` EMPTIES a fixed directory under it, so two suites started 0.3s apart failed 15 and 8. Every scratch path is now under `RunScratch.root()`, `user://test_runs/<pid>`, and both pass. **Liveness is a heartbeat, because the pid design failed its own proof**: on Windows `OS.is_process_running` is false for a process the caller did not start, so each run pruned every other. At the merge T6.12's parking directory, a fixed name `park()` empties before every case, moved under it too. Also stopped `options_test` deleting the real `input.cfg`. See below |
-| T6.8 | **Close the list, and gate it** | **TODO — next, and last.** The phase's exit criterion. Manifest below |
+| T6.8 | **Close the list, and gate it** | **DONE** — `5.15.1`, a PATCH, and `src/` and `tools/` are byte-identical. **THE PHASE'S EXIT CRITERION, AND EVERY ONE OF THEM IS NOW TICKED.** Every item of `SYSTEMS_INVENTORY.md` § "Commonly forgotten" carries the bold marker `DONE — <id>` or `CLOSED (game's) — <id>`, and the new `forgotten_list_test.gd` fails an item without one, an id with no row on this board, and a gap in the numbering. **PROVED RED ON THE LIST AS IT STOOD**: 16 failed, two for each of eight items — #1, #6 and #9 to #13 were settled work described in prose the scan could not read (`BOTH DONE`, `Both work as of T5.5`, `owner decision, T6.0`), and #8 had no verdict at all. After, 32 of 32. Two plants, an id with no board row and a numbering gap, fail one each. **#8 IS CLOSED (game's), PENDING THE OWNER'S PLAYTEST**: the manifest asked for the owner's playtest verdict on first-run defaults; asked on 2026-09-30, the owner has not playtested yet and means to soon, so the closure stands until then, and the base keeps every default in one `Settings.DEFAULTS` line for a game to tune against its own content. A default found unpleasant by playing is still a defect under the playtest rule. The phase stays OPEN for T6.14. See below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -6860,5 +6860,54 @@ taken `5.13.1` and `5.14.0`), a MINOR. All of 250: `key_bindings.gd` 105, `fixtu
 `test_runner.gd` 191 with T6.12's check, `run_scratch.gd` 48, `dev_tools_test.gd` 224.
 Suite 2,591 on `main` at `287e783` → **2,621**, +30: 28 in the new `run_scratch_test` (26 from T6.13, and 2 from the merge for the parking directory) and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `main`, after the documentation landed. The stripped count is CI's.
 
-**Commit:** on `claude/t6-13-parallel-suites`, stacked on `claude/t6-11-dev-settings` (PR #74),
-PR #77 targeting `main`. No SHA, per item 6.
+**Commit:** `8021b59` on `claude/t6-13-parallel-suites`, stacked on `claude/t6-11-dev-settings` (PR #74),
+PR #77 targeting `main`. Filled in by T6.8.
+
+---
+
+## T6.8 · Close the list, and gate it — **DONE**
+
+**The criterion, as T6.0 wrote it.** Every "Commonly forgotten" item marked DONE or CLOSED (game's)
+with a package id, and a text-scan assertion that fails if one is not. Last in the phase, because
+its gate could not pass until every row above had landed.
+
+**The gate is a marker, not a reading.** `tests/unit/forgotten_list_test.gd` finds the section by
+its heading, splits it at `N. **`, and asks each item for `**DONE — <id>` or
+`**CLOSED (game's) — <id>`, where `<id>` has `record_shape_test.gd`'s package shape and must be
+findable on this board by the whole id, so `T5.1` is not satisfied by `T5.10`. It also fails a
+numbering gap, and fails an empty scan by its first assertion, so a renamed heading cannot pass by
+finding nothing. Its MUST NOT line: it never judges whether a verdict is right. The plan is
+`2 + 2 × items`, computed, so a sixteenth item costs no number edit.
+
+**Proved red on the list as it stood.** 16 failed, two for each of eight items:
+
+| item | why the scan could not read it | now |
+|---|---|---|
+| #1 pause semantics | "Already handled", no id | DONE — WP-02 |
+| #6 autosave indicator | `BOTH DONE — T5.10` | DONE — T5.10, both halves |
+| #8 first-run defaults | no verdict at all | CLOSED (game's) — T6.8 |
+| #9 reduced motion, DoF | `Both work as of T5.5` | DONE — T5.5 and T5.9 |
+| #10 subtitles, speaker names | prose only | DONE — WP-05 for names; subtitles removed by T5.5 |
+| #11 localization | no verdict | DONE — T5.1, gated since WP-14 |
+| #12 photo mode | `CLOSED (game's) — owner decision, T6.0` | CLOSED (game's) — T6.0 |
+| #13 credits | `CLOSED (game's) — owner, 2026-09-02` | CLOSED (game's) — WP-15 |
+
+After: 32 of 32. **Two plants**, each one exit 1 on exactly its own: #8's id changed to `T6.99`
+fails `names T6.99, which has a row on the board`; #14 renumbered 16 fails the numbering. The
+removed-marker case is the red run above, with the real violation rather than a planted one.
+
+**#8 is CLOSED (game's), pending the owner's playtest.** The manifest asked for the owner's
+playtest verdict on first-run defaults. Asked on 2026-09-30, the owner has not playtested yet and
+means to soon, so the closure stands until that playtest. The base's half is real: every default is one `Settings.DEFAULTS`
+line, every one has had a consumer since T5.5, and the two T6 added are off for the player who
+never opens the menu. Whether the rest are pleasant depends on a mix, a pace and a look the base
+does not have. A default later found unpleasant by playing is still a defect under the playtest rule,
+and becomes a row ahead of the queue.
+
+**The phase stays OPEN.** Every exit criterion is ticked, but T6.14, the plural form T6.6 found, is
+a defect inside the phase and comes next.
+
+**Scope.** `5.15.1`, a PATCH: one new case and its `CASES` line, and documents. Suite 2,621 on `claude/t6-13-parallel-suites` at `8021b59` → **2,655**, +34: 32 in the new `forgotten_list_test` (two, plus two for each of fifteen items) and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `8021b59`, after the documentation landed. Stripped, in CI: `2581 passed, 0 failed, 25 skipped`.
+
+**Commit:** on `claude/t6-8-close-the-list`, built on `claude/t6-13-parallel-suites` (PR #77),
+PR #79 targeting `main`. No SHA, per item 6.

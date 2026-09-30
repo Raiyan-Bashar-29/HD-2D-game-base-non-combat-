@@ -1475,7 +1475,7 @@ ever captured. It touched no file under `src/` except the debug capture tool. Th
   having read 2,360; the plan guard caught an off-by-one on the way, reporting `planned 85 outcomes
   and produced 84` with every assertion passing.
 
-## Phase T6 — Player-facing robustness · **OPEN, planned 2026-09-26**
+## Phase T6 — Player-facing robustness · **OPEN, planned 2026-09-26; every exit criterion met 2026-09-29, T6.14 remaining**
 
 *Goal: close every item on `SYSTEMS_INVENTORY.md`'s "Commonly forgotten" list as DONE or CLOSED
 (game's), fix the one save defect a multi-version formula cannot ship with, and put in place the two
@@ -1568,7 +1568,13 @@ was classified, including the ones refused.
   before and pass now. At the merge T6.12's parking directory, a fixed name `park()` emptied before
   every case, moved under it too. It also stopped the suite deleting the real `input.cfg`. No exit
   criterion covers a defect fix, so none is ticked.
-- **T6.8 Close the list, and gate it** — planned. The phase's exit criterion.
+- **T6.8 Close the list, and gate it — DONE, 2026-09-29, `5.15.1`.** The phase's exit criterion.
+  Every one of the fifteen "Commonly forgotten" items now carries `DONE — <id>` or
+  `CLOSED (game's) — <id>`, and `forgotten_list_test.gd` fails an item without one, an id with no
+  board row, and a gap in the numbering. Before the edits it failed 16, two for each of eight items;
+  after, 32 of 32. #8, first-run defaults, is CLOSED (game's); the owner, asked for a playtest
+  verdict on 2026-09-30, has not playtested yet, and the closure stands until they do. **Every exit criterion is now ticked; the phase
+  stays OPEN for T6.14, a defect found inside it.**
 - **T6.14 A count that reaches a string picks its plural form** — planned, found by T6.6, which numbered it T6.10; T6.12 at T6.11's merge, T6.13 at T6.12's, T6.14 at T6.13's.
   `RestPoint` sends `{hours}` into one key, so a short rest reads "1 hours" or "0 hours".
 
@@ -1584,8 +1590,8 @@ was classified, including the ones refused.
 - [x] A Bengali string and a CJK string both render through the theme's fallback chain,
   photographed. — T6.6
 - [x] Dialogue can be skipped to its end and can auto-advance. — T6.7
-- [ ] **Every "Commonly forgotten" item is marked DONE or CLOSED (game's) with a package id, and a
-  text-scan assertion fails if one is not.** — T6.8
+- [x] Every "Commonly forgotten" item is marked DONE or CLOSED (game's) with a package id, and a
+  text-scan assertion fails if one is not. — T6.8
 
 ## Sequencing rules
 

@@ -199,9 +199,18 @@ previous project started as a system that was allowed to know one thing too many
 These are the things hobby projects skip and regret. Written down now so they are decisions
 rather than oversights.
 
+**Since T6.8 every item carries a verdict, and a missing one fails the suite.** Each item's
+verdict is the bold marker `DONE — <id>` or `CLOSED (game's) — <id>`, naming a package the board
+records; `tests/unit/forgotten_list_test.gd` reads this section and fails an item without one, a
+verdict naming a package that has no row, and a gap in the numbering. A sixteenth item is welcome,
+and it arrives with its verdict or the build goes red. CLOSED (game's) means ADR-0007 puts the
+decision in the game, and the item says which seam the game builds it on.
+
 1. **Pause semantics.** Pausing needs `process_mode` set deliberately per node. Music must
-   keep playing, animations must stop, and the fade must still work. Already handled for
-   audio and the screen fade.
+   keep playing, animations must stop, and the fade must still work. **DONE — WP-02**, which
+   built the screen stack and pause: `UiRoot` is `PROCESS_MODE_ALWAYS` and disables a covered
+   screen, and audio, the screen fade, the toast and the loading indicator each set
+   `PROCESS_MODE_ALWAYS` themselves, so a pause stops the world and nothing that must outlive it.
 2. **Save on quit,** and the window close button. **DONE — T5.10.** `set_auto_accept_quit(false)`
    was wired from WP-00 so this could be added without restructuring, and it was: `Autosave`
    listens for `Events.game_ending`, which `GameRoot` emits on both the menu path and the close
@@ -230,7 +239,7 @@ rather than oversights.
    `gameplay/dialogue_auto_advance`, off by default, moves a whole line on after a hold that grows
    with its length and never answers a choice. `dialogue_speed_test.gd` asserts both;
    photographed. A backlog of past lines is not built: it is its own row.
-6. **Autosave indicator,** and never autosaving during a transition. **BOTH DONE — T5.10, and
+6. **Autosave indicator,** and never autosaving during a transition. **DONE — T5.10, both halves, and
    the transition half turned out to be the sharp one.** The indicator is `notify.autosaved` on
    the toast that already existed, photographed on arrival in the first area; on the quit path it
    is emitted and never seen, because the window is gone the same frame, and that is recorded
@@ -246,7 +255,17 @@ rather than oversights.
    or mid-transition (`Autosave.request()` refuses both) — a game that wants to ask in those cases
    calls `ConfirmScreen.asking` from its own quit row and adds no screen.
 8. **First-run defaults** that are actually pleasant, since most players never open settings.
-9. **Reduced motion,** and a depth-of-field toggle. **Both work as of T5.5.** `set_dof_enabled`
+   **CLOSED (game's) — T6.8.** The base's half is done: every first-run value is one line of
+   `Settings.DEFAULTS`, each has a consumer since T5.5, and the two T6 added were chosen for the
+   player who never opens the menu — `gameplay/dialogue_auto_advance` off, so a slow reader is
+   never hurried, and `gameplay/pause_on_focus_loss` off, so a second monitor is not a pause.
+   Whether the rest are PLEASANT is a judgement about a mix, a pace and a look the base does not
+   have — its audio is placeholder and its art is deferred — so a game makes it against its own
+   content, by editing those lines. **The owner's verdict, 2026-09-30:** T6.0's manifest asked
+   for a playtest verdict here; asked in T6.8, the owner has not playtested the defaults yet
+   and means to soon, so the closure stands on the reasoning above until that playtest. A default later found unpleasant by playing is still a defect
+   under the playtest rule, and becomes a row ahead of the queue.
+9. **Reduced motion,** and a depth-of-field toggle. **DONE — T5.5 and T5.9.** `set_dof_enabled`
    existed on the camera rig from day one and had no caller anywhere for the whole project; the
    rig now listens for `video/depth_of_field` and remembers what the area author authored, so the
    setting is the player's veto rather than a blanket yes. Photographed both ways.
@@ -259,18 +278,22 @@ rather than oversights.
    between the two settings at run speed) and so is the shake (see the camera-shake row above);
    the fade half is proved by assertion only, because a cut and a finished dissolve are the same
    picture.
-10. **Subtitles and speaker names,** on by default. Speaker names work. **The subtitle SETTING was
-    removed by T5.5** rather than left inert: nothing in this template is voiced, so there is
-    nothing to caption, and a row drawn to the player that cannot do anything is worse than a
-    dead constant. One line in `DEFAULTS` plus one CSV row brings it back with its feature.
+10. **Subtitles and speaker names,** on by default. **DONE — WP-05 for speaker names**, which every
+    dialogue line draws. **The subtitle SETTING was removed by T5.5** rather than left inert:
+    nothing in this template is voiced, so there is nothing to caption, and a row drawn to the
+    player that cannot do anything is worse than a dead constant. One line in `DEFAULTS` plus one
+    CSV row brings it back with its feature, which is a game's the day it records a voice.
 11. **Localization from the first string.** Retrofitting 200 hard-coded strings is exactly
-    the debt the previous project logged.
+    the debt the previous project logged. **DONE — T5.1, gated since WP-14.** Every player-facing
+    string has been a key in `localization/strings.csv` from the first line; T5.1 made the locale
+    actually switch, with a second, generated column to switch to, and WP-14's
+    `tools/check_strings.gd` fails a literal reaching a text property and a `*_KEY` naming no row.
 12. **A photo mode,** which costs little and is how players market the game for you.
-    **CLOSED (game's) — owner decision, T6.0.** A GAME CHOICE under ADR-0007 because its seam
+    **CLOSED (game's) — T6.0, by the owner's decision.** A GAME CHOICE under ADR-0007 because its seam
     exists: `DEBUG_FREECAM` is bound to F2 (`actions.gd:127`) and has no consumer, so a game that
     wants a photo mode builds one on it in its own code root.
 13. **Credits,** including every asset licence, tracked as they are added rather than
-    reconstructed in a panic. **CLOSED (game's) — owner, 2026-09-02** (the WP-15 remnant), which
+    reconstructed in a panic. **CLOSED (game's) — WP-15, by the owner on 2026-09-02** (its remnant), which
     this list had never recorded until T6.0. The licence half still binds the base: any asset it
     vendors ships with its licence beside it. T6.6 did this for its two fonts:
     `assets/fonts/*-OFL.txt`, with the licence also in each font's `name` table so an export

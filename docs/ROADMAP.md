@@ -1536,7 +1536,7 @@ was classified, including the ones refused.
   loads before the first import and a fresh clone printed `Parse Error` (gotcha 81). Windows
   system fonts had hidden the tofu, so the before capture turned system fallback off. Photographed:
   the ক্ষ conjunct and the hanzi and kana shaped, and the suite asserts ক্ষ is ONE glyph. The `tr_n`
-  check found one count needing a plural form, RestPoint's hours, which is T6.13.
+  check found one count needing a plural form, RestPoint's hours, which is T6.14.
 - **T6.9 Running the suite destroyed the developer's real saves — DONE, 2026-09-29, `5.11.1`** (claimed `5.9.1`; renumbered at the merge).
   An owner-reported defect, taken ahead of T6.5 and numbered after T6.8 so no planned id moves.
   Fourteen cases wrote or deleted slots in the real `user://saves`, and a green run deleted all
@@ -1561,8 +1561,15 @@ was classified, including the ones refused.
   conversation skips: the screen walks the runner through `advance()`, so every node passed fires
   its effect, and it stops at the first choice. `gameplay/dialogue_auto_advance`, off by default,
   moves a whole line on after a hold and never answers a choice. Photographed. Closes forgotten #5.
+- **T6.13 Two suite runs at once, in two worktrees, broke each other — DONE, 2026-09-29,
+  `5.15.0`** (claimed `5.12.0`). Found by T6.11. Every worktree shares one `user://`, and the
+  suite's scratch paths were fixed names under it that `SaveFixture` empties. Every path now lives
+  under `user://test_runs/<pid>`, pruned by heartbeat; two suites 0.3s apart failed 15 and 8
+  before and pass now. At the merge T6.12's parking directory, a fixed name `park()` emptied before
+  every case, moved under it too. It also stopped the suite deleting the real `input.cfg`. No exit
+  criterion covers a defect fix, so none is ticked.
 - **T6.8 Close the list, and gate it** — planned. The phase's exit criterion.
-- **T6.13 A count that reaches a string picks its plural form** — planned, found by T6.6, which numbered it T6.10; T6.12 at T6.11's merge, T6.13 at T6.12's.
+- **T6.14 A count that reaches a string picks its plural form** — planned, found by T6.6, which numbered it T6.10; T6.12 at T6.11's merge, T6.13 at T6.12's, T6.14 at T6.13's.
   `RestPoint` sends `{hours}` into one key, so a short rest reads "1 hours" or "0 hours".
 
 **Exit criteria for the phase:**

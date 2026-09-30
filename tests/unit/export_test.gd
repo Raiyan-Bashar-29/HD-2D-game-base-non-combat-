@@ -27,10 +27,11 @@ extends TestCase
 const PRESET_FILE: String = "res://export_presets.cfg"
 ## The one value that makes an unreferenced resource ship. Not a preference: measured.
 const REQUIRED_FILTER: String = "all_resources"
-## An existing but empty directory, so the empty-root case produces no engine error of its own.
-const EMPTY_ROOT: String = "user://test_export_empty"
 
 var _saved_item_dir: String = ""
+## An existing but empty directory, so the empty-root case produces no engine error of its own.
+## Inside this run's own scratch directory, T6.13, so no other suite can put a file in it.
+var _empty_root: String = RunScratch.path("export_empty")
 
 
 func run() -> void:
@@ -102,8 +103,8 @@ func _the_suite_is_not_an_exported_build() -> void:
 ## template with no game in it yet is a legal state; in an EXPORTED build the same emptiness is
 ## the failure this package exists to detect, which is why it warns there and only reports here.
 func _an_empty_root_is_reported_and_not_refused() -> void:
-	DirAccess.make_dir_recursive_absolute(EMPTY_ROOT)
-	ItemDb.content_dir = EMPTY_ROOT
+	DirAccess.make_dir_recursive_absolute(_empty_root)
+	ItemDb.content_dir = _empty_root
 	ItemDb.rescan()
 	equal("an empty root yields no definitions", ItemDb.count(), 0)
 	equal("an empty root is not a problem", ItemDb.problems().is_empty(), true)
@@ -113,7 +114,7 @@ func _an_empty_root_is_reported_and_not_refused() -> void:
 	equal("the report says zero", lines[1].contains("%s: 0 " % CatalogueReport.LABEL_ITEMS), true)
 	ItemDb.content_dir = _saved_item_dir
 	ItemDb.rescan()
-	DirAccess.remove_absolute(EMPTY_ROOT)
+	DirAccess.remove_absolute(_empty_root)
 	equal("the root is restored for the cases after this one",
 		ItemDb.content_dir, _saved_item_dir)
 

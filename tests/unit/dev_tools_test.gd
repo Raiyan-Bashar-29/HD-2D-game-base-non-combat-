@@ -360,8 +360,10 @@ func _a_debug_launch_never_saves_over_the_real_store() -> void:
 	equal("scratch is not the real store",
 		DevSaves.SCRATCH_DIR != SaveSystem.DEFAULT_SAVE_DIR, true)
 	# `SaveFixture.activate()` empties its directory; shared, a suite in another session would
-	# delete the file a two-process probe pair left for its second half.
-	equal("nor the suite's", DevSaves.SCRATCH_DIR != SaveFixture.ROOT, true)
+	# delete the file a two-process probe pair left for its second half. Outside EVERY run's
+	# directory, T6.13, not only this one's: `RunScratch.begin()` prunes the dead runs' ones.
+	equal("nor any suite run's",
+		DevSaves.SCRATCH_DIR.begins_with(RunScratch.PARENT), false)
 	var scene: String = FileAccess.get_file_as_string(GAME_ROOT)
 	var at: int = scene.find("[node name=\"DevSaves\"")
 	equal("the redirect is the first debug node", at >= 0 and at == scene.find("[node name=\"Dev"),
@@ -374,19 +376,24 @@ func _a_debug_launch_never_saves_over_the_real_store() -> void:
 ## redirect must hold for every case after this one.
 func _a_debug_launch_never_writes_the_real_settings() -> void:
 	equal("the suite itself writes its settings to scratch", Settings.file_path,
-		SaveFixture.SETTINGS_PATH)
+		SaveFixture.settings_path())
 	var store: String = SaveSystem.save_dir
 	var settings: String = Settings.file_path
 	equal("a plain launch redirects nothing", DevSaves.apply(PackedStringArray()), false)
 	equal("and leaves the settings file where it was", Settings.file_path, settings)
 
-	DirAccess.remove_absolute(DevSaves.SCRATCH_SETTINGS)
 	DevSaves.apply(PackedStringArray(["--new-game", "--locale=en_XA"]))
 	equal("a capture's settings go to scratch", Settings.file_path, DevSaves.SCRATCH_SETTINGS)
 	equal("and its saves go with them", SaveSystem.save_dir, DevSaves.SCRATCH_DIR)
+	# THE WRITE IS PROVED ON THIS RUN'S OWN PATH, T6.13, not on `SCRATCH_SETTINGS`: that file is
+	# shared by every suite and debug launch on the machine, so deleting it and asking whether the
+	# write brought it back failed whenever a second suite deleted it in between. The question was
+	# only ever whether `save()` writes where `file_path` says, and any path answers it.
+	var probe: String = RunScratch.path("dev_settings_probe.cfg")
+	Settings.file_path = probe
 	Settings.set_value(Settings.LOCALE, Settings.get_string(Settings.LOCALE))
-	equal("and a setting it changes is written there",
-		FileAccess.file_exists(DevSaves.SCRATCH_SETTINGS), true)
+	equal("and a setting it changes is written where the path says",
+		FileAccess.file_exists(probe), true)
 	SaveSystem.save_dir = store
 	Settings.file_path = settings
 
@@ -394,4 +401,4 @@ func _a_debug_launch_never_writes_the_real_settings() -> void:
 		DevSaves.apply(PackedStringArray(["--new-game", DevSaves.REAL_SAVES_FLAG])), false)
 	equal("scratch is not the player's file",
 		DevSaves.SCRATCH_SETTINGS != Settings.PATH, true)
-	equal("nor the suite's", DevSaves.SCRATCH_SETTINGS != SaveFixture.SETTINGS_PATH, true)
+	equal("nor any suite run's", DevSaves.SCRATCH_SETTINGS.begins_with(RunScratch.PARENT), false)

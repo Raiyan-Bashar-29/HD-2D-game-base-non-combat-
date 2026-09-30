@@ -46,6 +46,7 @@ const CASES: Array[String] = [
 	"res://tests/unit/core_test.gd",
 	"res://tests/unit/save_recovery_test.gd",
 	"res://tests/unit/save_dir_test.gd",
+	"res://tests/unit/run_scratch_test.gd",
 	"res://tests/unit/world_test.gd",
 	"res://tests/unit/interaction_test.gd",
 	"res://tests/unit/items_test.gd",
@@ -124,9 +125,15 @@ func _ready() -> void:
 	Log.info("test", "=== test run starting ===")
 	# Determinism: a clock that advances mid-assertion makes time assertions flaky.
 	Clock.paused = true
+	# EVERYTHING THIS RUN WRITES IS UNDER ITS OWN DIRECTORY, T6.13, named for this process, so two
+	# suites in two worktrees - which share one user:// - cannot empty each other's. First, before
+	# any path below is read. `tests/framework/run_scratch.gd` has the measurement.
+	RunScratch.begin()
+	# NOR THE KEY BINDINGS, T6.13: `options_test` rebinds and then resets, which DELETED the file.
+	KeyBindings.file_path = RunScratch.path("input.cfg")
 	# NO CASE WRITES THE DEVELOPER'S SETTINGS FILE, T6.11. Before the first case, not per case:
 	# SaveFixture.gd says why. The real file was already READ, so the pin below is still needed.
-	Settings.file_path = SaveFixture.SETTINGS_PATH
+	Settings.file_path = SaveFixture.settings_path()
 	# AND SO IS THE LANGUAGE, for the same reason one step further out. Several cases compare
 	# `tr()` output, so a developer who left the pseudolocale selected - or any consuming
 	# game whose default is not English - would fail assertions that have nothing to do with
@@ -145,6 +152,7 @@ func _ready() -> void:
 
 	_no_unattributed_errors()
 	_report()
+	RunScratch.finish()
 	get_tree().quit(1 if _failed > 0 else 0)
 
 
@@ -195,6 +203,8 @@ func _run_case(path: String) -> void:
 		return
 
 	test_case.name = path.get_file().get_basename()
+	# Before every case: a run that goes quiet for `STALE_SECONDS` is one another run may prune.
+	RunScratch.beat()
 	SaveFixture.park()
 	_unclaimed_uses.clear()
 	add_child(test_case)
@@ -233,7 +243,7 @@ func _on_store_used(slot: int, verb: String) -> void:
 
 func _saves_were_claimed(case_name: String) -> void:
 	for file_name: String in SaveFixture.unclaimed_files():
-		_unclaimed_uses.append("%s left in %s" % [file_name, SaveFixture.UNCLAIMED])
+		_unclaimed_uses.append("%s left in %s" % [file_name, SaveFixture.unclaimed()])
 	if _unclaimed_uses.is_empty():
 		return
 	_record_failure("%s used the save store without SaveFixture.activate(): %s" % [

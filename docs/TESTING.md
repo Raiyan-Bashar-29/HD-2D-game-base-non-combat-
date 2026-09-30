@@ -10,7 +10,7 @@ G=/c/Rai/softwares/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_conso
 ```
 
 Exit 0 if every assertion passes, 1 otherwise. In a full checkout the last line reads
-`=== 2591 passed, 0 failed, 0 skipped ===`; in a stripped template it reads
+`=== 2621 passed, 0 failed, 0 skipped ===`; in a stripped template it reads
 `=== 2517 passed, 0 failed, 25 skipped ===`, and the difference is entirely skips that say so.
 **Re-measure this rather than quoting it** — the number moves with every package, and
 `docs_test.gd` and `doc_counts_test.gd` compute their plans from the documents, so editing a
@@ -182,7 +182,7 @@ HANDED content, on disk when a system LOOKS IT UP BY ID.**
 | Your system | Fixture |
 |---|---|
 | receives an `ItemDefinition` / `PathAction` (a `Pickup`, a `PathActionPoint`) | build it in memory with `FixtureContent` and set it on the node. No files, no global state |
-| looks content up by id (`Inventory.add(id)`, `DialogueRunner.begin(id)`, an `NpcBrain` reading a schedule, `QuestTracker` reading a quest, `WorldMap` reading an area def) | `Fixtures.activate()` — it writes `.tres` files to `user://test_fixtures/` and points all five registries' `content_dir` there |
+| looks content up by id (`Inventory.add(id)`, `DialogueRunner.begin(id)`, an `NpcBrain` reading a schedule, `QuestTracker` reading a quest, `WorldMap` reading an area def) | `Fixtures.activate()` — it writes `.tres` files under `Fixtures.root()`, this run's own scratch directory, and points all five registries' `content_dir` there |
 
 The five registries scan a directory (ADR-0006) and cache statically, so an in-memory
 `ItemDefinition` is **invisible** to `Inventory.add(id)`. A test-only injection method on each
@@ -200,24 +200,35 @@ redirected content root and never say so.
 
 **A case that writes, deletes or saves through ANY path calls `SaveFixture.activate()` first.**
 That is `save_to_slot`, `delete_slot`, and anything that reaches them: a save screen row, an
-`Autosave.request()`. It points `SaveSystem.save_dir` at `user://test_saves`, emptied, and the
+`Autosave.request()`. It points `SaveSystem.save_dir` at `SaveFixture.root()`, emptied, and the
 runner points it back after every case. **If you forget, the suite fails** (T6.12):
 `<case> used the save store without SaveFixture.activate(): saved slot N in
-user://test_saves_unclaimed`. Before every case the runner parks the store in that second scratch
-directory, so the forgetful case never reaches the real `user://saves`. It then fails any case
-that saved, or loaded a real file, while parked. Until T6.9, fourteen cases saved without
-activating: a full run destroyed every real slot and the autosave, and the suite stayed at 0
-failed. **Two things the check does not hear:** a file you write by hand and delete without ever
-loading it, and `has_slot`/`slot_info` reads. Parking still keeps both away from real saves, but
-call `activate()` anyway: the parked directory is shared, and your case should own its store.
+user://test_runs/<pid>/saves_unclaimed`. Before every case the runner parks the store in that
+second scratch directory, `SaveFixture.unclaimed()`, so the forgetful case never reaches the real
+`user://saves`. It then fails any case that saved, or loaded a real file, while parked. Until
+T6.9, fourteen cases saved without activating: a full run destroyed every real slot and the
+autosave, and the suite stayed at 0 failed. **Two things the check does not hear:** a file you
+write by hand and delete without ever loading it, and `has_slot`/`slot_info` reads. Parking still
+keeps both away from real saves, but call `activate()` anyway: every case in the run parks in the
+same directory, and your case should own its store.
 
 **Settings need nothing from a case, and that is the difference.** Since T6.11 the runner points
-`Settings.file_path` at `SaveFixture.SETTINGS_PATH`, `user://test_settings.cfg`, once, before the
+`Settings.file_path` at `SaveFixture.settings_path()`, once, before the
 first case, so any `Settings.set_value` or `reset_to_defaults()` writes there. Until then every
 green run saved the developer's real `user://settings.cfg`, and `reset_to_defaults()` saved it as
 zero bytes. It is not per case because five cases write settings, most on their first line, and a
 per-case switch is exactly the one a new case forgets. **The file is still READ from the real
-path at boot**, before the runner exists, which is why the runner also pins the locale.
+path at boot**, before the runner exists, which is why the runner also pins the locale. **Key
+bindings are the same since T6.13:** the runner points `KeyBindings.file_path` at the run's own
+copy, because `options_test` resets its bindings, and the reset deleted the real `input.cfg`.
+
+**Everything a run writes is under its own directory, `RunScratch.root()`**, which is
+`user://test_runs/<pid>`, since T6.13. Every worktree on a machine shares one `user://`, so a fixed
+scratch name is one that a second suite, started a moment later in another worktree, empties
+under you. If your case needs a scratch directory or file of its own, name it
+`RunScratch.path("<name>")`, never `user://<name>`, and add it to the list in
+`run_scratch_test.gd`, which asserts every listed path is inside the run's directory. The runner
+removes the directory when the run ends; you do not have to clean up after a crash.
 
 **`Fixtures.activate()` returns `false` if it could not write the fixture root**, so the shape is
 `equal("the fixture content is on disk", Fixtures.activate(), true)` — **assert it, do not skip on

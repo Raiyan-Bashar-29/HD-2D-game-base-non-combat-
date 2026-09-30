@@ -24,7 +24,7 @@ extends Node
 ## the game and saving still means what it says. `--real-saves` is the way back, on purpose, for a
 ## developer who wants a staged launch to write the store they play from.
 ##
-## NEVER EMPTIED HERE, which is the difference from `SaveFixture.ROOT`. The probes come in pairs
+## NEVER EMPTIED HERE, which is the difference from `SaveFixture.root()`. The probes come in pairs
 ## across two PROCESSES (dev_probes.gd says why), and the second must find what the first wrote.
 ## It is a separate directory from the suite's for the same reason: `SaveFixture.activate()`
 ## empties that one, so a suite running in another session would eat a capture pair's autosave.
@@ -46,7 +46,7 @@ extends Node
 ## MUST NOT: write, read or delete a save or settings file itself, change when an autosave
 ## happens, or be depended upon by gameplay. Deleting this file must not break the game.
 
-## The scratch store. Under `user://` for `SaveFixture.ROOT`'s reason: outside the repository.
+## The scratch store. Under `user://` for `SaveFixture.root()`'s reason: outside the repository.
 const SCRATCH_DIR: String = "user://dev_saves"
 ## The scratch settings file. Beside the store rather than in it, so a slot scan never meets it.
 const SCRATCH_SETTINGS: String = "user://dev_settings.cfg"

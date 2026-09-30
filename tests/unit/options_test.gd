@@ -16,9 +16,10 @@ extends TestCase
 ## a focused row, and press-then-press to rebind - is proved by a temporary probe in
 ## dev_capture.gd, run windowed, read in the log, and then removed.
 ##
-## THIS CASE OWNS user://settings.cfg AND user://input.cfg FOR THE RUN, and puts both back at
-## tear-down. A suite that left `video/window_mode` changed would make the NEXT windowed capture
-## open exclusive-fullscreen over the top of everything.
+## THIS CASE WRITES THE SETTINGS AND BINDINGS FILES, and puts both back at tear-down. Both are the
+## run's own scratch copies, T6.11 and T6.13; until T6.13 the bindings one was the player's real
+## `user://input.cfg`, and the reset below deleted it on every run. Putting them back still
+## matters inside a run: every later case reads the same two files.
 ##
 ## OWNS: assertions about stepping a setting and rebinding an action, and the computed keys both
 ## screens draw.
@@ -134,7 +135,7 @@ func _rebinding_replaces_one_half_and_persists() -> void:
 	Actions.reset_bindings()
 	equal("reset puts the default back", _has_key(Actions.INVENTORY, KEY_I), true)
 	equal("and forgets the override", _has_key(Actions.INVENTORY, KEY_K), false)
-	equal("and removes the file", FileAccess.file_exists(KeyBindings.PATH), false)
+	equal("and removes the file", FileAccess.file_exists(KeyBindings.file_path), false)
 
 
 ## A boot, in miniature: the default re-declared, then the override loaded over the top of it.

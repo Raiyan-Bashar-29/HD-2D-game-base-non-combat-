@@ -28,6 +28,11 @@ const PATH: String = "user://input.cfg"
 const KEY_FIELD: String = "key"
 const PAD_FIELD: String = "pad"
 
+## The file read and written. `PATH` unless the suite says otherwise: the runner points it at its
+## own scratch copy, T6.13, because a case that rebinds and resets would otherwise write, then
+## DELETE, the player's real overrides, and race every other suite running on the machine.
+static var file_path: String = PATH
+
 
 ## Bind `action` to `event` and remember it. Returns false for an action that is not REBINDABLE,
 ## or an event that is neither a key nor a pad button - a mouse wheel cannot be a movement key,
@@ -60,11 +65,11 @@ static func rebind(action: StringName, event: InputEvent) -> bool:
 	_install(action, event, pad)
 
 	var file := ConfigFile.new()
-	file.load(PATH)
+	file.load(file_path)
 	file.set_value(String(action), PAD_FIELD if pad else KEY_FIELD, code)
-	var err: Error = file.save(PATH)
+	var err: Error = file.save(file_path)
 	if err != OK:
-		Log.error("input", "Could not write %s: %s" % [PATH, error_string(err)])
+		Log.error("input", "Could not write %s: %s" % [file_path, error_string(err)])
 		return false
 	Log.info("input", "'%s' bound to %s" % [action, event.as_text()])
 	return true
@@ -75,13 +80,13 @@ static func rebind(action: StringName, event: InputEvent) -> bool:
 ## would simply overwrite it.
 static func load_all() -> int:
 	var file := ConfigFile.new()
-	if file.load(PATH) != OK:
+	if file.load(file_path) != OK:
 		return 0
 	var restored: int = 0
 	for section: String in file.get_sections():
 		var action: StringName = StringName(section)
 		if not InputMap.has_action(action):
-			Log.warn("input", "%s names '%s', which no longer exists" % [PATH, section])
+			Log.warn("input", "%s names '%s', which no longer exists" % [file_path, section])
 			continue
 		restored += _restore(file, action, KEY_FIELD)
 		restored += _restore(file, action, PAD_FIELD)
@@ -93,11 +98,11 @@ static func load_all() -> int:
 ## Forget every override. The caller re-declares the defaults afterwards: this class does not
 ## know what they are and must not learn.
 static func forget_all() -> void:
-	if not FileAccess.file_exists(PATH):
+	if not FileAccess.file_exists(file_path):
 		return
-	var dir: DirAccess = DirAccess.open(PATH.get_base_dir())
-	if dir == null or dir.remove(PATH.get_file()) != OK:
-		Log.warn("input", "Could not remove %s" % PATH)
+	var dir: DirAccess = DirAccess.open(file_path.get_base_dir())
+	if dir == null or dir.remove(file_path.get_file()) != OK:
+		Log.warn("input", "Could not remove %s" % file_path)
 
 
 ## What one action's binding reads as on screen, for the keyboard half or the pad half. Empty

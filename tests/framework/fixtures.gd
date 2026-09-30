@@ -32,16 +32,36 @@ extends RefCounted
 ## a case whether demo content exists at all.
 ## MUST NOT: build content (that is `FixtureContent`), or assert anything.
 
-const ROOT: String = "user://test_fixtures"
-const ITEM_DIR: String = "user://test_fixtures/items"
-const DIALOGUE_DIR: String = "user://test_fixtures/dialogue"
-const SCHEDULE_DIR: String = "user://test_fixtures/schedules"
-const QUEST_DIR: String = "user://test_fixtures/quests"
-const AREA_DEF_DIR: String = "user://test_fixtures/areas"
-
 const AREA_ROOT: String = "res://scenes/areas"
 
 static var _active: bool = false
+
+
+## The fixture content root, inside this run's own scratch directory (T6.13): a fixed name under
+## the `user://` every worktree shares let a second suite rewrite this one's fixtures mid-case,
+## and a file one case planted appeared in the other's scan. `RunScratch` says why per process.
+static func root() -> String:
+	return RunScratch.path("fixtures")
+
+
+static func item_dir() -> String:
+	return root().path_join("items")
+
+
+static func dialogue_dir() -> String:
+	return root().path_join("dialogue")
+
+
+static func schedule_dir() -> String:
+	return root().path_join("schedules")
+
+
+static func quest_dir() -> String:
+	return root().path_join("quests")
+
+
+static func area_def_dir() -> String:
+	return root().path_join("areas")
 
 
 static func is_active() -> bool:
@@ -52,11 +72,11 @@ static func is_active() -> bool:
 ## time: a case that edited a cached resource in place must not leave that edit for the next.
 static func activate() -> bool:
 	var written: bool = _write_all()
-	ItemDb.content_dir = ITEM_DIR
-	DialogueDb.content_dir = DIALOGUE_DIR
-	ScheduleDb.content_dir = SCHEDULE_DIR
-	QuestDb.content_dir = QUEST_DIR
-	AreaDb.content_dir = AREA_DEF_DIR
+	ItemDb.content_dir = item_dir()
+	DialogueDb.content_dir = dialogue_dir()
+	ScheduleDb.content_dir = schedule_dir()
+	QuestDb.content_dir = quest_dir()
+	AreaDb.content_dir = area_def_dir()
 	_reload_all()
 	_active = true
 	return written
@@ -112,19 +132,22 @@ static func _reload_all() -> void:
 
 static func _write_all() -> bool:
 	var ok: bool = true
-	for directory: String in [ITEM_DIR, DIALOGUE_DIR, SCHEDULE_DIR, QUEST_DIR, AREA_DEF_DIR]:
+	var dirs: Array[String] = [
+		item_dir(), dialogue_dir(), schedule_dir(), quest_dir(), area_def_dir(),
+	]
+	for directory: String in dirs:
 		if DirAccess.make_dir_recursive_absolute(directory) != OK:
 			ok = false
 	for definition: ItemDefinition in FixtureContent.items():
-		ok = _save(definition, ITEM_DIR, definition.id) and ok
+		ok = _save(definition, item_dir(), definition.id) and ok
 	var talk: Conversation = FixtureContent.conversation()
-	ok = _save(talk, DIALOGUE_DIR, talk.id) and ok
+	ok = _save(talk, dialogue_dir(), talk.id) and ok
 	var timetable: NpcSchedule = FixtureContent.schedule()
-	ok = _save(timetable, SCHEDULE_DIR, timetable.id) and ok
+	ok = _save(timetable, schedule_dir(), timetable.id) and ok
 	for errand: Quest in FixtureContent.quests():
-		ok = _save(errand, QUEST_DIR, errand.id) and ok
+		ok = _save(errand, quest_dir(), errand.id) and ok
 	for def: AreaDef in FixtureContent.area_defs():
-		ok = _save(def, AREA_DEF_DIR, def.id) and ok
+		ok = _save(def, area_def_dir(), def.id) and ok
 	return ok
 
 

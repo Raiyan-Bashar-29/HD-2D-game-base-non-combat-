@@ -131,8 +131,9 @@ original board rather than continuing it.
 | T6.10 | **A capture or debug launch wrote over the developer's real saves** | **DONE** — `5.12.0` (claimed `5.10.0`, renumbered to land after T6.6), a MINOR: a class and a flag a game may ignore. **OUT OF NUMBER ORDER ON PURPOSE**, like T6.9, which found it. The ladder's capture rung runs `--new-game`, a real run, so the autosave wrote the real `autosave.json`, and `--save-state`/`--load-state`/`--cross-area-save` deleted real slots. The new `dev_saves.gd`, first of the debug nodes, sets `SaveSystem.save_dir` to `user://dev_saves` for any launch with user arguments; `--real-saves` opts out. **A redirect, not a suppression**, so the capture still photographs the toast. A planted sentinel was overwritten by one capture before and survives it byte-identical after. Also fixed `--autosave-continue`, which could not find the Continue row. `save_system.gd` untouched at 179 of 180. See below |
 | T6.11 | **A debug launch, and every suite run, wrote the developer's real settings** | **DONE** — `5.13.0` (claimed `5.11.0`, renumbered to land after T6.6), a MINOR: a var and two constants a game may ignore. **OUT OF NUMBER ORDER ON PURPOSE**, like T6.9 and T6.10; T6.10 found it and recorded it undone. `Settings.PATH` was the only path, so a `--locale=en_XA` capture rewrote a sentinel's `locale="en"`, and **a green suite left it at zero bytes**, which T6.10 had not suspected. `Settings.file_path` is where `save()` writes; `DevSaves` points it at `user://dev_settings.cfg` under its existing rule, and the runner at `user://test_settings.cfg` before the first case. **Writes only, never re-read**, so no launch inherits the last one's language. The sentinel now survives both byte-identical. `settings.gd` 141 → 142 of 150. See below |
 | T6.12 | **Nothing failed a case that saved without activating the scratch store** | **DONE** — `5.13.1`, a PATCH on `5.6.1`'s precedents, test-only: `src/` and `tools/` byte-identical. **OUT OF NUMBER ORDER ON PURPOSE**, the gap T6.9 recorded; Both halves T6.9 offered, because each alone leaves a hole: the runner PARKS the store in `user://test_saves_unclaimed` before every case, so a forgotten `activate()` cannot reach a real save, and FAILS a case that saves, or loads a real file, anywhere but the store it claimed. Heard on `game_saved`/`game_loaded`, not by a directory diff. **Three plants red**, each naming its case: `confirm_test` and `menus_test` (saves) and `save_recovery_test` (a hand-planted file, loaded then deleted). Seven sentinel saves survived every run. See below |
-| T6.13 | **A count that reaches a string picks its plural form** | **TODO.** Numbered T6.10 by T6.6, renumbered T6.12 at T6.11's merge because T6.10 was already taken by an unmerged DONE row, and T6.13 at T6.12's merge for the same reason. Found by T6.6's `tr_n` check. `RestPoint` sends `{hours}` = `floori(minutes / 60)` into one key, so a rest under two hours reads "1 hours" or "0 hours slip past". It is the only count in the base with a noun beside it: `x{count}`, `{have} / {need}` and `{percent}%` carry none. Write: `src/gameplay/interactables/rest_point.gd`, the CSV (plural support in Godot's CSV importer must be checked in the 4.7 docs first, and `.po` is the fallback), a test. After T6.7 |
+| T6.14 | **A count that reaches a string picks its plural form** | **TODO.** Numbered T6.10 by T6.6, renumbered T6.12 at T6.11's merge because T6.10 was already taken by an unmerged DONE row, T6.13 at T6.12's merge for the same reason, and T6.14 at T6.13's, whose DONE row already held T6.13. Found by T6.6's `tr_n` check. `RestPoint` sends `{hours}` = `floori(minutes / 60)` into one key, so a rest under two hours reads "1 hours" or "0 hours slip past". It is the only count in the base with a noun beside it: `x{count}`, `{have} / {need}` and `{percent}%` carry none. Write: `src/gameplay/interactables/rest_point.gd`, the CSV (plural support in Godot's CSV importer must be checked in the 4.7 docs first, and `.po` is the fallback), a test. After T6.7 |
 | T6.7 | **Dialogue for fast and slow readers** | **DONE** — `5.14.0` (claimed `5.12.0`, renumbered to land after T6.12), a MINOR: a setting, two public methods a game may ignore, and cancel now doing something in a conversation where it did nothing. **A SKIP WALKS, IT DOES NOT JUMP**: cancel calls `DialogueScreen.skip()`, which drives the runner through `advance()`, so every node passed is arrived at and fires its effect; it stops at the first choice, shown whole, and a second skip there does nothing; with no choice ahead it runs to the end. A cycle stops after 512 lines. `gameplay/dialogue_auto_advance`, off by default, holds a whole line 1.5 s plus 15 characters a second over the text speed, and never answers a choice. **THE PLANT THAT STAYED GREEN**: deleting the screen's stop-at-a-choice check changes nothing, because the runner already refuses there; the red plant is `runner.stop()` as the skip, `2549 passed, 13 failed`. `dialogue_test.gd` would have been 305 of 250, so the cases are `dialogue_speed_test.gd`. Photographed |
+| T6.13 | **Two suite runs at once, in two worktrees, broke each other** | **DONE** — `5.15.0` (claimed `5.12.0`, renumbered to land after T6.7), a MINOR: a class and a var a game may ignore, and test-framework constants turned into functions. **OUT OF NUMBER ORDER ON PURPOSE**, like T6.9 to T6.11; T6.11 found it, and T6.12 was taken by PR #73. Every worktree shares one `user://`, and `SaveFixture.activate()` EMPTIES a fixed directory under it, so two suites started 0.3s apart failed 15 and 8. Every scratch path is now under `RunScratch.root()`, `user://test_runs/<pid>`, and both pass. **Liveness is a heartbeat, because the pid design failed its own proof**: on Windows `OS.is_process_running` is false for a process the caller did not start, so each run pruned every other. At the merge T6.12's parking directory, a fixed name `park()` empties before every case, moved under it too. Also stopped `options_test` deleting the real `input.cfg`. See below |
 | T6.8 | **Close the list, and gate it** | **TODO — next, and last.** The phase's exit criterion. Manifest below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
@@ -6658,7 +6659,7 @@ process still READS the developer's real settings, which is why the runner's loc
 **Commit:** on `claude/t6-11-dev-settings`, stacked on `claude/t6-10-capture-saves` (PR #72), PR
 #74 targeting `main`, squash-merged as `9d8c34f`; filled in by T6.12. **Renumbered at the merge of `main`:** T6.5 took
 `5.10.0` and T6.6 `5.11.0` there first, so the stack lands after them as T6.9 `5.11.1`, T6.10
-`5.12.0` and this row `5.13.0`. T6.6's new plural row, which it numbered T6.10, became **T6.12**, and then **T6.13** at T6.12's merge, whose DONE row already held T6.12.
+`5.12.0` and this row `5.13.0`. T6.6's new plural row, which it numbered T6.10, became **T6.12**, then **T6.13** at T6.12's merge, whose DONE row already held T6.12, and **T6.14** at T6.13's.
 
 ## T6.12 · Nothing failed a case that saved without activating the scratch store — **DONE**
 
@@ -6784,8 +6785,80 @@ dialogue path touches it. The 90-frame capture and the ladder's own rung were cl
 186 of 250. The new test is its own file.
 
 **Not in scope.** A backlog of past lines (its own row), closing the list (T6.8), plural forms
-(T6.13).
+(T6.14).
 
 **Scope.** `5.14.0` (claimed `5.12.0`, renumbered at the merge of `main`, where T6.10 to T6.12 had taken `5.12.0` to `5.13.1`), a MINOR. Suite 2,560 on `main` at `76cd32d` → 2,591, +31: 25 in the new `dialogue_speed_test`, 3 in `options_test` and 1 in `settings_consumers_test` for the new setting's row and consumer, and 2 in `record_shape_test` for this row's own package id; every other case unmoved.
 
 **Commit:** on `claude/t6-7-dialogue-speed`, PR #78 targeting `main`. No SHA, per item 6. CI on `e6db60b`, PR #78: `Ladder (stripped template)`, job 109480897827: `=== 2517 passed, 0 failed, 25 skipped ===`; `Ladder (full checkout)`, job 109480898120: `=== 2591 passed, 0 failed, 0 skipped ===`. `TESTING.md` now states the stripped `2517`.
+
+## T6.13 · Two suite runs at once, in two worktrees, broke each other — **DONE**
+
+**Found by T6.11, which saw it and recorded it undone.** `user://` is keyed on `config/name`, so
+every worktree on the machine shares it, and every scratch path the suite used was a fixed name
+under it: `user://test_saves`, `test_saves_stand_in`, `test_settings.cfg`, `test_fixtures`,
+`test_export_empty`, `content_scan_test`. `SaveFixture.activate()` and `deactivate()` EMPTY their
+directory and `Fixtures.activate()` rewrites its own, so a second suite deleted the first's slots
+and fixtures mid-case. **Numbered T6.13**, out of number order for T6.9's reason; T6.12 was PR #73, a sibling that merged first.
+T6.11's SHA, per item 6: `15775bd`.
+
+**Measured red first, with nothing else able to touch it.** A scratch worktree at `15775bd`, two
+suites sharing one private `APPDATA`, started at four offsets: 0.3s apart failed **15 and 8**, 6s
+apart 2 and 1, 2s and 12s apart passed. The failures were saves (`the autosave slot accepts a
+write — expected 0, got 12`), fixture content (`QuestDb reports a bad file in its root — expected
+1, got 2`, a planted file from the other run's scan), a dialogue case crashing on a conversation
+the other run had just rewritten, and T6.11's own settings assertion.
+
+**Decided: one directory per process, `user://test_runs/<pid>`, owned by the new
+`tests/framework/run_scratch.gd`.** Every scratch path is under it: `SaveFixture.root()` and
+`settings_path()`, `Fixtures.root()` and its five `*_dir()`, and the per-case directories in
+`content_scan_test`, `export_test` and `save_dir_test`. They became functions because the name
+carries the pid. The runner calls `RunScratch.begin()` before anything else and `finish()` after
+the report. `DevSaves.SCRATCH_DIR` and `SCRATCH_SETTINGS` stay where they were, and
+`dev_tools_test` now asserts neither is under `RunScratch.PARENT` at all, a stronger claim than
+"differs from this run's root". **The old fixed paths are left alone**: a suite on an older base
+may be using them at this moment, and deleting them would be this defect.
+
+**The first design failed its own proof, twice, and both are worth keeping.** *(1)* The case that
+tested pruning passed a fake liveness answer against the SHARED parent, which called every other
+run dead: a concurrent run lost its directory, 12 failures in `save_recovery_test`. A case now
+prunes a parent inside its own root, and `prune(parent, stale_after)` takes both. *(2)* Liveness
+was `OS.is_process_running(pid)`, and two pairs at 6s and 12s still failed 3, all writes to
+settings and bindings finding their directory gone. Measured with a probe: on Windows it answers
+**false for explorer's pid and true only for a child from `OS.create_process`**, so each run's
+`begin()` deleted every other live run. **Liveness is now a heartbeat file** the runner writes
+before every case; a directory is pruned only when its heartbeat is over `STALE_SECONDS` (900)
+old, and one with no heartbeat yet is kept, so deletion needs positive evidence.
+
+**Found on the way: the suite deleted the developer's key bindings.** `options_test` rebinds a key
+and its tear-down calls `Actions.reset_bindings()`, which removed `user://input.cfg`, the real
+file, on every run. `KeyBindings.PATH` was a `const`; `KeyBindings.file_path` is a static var on
+T6.11's pattern, and the runner points it at `RunScratch.path("input.cfg")`.
+
+**Assertions.** 28 in the new `tests/unit/run_scratch_test.gd`: the root is named for this
+process and exists; two pids never share one; twelve scratch paths, including the three the runner
+pinned or parked and the parking directory added at the merge, are inside it; the player's bindings file is not the one written; a fresh heartbeat
+survives the real threshold and a stale one is removed, nested, and reported; a directory with no
+heartbeat yet, this process's own, and a folder not named by a number all survive; this run's
+heartbeat is fresh; `remove_tree` takes a nested tree and answers true when absent. Plus
+`dev_tools_test`'s three changed ones. **Four plants**, each exit 1 on exactly its own: see
+DEVLOG.md.
+
+**Merged after T6.12, and T6.12's parking directory moved in.** T6.12 landed first with
+`SaveFixture.UNCLAIMED`, the fixed `user://test_saves_unclaimed`, which `park()` empties before
+EVERY case. At the merge it became `SaveFixture.unclaimed()`, `RunScratch.path("saves_unclaimed")`,
+and every caller moved. Two suites on one private `APPDATA`, with `settings_effects_test`'s
+`activate()` planted out so something lands in the parking directory: the fixed name failed 6 and 5
+at 0.3s, three and two of them the other run's doing; per run, 1 and 1 at every offset, only the
+planted case. Unplanted, the merged tree passes 2,621 on both sides at 0.3s, 2s, 6s and 12s.
+
+**Not done.** `Log` stays disabled under the suite, so `user://logs` is not shared by it.
+**Over the size rule:** twelve code files, most one-line call-site renames; the two new files are 124 code
+lines.
+
+**Scope.** `5.15.0` (claimed `5.12.0`, renumbered at the merge of `main`, where T6.12 and T6.7 had
+taken `5.13.1` and `5.14.0`), a MINOR. All of 250: `key_bindings.gd` 105, `fixtures.gd` 81,
+`test_runner.gd` 191 with T6.12's check, `run_scratch.gd` 48, `dev_tools_test.gd` 224.
+Suite 2,591 on `main` at `287e783` → **2,621**, +30: 28 in the new `run_scratch_test` (26 from T6.13, and 2 from the merge for the parking directory) and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `main`, after the documentation landed. The stripped count is CI's.
+
+**Commit:** on `claude/t6-13-parallel-suites`, stacked on `claude/t6-11-dev-settings` (PR #74),
+PR #77 targeting `main`. No SHA, per item 6.

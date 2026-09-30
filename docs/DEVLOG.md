@@ -11586,3 +11586,115 @@ now skips; that is the conventional mapping, but no player has tried it. A slow 
 `Keeper cannot reach 'dais'` (gotcha 21's guard) and was not investigated.
 
 **Commit:** on `claude/t6-7-dialogue-speed`, PR #78 targeting `main`. No SHA, per board item 6. CI on `e6db60b`, PR #78: `Ladder (stripped template)`, job 109480897827: `=== 2517 passed, 0 failed, 25 skipped ===`; `Ladder (full checkout)`, job 109480898120: `=== 2591 passed, 0 failed, 0 skipped ===`. `TESTING.md` now states the stripped `2517`.
+
+## 2026-09-29 — T6.13 · Two suite runs at once, in two worktrees, broke each other
+
+**Did.** New `tests/framework/run_scratch.gd`, class `RunScratch`: one scratch directory per
+process, `user://test_runs/<pid>`, begun empty before the first case, heartbeat written before
+every case, removed after the report, and a stale sibling pruned by a later run. Every scratch path
+the suite writes moved under it: `SaveFixture.root()` / `settings_path()` and `Fixtures.root()` /
+`*_dir()` replace constants, and `content_scan_test`, `export_test` and `save_dir_test` build
+their own directories from `RunScratch.path()`. `KeyBindings.file_path` is a new static var the
+runner points at the run's copy. `dev_tools_test` proves a settings write on a path of its own
+instead of deleting and re-creating the shared `user://dev_settings.cfg`. 26 assertions in the new
+`run_scratch_test.gd`. `5.12.0`, a MINOR.
+
+**Why.** T6.11's Gaps: every worktree shares one `user://`, and `SaveFixture.activate()` empties a
+fixed directory in it. The fix had to cover every scratch path, not only the save store:
+the red runs failed in fixture content and settings too. Per process rather than per worktree,
+because two suites in ONE worktree collide the same way. The pid names the directory because no
+two live processes share one. It does NOT say whether a run is alive; see Verified.
+
+**Connects.** `SaveFixture` (T5.22, T6.9, T6.11) and `Fixtures` (T1.3), whose roots moved;
+`KeyBindings` (T5.5), whose path became redirectable on `Settings.file_path`'s pattern (T6.11);
+`DevSaves` (T6.10), whose scratch stays outside every run's directory; T6.12's `UNCLAIMED`, on a
+sibling branch, which still needs moving.
+
+**Verified.**
+- Built on T6.11's tip `15775bd`, PR #74 unmerged. `--headless --import`: no `SCRIPT ERROR` /
+  `Parse Error` lines. Unchanged tree alone: `2494 passed, 0 failed`.
+- **Red, unchanged tree.** First on the shared `user://`, two runs 0.3s and 0.6s apart: 16 and 18
+  failed, then 9 and 27, with other sessions' suites running on the machine too. Then isolated: a
+  scratch worktree at `15775bd`, both runs sharing one private `APPDATA` via a script,
+  `pair.sh`, at four offsets. **0.3s: 15 and 8 failed. 2s: 0 and 0. 6s: 2 and 1. 12s: 0 and 0.**
+  The failures included `the autosave slot accepts a write — expected 0, got 12`, `QuestDb reports
+  a bad file in its root — expected 1, got 2`, `and after all six the autosave file is still
+  there`, and `dialogue_test` crashing on a conversation the other run had just rewritten.
+- **The first fix was not green, and why.** On the shared `user://`, three pairs: two passed, the
+  third failed 12 in `save_recovery_test` (`Cannot call method 'store_string' on a null value`).
+  Cause: `run_scratch_test` pruned the SHARED parent with a fake liveness answer, calling every
+  other run dead. Fixed by pruning a parent of its own. Then, isolated, 0.3s and 2s passed, and
+  **6s and 12s failed 3 each**, all in `options_test`, after `Could not write
+  user://test_runs/7616/settings.cfg: File not found` at the second run's start. A probe settled
+  it: `OS.is_process_running` answered `true` for its own pid, **`false` for explorer's**, and
+  `true` for its own `OS.create_process` child. On Windows it knows only processes the caller
+  started, so every `begin()` deleted every other live run's directory. Liveness became a
+  heartbeat file, pruned only when over 900s old; a directory with no heartbeat is kept.
+- **Green, this tree, isolated, same script, same four offsets: 0.3s, 2s, 6s and 12s all
+  `2520 passed, 0 failed` on BOTH runs, exit 0**, and `test_runs` empty afterwards.
+- **Plants**, on the heartbeat version, each exit 1 on exactly its own assertions, restored after:
+  `root_for` returning the shared parent, `2518 passed, 2 failed` (`the root is named for this
+  process`, `two processes never share a root`); the heartbeat age check deleted, `2517 passed, 3
+  failed` (`a run whose heartbeat is fresh is left alone` and the two counts beside it); the
+  no-heartbeat guard deleted, `2518 passed, 2 failed` (`a run with no heartbeat yet is left
+  alone`, `so nothing is removed`); the runner's bindings pin deleted, `2518 passed, 2 failed`
+  (`the bindings file the runner pinned is this run's own`, `and the player's bindings file is
+  not written`). Before the heartbeat, the pid version's liveness plant failed its 1.
+- All seven checkers exit 0. Budgets, all of 250: `run_scratch.gd` 48, `run_scratch_test.gd` 76,
+  `test_runner.gd` 168, `key_bindings.gd` 105, `dev_tools_test.gd` 224.
+- Suite after the documentation: `=== 2522 passed, 0 failed, 0 skipped ===`, exit 0, +28 over
+  2,494: 26 in `run_scratch_test` and 2 in `record_shape_test` for this row's id, every other case
+  unmoved, diffed per case against the unchanged tree. The stripped count is CI's.
+- No real `user://input.cfg` existed on this machine, so the bindings plant cost nothing.
+
+**Unblocks.** Concurrent suites across sessions, which is the normal state of this machine. Any
+sentinel proof no longer needs a private `APPDATA` to keep the SUITE out of it, only other
+launches.
+
+**Gaps.** T6.12's `user://test_saves_unclaimed` is on a sibling branch and still fixed; whichever
+merges second moves it. A crashed run's directory is pruned only after 15 minutes, and that path is
+proved with a negative threshold, not by waiting. The old fixed directories from earlier runs stay
+in `user://` until a developer deletes them, on purpose. Twelve code files, over the size rule,
+most of them one-line renames. **Versions renumber at merge**, as every row in this stack does.
+
+**Commit:** on `claude/t6-13-parallel-suites`, stacked on T6.11's PR #74. No SHA, per board item 6.
+
+**Merge of `main` (T6.12 and T6.7) into T6.13, same day, and T6.12's parking directory moved.**
+PR #77 reported conflicting: T6.9, T6.10 and T6.11 had squash-merged under it, and T6.12 (PR #73)
+and T6.7 (PR #78) had landed after them. T6.12 is the sibling this entry's Gaps named, so the move
+it asked for was made in the merge itself, not as a row of its own.
+- **Did.** `SaveFixture.UNCLAIMED`, the fixed `user://test_saves_unclaimed`, is now
+  `SaveFixture.unclaimed()`, returning `RunScratch.path("saves_unclaimed")`. Every caller moved:
+  `park()`, `is_unclaimed()` and `unclaimed_files()` in `save_fixture.gd`, the leftover-file message
+  in `test_runner.gd`, and `save_dir_test.gd`, whose `SaveFixture.ROOT` also became `root()`. The
+  runner calls `RunScratch.beat()` and then T6.12's `SaveFixture.park()` before every case. Four
+  comments still naming `SaveFixture.ROOT` now say `root()`.
+- **Why.** `park()` EMPTIES the parking directory before EVERY case, so as a fixed name it was the
+  same race T6.13 closed, met on every case rather than only on the ones that save.
+- **Assertions.** `run_scratch_test.gd` lists two more paths, 26 → 28: the parking directory, and
+  `SaveSystem.save_dir` as the runner left it for that case. The second checks what the runner
+  actually DID, not only what the function returns. **Plant:** `unclaimed()` returning the old
+  fixed name gives `2619 passed, 2 failed`, exactly those two.
+- **Renumbered.** Versions: `main` was at `5.14.0` (T6.7), so this row lands as **`5.15.0`**,
+  claimed `5.12.0`. Ids: the plural row, which `main` numbered T6.13, becomes **T6.14**. A planned row
+  has only documents to update, so it moves and the DONE row keeps its id, as at T6.12's merge.
+- **Verified, alone.** `--headless --import` first, no `SCRIPT ERROR` or `Parse Error` lines. Boot `--quit-after 30`: `0 warnings, 0 errors`.
+  Suite `=== 2621 passed, 0 failed, 0 skipped ===`, exit 0. All seven checkers exit 0.
+  `test_runner.gd` 168 → 191 of 250 with T6.12's check; `save_fixture.gd` 35, `run_scratch_test.gd`
+  78. Windowed 960x540 capture at 18:40, looked at: the courtyard at dusk, HUD, the `[E]` prompt and
+  an `Autosaved.` toast, `0 warnings, 0 errors`.
+- **Verified, two at once.** `pair.sh` from this entry, both suites sharing one private `APPDATA`,
+  offsets 0.3s, 2s, 6s and 12s. **Merged tree: all eight runs `2621 passed, 0 failed`, exit 0, and
+  `test_runs` empty afterwards.** With the fixed name planted back, the pairs showed only the two
+  planted failures each: an honest suite leaves the parking directory empty, so the race had
+  nothing to delete. So a second plant made it visible: `settings_effects_test` without its
+  `activate()`, which writes the autosave and all six slots into the parking directory.
+  **Fixed name: at 0.3s, 6 and 5 failed**, three and two beyond the planted ones, all in that case
+  and all the OTHER run's doing: `and after all six the autosave file is still there — expected true,
+  got false` (the other run's `park()` deleted it) and `so quitting from the main menu cannot
+  flatten a real run's autosave — expected false, got true` (the other run's file). At 2s to 12s,
+  3 and 3, no collateral. **Per run: 1 and 1 at all four offsets**, only the forgetful case, each
+  naming its own `user://test_runs/<pid>/saves_unclaimed`.
+- **Suite size.** Suite 2,591 on `main` at `287e783` → **2,621**, +30: 28 in the new `run_scratch_test` (26 from T6.13, and 2 from the merge for the parking directory) and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `main`, after the documentation landed. The stripped count is CI's.
+- **Unblocks.** T6.8, next, unchanged. T6.14, the plural row, after it.
+- **Gaps.** None new. The stripped count is CI's.

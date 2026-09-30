@@ -3,33 +3,38 @@
 A state snapshot for a new session. `CLAUDE.md` has the *rules*; this file has the *situation*.
 Keep it short. When it drifts from reality, fix it in the same commit as the change.
 
-**Last updated:** 2026-09-29 · **T6.7 (dialogue for fast and slow readers) complete, at 5.14.0, a MINOR.**
+**Last updated:** 2026-09-29 · **T6.13 (two suite runs at once, in two worktrees, no longer break each other) complete, at 5.15.0, a MINOR.**
 **Phases T1 to T5 are complete and stay complete; Phase T6 is OPEN, and the next package is T6.8.**
 
-**A SKIP WALKS THE CONVERSATION; IT DOES NOT JUMP IT.** Cancel (Escape, or the pad's B) during a
-conversation calls `DialogueScreen.skip()`, which drives the runner through `advance()` node by
-node. So every node passed is ARRIVED at and its effect fires, as if it had been read. It stops at
-the first node offering a choice and shows that choice whole, and a second skip there does
-nothing: a branch is the player's to take. With no choice ahead it runs to the end and the box
-closes. A cycle of plain lines stops after 512 lines rather than hanging. Before T6.7, cancel did
-nothing in a conversation at all, because `closes_on_cancel` is false there, so this is the one
-behaviour change a game can notice.
+**EVERY PATH THE SUITE WRITES IS UNDER `user://test_runs/<pid>`, ONE DIRECTORY PER PROCESS.**
+`tests/framework/run_scratch.gd` owns it. The runner calls `RunScratch.begin()` before anything
+else, `beat()` before every case, and `finish()` after the report, which removes the directory.
+`SaveFixture.root()`, `SaveFixture.unclaimed()`, `SaveFixture.settings_path()`, `Fixtures.root()`
+and the five `Fixtures.*_dir()` are functions now, not constants, because the name carries the
+pid. Before, they were fixed names in the `user://` that every worktree shares, and `activate()`
+EMPTIES its directory: two suites started 0.3s apart failed 15 and 8, with a private `APPDATA` so
+nothing else touched it. **A new scratch path goes under `RunScratch.path()`**;
+`run_scratch_test.gd` lists every one and fails on any outside it.
 
-**AUTO-ADVANCE IS OPT-IN, AND IT NEVER ANSWERS A CHOICE.** `gameplay/dialogue_auto_advance`, off by
-default so a slow reader is never hurried. On, a whole line is held for 1.5 s plus its length at 15
-characters a second, divided by the text speed, then moves on. The hint reads
-`Auto  E to continue  Escape to skip`. Photographed windowed through a temporary probe: the
-greeting revealing with that hint, then, later in the same run, the menu with its three choices
-and nothing chosen.
+**T6.12'S PARKING DIRECTORY MOVED IN AT THE MERGE.** T6.12 and T6.13 were siblings, and T6.12
+landed first with `SaveFixture.UNCLAIMED = "user://test_saves_unclaimed"`, which `park()` empties
+before EVERY case: the same race, met on every case instead of only the ones that save. It is now
+`SaveFixture.unclaimed()`, `RunScratch.path("saves_unclaimed")`. Proved as T6.13 was: two suites
+on one private `APPDATA`, at several start offsets, both green.
 
-**THE PLANT THAT STAYED GREEN.** Deleting the screen's "stop at a choice" check changes nothing,
-because `DialogueRunner.advance()` already refuses at a choice. The check stays as a second guard.
-The plant that counts is the tempting wrong skip, `runner.stop()`, which ends the conversation
-and fires no effect: `2549 passed, 13 failed`.
+**`OS.is_process_running()` IS FALSE, ON WINDOWS, FOR ANY PROCESS YOU DID NOT START.** Measured:
+explorer's pid false, an `OS.create_process` child true. The first version pruned a sibling
+directory when its pid was not running, so every run deleted every other live run's directory,
+and a suite started 6s after another cost it three failures. **Liveness is a heartbeat file**,
+pruned only when older than `RunScratch.STALE_SECONDS` (900); a directory with no heartbeat yet
+is kept. And the first pruning TEST was the defect again, pruning the shared parent with a
+doctored answer: a case testing a cleanup must clean a directory of its own.
 
-**Budgets.** `dialogue_test.gd` would have gone to 305 of 250, so the new cases are their own
-file, `tests/unit/dialogue_speed_test.gd`, with a `CASES` line. `settings.gd` 143 → **144 of 150**.
-`dialogue_screen.gd` 143 → 186 of 250.
+**AND THE SUITE WAS DELETING THE DEVELOPER'S KEY BINDINGS.** `options_test` rebinds and resets, and
+the reset removed the real `user://input.cfg` on every run. `KeyBindings.file_path` is a new var,
+and the runner points it at the run's own copy.
+
+**Budgets.** `run_scratch.gd` 48, `test_runner.gd` 191, `key_bindings.gd` 105, all of 250.
 
 **The phase, in order** — manifests in `WORK_PACKAGES.md` § T6.0:
 
@@ -46,19 +51,27 @@ file, `tests/unit/dialogue_speed_test.gd`, with a `CASES` line. `settings.gd` 14
 | ~~T6.11~~ | ~~a debug launch or a suite run writes scratch settings, never the developer's file~~ **DONE**, out of number order | found by T6.10 |
 | ~~T6.12~~ | ~~a case that saves without activating the scratch store fails the suite~~ **DONE**, out of number order | found by T6.9 |
 | ~~T6.7~~ | ~~dialogue can skip to its end and auto-advance~~ **DONE** | forgotten #5 |
+| ~~T6.13~~ | ~~two suite runs at once, in two worktrees, cannot empty each other's scratch~~ **DONE**, out of number order | found by T6.11 |
 | **T6.8** | every forgotten item marked DONE or CLOSED, gated by a text scan | the exit criterion |
-| T6.13 | a count that reaches a string picks its plural form (found by T6.6 as T6.10; T6.12 at T6.11's merge) | a defect |
+| T6.14 | a count that reaches a string picks its plural form (found by T6.6 as T6.10; T6.12 at T6.11's merge, T6.13 at T6.12's, T6.14 at T6.13's) | a defect |
 
 **THE OWNER'S PLAYTEST OUTRANKS THIS QUEUE.** A defect found by playing becomes the next row ahead of
 anything above — found, not invented, the standard every T6 row had to meet. T6.9 is the first,
-numbered after T6.8 so that no planned id moves. T6.10 is the second, found while proving T6.9, T6.11 the third, found by T6.10, and T6.12 the fourth, the gap T6.9 recorded.
+numbered after T6.8 so that no planned id moves. T6.10 is the second, found while proving T6.9, T6.11 the third, found by T6.10, T6.12 the fourth, the gap T6.9 recorded, and T6.13 the fifth, found by T6.11.
 
-Suite 2,560 on `main` at `76cd32d` → **2,591**, +31: 25 in the new `dialogue_speed_test`, 3 in `options_test` and 1 in `settings_consumers_test` for the new setting's row and consumer, and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `main`, after the documentation landed.
+Suite 2,591 on `main` at `287e783` → **2,621**, +30: 28 in the new `run_scratch_test` (26 from T6.13, and 2 from the merge for the parking directory) and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `main`, after the documentation landed. The stripped count is CI's.
+
+*(Previously: T6.7 let dialogue be skipped to its end and auto-advance, at `5.14.0`, a MINOR.
+Cancel during a conversation calls `DialogueScreen.skip()`, which walks the runner through
+`advance()`, so every node passed fires its effect; it stops at the first choice, and a second
+skip there does nothing. `gameplay/dialogue_auto_advance` is off by default and never answers a
+choice. The plant that stayed green was deleting the screen's own stop-at-a-choice check, because
+`advance()` already refuses there; the one that counts is `runner.stop()`, 13 failed.)*
 
 *(Previously: T6.12 made a case that saves without `SaveFixture.activate()` fail the suite, at
 `5.13.1`, a PATCH, test-only. Before every case the runner parks the store at
 `user://test_saves_unclaimed` and fails a case that saves, or loads a real file, while parked.
-T6.9 to T6.12 landed out of number order, and the plural row moved from T6.10 to **T6.13**. Every
+T6.9 to T6.12 landed out of number order, and the plural row moved from T6.10 to **T6.13**, now T6.14. Every
 worktree shares one `user://`: for any sentinel proof give Godot a private one with
 `APPDATA="$(cygpath -w <dir>)"`.)*
 
@@ -74,7 +87,7 @@ before capture turned it off. `assets/fonts/font_chain.tres` has no base font an
 Noto Sans Bengali, then a Noto Sans SC subset, both at weight 600. `UiRoot.install_font_chain`
 installs it at boot rather than the theme naming it, because the theme loads before the first
 import and a fresh clone printed `Parse Error` (gotcha 81). The `tr_n` check found `RestPoint`'s
-`{hours}` reading "1 hours", now T6.13.)*
+`{hours}` reading "1 hours", now T6.14.)*
 
 *(Previously: T6.10 made a capture or debug launch save to `user://dev_saves`, claimed as `5.10.0`,
 landing as `5.12.0`, a MINOR. The capture rung's `--new-game` is a real run, so the autosave wrote
@@ -354,7 +367,7 @@ another sheet, and every facing draws a different figure.
 **A new session's default is still NOT to invent work.** A genuine defect, an unticked criterion,
 or a seam the owner's reframing actually needs is a package. One invented so that there is one is
 how the previous project reached 3,983 lines in a single file, twenty reasonable lines at a time.
-**The version is** **5.14.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
+**The version is** **5.15.0**, and it is UNTAGGED — `v4.2.1` is the most recent tag, and the gap is
 the owner's to close or to leave.
 
 **THE NEXT PACKAGE IS T6.7, AND IT IS A QUEUE AGAIN — FOR ONE PHASE.** From T5.32 until T6.0 this
@@ -426,7 +439,7 @@ three steps (one of them a COUNT), 2 mapped areas, 2 path actions, 2 sprite shee
 3 tagged surfaces, 2 languages, **5 gait blocks on the swap sheet and 4 on the default one, the
 fourth being a second IDLE rather than a gait**,
 1 shared area material, **24 settings and 24 consumers**.
-Template version **5.14.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
+Template version **5.15.0**, and that version is deliberately UNTAGGED — `v4.2.1` is the most
 recent tag, each tag naming the tree that declares it.
 Boots headless with **0 warnings, 0 errors**, and a run killed mid-load now shuts down clean too.
 

@@ -19,6 +19,41 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.15.0
+
+*2026-09-29 — two suite runs at the same time, in two worktrees, no longer break each other.*
+
+**A consuming game does: nothing, unless a test case of its own named a scratch path.** Every path
+the suite writes now lives under `user://test_runs/<pid>`, one directory per running process,
+removed at the end of the run; a crashed run's is pruned by a later run once its heartbeat file is
+15 minutes old. If a case YOUR game added wrote `SaveFixture.ROOT`, `SaveFixture.UNCLAIMED`,
+`SaveFixture.SETTINGS_PATH`, `Fixtures.ROOT` or one of `Fixtures.ITEM_DIR` / `DIALOGUE_DIR` /
+`SCHEDULE_DIR` / `QUEST_DIR` / `AREA_DEF_DIR`, it will not parse: each is now a function
+(`SaveFixture.root()`, `SaveFixture.unclaimed()`, `SaveFixture.settings_path()`,
+`Fixtures.quest_dir()`). A case that only calls `activate()`, as `TESTING.md` tells it to,
+changes nothing. A scratch directory of its own belongs under `RunScratch.path("<name>")`. **If
+your game has its own runner**, copy `RunScratch.begin()`, `beat()` and `finish()` from
+`tests/test_runner.gd` along with 5.13.1's `park()`.
+**MINOR, and the call is stated rather than hidden:** those constants were test-framework
+internals no document told a game to use, and the only `src/` change is additive.
+`KeyBindings.file_path` is a new var, defaulting to `KeyBindings.PATH`, which keeps its name and
+value; a shipped build never moves it.
+
+**What changed.** `user://` is keyed on `config/name`, so every worktree on a machine shares it,
+and `SaveFixture.activate()` and `deactivate()` empty their directory while `Fixtures` rewrites
+its own. Two suites running at once deleted each other's slots and fixtures mid-case. Measured
+with a private `APPDATA` holding nothing else, on the unchanged tree, two suites started 0.3s
+apart failed 15 and 8, and 6s apart 2 and 1, in runs that pass alone. On this tree the same
+pairs pass on both sides. **Liveness is a heartbeat file, not the pid**, because on Windows
+`OS.is_process_running()` answers false for any process the caller did not start, and a first
+version that trusted it deleted every concurrent run's directory. **5.13.1's parking directory
+moved in with the rest.** `park()` empties it before EVERY case, so as the fixed name
+`user://test_saves_unclaimed` it was the same race, met far more often than `activate()`'s. **And
+one real file was found on the way:** `options_test` rebinds a key and then resets, and the reset
+deleted `user://input.cfg`, the developer's real key bindings, on every suite run. The runner now
+points `KeyBindings.file_path` at the run's own copy.
+
+---
 ## 5.14.0
 
 *2026-09-29 — dialogue can be skipped to its end, and can move on by itself.*
@@ -169,7 +204,7 @@ the subset.** A game shipping Korean adds a font to the chain.
 
 **Found, and recorded as its own row rather than built:** `RestPoint` passes `{hours}` into a
 single string, so a rest of 60 to 119 minutes reads "1 hours". That is the one count in the base
-that needs a plural form (T6.13; numbered T6.10 when this shipped, renumbered because T6.10 was taken).
+that needs a plural form (T6.14; numbered T6.10 when this shipped, renumbered as each earlier id was taken).
 
 ---
 ## 5.10.0

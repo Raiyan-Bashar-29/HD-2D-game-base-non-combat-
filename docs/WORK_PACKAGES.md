@@ -13,6 +13,24 @@ below and **read its manifest and nothing else.**
 add a row. Same reasoning as the file budgets: a package that grows past one chat becomes a
 package that gets half-finished.
 
+**Serial, not parallel. ONE PACKAGE IS IN FLIGHT AT A TIME, AND PHASE T6 IS WHY.** T6.9 to T6.13
+ran as five chats in five worktrees at once. Every one of them had to merge `main` back in before
+it could land, some three times; four rows were renumbered at their merge and T6.14 four times
+over; `5.10.0` to `5.12.0` were each claimed by one row and shipped by another; T6.6, T6.7, T6.8
+and T6.13 each ended up with two or three chats for the same package; and **T6.13 exists only
+because two suites in two worktrees emptied each other's saves** — every worktree shares one
+`user://`. Parallel packages cost more than they saved, every time. So:
+
+- **Before starting, check.** `gh pr list --state open` and `git worktree list`. If another
+  package's PR is open, or its worktree is unmerged, **stop and tell the owner** — do not start
+  alongside it, and do not start a second chat for a package that already has one.
+- **Build from `origin/main`, fetched now.** The row id and the version bump are decided then,
+  against what `main` actually holds — never claimed ahead of a merge, so there is nothing to
+  renumber.
+- **A defect found mid-package becomes a `TODO` row on this board, not a chip.** It is picked up
+  after the current package merges. The only exception is the owner saying, in the chat, to run
+  it now.
+
 **Closing a package.** Not done until all of this is true:
 
 1. Ladder green — `--import` with **zero `SCRIPT ERROR` / `Parse Error` lines** (gotcha 22: the
@@ -42,13 +60,19 @@ package that gets half-finished.
    T5.25's, T5.27's was filled by T5.28, and so on. That is not a lapse to apologise for each
    time; it is the only order that exists. The alternative, a second commit per package purely to
    amend the line, buys nothing a reader wants.
-7. Committed and pushed.
-8. **The chip for the next package is created**, so the handoff is automatic. If no chip ever
+7. Committed, pushed, CI green, and **the PR merged into `main`**. Not "pushed and waiting":
+   the next package builds on this one, so it cannot start until this one is in `main`.
+8. **Then, and only then, the chip for the next package is created** — once, by this chat, and
+   its prompt names the `origin/main` SHA it builds from. If the board has no next row, no chip.
+   A chip raised before the merge is how Phase T6 got three chats for one package. If no chip ever
    arrives, nothing is lost: this file's row for the next package IS the fallback handoff, and
    `docs/CONTEXT.md` opens with the branch map saying which tip to build from. Use the
    spawn-task mechanism with a self-contained prompt: it must name the start-here docs, the
    goal, the files to write, the exit criteria, and what is deferred - everything a session
    with no memory of this one needs. WP-01 chip is the worked example; copy its shape.
+9. **The worktree goes.** After the merge this chat's session is archived, which removes its
+   worktree, and the next chat's first `git worktree list` should show `main` and nothing else.
+   A merged worktree left behind is where the next accidental parallel chat starts.
 
 **Anything with a visual consequence needs a windowed capture and an actual look at the PNG.**
 Headless shades nothing. This project has already shipped two bugs that every other gate passed.
@@ -6969,4 +6993,4 @@ COMPLETE. #8's closure still stands only until the owner's playtest, as T6.8 rec
 `plural_count_test` (nine, plus three for the one `{hours}` row) and 2 in `record_shape_test` for
 this row's own package id; every other case unmoved. The stripped count is CI's.
 
-**Commit:** on `claude/t6-14-plural-forms`, built on `main` at `0d3585d`. No SHA, per item 6.
+**Commit:** on `claude/t6-14-plural-forms`, built on `main` at `0d3585d`, PR #80, merged as `c63425e`. Filled in by the serial-packages process change (`5.16.1`), with the counts from the CI job log on `f6f0344`, run 36677397254: `Ladder (stripped template)`: `=== 2592 passed, 0 failed, 25 skipped ===`; `Ladder (full checkout)`: `=== 2669 passed, 0 failed, 0 skipped ===`.

@@ -11729,7 +11729,7 @@ case reuses; the board, which is the index an id must be findable in.
 **Unblocks.** T6.14, the plural form, which is the last row of the phase.
 
 **Gaps.** #8 was first closed as a placeholder, because the owner's playtest verdict had not been
-given. Asked on 2026-09-30, the owner delegated the call, and the closure stands as the decision.
+given. Asked on 2026-09-30, the owner has not playtested yet and will soon; the closure stands until then.
 No playtest of the defaults was run. The gate checks that a verdict exists and names a real package, never that it is right.
 Suite 2,621 on `claude/t6-13-parallel-suites` at `8021b59` → **2,655**, +34: 32 in the new `forgotten_list_test` (two, plus two for each of fifteen items) and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `8021b59`, after the documentation landed. Stripped, in CI: `2581 passed, 0 failed, 25 skipped`.
 

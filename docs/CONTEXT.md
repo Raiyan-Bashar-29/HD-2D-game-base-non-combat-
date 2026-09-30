@@ -14,7 +14,8 @@ stood the case failed 16, two for each of eight items written in prose it could 
 the edits, 32 of 32. The id is found by the whole id, so `T5.1` is not satisfied by `T5.10`.
 
 **#8, FIRST-RUN DEFAULTS, IS CLOSED (game's).** T6.0's manifest asked for the owner's playtest
-verdict there; asked in T6.8, the owner delegated the call on 2026-09-30, and the closure stands:
+verdict there; asked in T6.8 on 2026-09-30, the owner has not playtested yet and plans to, so the
+closure stands until then:
 the base keeps every default in one `Settings.DEFAULTS` line, and "pleasant" is judged against a
 game's own mix and look. **A default found unpleasant by playing is still a defect**, a row ahead
 of the queue.

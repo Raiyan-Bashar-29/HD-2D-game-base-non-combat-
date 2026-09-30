@@ -131,10 +131,10 @@ original board rather than continuing it.
 | T6.10 | **A capture or debug launch wrote over the developer's real saves** | **DONE** — `5.12.0` (claimed `5.10.0`, renumbered to land after T6.6), a MINOR: a class and a flag a game may ignore. **OUT OF NUMBER ORDER ON PURPOSE**, like T6.9, which found it. The ladder's capture rung runs `--new-game`, a real run, so the autosave wrote the real `autosave.json`, and `--save-state`/`--load-state`/`--cross-area-save` deleted real slots. The new `dev_saves.gd`, first of the debug nodes, sets `SaveSystem.save_dir` to `user://dev_saves` for any launch with user arguments; `--real-saves` opts out. **A redirect, not a suppression**, so the capture still photographs the toast. A planted sentinel was overwritten by one capture before and survives it byte-identical after. Also fixed `--autosave-continue`, which could not find the Continue row. `save_system.gd` untouched at 179 of 180. See below |
 | T6.11 | **A debug launch, and every suite run, wrote the developer's real settings** | **DONE** — `5.13.0` (claimed `5.11.0`, renumbered to land after T6.6), a MINOR: a var and two constants a game may ignore. **OUT OF NUMBER ORDER ON PURPOSE**, like T6.9 and T6.10; T6.10 found it and recorded it undone. `Settings.PATH` was the only path, so a `--locale=en_XA` capture rewrote a sentinel's `locale="en"`, and **a green suite left it at zero bytes**, which T6.10 had not suspected. `Settings.file_path` is where `save()` writes; `DevSaves` points it at `user://dev_settings.cfg` under its existing rule, and the runner at `user://test_settings.cfg` before the first case. **Writes only, never re-read**, so no launch inherits the last one's language. The sentinel now survives both byte-identical. `settings.gd` 141 → 142 of 150. See below |
 | T6.12 | **Nothing failed a case that saved without activating the scratch store** | **DONE** — `5.13.1`, a PATCH on `5.6.1`'s precedents, test-only: `src/` and `tools/` byte-identical. **OUT OF NUMBER ORDER ON PURPOSE**, the gap T6.9 recorded; Both halves T6.9 offered, because each alone leaves a hole: the runner PARKS the store in `user://test_saves_unclaimed` before every case, so a forgotten `activate()` cannot reach a real save, and FAILS a case that saves, or loads a real file, anywhere but the store it claimed. Heard on `game_saved`/`game_loaded`, not by a directory diff. **Three plants red**, each naming its case: `confirm_test` and `menus_test` (saves) and `save_recovery_test` (a hand-planted file, loaded then deleted). Seven sentinel saves survived every run. See below |
-| T6.14 | **A count that reaches a string picks its plural form** | **TODO.** Numbered T6.10 by T6.6, renumbered T6.12 at T6.11's merge because T6.10 was already taken by an unmerged DONE row, T6.13 at T6.12's merge for the same reason, and T6.14 at T6.13's, whose DONE row already held T6.13. Found by T6.6's `tr_n` check. `RestPoint` sends `{hours}` = `floori(minutes / 60)` into one key, so a rest under two hours reads "1 hours" or "0 hours slip past". It is the only count in the base with a noun beside it: `x{count}`, `{have} / {need}` and `{percent}%` carry none. Write: `src/gameplay/interactables/rest_point.gd`, the CSV (plural support in Godot's CSV importer must be checked in the 4.7 docs first, and `.po` is the fallback), a test. After T6.7 |
+| T6.14 | **A count that reaches a string picks its plural form** | **DONE** — `5.16.0`, a MINOR. **THE LAST ROW OF PHASE T6, WHICH IS NOW COMPLETE.** Numbered T6.10 by T6.6, then T6.12, T6.13 and T6.14 as rows ahead of it merged. **4.7.2's CSV importer reads plural forms** — the docs are silent, a scratch project proved it: a `?plural` column, and the next form on a following row with an empty key; `.po` was not needed. `RestPoint` asks `translate_plural` for the form and reports the nearest hour, never zero. Proved red first, 8 failed, including "13 hour slips past", because `tr()` on a plural row answers its first form. Photographed: "1 hour slips past." for 59 minutes. See below |
 | T6.7 | **Dialogue for fast and slow readers** | **DONE** — `5.14.0` (claimed `5.12.0`, renumbered to land after T6.12), a MINOR: a setting, two public methods a game may ignore, and cancel now doing something in a conversation where it did nothing. **A SKIP WALKS, IT DOES NOT JUMP**: cancel calls `DialogueScreen.skip()`, which drives the runner through `advance()`, so every node passed is arrived at and fires its effect; it stops at the first choice, shown whole, and a second skip there does nothing; with no choice ahead it runs to the end. A cycle stops after 512 lines. `gameplay/dialogue_auto_advance`, off by default, holds a whole line 1.5 s plus 15 characters a second over the text speed, and never answers a choice. **THE PLANT THAT STAYED GREEN**: deleting the screen's stop-at-a-choice check changes nothing, because the runner already refuses there; the red plant is `runner.stop()` as the skip, `2549 passed, 13 failed`. `dialogue_test.gd` would have been 305 of 250, so the cases are `dialogue_speed_test.gd`. Photographed |
 | T6.13 | **Two suite runs at once, in two worktrees, broke each other** | **DONE** — `5.15.0` (claimed `5.12.0`, renumbered to land after T6.7), a MINOR: a class and a var a game may ignore, and test-framework constants turned into functions. **OUT OF NUMBER ORDER ON PURPOSE**, like T6.9 to T6.11; T6.11 found it, and T6.12 was taken by PR #73. Every worktree shares one `user://`, and `SaveFixture.activate()` EMPTIES a fixed directory under it, so two suites started 0.3s apart failed 15 and 8. Every scratch path is now under `RunScratch.root()`, `user://test_runs/<pid>`, and both pass. **Liveness is a heartbeat, because the pid design failed its own proof**: on Windows `OS.is_process_running` is false for a process the caller did not start, so each run pruned every other. At the merge T6.12's parking directory, a fixed name `park()` empties before every case, moved under it too. Also stopped `options_test` deleting the real `input.cfg`. See below |
-| T6.8 | **Close the list, and gate it** | **DONE** — `5.15.1`, a PATCH, and `src/` and `tools/` are byte-identical. **THE PHASE'S EXIT CRITERION, AND EVERY ONE OF THEM IS NOW TICKED.** Every item of `SYSTEMS_INVENTORY.md` § "Commonly forgotten" carries the bold marker `DONE — <id>` or `CLOSED (game's) — <id>`, and the new `forgotten_list_test.gd` fails an item without one, an id with no row on this board, and a gap in the numbering. **PROVED RED ON THE LIST AS IT STOOD**: 16 failed, two for each of eight items — #1, #6 and #9 to #13 were settled work described in prose the scan could not read (`BOTH DONE`, `Both work as of T5.5`, `owner decision, T6.0`), and #8 had no verdict at all. After, 32 of 32. Two plants, an id with no board row and a numbering gap, fail one each. **#8 IS CLOSED (game's), PENDING THE OWNER'S PLAYTEST**: the manifest asked for the owner's playtest verdict on first-run defaults; asked on 2026-09-30, the owner has not playtested yet and means to soon, so the closure stands until then, and the base keeps every default in one `Settings.DEFAULTS` line for a game to tune against its own content. A default found unpleasant by playing is still a defect under the playtest rule. The phase stays OPEN for T6.14. See below |
+| T6.8 | **Close the list, and gate it** | **DONE** — `5.15.1`, a PATCH, and `src/` and `tools/` are byte-identical. **THE PHASE'S EXIT CRITERION, AND EVERY ONE OF THEM IS NOW TICKED.** Every item of `SYSTEMS_INVENTORY.md` § "Commonly forgotten" carries the bold marker `DONE — <id>` or `CLOSED (game's) — <id>`, and the new `forgotten_list_test.gd` fails an item without one, an id with no row on this board, and a gap in the numbering. **PROVED RED ON THE LIST AS IT STOOD**: 16 failed, two for each of eight items — #1, #6 and #9 to #13 were settled work described in prose the scan could not read (`BOTH DONE`, `Both work as of T5.5`, `owner decision, T6.0`), and #8 had no verdict at all. After, 32 of 32. Two plants, an id with no board row and a numbering gap, fail one each. **#8 IS CLOSED (game's), PENDING THE OWNER'S PLAYTEST**: the manifest asked for the owner's playtest verdict on first-run defaults; asked on 2026-09-30, the owner has not playtested yet and means to soon, so the closure stands until then, and the base keeps every default in one `Settings.DEFAULTS` line for a game to tune against its own content. A default found unpleasant by playing is still a defect under the playtest rule. T6.14 closed the phase. See below |
 | T3.3 | **A quest step that can read an ITEM COUNT** | **DONE** — `292dd44`, PR #21. The sixth package of Phase T3; see below. WP-09 costed two designs and closed neither; this took the FIRST one with the cost that made it look expensive removed — the count is a DERIVED flag, so it is readable without being saved twice |
 
 **Why T2.0 jumps the queue, and it is deliberately out of thematic order.** It belongs to Phase
@@ -6910,4 +6910,63 @@ a defect inside the phase and comes next.
 **Scope.** `5.15.1`, a PATCH: one new case and its `CASES` line, and documents. Suite 2,621 on `claude/t6-13-parallel-suites` at `8021b59` → **2,655**, +34: 32 in the new `forgotten_list_test` (two, plus two for each of fifteen items) and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `8021b59`, after the documentation landed. Stripped, in CI: `2581 passed, 0 failed, 25 skipped`.
 
 **Commit:** on `claude/t6-8-close-the-list`, built on `claude/t6-13-parallel-suites` (PR #77),
-PR #79 targeting `main`. No SHA, per item 6.
+PR #79 targeting `main`, merged as `0d3585d` from branch head `49bf3c9`, after PR #77 merged as
+`1566f00`. Filled in by T6.14, with the counts from the CI job log on `49bf3c9`, PR #79:
+`Ladder (stripped template)`, job 109761269330: `=== 2581 passed, 0 failed, 25 skipped ===`;
+`Ladder (full checkout)`, job 109761269579: `=== 2655 passed, 0 failed, 0 skipped ===`.
+
+## T6.14 · A count that reaches a string picks its plural form — **DONE**
+
+**The defect.** `RestPoint.perform` sent `{hours}` = `floori(minutes / 60)` into one key, so a rest
+under two hours read "1 hours slip past", and one under an hour "0 hours", after the clock had
+moved. T6.6's `tr_n` check found it. It is the only count in the base with a noun beside it.
+
+**Checked first, in the 4.7 docs, and then in the engine.** The regenerated reference lists four
+options on `ResourceImporterCSVTranslation` (`compress`, `delimiter`, `unescape_keys`,
+`unescape_translations`) and no description at all, so the docs do not answer it. `Translation`
+has `add_plural_message` and `get_plural_message`. A scratch project answered it: **4.7.2's CSV
+importer reads plural forms.** A column headed `?plural` names the plural key, and a following row
+with an empty key holds the next form, as many rows as the locale has forms. The locale's rule
+applies: the same file imported for `fr` answered its singular for 0, English its plural. `.po`
+was not needed.
+
+**Proved red before the fix.** The new `tests/unit/plural_count_test.gd` renders the toast exactly
+as `notification_toast.gd` `_show_next()` does, `tr(key).format(args)`, from what `RestPoint`
+emitted, against a fixture translation it builds (a test may not name the demo key). On the old
+code: `2659 passed, 8 failed`. Five were rest lines, and they showed both halves of the defect:
+`tr()` on a plural row answers its FIRST form, so a thirteen-hour rest read "13 hour slips past",
+and flooring made 30 and 1 minutes read "0". Three were the CSV lint on the one `{hours}` row.
+
+**The fix.**
+- `RestPoint` asks `TranslationServer.translate_plural(rested_key, rested_key, hours)` and sends
+  the chosen form; the toast's own `tr()` passes resolved text through unchanged. A row with no
+  plural form answers itself for any count, so a game's plain row still works (asserted).
+- `hours_for(minutes)` is the nearest whole hour and never zero, since `skip_to_hour` always skips
+  1 to 1,440 minutes. 89 minutes is 1, 90 is 2.
+- `strings.csv` gains the `?plural` column after `keys`, empty on every row but one, and the rest
+  row's second form below it. `gen_pseudolocale.gd` found `en` by name and filled `en_XA` for both
+  forms; `check_content`, `check_strings` and `check_boundary` already skip an empty key.
+
+**Plants.** Emitting `rested_key` instead of the chosen form: 3 failed. Flooring again: 3 failed.
+Deleting the second form from the CSV: it went red on 1 at first, because a missing form comes
+back as the key itself, which also differs from the singular. The assertion now also requires
+that neither form is the key, and the same plant fails 2.
+
+**Photographed**, windowed, standing at the bench (`--stand-by=StoneBench --interact=1`): a
+59-minute rest reads "You rest a while. 1 hour slips past.", where the old code said "0 hours";
+a 778-minute rest under `--locale=en_XA` reads "[~~You rest a while. 13 hours slip past.~~]".
+
+**Deliberately not done.** The toast did not learn a `count` argument. With one counted sender
+that would widen `notification_toast.gd` and `Events.notify_requested`'s contract for one caller,
+and the manifest was `rest_point.gd`, the CSV and a test. `rest_point.gd`'s header says when to
+move it: the second counted toast. Until then `RestPoint` is the one sender that passes resolved
+text through a signal documented as taking a key, and its header says why.
+
+**The phase closes.** Every exit criterion was ticked by T6.8; this was the last row. Phase T6 is
+COMPLETE. #8's closure still stands only until the owner's playtest, as T6.8 recorded.
+
+**Scope.** `5.16.0`, a MINOR. Suite 2,655 on `main` at `0d3585d` → **2,669**, +14: 12 in the new
+`plural_count_test` (nine, plus three for the one `{hours}` row) and 2 in `record_shape_test` for
+this row's own package id; every other case unmoved. The stripped count is CI's.
+
+**Commit:** on `claude/t6-14-plural-forms`, built on `main` at `0d3585d`. No SHA, per item 6.

@@ -11734,3 +11734,57 @@ No playtest of the defaults was run. The gate checks that a verdict exists and n
 Suite 2,621 on `claude/t6-13-parallel-suites` at `8021b59` → **2,655**, +34: 32 in the new `forgotten_list_test` (two, plus two for each of fifteen items) and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `8021b59`, after the documentation landed. Stripped, in CI: `2581 passed, 0 failed, 25 skipped`.
 
 **Commit:** on `claude/t6-8-close-the-list`, PR #79, built on T6.13's PR #77. No SHA, per board item 6.
+
+## 2026-09-30 — T6.14 · A count that reaches a string picks its plural form
+
+**Did.** `RestPoint` asks `TranslationServer.translate_plural(rested_key, rested_key, hours)` for
+the form the locale's rule picks and sends that, and the new static `hours_for(minutes)` reports
+the nearest whole hour, never zero. `strings.csv` gained the importer's `?plural` column after
+`keys` and the rest row's second form below it; `gen_pseudolocale.gd` filled `en_XA` for both.
+New `tests/unit/plural_count_test.gd` and its `CASES` line. Gotcha 82. Phase T6 marked COMPLETE.
+
+**Why.** T6.6's `tr_n` check found `{hours}` = `floori(minutes / 60)` in one key: a rest under two
+hours read "1 hours", one under an hour "0 hours". It is the only count in the base with a noun
+beside it, and the last row of the phase.
+
+**Checked first.** The regenerated 4.7 reference lists four `ResourceImporterCSVTranslation`
+options and no description, so it does not say. A scratch project with a `keys,?plural,en,fr`
+CSV did: the importer builds plural messages, a row with an empty key carries the next form, and
+French answered its singular for 0 where English answered its plural. `.po` was not needed.
+
+**Connects.** `notification_toast.gd`, whose `tr(key).format(args)` the test reproduces and whose
+`tr()` is why the choice cannot happen there without a new argument; `Clock.skip_to_hour`, which
+skips 1 to 1,440 minutes and so can never honestly be reported as zero; `gen_pseudolocale.gd`,
+`check_content`, `check_strings` and `check_boundary`, all of which already tolerated the new
+column and the empty-key row, checked by reading each before the edit.
+
+**Verified.**
+- **Red first**, on the old `rest_point.gd` and CSV: `=== 2659 passed, 8 failed ===`, exit 1.
+  "two hours are plural — expected 2 hours slip past., got 2 hour slips past." (`tr()` answers the
+  first form), "half an hour reads as one hour, not zero — … got 0 hour slips past.", and the
+  three CSV lint lines on the one `{hours}` row.
+- **After:** `=== 2667 passed, 0 failed, 0 skipped ===`, exit 0, on the T6.8 tip and again after
+  rebasing onto `main` at `0d3585d`.
+- **Plants**, restored after: emitting `rested_key` instead of the chosen form, 3 failed; flooring
+  again, 3 failed; deleting the CSV's second form, 1 failed, which exposed a weak assertion (a
+  missing form comes back as the key, which also differs from the singular). Tightened to refuse
+  the key, the same plant fails 2.
+- **Photographed**, windowed, `--new-game --time=19:00 --stand-by=StoneBench --interact=1`: a
+  59-minute rest reads "You rest a while. 1 hour slips past." (the old code: "0 hours"). With
+  `--time=07:00 --locale=en_XA`, a 778-minute rest reads "[~~You rest a while. 13 hours slip
+  past.~~]". The first capture, at frame 150, showed "Autosaved." because the rest line was queued
+  behind it; frame 330 showed it.
+- **Ladder, all green:** `--import` 0 `SCRIPT ERROR` / `Parse Error`; boot `0 warnings, 0 errors`;
+  all seven checkers exit 0; `check_content` reports `localization columns: 4 (keys, ?plural, en, en_XA)`.
+
+**Unblocks.** Nothing queued: Phase T6 is complete. A game's own counted strings now have a
+proved path, and the lint catches a `{hours}` row authored with one form.
+
+**Gaps.** The toast did not learn a `count` argument, so `RestPoint` is the one sender passing
+resolved text through `notify_requested`, a signal documented as taking a key; its header says
+why, and when to move it. The lint knows only `{hours}`; a game's own counted placeholder is not
+checked. Only English's rule is asserted. #8's closure still waits on the owner's playtest.
+Suite 2,655 on `main` at `0d3585d` → **2,669**, +14: 12 in the new `plural_count_test` and 2 in
+`record_shape_test` for this row's own package id. The stripped count is CI's.
+
+**Commit:** on `claude/t6-14-plural-forms`, built on `main` at `0d3585d`. No SHA, per board item 6.

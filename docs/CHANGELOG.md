@@ -19,6 +19,32 @@ the exact rot this discipline exists to prevent.
 | **PATCH** | nothing a game wrote is affected | merges and carries on |
 
 ---
+## 5.16.0
+
+*2026-09-30 — a rest's toast agrees with its count: "1 hour slips past", never "1 hours" or "0 hours".*
+
+**A consuming game does: nothing, unless it has a `{hours}` row of its own or has edited
+`localization/strings.csv`.**
+- **The CSV gained a column.** `?plural` now sits after `keys` on every row, so a game that edited
+  the file will see every line conflict, not only the last one (`UPGRADING.md` § 6). Resolve it by
+  taking yours and adding one empty field after the key on every row: in a shell,
+  `sed -i '1s/^keys,/keys,?plural,/; 2,$s/^\([^,]*\),/\1,,/'`. Then `--headless --import`.
+- **Any row whose text uses `{hours}` must have both English forms**, or the new
+  `tests/unit/plural_count_test.gd` fails it: the plural key in `?plural`, and the second form on
+  the next row with an empty key, as the base's own rest row shows. A plain row still renders at
+  runtime; only the lint asks for the second form.
+- **A rest now reports the nearest whole hour, and never zero.** It used to floor. A game that
+  read the toast's `hours` argument elsewhere sees 1 for a 30-minute rest where it saw 0.
+
+**What changed.** 4.7.2's CSV importer reads plural forms, though its documentation does not say
+so; a scratch project proved it, and the locale's own rule picks the form. `RestPoint` now asks
+`TranslationServer.translate_plural` for that form and sends it, because `tr()` on a plural row
+answers the first form: measured before the fix, a thirteen-hour rest read "13 hour slips past".
+`RestPoint.hours_for(minutes)` is new. Proved red first, with 8 failed, and photographed after.
+**MINOR, and the call is stated:** nothing in `src/` a game wrote must change, and a game's plain
+rows keep working, but the lint does ask something of a game's own `{hours}` rows.
+
+---
 ## 5.15.1
 
 *2026-09-29 — every "Commonly forgotten" item carries a verdict, and one without fails the suite.*

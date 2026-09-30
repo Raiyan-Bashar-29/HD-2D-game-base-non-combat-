@@ -13,9 +13,11 @@ in the numbering. **A new item arrives with its verdict or the build goes red.**
 stood the case failed 16, two for each of eight items written in prose it could not read; after
 the edits, 32 of 32. The id is found by the whole id, so `T5.1` is not satisfied by `T5.10`.
 
-**#8, FIRST-RUN DEFAULTS, IS CLOSED (game's) BY DEFAULT, NOT BY THE OWNER.** T6.0's manifest asked
-for the owner's playtest verdict there, and it was not given in T6.8's session. The item says so.
-**A default the owner finds unpleasant by playing overrides it**, as a row ahead of the queue.
+**#8, FIRST-RUN DEFAULTS, IS CLOSED (game's).** T6.0's manifest asked for the owner's playtest
+verdict there; asked in T6.8, the owner delegated the call on 2026-09-30, and the closure stands:
+the base keeps every default in one `Settings.DEFAULTS` line, and "pleasant" is judged against a
+game's own mix and look. **A default found unpleasant by playing is still a defect**, a row ahead
+of the queue.
 
 **Regex patterns in a test are written with bracket classes, `[*]`, `[.]`, `[(]`.** The first
 draft was written through a shell heredoc that turned every doubled backslash into one, so `"\*"` was
@@ -44,7 +46,7 @@ an invalid escape and the case never parsed; T4.4's `doc_counts_test.gd` met the
 anything above — found, not invented, the standard every T6 row had to meet. T6.9 is the first,
 numbered after T6.8 so that no planned id moves. T6.10 is the second, found while proving T6.9, T6.11 the third, found by T6.10, T6.12 the fourth, the gap T6.9 recorded, and T6.13 the fifth, found by T6.11.
 
-Suite 2,621 on `claude/t6-13-parallel-suites` at `8021b59` → **2,655**, +34: 32 in the new `forgotten_list_test` (two, plus two for each of fifteen items) and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `8021b59`, after the documentation landed. The stripped count is CI's.
+Suite 2,621 on `claude/t6-13-parallel-suites` at `8021b59` → **2,655**, +34: 32 in the new `forgotten_list_test` (two, plus two for each of fifteen items) and 2 in `record_shape_test` for this row's own package id; every other case unmoved. Measured per case against `8021b59`, after the documentation landed. Stripped, in CI: `2581 passed, 0 failed, 25 skipped`.
 
 *(Previously: T6.13 stopped two suite runs at once, in two worktrees, breaking each other, at
 `5.15.0`, a MINOR. Every path the suite writes is under `user://test_runs/<pid>`, owned by

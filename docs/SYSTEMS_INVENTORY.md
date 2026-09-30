@@ -261,10 +261,10 @@ decision in the game, and the item says which seam the game builds it on.
    never hurried, and `gameplay/pause_on_focus_loss` off, so a second monitor is not a pause.
    Whether the rest are PLEASANT is a judgement about a mix, a pace and a look the base does not
    have — its audio is placeholder and its art is deferred — so a game makes it against its own
-   content, by editing those lines. **The owner's playtest verdict, which T6.0's manifest asked
-   for here, was not given in T6.8's session; this closure is the default taken in its absence.**
-   A default the owner finds unpleasant by playing is a defect under the playtest rule and becomes
-   a row ahead of the queue, and that finding overrides this line.
+   content, by editing those lines. **The owner's verdict, 2026-09-30:** T6.0's manifest asked
+   for a playtest verdict here; asked in T6.8, the owner delegated the call, and the closure was
+   kept on the reasoning above. A default later found unpleasant by playing is still a defect
+   under the playtest rule, and becomes a row ahead of the queue.
 9. **Reduced motion,** and a depth-of-field toggle. **DONE — T5.5 and T5.9.** `set_dof_enabled`
    existed on the camera rig from day one and had no caller anywhere for the whole project; the
    rig now listens for `video/depth_of_field` and remembers what the area author authored, so the

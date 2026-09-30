@@ -1572,8 +1572,8 @@ was classified, including the ones refused.
   Every one of the fifteen "Commonly forgotten" items now carries `DONE — <id>` or
   `CLOSED (game's) — <id>`, and `forgotten_list_test.gd` fails an item without one, an id with no
   board row, and a gap in the numbering. Before the edits it failed 16, two for each of eight items;
-  after, 32 of 32. #8, first-run defaults, is CLOSED (game's) in the absence of the owner's
-  playtest verdict, which overrides it if it comes. **Every exit criterion is now ticked; the phase
+  after, 32 of 32. #8, first-run defaults, is CLOSED (game's); the owner, asked for a playtest
+  verdict, delegated the call on 2026-09-30, and the closure stands. **Every exit criterion is now ticked; the phase
   stays OPEN for T6.14, a defect found inside it.**
 - **T6.14 A count that reaches a string picks its plural form** — planned, found by T6.6, which numbered it T6.10; T6.12 at T6.11's merge, T6.13 at T6.12's, T6.14 at T6.13's.
   `RestPoint` sends `{hours}` into one key, so a short rest reads "1 hours" or "0 hours".

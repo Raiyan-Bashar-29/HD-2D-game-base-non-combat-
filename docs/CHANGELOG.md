@@ -35,8 +35,8 @@ form anything could read: some were settled work described in prose, one (#8, fi
 had no verdict at all. Measured before the edits, the new case failed 16 assertions, two for each
 of those eight; after, it passes 32 of 32. Planted: an id with no board row and a gap in the
 numbering fail one assertion each. #8 is CLOSED (game's): the base keeps every default in one
-`Settings.DEFAULTS` line and a game tunes them against its own content. The owner's playtest
-verdict on those defaults was not given in this package, and overrides the closure if it comes.
+`Settings.DEFAULTS` line and a game tunes them against its own content. Asked for a playtest
+verdict on those defaults, the owner delegated the call, and the closure stands.
 
 ---
 ## 5.15.0
